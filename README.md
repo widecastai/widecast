@@ -8,8 +8,11 @@
 2-minute videos, blogs, and posts for 10 platforms.
 Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 
-[![PyPI](https://img.shields.io/pypi/v/widecast)](https://pypi.org/project/widecast/)
-[![npm](https://img.shields.io/npm/v/@widecast/sdk)](https://www.npmjs.com/package/@widecast/sdk)
+[![PyPI](https://img.shields.io/pypi/v/widecast?label=pypi%20widecast&color=8b5cf6)](https://pypi.org/project/widecast/)
+[![npm SDK](https://img.shields.io/npm/v/@widecast/sdk?label=npm%20sdk&color=8b5cf6)](https://www.npmjs.com/package/@widecast/sdk)
+[![npm MCP](https://img.shields.io/npm/v/@widecast/mcp-server?label=npm%20mcp&color=8b5cf6)](https://www.npmjs.com/package/@widecast/mcp-server)
+[![tests](https://img.shields.io/github/actions/workflow/status/widecastai/widecast/test.yml?branch=main&label=tests)](https://github.com/widecastai/widecast/actions/workflows/test.yml)
+[![Downloads](https://img.shields.io/pypi/dm/widecast?label=pypi%20downloads&color=22c55e)](https://pypi.org/project/widecast/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![widecast.ai](https://img.shields.io/badge/widecast-ai-8b5cf6)](https://widecast.ai)
 
