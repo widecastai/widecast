@@ -1,0 +1,52 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/suggest_ideas"
+  },
+  "title": "Suggest video topic ideas for an industry",
+  "description": "Synchronous — Run returns a list of video topic ideas for the industry\nimmediately (no polling). Consumes credits.\n",
+  "fields": [
+    {
+      "name": "industry_id",
+      "type": "text",
+      "label": "Industry (e.g. Real Estate) — falls back to your account industry",
+      "required": false,
+      "placeholder": "Real Estate"
+    },
+    {
+      "name": "num_topics",
+      "type": "text",
+      "label": "How many ideas (1–20)",
+      "required": false,
+      "placeholder": "5"
+    },
+    {
+      "name": "sub_industry",
+      "type": "text",
+      "label": "Sub-industry (optional)",
+      "required": false
+    },
+    {
+      "name": "user_location",
+      "type": "text",
+      "label": "Location hint (optional, e.g. US)",
+      "required": false
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "suggest",
+      "title": "💡 Suggest ideas",
+      "description": "Enter an industry (or leave blank to use your account's), set how many, then Run. The ideas come back in the response.",
+      "request": {
+        "industry_id": "Real Estate",
+        "num_topics": "5"
+      }
+    }
+  ],
+  "_key": "suggest-ideas",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

@@ -1,0 +1,22 @@
+{
+  "endpoint": {
+    "method": "GET",
+    "path": "/v1/account"
+  },
+  "title": "Account info",
+  "description": "Read-only, free. Your account profile, remaining credits, and connected platforms.\n",
+  "fields": [],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "account",
+      "title": "👤 Account info",
+      "description": "No params — returns plan, credits, industry, and connected platforms.",
+      "request": {}
+    }
+  ],
+  "_key": "account",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

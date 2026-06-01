@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "widecast"
+version = "0.1.0"
+description = "WideCast.ai Python SDK — generate videos from scripts, ideas, audio, or existing videos."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Apache-2.0" }
+authors = [{ name = "WideCast", email = "support@widecast.ai" }]
+keywords = ["widecast", "video", "ai", "generative", "tts", "remotion", "sdk"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["requests>=2.28"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov>=4"]
+
+[project.urls]
+Homepage = "https://widecast.ai"
+Documentation = "https://widecast.ai/docs.html"
+Source = "https://github.com/widecastai/widecast"
+Changelog = "https://github.com/widecastai/widecast/releases"
+
+[tool.setuptools.packages.find]
+include = ["widecast*"]

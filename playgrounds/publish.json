@@ -1,0 +1,88 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/publish"
+  },
+  "title": "Publish a video / blog / text to social platforms",
+  "description": "Distribute content to the social platforms connected to your account. Provide\n**exactly one** of `topic_id` (an existing WideCast video/blog), `text`\n(arbitrary post), or `video_url` (an external video FILE url, needs `title`).\n`platforms` defaults to **all connected**. **⚠ Running posts PUBLICLY and\ncharges 1 credit.** The response carries the upstream `request_ids` — poll\n`GET /v1/status/{request_id}` for per-platform post URLs.\n",
+  "fields": [
+    {
+      "name": "topic_id",
+      "type": "text",
+      "label": "topic_id — publish an existing WideCast video/blog",
+      "required": false,
+      "placeholder": "widecast7c0d4f8a9b1e2d3f"
+    },
+    {
+      "name": "text",
+      "type": "textarea",
+      "label": "text — post arbitrary text",
+      "required": false,
+      "rows": 3,
+      "placeholder": "We just shipped v2 — try it free today!"
+    },
+    {
+      "name": "video_url",
+      "type": "text",
+      "label": "video_url — external direct video FILE url (needs title)",
+      "required": false,
+      "placeholder": "https://cdn.example.com/clip.mp4"
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "label": "title (required for video_url; optional override for topic_id)",
+      "required": false
+    },
+    {
+      "name": "description",
+      "type": "textarea",
+      "label": "description (optional)",
+      "required": false,
+      "rows": 2
+    },
+    {
+      "name": "platforms",
+      "type": "json",
+      "label": "platforms (JSON array; omit = all connected)",
+      "required": false,
+      "placeholder": "[\"youtube\", \"x\"]"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "publish_topic",
+      "title": "📣 Publish an existing WideCast video/blog",
+      "description": "Pass the `topic_id` from /v1/create_video or /v1/create_content. WideCast auto-detects article vs video (a video must be rendered first). Omit `platforms` to post to all connected.",
+      "request": {
+        "topic_id": "widecast7c0d4f8a9b1e2d3f",
+        "platforms": [
+          "youtube",
+          "x"
+        ]
+      }
+    },
+    {
+      "id": "publish_text",
+      "title": "✍️ Post arbitrary text",
+      "description": "Post text you provide directly (not from a WideCast topic) to all connected text platforms.",
+      "request": {
+        "text": "We just shipped v2 — try it free today!"
+      }
+    },
+    {
+      "id": "publish_external_video",
+      "title": "🎬 Post an external video URL",
+      "description": "Give a direct video FILE url + a `title`; WideCast downloads it and posts it.",
+      "request": {
+        "video_url": "https://cdn.example.com/clip.mp4",
+        "title": "Launch teaser"
+      }
+    }
+  ],
+  "_key": "publish",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

@@ -1,0 +1,17 @@
+# Playground — GET /v1/videos (read, free). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/videos
+title: List recent videos
+description: |
+  Read-only, free. Lists the account's recent videos/scripts (20 per page).
+fields:
+  - { name: from_record, type: text, label: "from_record (offset)", required: false, placeholder: "0" }
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: recent
+    title: "🎬 Recent videos"
+    description: "List the most recent videos. Increase `from_record` to page."
+    request:
+      from_record: 0

@@ -1,0 +1,16 @@
+# Playground — GET /v1/platform_settings (read, free). Load saved settings.
+endpoint:
+  method: GET
+  path: /v1/platform_settings
+title: Load publish settings
+description: |
+  Read-only, free. The saved per-platform publish preferences (privacy / page /
+  subreddit) — not access controls.
+fields: []
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: load_settings
+    title: "⚙️ Load publish settings"
+    description: "No params — returns the saved settings object keyed by platform."
+    request: {}

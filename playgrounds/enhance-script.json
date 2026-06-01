@@ -1,0 +1,118 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/enhance_script"
+  },
+  "title": "Enhance a draft script with AI",
+  "description": "Improve a DRAFT video script (fix grammar, add examples, sharpen the hook).\nAsync: submit, then this card auto-polls `/v1/status` until `completed` —\n`result.review_url` opens the Script Editor with the improved script.\nConsumes credits.\n",
+  "fields": [
+    {
+      "name": "script_text",
+      "type": "textarea",
+      "label": "Draft script to enhance",
+      "required": true,
+      "rows": 6,
+      "placeholder": "Paste your draft script here."
+    },
+    {
+      "name": "intervention_level",
+      "type": "select",
+      "label": "Enhance level",
+      "required": false,
+      "default": "1",
+      "options": [
+        {
+          "value": "0",
+          "label": "0 — segment only"
+        },
+        {
+          "value": "1",
+          "label": "1 — natural enhance (default)"
+        },
+        {
+          "value": "2",
+          "label": "2 — maximum rewrite"
+        }
+      ]
+    },
+    {
+      "name": "language",
+      "type": "select",
+      "label": "Output language",
+      "required": false,
+      "default": "",
+      "options": [
+        {
+          "value": "",
+          "label": "Keep original"
+        },
+        {
+          "value": "English",
+          "label": "English"
+        },
+        {
+          "value": "Vietnamese",
+          "label": "Tiếng Việt"
+        }
+      ]
+    },
+    {
+      "name": "callback_url",
+      "type": "text",
+      "label": "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html",
+      "required": false,
+      "placeholder": "https://widecast.ai/app/dashboard2/webhook_test/wht_… (from webhook-test.html)"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": true,
+    "id_field": "id",
+    "status_path": "/v1/status/{id}",
+    "terminal_statuses": [
+      "completed",
+      "failed"
+    ],
+    "initial_interval_ms": 5000,
+    "max_interval_ms": 5000,
+    "backoff_multiplier": 1.0,
+    "timeout_ms": 600000
+  },
+  "use_cases": [
+    {
+      "id": "enhance",
+      "title": "✨ Enhance a draft",
+      "description": "Paste a rough draft, pick the **enhance level** (0 segment-only, 1 natural, 2 max rewrite) and **language**, then Run. The card polls until the improved script is ready.",
+      "request": {
+        "script_text": "Want more views? Post consistently. Engagement matters. The end.",
+        "intervention_level": "1",
+        "language": "",
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "intervention_level",
+          "options": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "field": "language",
+          "options": [
+            "",
+            "English",
+            "Vietnamese"
+          ]
+        }
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 600
+      }
+    }
+  ],
+  "_key": "enhance-script",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

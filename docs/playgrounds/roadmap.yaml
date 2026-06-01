@@ -1,0 +1,17 @@
+# Playground — GET /v1/roadmap (read, free). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/roadmap
+title: Content roadmap
+description: |
+  Read-only, free. The account's content roadmap — weeks, slots, completion, streak.
+fields:
+  - { name: cycle, type: text, label: "cycle", required: false, placeholder: "1" }
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: roadmap
+    title: "🗺️ Roadmap"
+    description: "Fetch the roadmap for a cycle (default 1)."
+    request:
+      cycle: 1

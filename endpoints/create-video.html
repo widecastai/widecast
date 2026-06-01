@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Create a video — `POST /v1/create_video` + `GET /v1/status/{id}` · WideCast Docs</title>
+  <meta name="description" content="Turn a **plain-text script**, a **short idea**, a **blog/article**, or an **existing video/audio** (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:">
+  <link rel="canonical" href="https://widecast.ai/endpoints/create-video.html">
+
+  <meta property="og:title" content="Create a video — `POST /v1/create_video` + `GET /v1/status/{id}` · WideCast Docs">
+  <meta property="og:description" content="Turn a **plain-text script**, a **short idea**, a **blog/article**, or an **existing video/audio** (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/create-video.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Create a video — `POST /v1/create_video` + `GET /v1/status/{id}` · WideCast Docs">
+  <meta name="twitter:description" content="Turn a **plain-text script**, a **short idea**, a **blog/article**, or an **existing video/audio** (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="create-a-video-post-v1create_video-get-v1statusid">Create a video — <code>POST /v1/create_video</code> + <code>GET /v1/status/{id}</code></h1>
+<p>Turn a <strong>plain-text script</strong>, a <strong>short idea</strong>, a <strong>blog/article</strong>, or an <strong>existing video/audio</strong> (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:</p>
+<ol>
+<li><strong><code>POST /v1/create_video</code></strong> — submit <code>script_text</code> (source=text, default), <code>idea_text</code> (source=idea), <code>blog_text</code> (source=blog), <strong>or</strong> a media URL / file (<code>source=video_url|video_file|audio_url|audio_file</code>). Returns a <code>widecast*</code> id and initial <code>status: "processing"</code>.</li>
+<li><strong><code>GET /v1/status/{id}</code></strong> — poll until <code>status</code> is <code>completed</code> (or <code>failed</code>).</li>
+<li><strong><code>POST /v1/export_video</code></strong> — for <code>output_type=scene</code> videos, kick the final-MP4 renderer after review. See <a href="export-video.md">export-video.md</a>.</li>
+</ol>
+<h3 id="pick-a-source-what-kind-of-input">Pick a <code>source</code> — what kind of input?</h3>
+<table>
+<thead>
+<tr>
+<th><code>source</code></th>
+<th>What you provide</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code> (default — backward-compat)</td>
+<td><code>script_text</code> (80-500 words, used <strong>verbatim</strong> by the narrator)</td>
+<td>You've already written the script</td>
+</tr>
+<tr>
+<td><code>idea</code></td>
+<td><code>idea_text</code> (5-1000 words, longer auto-truncated) + optional <code>language</code> / <code>video_length</code> / <code>research_enabled</code></td>
+<td>You want the AI to write the script from a brief</td>
+</tr>
+<tr>
+<td><code>blog</code></td>
+<td><code>blog_text</code> (30-3000 words, longer auto-truncated) + optional <code>language</code> / <code>video_length</code> / <code>research_enabled</code></td>
+<td>You have a blog post / article and want it turned into a video script</td>
+</tr>
+<tr>
+<td><code>video_url</code></td>
+<td><code>video_url</code> (YouTube / TikTok / Facebook, ≤2 min)</td>
+<td><strong>Auto-Edit</strong> — the footage itself becomes the B-roll</td>
+</tr>
+<tr>
+<td><code>video_file</code></td>
+<td>a video file (multipart upload)</td>
+<td>Auto-Edit, but you upload the file instead of linking it</td>
+</tr>
+<tr>
+<td><code>audio_url</code></td>
+<td><code>audio_url</code> (YouTube / TikTok / Facebook, ≤2 min)</td>
+<td><strong>Audio-to-Video</strong> — the audio becomes the narration, the AI builds matching scenes</td>
+</tr>
+<tr>
+<td><code>audio_file</code></td>
+<td>an audio file (multipart upload)</td>
+<td>Audio-to-Video, but you upload the file</td>
+</tr>
+</tbody>
+</table>
+<p><code>idea</code> and <code>blog</code> are <strong>generative</strong> sources: the server runs <code>ai_enhance_script</code> (input → narration) and then continues into the same scene-sourcing pipeline as <code>source=text</code>.</p>
+<p><code>video_*</code> and <code>audio_*</code> are <strong>media-ingest</strong> sources (the script already lives inside the media): the server downloads (URL) or saves (upload) the file under <code>/mnt/efs/transcoder</code>, then runs the existing footage / audio pipeline. For these, <code>output_type="text"</code> = <strong>Remake</strong> (extract the spoken transcript only → editable script); <code>scene</code>/<code>video</code> build the full video. <code>language</code> / <code>video_length</code> / <code>research_enabled</code> do <strong>not</strong> apply (the media dictates the script).</p>
+<h3 id="pick-an-output_type-how-far-down-the-pipeline-pipeline-depth">Pick an <code>output_type</code> — how far down the pipeline (pipeline depth)</h3>
+<table>
+<thead>
+<tr>
+<th><code>output_type</code></th>
+<th>Pipeline stops at…</th>
+<th>Completion gate</th>
+<th><code>result</code> fields</th>
+<th>Valid for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td>script text ready</td>
+<td><code>generated_video_script</code> has segments (Phase 1 done)</td>
+<td><code>review_url</code></td>
+<td>generative sources + media sources (<code>source != text</code>); for media = <strong>Remake</strong> (transcript only)</td>
+</tr>
+<tr>
+<td><code>scene</code> (default)</td>
+<td>scenes-ready-for-review</td>
+<td>topic/footage row step=5 + script segments</td>
+<td><code>review_url</code></td>
+<td>all sources</td>
+</tr>
+<tr>
+<td><code>video</code></td>
+<td>final MP4 rendered</td>
+<td>queue_row.video_url populated</td>
+<td><code>review_url</code> + <code>video_url</code></td>
+<td>all sources</td>
+</tr>
+</tbody>
+</table>
+<p>The two axes combine — every valid <code>source</code> × <code>output_type</code> pair works, <strong>except <code>source=text</code> + <code>output_type=text</code></strong> (rejected — you already supplied the script).</p>
+<p>When <code>status == "completed"</code>:
+- <code>result.review_url</code> is the URL where the user reviews the result. The UI auto-detects the data state: for <code>output_type=text</code> it opens the <strong>Script Editor</strong> (narration only, no scenes yet); for <code>output_type=scene</code> it opens the <strong>Scene Editor</strong> (scenes + audio). Append <strong><code>&amp;readonly=true</code></strong> for a public, sign-in-free, <strong>iframe-embeddable</strong> read-only player (e.g. <code>…?topic_id=&lt;id&gt;&amp;readonly=true</code>) — embed that variant to show the result inline (in a chat/artifact); the plain URL opens the editor for a signed-in user.
+- <code>result.video_url</code> is the direct MP4 URL — present only for <code>output_type=video</code> (or after a successful <code>/v1/export_video</code>).</p>
+<blockquote>
+<p><strong>Why <code>text</code> is invalid only for <code>source=text</code></strong>: <code>output_type</code> is pipeline depth. <code>text</code> means "stop after the source→script-text phase". That phase exists for every source EXCEPT <code>text</code> — generative sources (idea/blog) generate the script, media sources (video/audio) extract it. For <code>source=text</code> the caller already provided the script, so <code>text</code> output would just echo the input.</p>
+</blockquote>
+<h3 id="faceless-all-b-roll-no-narrator"><code>faceless</code> — all-B-roll (no narrator)</h3>
+<p>By default scenes mix <strong>A-roll</strong> (narrator) and <strong>B-roll</strong> (stock video / AI image). Set <strong><code>faceless: true</code></strong> to make <strong>every scene B-roll with no narrator anywhere</strong> — a "faceless" video. It's orthogonal to <code>output_type</code> (controls A/B-roll, not pipeline depth) and only valid with <code>output_type</code> <code>scene</code>/<code>video</code> for sources <code>text</code>/<code>idea</code>/<code>blog</code>. Combining it with <code>output_type=text</code> (no scenes) or a media source returns <code>invalid_faceless</code> (400). Default <code>false</code> leaves the normal A/B mix unchanged.</p>
+<h3 id="field-bounds-locked-a38-parity">Field bounds (LOCKED — A38 parity)</h3>
+<p>Used VERBATIM by the narrator (source=text) or interpreted by the AI (source=idea / blog). All bounds are LOCKED — the SDKs export them as named constants you should refer to programmatically.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>When required</th>
+<th>Min</th>
+<th>Max</th>
+<th>Over-max behavior</th>
+<th>SDK constant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>script_text</code></td>
+<td><code>source=text</code></td>
+<td>80 words (~20s)</td>
+<td>500 words (~2 min)</td>
+<td>Reject <code>script_too_long</code></td>
+<td><code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code></td>
+</tr>
+<tr>
+<td><code>idea_text</code></td>
+<td><code>source=idea</code></td>
+<td>5 words</td>
+<td>1000 words</td>
+<td><strong>Auto-truncate</strong> at whitespace, surfaced in <code>details.input_truncated_from</code></td>
+<td><code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code></td>
+</tr>
+<tr>
+<td><code>blog_text</code></td>
+<td><code>source=blog</code></td>
+<td>30 words</td>
+<td>3000 words</td>
+<td><strong>Auto-truncate</strong> at whitespace, surfaced in <code>details.input_truncated_from</code></td>
+<td><code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code></td>
+</tr>
+<tr>
+<td><code>video_url</code> / <code>audio_url</code> / <code>video_file</code> / <code>audio_file</code></td>
+<td>the matching media source</td>
+<td>—</td>
+<td><strong>2 minutes</strong> (all media) + <strong>100 MB</strong> (uploads only)</td>
+<td>Reject <code>media_too_long</code> / <code>file_too_large</code></td>
+<td><code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code></td>
+</tr>
+</tbody>
+</table>
+<p>Word count = whitespace split (<code>len(text.split())</code>) — works for English + Vietnamese. Media sources have no word bound — instead a <strong>2-minute duration cap</strong> (<code>media_too_long</code>, all media incl. URLs) and, for <strong>uploaded files only</strong>, a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>MEDIA_MAX_DURATION_SECONDS</code> (120) / <code>MEDIA_MAX_FILE_BYTES</code> (100 MB); file size is pre-validated client-side, duration is server-enforced.</p>
+<h3 id="inline-images-video-in-your-script-sourcetext">Inline images &amp; video in your script (<code>source=text</code>)</h3>
+<p>Want a specific shot to appear at a specific moment? Drop a <strong>direct image or video URL</strong> straight into <code>script_text</code>, right after (or before) the sentence it should illustrate, in either of two equivalent forms. WideCast:</p>
+<ol>
+<li><strong>strips both forms from the spoken narration</strong> (the narrator never reads them aloud), and</li>
+<li><strong>uses that image/video as the visual for the matching scene</strong>, instead of the auto-sourced B-roll it would otherwise pick.</li>
+</ol>
+<p><strong>Recommended — markdown image syntax <code>![alt](url)</code></strong> (chat hosts like Claude / ChatGPT / Grok / Gemini render the picture inline next to the narration, so the end-user can visually approve each scene before the script is submitted; the alt text doubles as the strongest scene anchor):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;script_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Our new espresso machine pulls a perfect shot every time. ![Stainless-steel espresso machine](https://cdn.example.com/machine.jpg) The secret is precise temperature control, which you can see in action here. ![Slow extraction in close-up](https://cdn.example.com/brewing.mp4) Order yours today at example.com.&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Backward-compat — raw URL on its own line</strong> (still works, no chat preview):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;script_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Our new espresso machine pulls a perfect shot every time. https://cdn.example.com/machine.jpg The secret is precise temperature control, which you can see in action here. https://cdn.example.com/brewing.mp4 Order yours today at example.com.&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>You can mix forms freely in the same script.</p>
+<ul>
+<li><strong>Supported</strong> — <em>direct file links</em> ending in an image extension (<code>.png</code> <code>.jpg</code> <code>.jpeg</code> <code>.gif</code> <code>.webp</code> <code>.bmp</code> <code>.avif</code> <code>.svg</code>) or a video extension (<code>.mp4</code> <code>.webm</code> <code>.mov</code> <code>.m4v</code> <code>.avi</code>), optionally with a <code>?query</code> string.</li>
+<li><strong>Not supported as inline assets</strong> — page links such as <code>https://youtube.com/watch?v=…</code> or a TikTok URL (they have no media extension). To turn a <em>whole</em> clip into a video, use <code>source=video_url</code> / <code>audio_url</code> instead.</li>
+<li><strong>Matching</strong> — for markdown form, the alt text IS the anchor (model-provided scene description). For raw URLs, WideCast uses the ~6 words on either side. Type (image vs video) is auto-detected from the extension.</li>
+<li>Multiple URLs are fine; scenes without a URL still get automatic B-roll.</li>
+</ul>
+<p>This only applies to <code>source=text</code> (your verbatim script). For <code>idea</code>/<code>blog</code> the script is AI-written, and for media sources the visuals come from the clip itself.</p>
+<h3 id="enums-locked-v010">Enums (LOCKED v0.1.0)</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Values</th>
+<th>Default</th>
+<th>SDK constant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code></td>
+<td><code>text</code>, <code>idea</code>, <code>blog</code>, <code>video_url</code>, <code>video_file</code>, <code>audio_url</code>, <code>audio_file</code></td>
+<td><code>text</code></td>
+<td><code>SOURCES</code></td>
+</tr>
+<tr>
+<td><code>output_type</code></td>
+<td><code>text</code> (any source except <code>text</code>), <code>scene</code>, <code>video</code></td>
+<td><code>scene</code></td>
+<td><code>OUTPUT_TYPES</code></td>
+</tr>
+<tr>
+<td><code>language</code> (idea / blog)</td>
+<td><code>English</code>, <code>Vietnamese</code></td>
+<td><code>English</code></td>
+<td><code>LANGUAGES</code></td>
+</tr>
+<tr>
+<td><code>video_length</code> (idea / blog)</td>
+<td><code>short</code> (~90s), <code>normal</code> (~3 min cap)</td>
+<td><code>short</code></td>
+<td><code>VIDEO_LENGTHS</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Convention (A38)</strong>: every field constraint surfaces in <strong>5 places</strong> — this docs page, the OpenAPI spec, SDK constants/types, the playground UI, and server enforcement (with a LOCKED <code>error.code</code>). See HANDOFF §6 (A38) before adding a new field.</p>
+</blockquote>
+<hr />
+<h2 id="post-v1create_video">POST <code>/v1/create_video</code></h2>
+<p><strong>source=text</strong> (default — backward-compat):</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/create_video</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME   # required when key enforcement is on (401 otherwise)</span>
+<span class="err">Content-Type: application/json</span>
+<span class="err">Idempotency-Key: &lt;uuid&gt;                    # optional; read but not enforced in pilot</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;source&quot;:          &quot;text&quot;,                      // optional, default &quot;text&quot;</span>
+<span class="err">  &quot;script_text&quot;:     &quot;Paste your script here (80–500 words).&quot;,</span>
+<span class="err">  &quot;output_type&quot;:     &quot;scene&quot;,                     // optional, &quot;scene&quot; (default) or &quot;video&quot;</span>
+<span class="err">  &quot;wait_for_render&quot;: false,                       // optional, default false</span>
+<span class="err">  &quot;callback_url&quot;:    &quot;https://...&quot;,               // optional (HMAC-SHA256-signed webhook)</span>
+<span class="err">  &quot;metadata&quot;:        { &quot;external_id&quot;: &quot;...&quot; }     // optional, echoed back</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p><strong>source=idea</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/create_video</span>
+<span class="err">{</span>
+<span class="err">  &quot;source&quot;:           &quot;idea&quot;,</span>
+<span class="err">  &quot;idea_text&quot;:        &quot;Describe what the video should be about (5–1000 words; longer auto-truncated).&quot;,</span>
+<span class="err">  &quot;language&quot;:         &quot;English&quot;,                   // optional, default &quot;English&quot;; English|Vietnamese</span>
+<span class="err">  &quot;video_length&quot;:     &quot;short&quot;,                     // optional, default &quot;short&quot;; short|normal</span>
+<span class="err">  &quot;research_enabled&quot;: true,                        // optional, default true</span>
+<span class="err">  &quot;output_type&quot;:      &quot;scene&quot;,                     // optional, default &quot;scene&quot;</span>
+<span class="err">  &quot;wait_for_render&quot;:  false,</span>
+<span class="err">  &quot;callback_url&quot;:     &quot;https://...&quot;,</span>
+<span class="err">  &quot;metadata&quot;:         {}</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p><strong>source=blog</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/create_video</span>
+<span class="err">{</span>
+<span class="err">  &quot;source&quot;:           &quot;blog&quot;,</span>
+<span class="err">  &quot;blog_text&quot;:        &quot;Paste your blog post or article here (30–3000 words; longer auto-truncated).&quot;,</span>
+<span class="err">  &quot;language&quot;:         &quot;English&quot;,                   // optional, default &quot;English&quot;; English|Vietnamese</span>
+<span class="err">  &quot;video_length&quot;:     &quot;short&quot;,                     // optional, default &quot;short&quot;; short|normal</span>
+<span class="err">  &quot;research_enabled&quot;: true,                        // optional, default true</span>
+<span class="err">  &quot;output_type&quot;:      &quot;text&quot;,                      // optional, default &quot;scene&quot;; &quot;text&quot; stops at the editable script</span>
+<span class="err">  &quot;wait_for_render&quot;:  false,</span>
+<span class="err">  &quot;callback_url&quot;:     &quot;https://...&quot;,</span>
+<span class="err">  &quot;metadata&quot;:         {}</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p><strong>source=video_url / audio_url</strong> (media by URL — pure JSON):</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/create_video</span>
+<span class="err">{</span>
+<span class="err">  &quot;source&quot;:      &quot;video_url&quot;,                   // or &quot;audio_url&quot;</span>
+<span class="err">  &quot;video_url&quot;:   &quot;https://www.youtube.com/watch?v=...&quot;,   // or &quot;audio_url&quot;: &quot;...&quot;</span>
+<span class="err">  &quot;output_type&quot;: &quot;scene&quot;,                        // &quot;text&quot; = Remake (transcript only) | &quot;scene&quot; | &quot;video&quot;</span>
+<span class="err">  &quot;callback_url&quot;:&quot;https://...&quot;,</span>
+<span class="err">  &quot;metadata&quot;:    {}</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p><strong>source=video_file / audio_file</strong> (upload — <code>multipart/form-data</code>, mirrors the UI):</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/create_video&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">&quot;source=video_file&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">&quot;output_type=scene&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-F<span class="w"> </span><span class="s2">&quot;video_file=@/path/to/clip.mp4&quot;</span><span class="w">        </span><span class="c1"># or -F &quot;audio_file=@ep.mp3&quot; with source=audio_file</span>
+</code></pre></div>
+
+<p>The SDKs wrap this: <code>client.create_video(source="video_file", video_file=open("clip.mp4","rb"))</code> (Python) / <code>client.create_video({ source: "video_file", video_file: blob })</code> (TS).</p>
+<h3 id="field-reference">Field reference</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code></td>
+<td>string</td>
+<td>no</td>
+<td><code>"text"</code> (default), <code>"idea"</code>, <code>"blog"</code>, <code>"video_url"</code>, <code>"video_file"</code>, <code>"audio_url"</code>, <code>"audio_file"</code>. Discriminates the input flow. See SDK constant <code>SOURCES</code>.</td>
+</tr>
+<tr>
+<td><code>script_text</code></td>
+<td>string</td>
+<td>when <code>source=text</code></td>
+<td>Plain narration — used <strong>verbatim</strong>. Must be <strong>80–500 words</strong> (~20s–2 min). SDK constants: <code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code>. May include <strong>inline image/video URLs</strong> (direct file links) to override B-roll for a scene — see <a href="#inline-images--video-in-your-script-sourcetext">Inline images &amp; video in your script</a>.</td>
+</tr>
+<tr>
+<td><code>idea_text</code></td>
+<td>string</td>
+<td>when <code>source=idea</code></td>
+<td>Short brief — AI writes the narration. <strong>5–1000 words</strong>; over-max is auto-truncated at whitespace, NOT rejected. Original word count surfaces in <code>details.input_truncated_from</code>. SDK constants: <code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code>.</td>
+</tr>
+<tr>
+<td><code>blog_text</code></td>
+<td>string</td>
+<td>when <code>source=blog</code></td>
+<td>Blog post / article — AI condenses it into the narration. <strong>30–3000 words</strong>; over-max is auto-truncated at whitespace, NOT rejected. Original word count surfaces in <code>details.input_truncated_from</code>. SDK constants: <code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code>.</td>
+</tr>
+<tr>
+<td><code>video_url</code> / <code>audio_url</code></td>
+<td>string (url)</td>
+<td>when <code>source=video_url</code> / <code>audio_url</code></td>
+<td>A YouTube / TikTok / Facebook URL (≤2 min). <code>video_url</code> → footage becomes B-roll (Auto-Edit); <code>audio_url</code> → audio becomes narration (Audio-to-Video). Over the cap → <code>media_too_long</code>; non-allowed host → <code>unsupported_media_url</code>.</td>
+</tr>
+<tr>
+<td><code>video_file</code> / <code>audio_file</code></td>
+<td>file</td>
+<td>when <code>source=video_file</code> / <code>audio_file</code></td>
+<td>The media file, sent as <strong>multipart/form-data</strong> (the request must be multipart). Caps: <strong>≤100 MB</strong> (<code>file_too_large</code>, pre-validated client-side) and <strong>≤2 min</strong> (<code>media_too_long</code>).</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td>string</td>
+<td>no (idea / blog)</td>
+<td>Narration language. Default <code>"English"</code>. v0.1.0 enum: <code>English</code>, <code>Vietnamese</code>. SDK constant <code>LANGUAGES</code>. Ignored when <code>source=text</code>.</td>
+</tr>
+<tr>
+<td><code>video_length</code></td>
+<td>string</td>
+<td>no (idea / blog)</td>
+<td><code>"short"</code> (~90s, content_type 9, default) or <code>"normal"</code> (~3 min cap, content_type 10). SDK constant <code>VIDEO_LENGTHS</code>. Ignored when <code>source=text</code>.</td>
+</tr>
+<tr>
+<td><code>research_enabled</code></td>
+<td>bool</td>
+<td>no (idea / blog)</td>
+<td>Default <code>true</code>. Disable only if your input is self-contained and doesn't need AI fact-checking. Ignored when <code>source=text</code>.</td>
+</tr>
+<tr>
+<td><code>output_type</code></td>
+<td>string</td>
+<td>no</td>
+<td>Pipeline depth. <code>"text"</code> stops after the source→script phase (any source except <code>text</code> — review_url opens Script Editor; for media = Remake/transcript). <code>"scene"</code> (default) stops at scenes-ready-for-review. <code>"video"</code> auto-chains into the renderer so the final MP4 is produced — no manual <code>/v1/export_video</code> call needed.</td>
+</tr>
+<tr>
+<td><code>faceless</code></td>
+<td>bool</td>
+<td>no</td>
+<td>Default <code>false</code>. When <code>true</code>, <strong>every scene is B-roll</strong> (stock video / AI image) with <strong>no narrator A-roll</strong> anywhere — a "faceless" video. Orthogonal to <code>output_type</code>. Only valid with <code>output_type</code> <code>scene</code>/<code>video</code> for sources <code>text</code>/<code>idea</code>/<code>blog</code>; otherwise → 400 <code>invalid_faceless</code>. SDK constant <code>FACELESS_SOURCES</code>.</td>
+</tr>
+<tr>
+<td><code>media_pool</code></td>
+<td>array[string]</td>
+<td>no</td>
+<td>Direct image/video file URLs <strong>not</strong> placed inline. WideCast downloads each (+thumbnail) and adds them to the <strong>first scene's</strong> media library, so the scene editor lists them and the user can drop any into any scene. Use for images you can't confidently match to a beat (inline the ones you can). Best-effort: applies on the scene-producing path (<code>text</code>/<code>idea</code>/<code>blog</code>, <code>output_type</code> <code>scene</code>/<code>video</code>); ignored for <code>output_type=text</code> / media sources. Direct file links only.</td>
+</tr>
+<tr>
+<td><code>wait_for_render</code></td>
+<td>bool</td>
+<td>no</td>
+<td>If <code>true</code>, block up to <strong>60s</strong> waiting for completion. If exceeded, return in-flight state and poll.</td>
+</tr>
+<tr>
+<td><code>callback_url</code></td>
+<td>string (url)</td>
+<td>no</td>
+<td>HTTPS URL for completion webhook (HMAC-SHA256 signed). Fires <code>video.processing</code> immediately and one terminal event (<code>video.completed</code> or <code>video.failed</code>). For <code>output_type=video</code>, <code>video.completed</code> fires only when the final MP4 is ready.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>object</td>
+<td>no</td>
+<td>Up to 16 keys, 500 chars each. Echoed back on <code>/v1/status</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="response-202-accepted-default-async-path">Response — <code>202 Accepted</code> (default async path)</h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;queued&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w">  </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w">    </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w">     </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;callback_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;external_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;usage&quot;</span><span class="p">:</span><span class="w">     </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;links&quot;</span><span class="p">:</span><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;self&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/v1/status/widecast7c0d4f8a9b1e2d3f&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;request_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;req_...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;widecast_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="get-v1statusid">GET <code>/v1/status/{id}</code></h2>
+<p>Universal status poll. v0.1.0 supports only the <code>widecast*</code> ids returned by <code>/v1/create_video</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="err">GET /v1/status/widecast7c0d4f8a9b1e2d3f</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME</span>
+</code></pre></div>
+
+<h3 id="response-completed-output_type-scene">Response (<code>completed</code> — <code>output_type: scene</code>)</h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;topic_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;scenes_ready_for_review&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;step&quot;</span><span class="p">:</span><span class="w">       </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;Completed&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;notes&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-20T12:34:56Z&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;review_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://widecast.ai/#scene_editor?topic_id=widecast7c0d4f8a9b1e2d3f&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w">         </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w">      </span><span class="p">{},</span>
+<span class="w">  </span><span class="nt">&quot;usage&quot;</span><span class="p">:</span><span class="w">         </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;links&quot;</span><span class="p">:</span><span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;self&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/v1/status/widecast7c0d4f8a9b1e2d3f&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w">         </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;request_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;req_...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;widecast_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="response-completed-output_type-video">Response (<code>completed</code> — <code>output_type: video</code>)</h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;video_rendered&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;review_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://widecast.ai/#scene_editor?topic_id=widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;video_url&quot;</span><span class="p">:</span><span class="w">  </span><span class="s2">&quot;https://widecast.ai/exports/huubinhnguyen/widecast7c0d4f8a9b1e2d3f/final.mp4&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>For <code>output_type=video</code>, the completion gate moves from "scenes ready" to
+"final MP4 rendered" — clients see <code>stage</code> cycle through <code>step_0</code> →
+<code>scenes_ready_for_review</code> → <code>rendering_video</code> → <code>video_rendered</code>. The
+terminal <code>video.completed</code> webhook fires only when the MP4 is ready.</p>
+<p><code>result</code> is intentionally minimal — only the user-facing <code>review_url</code> (+ <code>video_url</code> when applicable). The rendered video script (with <code>segments[]</code>) is NOT inlined to keep status responses cheap. A future <code>GET /v1/videos/{id}/script</code> endpoint will serve it explicitly when needed.</p>
+<h3 id="details-raw-worker-state-name-clash-inside"><code>details</code> — raw worker state (⚠ name clash inside)</h3>
+<p>For fine-grained progress visibility, every status response (except <code>pending</code> race window) includes a <code>details</code> sub-object surfacing the raw legacy worker fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>details.step</code></td>
+<td>integer</td>
+<td>Legacy <code>step</code> (0 throughout abroll; 0→2→5 during render pipeline)</td>
+</tr>
+<tr>
+<td><code>details.status</code></td>
+<td>string</td>
+<td>⚠ Free-form legacy status string. <strong>Distinct from the top-level <code>status</code> enum</strong> — <code>details.status</code> can be <code>"Completed"</code>, <code>"Avatar videos downloaded"</code>, <code>"Gen widecast media"</code>, <code>""</code>, etc. Branch logic on the top-level value; treat <code>details.status</code> as a human/debug hint.</td>
+</tr>
+<tr>
+<td><code>details.notes</code></td>
+<td>string</td>
+<td>Free-form note (error message, transcoder assignment, etc.)</td>
+</tr>
+<tr>
+<td><code>details.updated_at</code></td>
+<td>ISO 8601</td>
+<td>When the worker last touched the row</td>
+</tr>
+</tbody>
+</table>
+<p>During the <code>pending</code> race window (no topic row yet), <code>details</code> is <code>null</code>.</p>
+<h3 id="response-failed">Response (<code>failed</code>)</h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">  </span><span class="s2">&quot;failed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;step_3&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.84</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w">   </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;credit_exhausted&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You don&#39;t have enough credits to use this feature. Please consider upgrading your package.&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="status-enum-locked">Status enum (LOCKED)</h3>
+<table>
+<thead>
+<tr>
+<th><code>status</code></th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pending</code></td>
+<td>id was just issued (last 5s), worker still spinning up. <strong>No 404 during this window</strong> — the server tracks issued ids in memory.</td>
+</tr>
+<tr>
+<td><code>processing</code></td>
+<td>The worker is running. Triggered by <strong>any</strong> signal of activity: any row in <code>topics_table</code> / <code>video_queue_table</code>, OR the id was issued &gt;5s ago (abroll worker writes silently to ES, so we treat "spawned by us + still within grace" as processing).</td>
+</tr>
+<tr>
+<td><code>completed</code></td>
+<td>Gate depends on <code>output_type</code>. <strong>text:</strong> <code>generated_video_script</code> has segments (Phase 1 done) → <code>stage=script_ready_for_review</code>, <code>result.review_url</code>. <strong>scene:</strong> topic_row step=5 + <code>status_note="Completed"</code> + script segments → <code>stage=scenes_ready_for_review</code>, <code>result.review_url</code>. <strong>video:</strong> queue_row <code>video_url</code> non-empty → <code>stage=video_rendered</code>, <code>result.review_url</code> + <code>result.video_url</code>.</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>Detected via multi-layer: <code>status==="Error"</code> / contains "fail"/"error", or <code>notes</code> matches error patterns. <code>error.code</code> + <code>error.message</code> populated.</td>
+</tr>
+</tbody>
+</table>
+<p>The server mirrors the legacy <code>/checkProgress</code> logic — it queries <strong>both</strong> <code>video_queue_table</code> (which has progressive step/status updates from the render pipeline) and <code>topics_table</code> (which holds the final scenes-ready state). The richer of the two drives <code>details</code>; the topic-row state drives completion gating.</p>
+<h3 id="progress-mapping">Progress mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th><code>progress</code></th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pending (no row, age &lt;5s)</td>
+<td>0.05</td>
+<td>issued-ids cache</td>
+</tr>
+<tr>
+<td>processing (silent worker)</td>
+<td>0.30</td>
+<td>issued-ids cache, age 5s–10min</td>
+</tr>
+<tr>
+<td>processing (row, default)</td>
+<td>0.30</td>
+<td>row exists, no signals</td>
+</tr>
+<tr>
+<td>processing (status non-empty)</td>
+<td>0.50</td>
+<td>worker touched the row</td>
+</tr>
+<tr>
+<td>processing (script ready)</td>
+<td>0.80</td>
+<td>rendered script with segments present</td>
+</tr>
+<tr>
+<td>processing (step=2)</td>
+<td>0.70</td>
+<td>queue-row mid-pipeline</td>
+</tr>
+<tr>
+<td>processing (step=5 not done)</td>
+<td>0.95</td>
+<td>queue-row final, awaiting Completed flag</td>
+</tr>
+<tr>
+<td>completed</td>
+<td>1.00</td>
+<td>scenes ready for review</td>
+</tr>
+</tbody>
+</table>
+<h3 id="error-codes-locked-v010">Error codes (LOCKED, v0.1.0)</h3>
+<h4 id="worker-detected-surface-in-resulterrorcode-when-status-failed">Worker-detected (surface in <code>result.error.code</code> when <code>status === "failed"</code>)</h4>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>Trigger pattern in <code>notes</code>/legacy <code>status</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>account_expired</code></td>
+<td>"your account expired", "account has expired", "please renew or upgrade", "subscription expired"</td>
+</tr>
+<tr>
+<td><code>credit_exhausted</code></td>
+<td>"don't have enough credits", "upgrade your package", "credit depleted", "quota exceeded", "no_credit"</td>
+</tr>
+<tr>
+<td><code>render_failed</code></td>
+<td>Generic — <code>status</code> contains "Fail"/"Error" but no pattern matched</td>
+</tr>
+<tr>
+<td><code>unknown_error</code></td>
+<td>Error detected but unclassifiable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="request-validation-auth-surface-as-http-400-401-409-error-envelope">Request-validation + auth (surface as HTTP 400 / 401 / 409 error envelope)</h4>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>script_too_short</code></td>
+<td>400</td>
+<td><code>script_text</code> is under 80 words (source=text).</td>
+</tr>
+<tr>
+<td><code>script_too_long</code></td>
+<td>400</td>
+<td><code>script_text</code> is over 500 words (source=text).</td>
+</tr>
+<tr>
+<td><code>idea_too_short</code></td>
+<td>400</td>
+<td><code>idea_text</code> is under 5 words (source=idea). NOTE: no <code>idea_too_long</code> — over-max is auto-truncated, not rejected.</td>
+</tr>
+<tr>
+<td><code>missing_idea_text</code></td>
+<td>400</td>
+<td><code>source=idea</code> but <code>idea_text</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>blog_too_short</code></td>
+<td>400</td>
+<td><code>blog_text</code> is under 30 words (source=blog). NOTE: no <code>blog_too_long</code> — over-max is auto-truncated, not rejected.</td>
+</tr>
+<tr>
+<td><code>missing_blog_text</code></td>
+<td>400</td>
+<td><code>source=blog</code> but <code>blog_text</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>missing_video_url</code></td>
+<td>400</td>
+<td><code>source=video_url</code> but <code>video_url</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>missing_audio_url</code></td>
+<td>400</td>
+<td><code>source=audio_url</code> but <code>audio_url</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>missing_media_file</code></td>
+<td>400</td>
+<td><code>source=video_file</code>/<code>audio_file</code> but no file part was sent (must be multipart/form-data).</td>
+</tr>
+<tr>
+<td><code>unsupported_media_url</code></td>
+<td>400</td>
+<td>The media URL is not an http(s) URL or not a YouTube / TikTok / Facebook host (or the download failed).</td>
+</tr>
+<tr>
+<td><code>media_too_long</code></td>
+<td>400</td>
+<td>The media exceeds the 2-minute duration cap (all media — URL or upload).</td>
+</tr>
+<tr>
+<td><code>file_too_large</code></td>
+<td>400</td>
+<td>An uploaded <code>video_file</code> / <code>audio_file</code> exceeds 100 MB (uploads only; pre-validated client-side by the SDKs too).</td>
+</tr>
+<tr>
+<td><code>invalid_source</code></td>
+<td>400</td>
+<td><code>source</code> is not one of <code>text</code>, <code>idea</code>, <code>blog</code>, <code>video_url</code>, <code>video_file</code>, <code>audio_url</code>, <code>audio_file</code>.</td>
+</tr>
+<tr>
+<td><code>invalid_output_type</code></td>
+<td>400</td>
+<td><code>output_type</code> not in <code>text</code>/<code>scene</code>/<code>video</code>, OR <code>output_type=text</code> combined with <code>source=text</code> (text output needs a generative source).</td>
+</tr>
+<tr>
+<td><code>invalid_language</code></td>
+<td>400</td>
+<td><code>language</code> not in <code>LANGUAGES</code> (source=idea).</td>
+</tr>
+<tr>
+<td><code>invalid_video_length</code></td>
+<td>400</td>
+<td><code>video_length</code> not in <code>VIDEO_LENGTHS</code> (source=idea).</td>
+</tr>
+<tr>
+<td><code>invalid_research_enabled</code></td>
+<td>400</td>
+<td><code>research_enabled</code> is not a boolean (source=idea).</td>
+</tr>
+<tr>
+<td><code>invalid_faceless</code></td>
+<td>400</td>
+<td><code>faceless</code> is not a boolean, OR <code>faceless=true</code> combined with <code>output_type=text</code> (no scenes) or a media source (<code>video_*</code>/<code>audio_*</code>).</td>
+</tr>
+<tr>
+<td><code>missing_api_key</code></td>
+<td>401</td>
+<td>API-key enforcement is on but no <code>Authorization: Bearer wc_live_...</code> header was sent. <code>error.type = authentication_error</code>.</td>
+</tr>
+<tr>
+<td><code>invalid_api_key</code></td>
+<td>401</td>
+<td>The API key is malformed, unknown, or revoked. <code>error.type = authentication_error</code>.</td>
+</tr>
+<tr>
+<td><code>scenes_not_ready</code></td>
+<td>409</td>
+<td><code>/v1/export_video</code> called before scenes are ready.</td>
+</tr>
+<tr>
+<td><code>export_failed</code></td>
+<td>500</td>
+<td>Renderer enqueue failed (server-side).</td>
+</tr>
+</tbody>
+</table>
+<p><code>error.message</code> echoes the legacy notes verbatim so users see the same wording across surfaces.</p>
+<h3 id="polling-cadence-recommended">Polling cadence (recommended)</h3>
+<p><strong>Fixed 5 seconds.</strong> The SDKs' <code>video.wait()</code> defaults to a constant 5s interval (no exponential backoff). If you want backoff for very long polls, override <code>max_interval</code> / <code>backoff_multiplier</code> on <code>wait()</code>.</p>
+<hr />
+<h2 id="try-it">Try it</h2>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/create_video</code></div><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="script_en" id="ex-create-video--script_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Script · English</h3><p class="wc-pg-example-desc">You have a finished narration (~120 words). Pick how far to take it with the **output type** radio: `scene` stops at scenes-ready-for-review; `video` renders the final MP4 end-to-end. Pick an industry pill to load a domain script, edit it freely, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="idea_en" id="ex-create-video--idea_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💡 Idea · English</h3><p class="wc-pg-example-desc">Just a brief — the AI writes the script. Pick **output type**: `text` stops at the editable script (Script Editor); `scene` continues to scenes-ready; `video` renders the final MP4. **Video length** picks short (~90s) or normal (~3 min). Pick an industry pill to load a brief, edit it, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="blog_en" id="ex-create-video--blog_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📰 Blog / Article · English</h3><p class="wc-pg-example-desc">Paste a blog post or article — the AI condenses it into a video script. Default **output type** is `text` (stops at the editable script in the Script Editor, the UI default flow); switch to `scene`/`video` to go further. **Video length** picks short (~90s) or normal (~3 min). Only industries with a full article fixture appear here; pick a pill, edit the text, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_url_en" id="ex-create-video--video_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video URL → Auto-Edit · English</h3><p class="wc-pg-example-desc">Paste a **video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_url_en" id="ex-create-video--audio_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio URL → Audio-to-Video · English</h3><p class="wc-pg-example-desc">Paste an **audio/video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server extracts the audio and uses it as the narration, generating matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_file_en" id="ex-create-video--video_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video file → Auto-Edit · English</h3><p class="wc-pg-example-desc">**Upload a video file** (≤2 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_file_en" id="ex-create-video--audio_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio file → Audio-to-Video · English</h3><p class="wc-pg-example-desc">**Upload an audio file** (≤2 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<p>The playground submits your script text, then <strong>auto-polls</strong> <code>/v1/status/{id}</code> until the video is <code>completed</code> (or <code>failed</code>), then renders the review URL.</p>
+<hr />
+<h2 id="sdk-examples">SDK examples</h2>
+<p>Four canonical flows, one method per language. The matrix is <code>source</code> × <code>output_type</code> — each combination is a valid call.</p>
+<h3 id="python">Python</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>  <span class="c1"># reads WIDECAST_API_KEY env var</span>
+
+<span class="c1"># (1) Script → scenes (review-first)  — default</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span>
+    <span class="n">script_text</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;my_script.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>   <span class="c1"># 80–500 words</span>
+<span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Review at:&quot;</span><span class="p">,</span> <span class="n">video</span><span class="o">.</span><span class="n">review_url</span><span class="p">)</span>
+
+<span class="c1"># (2) Script → full MP4</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span>
+    <span class="n">script_text</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;my_script.txt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+    <span class="n">output_type</span><span class="o">=</span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">900</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MP4:&quot;</span><span class="p">,</span> <span class="n">video</span><span class="o">.</span><span class="n">video_url</span><span class="p">)</span>
+
+<span class="c1"># (3) Idea → scenes (AI writes the script first)</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;idea&quot;</span><span class="p">,</span>
+    <span class="n">idea_text</span><span class="o">=</span><span class="s2">&quot;Why teens should get their driver&#39;s license at 16, not 18.&quot;</span><span class="p">,</span>
+    <span class="n">language</span><span class="o">=</span><span class="s2">&quot;English&quot;</span><span class="p">,</span>                  <span class="c1"># default</span>
+    <span class="n">video_length</span><span class="o">=</span><span class="s2">&quot;short&quot;</span><span class="p">,</span>                <span class="c1"># default ~90s</span>
+<span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">900</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Review at:&quot;</span><span class="p">,</span> <span class="n">video</span><span class="o">.</span><span class="n">review_url</span><span class="p">)</span>
+
+<span class="c1"># (4) Idea → full MP4 (Spanish narration, longer) — language=&quot;Spanish&quot;</span>
+<span class="c1"># tells WideCast to write the narration in Spanish even if the brief is in English.</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;idea&quot;</span><span class="p">,</span>
+    <span class="n">idea_text</span><span class="o">=</span><span class="s2">&quot;Why parents should let their teen learn to drive at 16.&quot;</span><span class="p">,</span>
+    <span class="n">language</span><span class="o">=</span><span class="s2">&quot;Spanish&quot;</span><span class="p">,</span>
+    <span class="n">video_length</span><span class="o">=</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>               <span class="c1"># cap ~3 min</span>
+    <span class="n">research_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>               <span class="c1"># default — explicit for clarity</span>
+    <span class="n">output_type</span><span class="o">=</span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">900</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MP4:&quot;</span><span class="p">,</span> <span class="n">video</span><span class="o">.</span><span class="n">video_url</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="typescript">TypeScript</h3>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
+
+<span class="c1">// (1) Script → scenes</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span><span class="w"> </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="kt">scriptText</span><span class="w"> </span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Review:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">review_url</span><span class="p">);</span>
+
+<span class="c1">// (2) Script → MP4</span>
+<span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="kt">scriptText</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">output_type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">({</span><span class="w"> </span><span class="nx">timeoutMs</span><span class="o">:</span><span class="w"> </span><span class="kt">900_000</span><span class="w"> </span><span class="p">}));</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;MP4:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">video_url</span><span class="p">);</span>
+
+<span class="c1">// (3) Idea → scenes</span>
+<span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;idea&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">idea_text</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;Why teens should get their license at 16, not 18.&quot;</span><span class="p">,</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">({</span><span class="w"> </span><span class="nx">timeoutMs</span><span class="o">:</span><span class="w"> </span><span class="kt">900_000</span><span class="w"> </span><span class="p">}));</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Review:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">review_url</span><span class="p">);</span>
+
+<span class="c1">// (4) Idea → MP4 (Spanish narration, normal length)</span>
+<span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;idea&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">idea_text</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;Why parents should let their teen learn to drive at 16.&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">language</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;Spanish&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">video_length</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">output_type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">({</span><span class="w"> </span><span class="nx">timeoutMs</span><span class="o">:</span><span class="w"> </span><span class="kt">900_000</span><span class="w"> </span><span class="p">}));</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;MP4:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">video_url</span><span class="p">);</span>
+</code></pre></div>
+
+<h3 id="detecting-auto-truncation-generative-sources-over-their-ceiling">Detecting auto-truncation (generative sources over their ceiling)</h3>
+<p>If you submit an over-long generative input (<code>idea_text</code> &gt; 1000 words, or <code>blog_text</code> &gt; 3000 words), the server trims it at the ceiling. The original count surfaces on <code>/v1/status</code> under one shared key, <code>details.input_truncated_from</code> (regardless of source):</p>
+<div class="highlight"><pre><span></span><code><span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_status</span><span class="p">(</span><span class="n">video_id</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">status</span><span class="o">.</span><span class="n">details</span> <span class="ow">and</span> <span class="n">status</span><span class="o">.</span><span class="n">details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_truncated_from&quot;</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Server trimmed your </span><span class="si">{</span><span class="n">status</span><span class="o">.</span><span class="n">details</span><span class="p">[</span><span class="s1">&#39;input_truncated_from&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">-word input.&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="manual-polling-curl">Manual polling (curl)</h3>
+<div class="highlight"><pre><span></span><code><span class="nv">VID</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/create_video&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;script_text&quot;:&quot;You should let your teen get a driver&#39;</span><span class="s2">&quot;&#39;&quot;</span><span class="s1">&#39;s license at 16.&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.id<span class="k">)</span>
+
+<span class="nv">INTERVAL</span><span class="o">=</span><span class="m">5</span>
+<span class="k">until</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATE</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATE</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;failed&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>sleep<span class="w"> </span><span class="nv">$INTERVAL</span>
+<span class="w">  </span><span class="nv">RESP</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;.../v1/status/</span><span class="nv">$VID</span><span class="s2">&quot;</span><span class="k">)</span>
+<span class="w">  </span><span class="nv">STATE</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESP</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.status<span class="k">)</span>
+<span class="w">  </span><span class="nv">INTERVAL</span><span class="o">=</span><span class="k">$((</span><span class="w"> </span><span class="nv">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">60</span><span class="w"> </span>?<span class="w"> </span><span class="nv">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="m">2</span><span class="w"> </span>:<span class="w"> </span><span class="m">60</span><span class="w"> </span><span class="k">))</span>
+<span class="k">done</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Review: </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESP</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.result.review_url<span class="k">)</span><span class="s2">&quot;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="top-level-errors-request-level">Top-level errors (request-level)</h2>
+<table>
+<thead>
+<tr>
+<th><code>code</code></th>
+<th>HTTP</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invalid_json</code></td>
+<td>400</td>
+<td>Body is not valid JSON.</td>
+</tr>
+<tr>
+<td><code>missing_field</code></td>
+<td>400</td>
+<td><code>script_text</code> field is missing or empty.</td>
+</tr>
+<tr>
+<td><code>spawn_failed</code></td>
+<td>500</td>
+<td>Failed to start the background worker.</td>
+</tr>
+<tr>
+<td><code>invalid_id</code> (status)</td>
+<td>400</td>
+<td>id doesn't match <code>widecast&lt;alphanumeric&gt;</code> pattern.</td>
+</tr>
+<tr>
+<td><code>video_not_found</code> (status)</td>
+<td>404</td>
+<td>No video with this id exists.</td>
+</tr>
+<tr>
+<td><code>openapi_load_failed</code> (spec)</td>
+<td>500</td>
+<td>Server couldn't read its own OpenAPI spec on disk.</td>
+</tr>
+</tbody>
+</table>
+<p>Every error response includes <code>error.request_id</code> — include it in any support ticket.</p>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

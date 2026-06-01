@@ -1,0 +1,11 @@
+"""
+📅 Production plan
+
+Auto-generated from widecast/docs/playgrounds/production-plan.yaml.
+"""
+from widecast import Widecast
+
+client = Widecast(api_key="wc_live_REPLACE_ME", base_url="https://widecast.ai/app/dashboard2")
+
+resp = client.v1_production_plan(**{'page': 0})
+print(resp)

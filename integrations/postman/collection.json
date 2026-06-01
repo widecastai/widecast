@@ -1,0 +1,189 @@
+{
+  "info": {
+    "name": "WideCast.ai",
+    "_postman_id": "00000000-0000-0000-0000-000000000001",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\nThis is the **v0.1.0 pilot surface**. Auth and billing are deferred — see\n`widecast/ROADMAP.md` for the full plan.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). The completion gate depends on the video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`, `result.review_url` set.\n    * scene → `stage: \"scenes_ready_for_review\"`, `result.review_url` set.\n    * video → `stage: \"video_rendered\"`, `result.video_url` AND\n      `result.review_url` set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  invalid_language | invalid_video_length | invalid_research_enabled`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://widecast.ai/app/dashboard2",
+      "description": "WideCast API base URL"
+    },
+    {
+      "key": "api_key",
+      "value": "wc_live_REPLACE_ME",
+      "description": "Your wc_live_* API key"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Create a video from a plain-text script.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/create_video",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "create_video"
+          ]
+        },
+        "description": "Create a video from either a plain-text script (`source: \"text\"`) or\na short idea description (`source: \"idea\"`). The server wraps the\nsame background workers that power the Script Editor + Idea-to-Video\nflows in the Gubo UI.\n\n- Returns immediately with `status: \"processing\"` (HTTP 202). Poll\n  `GET /v1/status/{id}` until terminal.\n- If `wait_for_render: true`, blocks up to **60 seconds**. If render\n  completes within the window, returns `status: \"completed\"` (HTTP 200).\n  Otherwise returns the in-flight state and the client polls.\n\n### source\n\n- `\"text\"` (default — backward-compat): provide `script_text`\n  (80-500 words, used VERBATIM by the narrator). Worker:\n  `request_video_script_from_script`.\n- `\"idea\"`: provide `idea_text` (5-1000 words; >1000 auto-truncated)\n  plus optional `language` / `video_length` / `research_enabled`.\n  Worker chain: `ai_enhance_script` (idea → narration) →\n  `request_video_script_from_script` (narration → scenes).\n\n### output_type\n\n- `\"scene\"` (default): pipeline stops at scenes-ready-for-review.\n  `result.review_url` populated on completion. You can then call\n  `POST /v1/export_video` to render the final MP4.\n- `\"video\"`: pipeline auto-chains into the renderer once scenes are\n  ready. `result.video_url` populated on completion. No manual\n  `/v1/export_video` call needed.\n\n### Bounds (LOCKED — see SDK constants)\n\n| Field | When required | Min words | Max words | Over-max behavior |\n|---|---|---|---|---|\n| `script_text` | source=text | 80 (`SCRIPT_MIN_WORDS`) | 500 (`SCRIPT_MAX_WORDS`) | reject `script_too_long` |\n| `idea_text` | source=idea | 5 (`IDEA_MIN_WORDS`) | 1000 (`IDEA_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n| `blog_text` | source=blog | 30 (`BLOG_MIN_WORDS`) | 3000 (`BLOG_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n\nSDKs export these as named constants — refer to those instead of\nhard-coding the numbers. Word count = whitespace split, works for\nEnglish + Vietnamese.\n",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source\": \"text\",\n  \"script_text\": \"Want to make a video in 60 seconds? Here's how — and why it actually works. First, draft your script in bullet points. Don't overthink it. Three to five beats is plenty: a hook that grabs attention, a body that delivers one clear idea, and a call to action that tells the viewer exactly what to do next. Second, paste it into WideCast and pick an aspect ratio. Vertical for TikTok and Reels, square for feed posts. Third, hit render and grab a coffee. The AI does the work. You come back to a video that's ready to publish. Try it free at widecast.ai today.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Kick the final-MP4 renderer for an already-created video.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/export_video",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "export_video"
+          ]
+        },
+        "description": "Pairs with `output_type: \"scene\"` on `/v1/create_video`. After the\nscenes-ready callback (or manual review via `review_url`), call this\nto enqueue the final render.\n\nIdempotent — calling twice is a no-op. Returns the current\n`/v1/status` snapshot.\n\nPreconditions:\n- The video must have reached `scenes_ready_for_review` (HTTP 409 with\n  `error.code = \"scenes_not_ready\"` otherwise).\n\nPost-effects:\n- The video's effective `output_type` is promoted to `\"video\"`.\n- The completion gate becomes `result.video_url` non-empty.\n- The `video.completed` webhook (if `callback_url` is set) re-arms\n  and fires when the MP4 is rendered.\n",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"widecast7c0d4f8a9b1e2d3f\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Poll the current state of a video.",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v1/status/{id}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "status",
+            "{id}"
+          ]
+        },
+        "description": "Universal status endpoint. v0.1.0 supports only the `widecast*` ids\nreturned by `/v1/create_video`; future flows will reuse the same\nendpoint with new id prefixes.\n\nRecommended polling cadence: **5s initial, ×1.5 exponential backoff,\ncap at 60s**. The SDKs' `video.wait()` implements this automatically.\n\nWhen `status == \"completed\"`, `result.review_url` is the URL where the\nuser reviews the rendered scenes + audio. `result.script` is the full\nrendered video script JSON (with `segments` populated).\n"
+      }
+    },
+    {
+      "name": "Fetch this OpenAPI spec as JSON.",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "openapi.json"
+          ]
+        },
+        "description": ""
+      }
+    },
+    {
+      "name": "Fetch this OpenAPI spec as YAML.",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/openapi.yaml",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "openapi.yaml"
+          ]
+        },
+        "description": ""
+      }
+    }
+  ]
+}

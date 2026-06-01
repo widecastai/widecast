@@ -1,0 +1,97 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "widecast_create_video",
+      "description": "Create a short-form video from either a finished script (source='text', default) or a short idea description (source='idea'). When source='text', provide script_text (80-500 words, used VERBATIM by the narrator). When source='idea', provide idea_text (5-1000 words; longer is auto-truncated server-side, NOT rejected) plus optional language / video_length / research_enabled — the AI writes the narration from the idea then continues into the same scene-sourcing pipeline. Either way returns a video id and initial status='processing'. Call widecast_get_status to poll. When output_type='scene' (default), the pipeline stops at scenes-ready-for-review (result.review_url populated); call widecast_export_video to render the final MP4. When output_type='video', the pipeline auto-chains into the renderer and result.video_url is populated on completion.",
+      "parameters": {
+        "type": "object",
+        "required": ["source"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["text", "idea"],
+            "default": "text",
+            "description": "'text' (default, backward-compat) requires script_text. 'idea' requires idea_text + optional language/video_length/research_enabled."
+          },
+          "script_text": {
+            "type": "string",
+            "description": "Required when source='text'. Plain-text narration — used VERBATIM. Must be 80-500 words (~20s to 2 min)."
+          },
+          "idea_text": {
+            "type": "string",
+            "description": "Required when source='idea'. Short description of what the video should be about. AI writes the narration from this. 5-1000 words; longer is auto-truncated."
+          },
+          "language": {
+            "type": "string",
+            "enum": ["English", "Vietnamese"],
+            "default": "English",
+            "description": "Narration language (source='idea' only)."
+          },
+          "video_length": {
+            "type": "string",
+            "enum": ["short", "normal"],
+            "default": "short",
+            "description": "Target video length (source='idea' only). 'short' = ~90s; 'normal' = capped at ~3 min."
+          },
+          "research_enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether AI does research/fact-check during narration generation (source='idea' only). Default true."
+          },
+          "output_type": {
+            "type": "string",
+            "enum": ["scene", "video"],
+            "default": "scene",
+            "description": "'scene' stops at scenes-ready-for-review. 'video' auto-chains into the renderer so the final MP4 is produced."
+          },
+          "wait_for_render": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, server blocks up to 60s waiting for render. Otherwise async — poll widecast_get_status."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional key-value pairs echoed back on get_status. Max 16 keys, 500 chars each."
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "widecast_export_video",
+      "description": "Kick the final-MP4 renderer for a video that was created with output_type='scene'. Use this after the scenes are ready for review (status='completed', stage='scenes_ready_for_review') and the user wants to proceed to the final video. Idempotent — calling twice is a no-op. Returns a status snapshot; poll widecast_get_status until result.video_url is populated.",
+      "parameters": {
+        "type": "object",
+        "required": ["video_id"],
+        "properties": {
+          "video_id": {
+            "type": "string",
+            "pattern": "^widecast[a-zA-Z0-9]{12,32}$",
+            "description": "Video id returned by widecast_create_video (e.g. widecast7c0d4f8a9b1e2d3f)."
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "widecast_get_status",
+      "description": "Poll the current state of a WideCast video by id. Returns status (pending|processing|completed|failed), progress 0..1. When status='completed', result.review_url is the URL where the user reviews scenes + audio, and result.video_url is the direct MP4 URL (populated only for output_type='video' videos or after widecast_export_video succeeds). Recommended polling cadence: 5s initial, ×1.5 exponential backoff, cap at 60s.",
+      "parameters": {
+        "type": "object",
+        "required": ["video_id"],
+        "properties": {
+          "video_id": {
+            "type": "string",
+            "pattern": "^widecast[a-zA-Z0-9]{12,32}$",
+            "description": "Video id returned by widecast_create_video (e.g. widecast7c0d4f8a9b1e2d3f)."
+          }
+        }
+      }
+    }
+  }
+]

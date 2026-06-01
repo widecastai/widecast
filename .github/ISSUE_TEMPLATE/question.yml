@@ -1,0 +1,17 @@
+name: ❓ Question
+description: Usage / integration question — not a bug, not a feature request
+title: "[q] "
+labels: [question]
+body:
+  - type: textarea
+    id: q
+    attributes:
+      label: Your question
+      description: Be specific. Snippets > screenshots.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you've tried / read so far
+      description: Helps avoid pointing you at something you've already seen.

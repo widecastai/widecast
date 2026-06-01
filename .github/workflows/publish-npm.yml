@@ -1,0 +1,162 @@
+name: publish-npm
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "!v*.*.*-rc*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 0.1.0). Must match package.json in both sdk-js/ and mcp-server/."
+        required: true
+      dist_tag:
+        description: "npm dist-tag"
+        required: true
+        default: "latest"
+        type: choice
+        options:
+          - latest
+          - next
+          - beta
+
+concurrency:
+  group: publish-npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ─── @widecast/sdk ─────────────────────────────────────────────────────
+  sdk:
+    name: Publish @widecast/sdk
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write       # for npm provenance
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22 with npm registry auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@widecast"
+          cache: npm
+          cache-dependency-path: sdk-js/package-lock.json
+
+      - name: Resolve version + sanity-check
+        id: meta
+        working-directory: sdk-js
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VER="${{ inputs.version }}"
+          else
+            VER="${GITHUB_REF_NAME#v}"
+          fi
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "tag/input version: $VER"
+          echo "package.json:     $PKG_VER"
+          if [ "$VER" != "$PKG_VER" ]; then
+            echo "::error::Tag/input version $VER does not match sdk-js/package.json $PKG_VER. Bump package.json first."
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        working-directory: sdk-js
+        run: npm ci || npm install
+
+      - name: Build
+        working-directory: sdk-js
+        run: npm run build
+
+      - name: Test
+        working-directory: sdk-js
+        run: npm test
+
+      - name: Publish
+        working-directory: sdk-js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public --provenance --tag "${{ inputs.dist_tag || 'latest' }}"
+
+      - name: Summary
+        run: |
+          echo "## Published @widecast/sdk" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${{ steps.meta.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tag:** ${{ inputs.dist_tag || 'latest' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Install: \`npm i @widecast/sdk@${{ steps.meta.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "npm: https://www.npmjs.com/package/@widecast/sdk/v/${{ steps.meta.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # ─── @widecast/mcp-server ──────────────────────────────────────────────
+  mcp-server:
+    name: Publish @widecast/mcp-server
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22 with npm registry auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@widecast"
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+
+      - name: Resolve version + sanity-check
+        id: meta
+        working-directory: mcp-server
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VER="${{ inputs.version }}"
+          else
+            VER="${GITHUB_REF_NAME#v}"
+          fi
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "tag/input version: $VER"
+          echo "package.json:     $PKG_VER"
+          if [ "$VER" != "$PKG_VER" ]; then
+            echo "::error::Tag/input version $VER does not match mcp-server/package.json $PKG_VER. Bump package.json first."
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        working-directory: mcp-server
+        run: npm ci || npm install
+
+      - name: Build (tsc)
+        working-directory: mcp-server
+        run: npm run build
+
+      - name: Verify the dist entry runs
+        working-directory: mcp-server
+        run: |
+          node --check dist/index.js
+          head -1 dist/index.js | grep -q '^#!' && echo "shebang OK" || (echo "missing shebang"; exit 1)
+
+      - name: Publish
+        working-directory: mcp-server
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public --provenance --tag "${{ inputs.dist_tag || 'latest' }}"
+
+      - name: Summary
+        run: |
+          echo "## Published @widecast/mcp-server" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${{ steps.meta.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tag:** ${{ inputs.dist_tag || 'latest' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run: \`npx @widecast/mcp-server\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "npm: https://www.npmjs.com/package/@widecast/mcp-server/v/${{ steps.meta.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,32 @@
+{
+  "endpoint": {
+    "method": "GET",
+    "path": "/v1/videos"
+  },
+  "title": "List recent videos",
+  "description": "Read-only, free. Lists the account's recent videos/scripts (20 per page).\n",
+  "fields": [
+    {
+      "name": "from_record",
+      "type": "text",
+      "label": "from_record (offset)",
+      "required": false,
+      "placeholder": "0"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "recent",
+      "title": "🎬 Recent videos",
+      "description": "List the most recent videos. Increase `from_record` to page.",
+      "request": {
+        "from_record": 0
+      }
+    }
+  ],
+  "_key": "videos",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

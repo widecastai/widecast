@@ -1,0 +1,15 @@
+# Playground — GET /v1/accounts (read, free). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/accounts
+title: List connected accounts
+description: |
+  Read-only, free. The social platforms currently connected to your account.
+fields: []
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: accounts
+    title: "🔌 Connected accounts"
+    description: "No params — returns each connected platform + username + status."
+    request: {}

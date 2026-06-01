@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+  webhook-test.html — zero-infra WideCast webhook tester.
+  Generates a unique inbox, shows the callback_url to drop into your create call,
+  and polls /webhook_test/<inbox> to display every delivery live (payload +
+  headers + signature-valid badge). No server of your own required.
+  Deployed at https://widecast.ai/webhook-test.html (see deploy_widecast.sh ROOT_FILES).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WideCast · Webhook Tester</title>
+<style>
+  :root{
+    --bg:#0b0b12; --panel:#14141f; --panel2:#1b1b29; --line:#2a2a3d;
+    --txt:#e7e7f0; --mut:#9a9ab0; --violet:#8b5cf6; --green:#34d399; --red:#f87171;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.5;padding:24px 16px 64px}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px;font-weight:700}
+  h1 .v{color:var(--violet)}
+  .sub{color:var(--mut);margin:0 0 24px;font-size:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px;margin-bottom:18px}
+  .label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:8px}
+  .urlrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  code,.url{font-family:var(--mono);font-size:13px}
+  .url{flex:1 1 360px;min-width:0;background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;color:var(--txt);overflow-x:auto;white-space:nowrap}
+  button{background:var(--violet);color:#fff;border:0;border-radius:8px;padding:10px 14px;
+    font-weight:600;cursor:pointer;font-size:13px}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+  button:active{transform:translateY(1px)}
+  ol{margin:10px 0 0;padding-left:20px;color:var(--mut);font-size:14px}
+  ol code{background:var(--panel2);padding:1px 5px;border-radius:4px;color:var(--txt)}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);margin:6px 0 14px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(52,211,153,.6);
+    animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.5)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  .empty{color:var(--mut);font-size:14px;text-align:center;padding:28px 0}
+  .ev{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+  .ev-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;
+    background:var(--panel2);cursor:pointer}
+  .num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--mut);min-width:34px}
+  .badge{font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:6px;font-weight:600}
+  .b-proc{background:rgba(139,92,246,.18);color:#c4b5fd}
+  .b-done{background:rgba(52,211,153,.16);color:#6ee7b7}
+  .b-fail{background:rgba(248,113,113,.16);color:#fca5a5}
+  .sig-ok{color:var(--green);font-size:12px}
+  .sig-bad{color:var(--red);font-size:12px}
+  .when{color:var(--mut);font-size:12px;margin-left:auto;font-family:var(--mono)}
+  .ev-body{padding:0 14px 14px;display:none}
+  .ev.open .ev-body{display:block}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;
+    overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:8px 0 0;color:#d7d7e6}
+  .k{color:var(--mut);font-size:12px;margin-top:12px}
+  a{color:var(--violet)}
+  .hint{font-size:12.5px;color:var(--mut);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>WideCast · <span class="v">Webhook Tester</span></h1>
+  <p class="sub">Test webhooks with zero infrastructure. We give you a throwaway inbox URL — use it as your <code>callback_url</code> and watch deliveries land here live.</p>
+
+  <div class="card">
+    <div class="label">Your callback_url</div>
+    <div class="urlrow">
+      <div class="url" id="cb">…</div>
+      <button id="copy">Copy</button>
+      <button class="ghost" id="newbox">New inbox</button>
+    </div>
+    <ol>
+      <li>Copy the URL above.</li>
+      <li>Pass it as <code>callback_url</code> in <code>POST /v1/create_video</code>, <code>/v1/create_content</code>, or <code>/v1/enhance_script</code> (the playground card has a <code>callback_url</code> field).</li>
+      <li>Run it — deliveries appear below within seconds (<code>video.processing</code> first, then <code>video.completed</code>/<code>video.failed</code>).</li>
+    </ol>
+    <p class="hint">Inbox is ephemeral (kept ~1h, lost on server restart) and holds your last 50 deliveries. The unguessable inbox id is the only access token — anyone with the URL can read it, so don't send real data here.</p>
+  </div>
+
+  <div class="status"><span class="dot"></span><span id="stat">Listening…</span></div>
+  <div id="list"><div class="empty">No deliveries yet. Fire a webhook to your callback_url above. ↑</div></div>
+</div>
+
+<script>
+(function(){
+  var API_BASE = (window.WIDECAST_API_BASE_URL || "https://widecast.ai/app/dashboard2").replace(/\/+$/,"");
+
+  function newInbox(){ return "wht_" + Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10); }
+  function getInbox(){
+    var h = (location.hash || "").replace(/^#/,"");
+    if(/^wht_[A-Za-z0-9_-]{6,60}$/.test(h)) return h;
+    var nb = newInbox(); location.hash = nb; return nb;
+  }
+  var inbox = getInbox();
+  var cbUrl = API_BASE + "/webhook_test/" + inbox;
+  var cbEl = document.getElementById("cb"); cbEl.textContent = cbUrl;
+
+  document.getElementById("copy").addEventListener("click", function(){
+    navigator.clipboard.writeText(cbUrl).then(function(){
+      var b=document.getElementById("copy"); var o=b.textContent; b.textContent="Copied!"; setTimeout(function(){b.textContent=o;},1200);
+    });
+  });
+  document.getElementById("newbox").addEventListener("click", function(){
+    location.hash = newInbox(); location.reload();
+  });
+
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+  function badgeClass(t){ return t==="video.completed"?"b-done":t==="video.failed"?"b-fail":"b-proc"; }
+
+  function render(deliveries){
+    var list = document.getElementById("list");
+    if(!deliveries.length){ list.innerHTML='<div class="empty">No deliveries yet. Fire a webhook to your callback_url above. ↑</div>'; return; }
+    var total = deliveries.length;
+    // Show EVERY delivery as its own fully-expanded section (newest first).
+    // `seq` is a stable per-delivery number (oldest = #1) so it doesn't shift
+    // as new ones arrive at the top. Click a header to collapse/expand.
+    list.innerHTML = deliveries.map(function(d,i){
+      var seq = total - i;
+      var t = d.event_type || (d.body && d.body.event_type) || "webhook";
+      var sig = d.signature_valid
+        ? '<span class="sig-ok">✓ signature valid</span>'
+        : '<span class="sig-bad">✗ signature: '+esc(d.signature_reason||"invalid")+'</span>';
+      var bodyStr = (typeof d.body==="object") ? JSON.stringify(d.body,null,2) : String(d.body||"");
+      var hdrStr = JSON.stringify(d.headers||{},null,2);
+      return '<div class="ev open">'
+        + '<div class="ev-head" onclick="this.parentNode.classList.toggle(\'open\')">'
+        +   '<span class="num">#'+seq+'</span>'
+        +   '<span class="badge '+badgeClass(t)+'">'+esc(t)+'</span>'
+        +   sig
+        +   (d.attempt?'<span class="when">attempt #'+esc(d.attempt)+'</span>':'')
+        +   '<span class="when">'+esc(d.received_at||"")+'</span>'
+        + '</div>'
+        + '<div class="ev-body">'
+        +   '<div class="k">Payload</div><pre>'+esc(bodyStr)+'</pre>'
+        +   '<div class="k">Headers</div><pre>'+esc(hdrStr)+'</pre>'
+        + '</div></div>';
+    }).join("");
+  }
+
+  function poll(){
+    fetch(cbUrl, {cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
+      var d = (j && j.deliveries) || [];
+      document.getElementById("stat").textContent =
+        d.length ? ("Listening… "+d.length+" delivery"+(d.length>1?"ies":"")+" received") : "Listening… (polling every 3s)";
+      render(d);
+    }).catch(function(){
+      document.getElementById("stat").textContent = "Listening… (couldn't reach the API — retrying)";
+    });
+  }
+  poll();
+  setInterval(poll, 3000);
+})();
+</script>
+</body>
+</html>

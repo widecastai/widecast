@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Webhooks · WideCast Docs</title>
+  <meta name="description" content="WideCast can POST status updates to a URL of your choice while a job is being processed — so you don't have to poll.">
+  <link rel="canonical" href="https://widecast.ai/endpoints/webhooks.html">
+
+  <meta property="og:title" content="Webhooks · WideCast Docs">
+  <meta property="og:description" content="WideCast can POST status updates to a URL of your choice while a job is being processed — so you don't have to poll.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/webhooks.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Webhooks · WideCast Docs">
+  <meta name="twitter:description" content="WideCast can POST status updates to a URL of your choice while a job is being processed — so you don't have to poll.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="webhooks">Webhooks</h1>
+<p>WideCast can POST status updates to a URL of your choice while a job is being processed — so you don't have to poll.</p>
+<p>Webhooks fire for the <strong>async</strong> endpoints that accept a <code>callback_url</code>: <code>POST /v1/create_video</code>, <code>POST /v1/create_content</code>, and <code>POST /v1/enhance_script</code>. (<code>/v1/publish</code> is sync — it returns the upstream <code>request_id</code>s immediately, so there's no webhook; poll <code>GET /v1/status/{request_id}</code> instead.)</p>
+<h2 id="how-it-works">How it works</h2>
+<p>When you submit one of those endpoints with a <code>callback_url</code> field, WideCast:</p>
+<ol>
+<li><strong>Immediately</strong> fires a <code>video.processing</code> webhook to that URL (right after the worker is spawned).</li>
+<li><strong>Once</strong> the job reaches <code>completed</code>, fires a <code>video.completed</code> webhook with the <code>result.review_url</code>.</li>
+<li><strong>Once</strong> the job reaches <code>failed</code>, fires a <code>video.failed</code> webhook with the <code>error</code> object.</li>
+</ol>
+<p>Each event delivers a self-contained JSON payload — a snapshot of the same status object you'd get from <code>GET /v1/status/{id}</code>, wrapped in an envelope. (The event names stay <code>video.*</code> for all job kinds; check <code>data.type</code> — <code>"video"</code> / <code>"content"</code> — to tell them apart. For <code>create_content</code>, <code>data.details.status</code> carries the writer stage and <code>completed</code> only fires when the article is fully written, not after the outline.)</p>
+<blockquote>
+<p><strong>v0.1.0 pilot only ships per-request <code>callback_url</code>.</strong> Pre-configured webhook endpoints (subscribe-once for all videos) land in Phase 1 with auth.</p>
+</blockquote>
+<h2 id="submitting-a-callback-url">Submitting a callback URL</h2>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/create_video</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;script_text&quot;:   &quot;Paste your script here.&quot;,</span>
+<span class="err">  &quot;callback_url&quot;:  &quot;https://my-app.com/widecast-hook&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p>The URL must be HTTPS in production. During pilot dev, <code>http://</code> is allowed (e.g. an ngrok tunnel or RequestBin URL).</p>
+<h2 id="event-payload">Event payload</h2>
+<div class="highlight"><pre><span></span><code><span class="err">POST</span><span class="w"> </span><span class="err">h</span><span class="kc">tt</span><span class="err">ps</span><span class="p">:</span><span class="c1">//my-app.com/widecast-hook</span>
+<span class="err">Co</span><span class="kc">ntent</span><span class="mi">-</span><span class="err">Type</span><span class="p">:</span><span class="w"> </span><span class="err">applica</span><span class="kc">t</span><span class="err">io</span><span class="kc">n</span><span class="err">/jso</span><span class="kc">n</span>
+<span class="err">User</span><span class="mi">-</span><span class="err">Age</span><span class="kc">nt</span><span class="p">:</span><span class="w"> </span><span class="err">WideCas</span><span class="kc">t</span><span class="mi">-</span><span class="err">Webhook/</span><span class="mf">0.1.0</span>
+<span class="err">X</span><span class="mi">-</span><span class="err">WideCas</span><span class="kc">t</span><span class="mf">-E</span><span class="err">ve</span><span class="kc">nt</span><span class="p">:</span><span class="w">        </span><span class="err">ev</span><span class="kc">t</span><span class="err">_</span><span class="mi">8</span><span class="err">d</span><span class="mi">4</span><span class="kc">f</span><span class="mi">9</span><span class="err">c</span><span class="mi">8</span><span class="err">a</span><span class="mi">9</span><span class="err">b</span><span class="mi">714</span><span class="err">c</span><span class="mi">5</span><span class="err">a</span><span class="mi">93</span><span class="err">b</span><span class="mi">37</span><span class="err">c</span><span class="mf">8e</span>
+<span class="err">X</span><span class="mi">-</span><span class="err">WideCas</span><span class="kc">t</span><span class="mf">-E</span><span class="err">ve</span><span class="kc">nt</span><span class="mi">-</span><span class="err">Type</span><span class="p">:</span><span class="w">   </span><span class="err">video.comple</span><span class="kc">te</span><span class="err">d</span>
+<span class="err">X</span><span class="mi">-</span><span class="err">WideCas</span><span class="kc">t</span><span class="mi">-</span><span class="err">Sig</span><span class="kc">nature</span><span class="p">:</span><span class="w">    </span><span class="kc">t</span><span class="err">=</span><span class="mi">1747680000</span><span class="p">,</span><span class="err">v</span><span class="mi">1</span><span class="err">=abc</span><span class="mf">123...</span>
+<span class="err">X</span><span class="mi">-</span><span class="err">WideCas</span><span class="kc">t</span><span class="mi">-</span><span class="err">Delivery</span><span class="p">:</span><span class="w">     </span><span class="mi">12</span><span class="err">ab</span><span class="mi">34</span><span class="err">cd</span><span class="mf">56e</span><span class="kc">f</span><span class="mi">78901234567890</span><span class="err">abcde</span><span class="kc">f</span>
+<span class="err">X</span><span class="mi">-</span><span class="err">WideCas</span><span class="kc">t</span><span class="mi">-</span><span class="err">A</span><span class="kc">tte</span><span class="err">mp</span><span class="kc">t</span><span class="p">:</span><span class="w">      </span><span class="mi">1</span>
+
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;event_id&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;evt_8d4f9c8a9b714c5a93b37c8e&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;event_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;video.completed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-20T12:34:56Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;api_version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;topic_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;scenes_ready_for_review&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;step&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Completed&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;notes&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;review_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://widecast.ai/#scene_editor?topic_id=widecast7c0d4f8a9b1e2d3f&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w">    </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;external_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="err">...</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="events-locked-for-v010">Events (LOCKED for v0.1.0)</h2>
+<table>
+<thead>
+<tr>
+<th><code>event_type</code></th>
+<th>Fires when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>video.processing</code></td>
+<td>Once, immediately after the server spawns the worker (fires from <code>POST /v1/create_video</code>)</td>
+</tr>
+<tr>
+<td><code>video.completed</code></td>
+<td>Once, when <code>status</code> first reaches <code>completed</code>. <code>data.result.review_url</code> is populated</td>
+</tr>
+<tr>
+<td><code>video.failed</code></td>
+<td>Once, when <code>status</code> first reaches <code>failed</code>. <code>data.error.{code,message}</code> is populated</td>
+</tr>
+</tbody>
+</table>
+<p>Each video fires <strong>at most one</strong> <code>video.processing</code> event and <strong>at most one</strong> terminal event (<code>completed</code> OR <code>failed</code>, never both).</p>
+<h2 id="signature-verification">Signature verification</h2>
+<p>Every delivery is signed with HMAC-SHA256 using your <code>WIDECAST_WEBHOOK_SECRET</code>.</p>
+<p><strong>Signature format:</strong></p>
+<div class="highlight"><pre><span></span><code>signed_payload = f&quot;{timestamp}.{request_body_raw}&quot;
+signature      = HMAC_SHA256(secret, signed_payload).hexdigest()
+header         = &quot;t=&lt;timestamp&gt;,v1=&lt;sig_hex&gt;&quot;
+</code></pre></div>
+
+<p><strong>Verify in Python (SDK helper):</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_webhook</span><span class="p">,</span> <span class="n">WebhookVerificationError</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/widecast-hook&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">verify_webhook</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">as_text</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X-WideCast-Signature&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="n">secret</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;WIDECAST_WEBHOOK_SECRET&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">WebhookVerificationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">400</span>
+    <span class="c1"># event = {&quot;event_id&quot;: &quot;...&quot;, &quot;event_type&quot;: &quot;video.completed&quot;, &quot;data&quot;: {...}}</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">204</span>   <span class="c1"># ALWAYS reply 2xx to acknowledge — non-2xx triggers retry</span>
+</code></pre></div>
+
+<p><strong>Verify in TypeScript (SDK helper):</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">verifyWebhook</span><span class="p">,</span><span class="w"> </span><span class="nx">WebhookVerificationError</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">&quot;/widecast-hook&quot;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">body</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">readRawBody</span><span class="p">(</span><span class="nx">req</span><span class="p">);</span><span class="w">   </span><span class="c1">// raw bytes / text, NOT re-stringified JSON</span>
+<span class="w">  </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">event</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">verifyWebhook</span><span class="p">({</span>
+<span class="w">      </span><span class="nx">body</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">signatureHeader</span><span class="o">:</span><span class="w"> </span><span class="kt">req.headers</span><span class="p">[</span><span class="s2">&quot;x-widecast-signature&quot;</span><span class="p">]</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">secret</span><span class="o">:</span><span class="w"> </span><span class="kt">process.env.WIDECAST_WEBHOOK_SECRET</span><span class="o">!</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">400</span><span class="p">).</span><span class="nx">end</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mf">204</span><span class="p">).</span><span class="nx">end</span><span class="p">();</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p><strong>Verify manually</strong> (any language):
+1. Read the <code>X-WideCast-Signature</code> header → split on <code>,</code> → extract <code>t=</code> and <code>v1=</code>.
+2. Reject if <code>t</code> is older than 5 minutes (replay protection).
+3. Compute <code>expected = HMAC_SHA256(secret, f"{t}.{raw_body}").hex()</code>.
+4. Compare <code>expected</code> with the <code>v1</code> value using a <strong>constant-time</strong> comparison.
+5. Parse the JSON body and dispatch on <code>event_type</code>.</p>
+<blockquote>
+<p>⚠ <strong>Use the RAW request body</strong>, not a re-encoded JSON. Any whitespace change breaks the signature.</p>
+</blockquote>
+<h2 id="retry-policy">Retry policy</h2>
+<p>WideCast retries on transient errors with this schedule (10 attempts, total 24h):</p>
+<table>
+<thead>
+<tr>
+<th>Attempt</th>
+<th>Offset from create</th>
+<th>Cumulative time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>0s</td>
+<td>0s</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1m</td>
+<td>1m</td>
+</tr>
+<tr>
+<td>3</td>
+<td>5m</td>
+<td>6m</td>
+</tr>
+<tr>
+<td>4</td>
+<td>15m</td>
+<td>21m</td>
+</tr>
+<tr>
+<td>5</td>
+<td>30m</td>
+<td>51m</td>
+</tr>
+<tr>
+<td>6</td>
+<td>1h</td>
+<td>1h 51m</td>
+</tr>
+<tr>
+<td>7</td>
+<td>3h</td>
+<td>4h 51m</td>
+</tr>
+<tr>
+<td>8</td>
+<td>6h</td>
+<td>10h 51m</td>
+</tr>
+<tr>
+<td>9</td>
+<td>12h</td>
+<td>16h 51m</td>
+</tr>
+<tr>
+<td>10</td>
+<td>24h</td>
+<td>24h (final)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Retry on:</strong> 5xx, 408 Request Timeout, 429 Too Many Requests, network errors, timeouts (30s).</p>
+<p><strong>Abandon on:</strong> any other 4xx (your endpoint said "bad request — don't bother") — the record is deleted immediately.</p>
+<p><strong>Drop on:</strong> 10 attempts exhausted OR 24 hours elapsed since the record was created (whichever comes first). The record is deleted; no further attempts.</p>
+<h2 id="acknowledging">Acknowledging</h2>
+<p><strong>Respond with HTTP 2xx within 30 seconds</strong> to acknowledge. Anything else triggers a retry.</p>
+<p>If your handler is slow, return 2xx immediately and process in a background queue — don't make WideCast wait.</p>
+<h2 id="idempotency">Idempotency</h2>
+<p>Network retries can cause the same event to be delivered more than once. Always dedupe on <code>event_id</code> (a unique 24-char hex per event). Common pattern:</p>
+<div class="highlight"><pre><span></span><code><span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;event_id&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+        <span class="k">return</span>  <span class="c1"># already processed</span>
+    <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">&quot;event_id&quot;</span><span class="p">])</span>
+    <span class="c1"># ... real work</span>
+</code></pre></div>
+
+<p>In production, persist <code>event_id</code> to a database with a unique constraint.</p>
+<h2 id="testing-zero-infrastructure-recommended">Testing — zero infrastructure (recommended)</h2>
+<p>You don't need to run any server to see webhooks. WideCast hosts a <strong>throwaway webhook inbox</strong>:</p>
+<ol>
+<li>Open <strong><a href="https://widecast.ai/webhook-test.html">https://widecast.ai/webhook-test.html</a></strong> — it generates a unique inbox and shows a ready-to-use <code>callback_url</code> (e.g. <code>https://widecast.ai/app/dashboard2/webhook_test/wht_ab12cd34…</code>).</li>
+<li>Copy that URL into <code>callback_url</code> on <code>POST /v1/create_video</code> (or <code>/v1/create_content</code>, <code>/v1/enhance_script</code>) — the playground card has a <code>callback_url</code> field.</li>
+<li>Run it. The page <strong>shows every delivery live</strong> — the full event payload, all headers, and a ✓/✗ <strong>signature-valid</strong> badge — polling every 3s.</li>
+</ol>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://widecast.ai/app/dashboard2/v1/create_video<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_…&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{ &quot;script_text&quot;: &quot;Test webhook flow.&quot;,</span>
+<span class="s1">        &quot;callback_url&quot;: &quot;https://widecast.ai/app/dashboard2/webhook_test/wht_PASTE_YOURS&quot; }&#39;</span>
+</code></pre></div>
+
+<p>The inbox is <strong>ephemeral</strong> — kept ~1 hour, holds your last 50 deliveries, lost on server restart. The unguessable inbox id is the only access token, so <strong>don't send real/sensitive data</strong> to it. Programmatic read: <code>GET /webhook_test/{inbox}</code> returns <code>{ object:"webhook_test_inbox", callback_url, count, deliveries:[…] }</code> (newest first).</p>
+<h2 id="testing-your-own-endpoint">Testing — your own endpoint</h2>
+<p>Prefer your own receiver? Use <code>ngrok</code> or <a href="https://requestbin.com">requestbin.com</a>:</p>
+<div class="highlight"><pre><span></span><code>ngrok<span class="w"> </span>http<span class="w"> </span><span class="m">3000</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://widecast.ai/app/dashboard2/v1/create_video<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_…&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{ &quot;script_text&quot;: &quot;Test webhook flow.&quot;, &quot;callback_url&quot;: &quot;https://abc123.ngrok.io/widecast-hook&quot; }&#39;</span>
+</code></pre></div>
+
+<p>Either way you'll see 2 events:
+- <code>video.processing</code> within ~5 seconds
+- <code>video.completed</code> (or <code>video.failed</code>) when the worker finishes</p>
+<h2 id="server-side-env">Server-side env</h2>
+<p>The signing secret is <code>WIDECAST_WEBHOOK_SECRET</code> — set on the server side. v0.1.0 uses one shared secret for the whole pilot; Phase 1 will issue per-API-key secrets when auth lands.</p>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

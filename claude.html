@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!-- Per-provider setup guide: Claude (Web + Desktop). Non-tech: every step is a
+     button / copy-box / paste, all on this page. Self-contained, dark. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WideCast × Claude — easy setup (Web & Desktop)</title>
+<style>
+  :root{--bg:#0b0b12;--panel:#14141f;--panel2:#1b1b29;--line:#2a2a3d;--txt:#e7e7f0;--mut:#9a9ab0;--violet:#c6f135;--green:#34d399;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6;padding:24px 16px 80px}
+  .wrap{max-width:820px;margin:0 auto}
+  nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;font-size:13px}
+  nav a{color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+  nav a.active{color:#0b0b0f;background:var(--violet);border-color:var(--violet)}
+  h1{font-size:25px;margin:0 0 4px}h1 .v{color:var(--violet)}
+  h2{font-size:19px;margin:32px 0 6px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .step h3{font-size:15px;margin:0 0 8px}
+  .step .n{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:var(--violet);color:#0b0b0f;font-weight:700;font-size:13px;margin-right:8px}
+  .sub{color:var(--mut);margin:0 0 18px}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);padding:1px 6px;border-radius:5px}
+  pre{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap}
+  a{color:var(--violet)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:5px;background:rgba(198,241,53,.18);color:#dff58c;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="claude.html" class="active">Claude Web &amp; Desktop</a>
+    <a href="chatgpt.html">ChatGPT &amp; Codex</a>
+    <a href="gemini.html">Gemini &amp; Antigravity</a>
+    <a href="grok.html">Grok</a>
+    <a href="playground.html">Playground</a>
+    <a href="docs.html">Docs</a>
+  </nav>
+
+  <h1>WideCast × <span class="v">Claude</span> — easy setup</h1>
+  <p class="sub">Pick <b>Claude Web</b> or <b>Claude Desktop</b> below.</p>
+
+  <h2>Claude Web <span class="tag">claude.ai</span></h2>
+
+  <div class="step">
+    <h3><span class="n">1</span>Get your connect-link</h3>
+    <p>Get your connect-link from <a href="https://widecast.ai/#setup" target="_blank">widecast.ai/#setup</a>.</p>
+  </div>
+
+  <div class="step">
+    <h3><span class="n">2</span>Add the connector in Claude</h3>
+    <p>In Claude: <b>Settings → Connectors → Add custom connector</b> → paste the link → <b>Connect</b>.</p>
+  </div>
+
+  <div class="step">
+    <h3><span class="n">3</span>Make a video — just ask</h3>
+    <pre>Make a video about the Garden Grove chemical leak.</pre>
+  </div>
+
+  <h2>Claude Desktop <span class="tag">app</span></h2>
+
+  <div class="step">
+    <h3><span class="n">1</span>Get your connect-link</h3>
+    <p>Get your connect-link from <a href="https://widecast.ai/#setup" target="_blank">widecast.ai/#setup</a>.</p>
+  </div>
+
+  <div class="step">
+    <h3><span class="n">2</span>Add the connector in Claude</h3>
+    <p>In Claude Desktop: <b>Settings → Connectors → Add custom connector</b> → paste the link → <b>Connect</b>.</p>
+  </div>
+
+  <div class="step">
+    <h3><span class="n">3</span>Make a video — just ask</h3>
+    <pre>Make a video about the Garden Grove chemical leak.</pre>
+  </div>
+</div>
+</body>
+</html>

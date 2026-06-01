@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Read / library endpoints · WideCast Docs</title>
+  <meta name="description" content="A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsing your account's data. All require your API key (`Authorization: Bearer wc_live_…`) — the key is the access control. Responses are trimmed to clean public fields.">
+  <link rel="canonical" href="https://widecast.ai/endpoints/library.html">
+
+  <meta property="og:title" content="Read / library endpoints · WideCast Docs">
+  <meta property="og:description" content="A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsing your account's data. All require your API key (`Authorization: Bearer wc_live_…`) — the key is the access control. Responses are trimmed to clean public fields.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/library.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Read / library endpoints · WideCast Docs">
+  <meta name="twitter:description" content="A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsing your account's data. All require your API key (`Authorization: Bearer wc_live_…`) — the key is the access control. Responses are trimmed to clean public fields.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="read-library-endpoints">Read / library endpoints</h1>
+<p>A set of <strong>read-only, synchronous, free</strong> (0-credit) <code>GET</code> endpoints for browsing your account's data. All require your API key (<code>Authorization: Bearer wc_live_…</code>) — the key is the access control. Responses are trimmed to clean public fields.</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /v1/videos</code></td>
+<td>Recent videos/scripts (20/page)</td>
+</tr>
+<tr>
+<td><code>GET /v1/search</code></td>
+<td>Content matching keywords</td>
+</tr>
+<tr>
+<td><code>GET /v1/account</code></td>
+<td>Account profile + remaining credits</td>
+</tr>
+<tr>
+<td><code>GET /v1/analytics</code></td>
+<td>Social analytics dashboard (slow)</td>
+</tr>
+<tr>
+<td><code>GET /v1/roadmap</code></td>
+<td>Content roadmap (weeks, slots, streak)</td>
+</tr>
+<tr>
+<td><code>GET /v1/production_plan</code></td>
+<td>Weekly production plan</td>
+</tr>
+<tr>
+<td><code>GET /v1/foundation_videos</code></td>
+<td>Curated foundation-video templates</td>
+</tr>
+<tr>
+<td><code>GET /v1/recommendations</code></td>
+<td>Recommended video ideas</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="get-v1videos"><code>GET /v1/videos</code></h2>
+<p>List the account's recent videos/scripts (20 per page). Query: <code>from_record</code> (default 0). Returns <code>{object:"list", data:[{id, title, language, created_at}], total_count, from_record}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/videos</code></div><section class="wc-pg-example" data-cfg="playgrounds/videos.json" data-usecase-id="recent" id="ex-videos--recent"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Recent videos</h3><p class="wc-pg-example-desc">List the most recent videos. Increase `from_record` to page.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1search"><code>GET /v1/search</code></h2>
+<p>Search the account's content by keywords. Query: <code>q</code> (required), <code>limit</code> (1–50, default 10). Returns <code>{object:"list", query, data:[{id, title, description, created_at}]}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/search</code></div><section class="wc-pg-example" data-cfg="playgrounds/search.json" data-usecase-id="search" id="ex-search--search"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔎 Search by keyword</h3><p class="wc-pg-example-desc">Find content whose body matches the keywords.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1account"><code>GET /v1/account</code></h2>
+<p>Account profile + remaining credits. Returns <code>{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, connected_platforms}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/account</code></div><section class="wc-pg-example" data-cfg="playgrounds/account.json" data-usecase-id="account" id="ex-account--account"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">👤 Account info</h3><p class="wc-pg-example-desc">No params — returns plan, credits, industry, and connected platforms.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1analytics"><code>GET /v1/analytics</code></h2>
+<p>Social analytics dashboard aggregated across connected platforms. <strong>Slow</strong> (fans out to the upstream provider). Query: <code>period</code> (<code>last_day</code>|<code>last_week</code>|<code>last_month</code>|<code>last_3months</code>|<code>last_year</code>|<code>custom</code>, default <code>last_week</code>), <code>start_date</code>/<code>end_date</code> (for <code>custom</code>). Returns <code>{object:"analytics", period, dashboard:{…}}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/analytics</code></div><section class="wc-pg-example" data-cfg="playgrounds/analytics.json" data-usecase-id="dashboard" id="ex-analytics--dashboard"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📊 Analytics dashboard</h3><p class="wc-pg-example-desc">Aggregate follower / view / engagement stats for the chosen period.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1roadmap"><code>GET /v1/roadmap</code></h2>
+<p>The account's content roadmap. Query: <code>cycle</code> (default 1). Returns <code>{object:"roadmap", cycle, total_completed, total_slots, weekly_quota, current_week, streak, weeks:[…]}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/roadmap</code></div><section class="wc-pg-example" data-cfg="playgrounds/roadmap.json" data-usecase-id="roadmap" id="ex-roadmap--roadmap"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🗺️ Roadmap</h3><p class="wc-pg-example-desc">Fetch the roadmap for a cycle (default 1).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1production_plan"><code>GET /v1/production_plan</code></h2>
+<p>The weekly production plan. Query: <code>page</code> (default 0), <code>week_start</code>, <code>week_end</code>. <strong>Note:</strong> passing both <code>week_start</code> and <code>week_end</code> may backfill missing plan rows upstream (a write); omit them for a pure read. Returns <code>{object:"production_plan", total, page, week_start, week_end, ideas:[…], topics:[…]}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/production_plan</code></div><section class="wc-pg-example" data-cfg="playgrounds/production-plan.json" data-usecase-id="plan" id="ex-production-plan--plan"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📅 Production plan</h3><p class="wc-pg-example-desc">Fetch the current plan (page 0). Add a week range to scope it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1foundation_videos"><code>GET /v1/foundation_videos</code></h2>
+<p>The curated foundation-video template library. Query: <code>industry</code> (falls back to your account industry), <code>sub_industry</code>, <code>page</code> (default 0). Returns <code>{object:"list", data:[{id, title, description, thumbnail_url, industry, group}], total}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/foundation_videos</code></div><section class="wc-pg-example" data-cfg="playgrounds/foundation-videos.json" data-usecase-id="foundation" id="ex-foundation-videos--foundation"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🏛️ Foundation templates</h3><p class="wc-pg-example-desc">Browse foundation templates for an industry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-v1recommendations"><code>GET /v1/recommendations</code></h2>
+<p>Recommended video ideas for an industry. Query: <code>industry</code> (falls back to your account industry), <code>page</code> (default 0). Returns <code>{object:"ideas", industry, ideas:[{title, description, …}]}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/recommendations</code></div><section class="wc-pg-example" data-cfg="playgrounds/recommendations.json" data-usecase-id="recommend" id="ex-recommendations--recommend"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💡 Recommended ideas</h3><p class="wc-pg-example-desc">Get recommended ideas for an industry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h3 id="errors">Errors</h3>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>missing_field</code></td>
+<td>400</td>
+<td><code>q</code> missing on <code>/v1/search</code>.</td>
+</tr>
+<tr>
+<td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
+<td>401</td>
+<td>API-key auth.</td>
+</tr>
+<tr>
+<td><code>read_failed</code></td>
+<td>500/502</td>
+<td>The underlying read failed.</td>
+</tr>
+</tbody>
+</table>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

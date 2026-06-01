@@ -1,0 +1,48 @@
+{
+  "name": "@widecast/mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for WideCast.ai — exposes WideCast tools to Claude Desktop, Claude Code, Cursor, Windsurf, OpenHands, and any other MCP-compatible host.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "widecast",
+    "claude",
+    "cursor",
+    "windsurf",
+    "ai-agent"
+  ],
+  "license": "Apache-2.0",
+  "author": "WideCast <support@widecast.ai>",
+  "homepage": "https://widecast.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/widecastai/widecast.git",
+    "directory": "mcp-server"
+  },
+  "bugs": "https://github.com/widecastai/widecast/issues",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "widecast-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}

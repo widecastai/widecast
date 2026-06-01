@@ -1,0 +1,30 @@
+# Playground — GET /v1/analytics (read, free, SLOW). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/analytics
+title: Analytics dashboard
+description: |
+  Read-only, free — but SLOW (aggregates across connected platforms). Pick a period.
+fields:
+  - name: period
+    type: select
+    label: "Period"
+    required: false
+    default: last_week
+    options:
+      - { value: last_day,     label: "last_day" }
+      - { value: last_week,    label: "last_week" }
+      - { value: last_month,   label: "last_month" }
+      - { value: last_3months, label: "last_3months" }
+      - { value: last_year,    label: "last_year" }
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: dashboard
+    title: "📊 Analytics dashboard"
+    description: "Aggregate follower / view / engagement stats for the chosen period."
+    request:
+      period: last_week
+    choices:
+      - field: period
+        options: [last_day, last_week, last_month, last_3months, last_year]

@@ -1,0 +1,44 @@
+{
+  "endpoint": {
+    "method": "GET",
+    "path": "/v1/production_plan"
+  },
+  "title": "Weekly production plan",
+  "description": "Read-only, free. The weekly production plan (ideas + topics). Omit the week\nrange for a pure read of the current plan.\n",
+  "fields": [
+    {
+      "name": "page",
+      "type": "text",
+      "label": "page",
+      "required": false,
+      "placeholder": "0"
+    },
+    {
+      "name": "week_start",
+      "type": "text",
+      "label": "week_start (optional)",
+      "required": false
+    },
+    {
+      "name": "week_end",
+      "type": "text",
+      "label": "week_end (optional)",
+      "required": false
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "plan",
+      "title": "📅 Production plan",
+      "description": "Fetch the current plan (page 0). Add a week range to scope it.",
+      "request": {
+        "page": 0
+      }
+    }
+  ],
+  "_key": "production-plan",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

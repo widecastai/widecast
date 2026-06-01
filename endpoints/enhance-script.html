@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Enhance a draft script — `POST /v1/enhance_script` · WideCast Docs</title>
+  <meta name="description" content="Improve a **draft** video script with AI — fix grammar, add examples, sharpen the hook. Use this when you have a rough script and want it polished before turning it into a video with `/v1/create_video` (`source=text`).">
+  <link rel="canonical" href="https://widecast.ai/endpoints/enhance-script.html">
+
+  <meta property="og:title" content="Enhance a draft script — `POST /v1/enhance_script` · WideCast Docs">
+  <meta property="og:description" content="Improve a **draft** video script with AI — fix grammar, add examples, sharpen the hook. Use this when you have a rough script and want it polished before turning it into a video with `/v1/create_video` (`source=text`).">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/enhance-script.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Enhance a draft script — `POST /v1/enhance_script` · WideCast Docs">
+  <meta name="twitter:description" content="Improve a **draft** video script with AI — fix grammar, add examples, sharpen the hook. Use this when you have a rough script and want it polished before turning it into a video with `/v1/create_video` (`source=text`).">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="enhance-a-draft-script-post-v1enhance_script">Enhance a draft script — <code>POST /v1/enhance_script</code></h1>
+<p>Improve a <strong>draft</strong> video script with AI — fix grammar, add examples, sharpen the hook. Use this when you have a rough script and want it polished before turning it into a video with <code>/v1/create_video</code> (<code>source=text</code>).</p>
+<p>Async: returns a <code>widecast*</code> id, <code>status: "processing"</code>, AND <code>result.review_url</code> (opens the Script Editor) in the create response itself — safe to hand the user immediately; the editor shows a spinner while enhancing. Poll <code>GET /v1/status/{id}</code> until <code>completed</code> for the final enhanced script. Consumes credits.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/enhance_script</code></div><section class="wc-pg-example" data-cfg="playgrounds/enhance-script.json" data-usecase-id="enhance" id="ex-enhance-script--enhance"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✨ Enhance a draft</h3><p class="wc-pg-example-desc">Paste a rough draft, pick the **enhance level** (0 segment-only, 1 natural, 2 max rewrite) and **language**, then Run. The card polls until the improved script is ready.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h3 id="request-fields">Request fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>script_text</code></td>
+<td>string</td>
+<td>yes</td>
+<td>The DRAFT script to enhance.</td>
+</tr>
+<tr>
+<td><code>intervention_level</code></td>
+<td>integer</td>
+<td>no</td>
+<td>How aggressively to rewrite: <code>0</code> = segment only, <code>1</code> = natural enhance (default), <code>2</code> = maximum rewrite. SDK constant <code>INTERVENTION_LEVELS</code>.</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td>string</td>
+<td>no</td>
+<td>Output language. Omit / <code>""</code> keeps the draft's original language.</td>
+</tr>
+<tr>
+<td><code>callback_url</code></td>
+<td>string (url)</td>
+<td>no</td>
+<td>HTTPS webhook for completion events.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>object</td>
+<td>no</td>
+<td>Echoed back on <code>/v1/status</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="response-202-accepted-poll-v1status">Response — <code>202 Accepted</code> → poll <code>/v1/status</code></h3>
+<p>Returns the unified <code>/v1/status</code> envelope with <code>status: "processing"</code>. <code>result.review_url</code> is already populated — the Script Editor — share with the user now. Then poll <code>GET /v1/status/{id}</code>:
+- <code>status == "completed"</code> → enhanced narration is final. Hand the same <code>topic_id</code> to <code>/v1/export_video</code> or re-submit the text to <code>/v1/create_video</code> to turn it into a video.</p>
+<h3 id="sdk">SDK</h3>
+<div class="highlight"><pre><span></span><code><span class="n">v</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">enhance_script</span><span class="p">(</span><span class="n">script_text</span><span class="o">=</span><span class="s2">&quot;Want more views? Post consistently. The end.&quot;</span><span class="p">,</span> <span class="n">intervention_level</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">review_url</span><span class="p">)</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">enhance_script</span><span class="p">({</span><span class="w"> </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;rough draft…&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">intervention_level</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="w"> </span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+</code></pre></div>
+
+<h3 id="errors">Errors</h3>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>missing_field</code></td>
+<td>400</td>
+<td><code>script_text</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>invalid_intervention_level</code></td>
+<td>400</td>
+<td><code>intervention_level</code> not <code>0</code>, <code>1</code>, or <code>2</code>.</td>
+</tr>
+<tr>
+<td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
+<td>401</td>
+<td>API-key auth.</td>
+</tr>
+<tr>
+<td><code>account_expired</code> / <code>credit_exhausted</code></td>
+<td>402</td>
+<td>Account expired or out of credits.</td>
+</tr>
+</tbody>
+</table>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

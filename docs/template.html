@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="{{BASE_HREF}}">
+
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <link rel="canonical" href="{{CANONICAL}}">
+
+  <meta property="og:title" content="{{TITLE}}">
+  <meta property="og:description" content="{{DESCRIPTION}}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{CANONICAL}}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{TITLE}}">
+  <meta name="twitter:description" content="{{DESCRIPTION}}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "{{API_BASE_URL}}";
+  </script>
+</head>
+<body class="{{PAGE_CLASS}}">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      {{CONTENT}}
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

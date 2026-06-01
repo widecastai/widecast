@@ -1,0 +1,69 @@
+"""WideCast.ai Python SDK — thin client for the WideCast public API.
+
+>>> from widecast import Widecast
+>>> client = Widecast(api_key="wc_live_REPLACE_ME")
+>>> video = client.create_video(script=my_script).wait()
+>>> print(video["video_url"])
+"""
+from ._client import (
+    Widecast,
+    Video,
+    WidecastError,
+    APIError,
+    RateLimitError,
+    NotFoundError,
+    PreconditionFailedError,
+    InvalidRequestError,
+    SCRIPT_MIN_WORDS,
+    SCRIPT_MAX_WORDS,
+    IDEA_MIN_WORDS,
+    IDEA_MAX_WORDS,
+    BLOG_MIN_WORDS,
+    BLOG_MAX_WORDS,
+    MEDIA_MAX_DURATION_SECONDS,
+    MEDIA_MAX_FILE_BYTES,
+    OUTPUT_TYPES,
+    SOURCES,
+    FACELESS_SOURCES,
+    CONTENT_TYPES,
+    INTERVENTION_LEVELS,
+    PUBLISH_PLATFORMS,
+    VIDEO_LENGTHS,
+    LANGUAGES,
+    __version__,
+)
+from ._webhook import verify_webhook, WebhookVerificationError
+
+__all__ = [
+    "Widecast",
+    "Video",
+    "WidecastError",
+    "APIError",
+    "RateLimitError",
+    "NotFoundError",
+    "PreconditionFailedError",
+    "InvalidRequestError",
+    "SCRIPT_MIN_WORDS",
+    "SCRIPT_MAX_WORDS",
+    "IDEA_MIN_WORDS",
+    "IDEA_MAX_WORDS",
+    "BLOG_MIN_WORDS",
+    "BLOG_MAX_WORDS",
+    "MEDIA_MAX_DURATION_SECONDS",
+    "MEDIA_MAX_FILE_BYTES",
+    "OUTPUT_TYPES",
+    "SOURCES",
+    "FACELESS_SOURCES",
+    "CONTENT_TYPES",
+    "INTERVENTION_LEVELS",
+    "PUBLISH_PLATFORMS",
+    "VIDEO_LENGTHS",
+    "LANGUAGES",
+    "verify_webhook",
+    "WebhookVerificationError",
+    "__version__",
+]
+# Public surface is LOCKED — adding/removing a name above requires a version
+# bump per CONTRIBUTING.md. The `Video` class accessors (.id, .topic_id,
+# .status, .progress, .review_url, .video_url, .error, .is_terminal, .wait)
+# are likewise locked.

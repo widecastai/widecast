@@ -1,0 +1,37 @@
+# Playground manifest — POST /v1/collect_ideas (SYNCHRONOUS).
+# Returns ideas inline (no polling) → poll_after_create disabled.
+
+endpoint:
+  method: POST
+  path: /v1/collect_ideas
+
+title: Generate video ideas from a product/service
+description: |
+  Synchronous — Run returns video ideas derived from a product/service
+  description (≥10 chars) immediately. Consumes credits.
+
+fields:
+  - name: product_service_input
+    type: textarea
+    label: "Product/service description (≥10 chars)"
+    required: true
+    rows: 3
+    placeholder: "A budgeting app for freelancers with tax estimates"
+  - name: sub_industry
+    type: text
+    label: "Sub-industry (optional)"
+    required: false
+  - name: user_location
+    type: text
+    label: "Location hint (optional)"
+    required: false
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: collect
+    title: "🧩 Ideas from a product"
+    description: "Describe a product/service, then Run. Ideas come back in the response."
+    request:
+      product_service_input: "A budgeting app for freelancers with automatic tax estimates"

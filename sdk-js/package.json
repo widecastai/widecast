@@ -1,0 +1,55 @@
+{
+  "name": "@widecast/sdk",
+  "version": "0.1.0",
+  "description": "WideCast.ai TypeScript/JavaScript SDK — generate videos from scripts, ideas, audio, or existing videos.",
+  "keywords": [
+    "widecast",
+    "video",
+    "ai",
+    "generative",
+    "tts",
+    "remotion",
+    "sdk"
+  ],
+  "license": "Apache-2.0",
+  "author": "WideCast <support@widecast.ai>",
+  "homepage": "https://widecast.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/widecastai/widecast.git",
+    "directory": "sdk-js"
+  },
+  "bugs": "https://github.com/widecastai/widecast/issues",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --target es2020",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

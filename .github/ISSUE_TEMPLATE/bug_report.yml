@@ -1,0 +1,62 @@
+name: 🐛 Bug report
+description: Something in the SDK / MCP server / Skills / docs is broken
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The fastest path to a fix is a tight reproduction.
+
+        **Backend bugs?** If the bug is in the rendering engine, the social distribution worker, or `/v1/*` behavior on widecast.ai — please file it here too, but know we'll work the fix in our private engine repo and sync the public-facing artifacts afterwards.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Python SDK (widecast)
+        - JS/TS SDK (@widecast/sdk)
+        - MCP server (@widecast/mcp-server)
+        - Agent Skill (video / blog / social)
+        - install.json manifest
+        - Documentation
+        - OpenAPI spec
+        - widecast.ai live API behavior
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Package version (`pip show widecast` / `npm ls @widecast/sdk`) — or commit SHA if from source
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Code, prompt, and expected vs actual output. Smallest possible repro.
+      placeholder: |
+        1. `pip install widecast==0.1.0`
+        2. Run this script: …
+        3. Expected: …
+        4. Actual: …
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: request_id
+    attributes:
+      label: request_id (if it's a live-service error)
+      description: The `meta.request_id` field from the error envelope returned by `/v1/*`
+      placeholder: "req_…"
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Python/Node version, AI host (Claude/ChatGPT/Cursor/etc.) if relevant
+      placeholder: |
+        macOS 14.5, Python 3.12.4
+        Claude Desktop 0.7.10

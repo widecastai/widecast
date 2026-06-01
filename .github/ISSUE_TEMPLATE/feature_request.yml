@@ -1,0 +1,43 @@
+name: ✨ Feature request
+description: Propose a new SDK helper, MCP tool, or Skill improvement
+title: "[feat] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening — check the [CONTRIBUTING guide](../blob/main/CONTRIBUTING.md) for what's in/out of scope. The rendering engine and billing are out of scope here.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface this would touch
+      options:
+        - Python SDK
+        - JS/TS SDK
+        - MCP server tool
+        - Agent Skill (video/blog/social)
+        - install.json (new host support)
+        - Adapter integration (LangChain / Vercel AI / etc.)
+        - OpenAPI spec proposal
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: What you're trying to do that the current API/SDK can't (or can but awkwardly)
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: Proposed shape
+      description: |
+        Rough API / tool / config shape. Pseudocode is fine.
+      render: shell
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds today, what they fall short on

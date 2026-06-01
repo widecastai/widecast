@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="./">
+
+  <title>WideCast Documentation · WideCast Docs</title>
+  <meta name="description" content="The complete reference for the WideCast.ai public API, SDKs, and integrations.">
+  <link rel="canonical" href="https://widecast.ai/docs.html">
+
+  <meta property="og:title" content="WideCast Documentation · WideCast Docs">
+  <meta property="og:description" content="The complete reference for the WideCast.ai public API, SDKs, and integrations.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/docs.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WideCast Documentation · WideCast Docs">
+  <meta name="twitter:description" content="The complete reference for the WideCast.ai public API, SDKs, and integrations.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="widecast-documentation">WideCast Documentation</h1>
+<p>The complete reference for the WideCast.ai public API, SDKs, and integrations.</p>
+<blockquote>
+<p>Looking for a 30-second pitch? Head to the <a href="widecast.html">WideCast homepage</a>.</p>
+</blockquote>
+<h2 id="quickstart">Quickstart</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Create from plain-text script</span>
+<span class="nv">RESP</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;https://widecast.ai/app/dashboard2/v1/create_video&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;script_text&quot;: &quot;You should let your teen get a driver&#39;</span>s<span class="w"> </span>license<span class="w"> </span>at<span class="w"> </span><span class="m">16</span>.<span class="s2">&quot;</span>
+<span class="s2">  }&#39;)</span>
+<span class="s2">VID=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESP</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.id<span class="k">)</span>
+
+<span class="s2"># 2. Poll until completed</span>
+<span class="s2">INTERVAL=5</span>
+<span class="s2">until [ &quot;</span><span class="nv">$STATE</span><span class="s2">&quot; = &quot;</span>completed<span class="s2">&quot; ] || [ &quot;</span><span class="nv">$STATE</span><span class="s2">&quot; = &quot;</span>failed<span class="s2">&quot; ]; do</span>
+<span class="s2">  sleep </span><span class="nv">$INTERVAL</span>
+<span class="s2">  STATUS=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;https://widecast.ai/app/dashboard2/v1/status/</span><span class="nv">$VID</span><span class="s2">&quot;</span><span class="k">)</span>
+<span class="s2">  STATE=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATUS</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.status<span class="k">)</span>
+<span class="s2">  INTERVAL=</span><span class="k">$((</span><span class="w"> </span><span class="nv">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">60</span><span class="w"> </span>?<span class="w"> </span><span class="nv">INTERVAL</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="m">2</span><span class="w"> </span>:<span class="w"> </span><span class="m">60</span><span class="w"> </span><span class="k">))</span>
+<span class="s2">done</span>
+<span class="s2">echo &quot;</span>Review<span class="w"> </span>at:<span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$STATUS</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.result.review_url<span class="k">)</span><span class="s2">&quot;</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;wc_live_REPLACE_ME&quot;</span><span class="p">)</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span>
+    <span class="n">script_text</span><span class="o">=</span><span class="s2">&quot;You should let your teen get a driver&#39;s license at 16.&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>                                      <span class="c1"># auto-polls /v1/status with 5s→60s exp backoff</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">video</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">video</span><span class="o">.</span><span class="n">review_url</span><span class="p">)</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">({</span><span class="w"> </span><span class="nx">apiKey</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;You should let your teen get a driver&#39;s license at 16.&quot;</span><span class="p">,</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">status</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">review_url</span><span class="p">);</span>
+</code></pre></div>
+
+<h2 id="v010-endpoints">v0.1.0 endpoints</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="endpoints/create-video.html"><code>/v1/create_video</code></a></td>
+<td>POST</td>
+<td>Submit a finished script (<code>source=text</code>), an idea brief (<code>source=idea</code>), a blog/article (<code>source=blog</code>), or an existing video/audio by URL or upload (<code>source=video_url</code>/<code>video_file</code>/<code>audio_url</code>/<code>audio_file</code>) for AI sourcing</td>
+</tr>
+<tr>
+<td><a href="endpoints/export-video.html"><code>/v1/export_video</code></a></td>
+<td>POST</td>
+<td>For <code>output_type=scene</code> videos, kick the final-MP4 renderer after review</td>
+</tr>
+<tr>
+<td><a href="endpoints/create-content.html"><code>/v1/create_content</code></a></td>
+<td>POST</td>
+<td>Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text</td>
+</tr>
+<tr>
+<td><a href="endpoints/enhance-script.html"><code>/v1/enhance_script</code></a></td>
+<td>POST</td>
+<td>Improve a draft video script with AI (grammar, examples, hook)</td>
+</tr>
+<tr>
+<td><a href="endpoints/suggest-ideas.html"><code>/v1/suggest_ideas</code></a></td>
+<td>POST</td>
+<td>(sync) Video topic ideas for an industry</td>
+</tr>
+<tr>
+<td><a href="endpoints/collect-ideas.html"><code>/v1/collect_ideas</code></a></td>
+<td>POST</td>
+<td>(sync) Video ideas from a product/service description</td>
+</tr>
+<tr>
+<td><a href="endpoints/publish.html"><code>/v1/publish</code></a></td>
+<td>POST</td>
+<td>Publish a video / blog / text to connected social platforms (returns request_ids → poll status)</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/videos</code></a></td>
+<td>GET</td>
+<td>(read, free) List the account's recent videos</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/search</code></a></td>
+<td>GET</td>
+<td>(read, free) Search the account's content by keywords</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/account</code></a></td>
+<td>GET</td>
+<td>(read, free) Account profile + remaining credits</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/analytics</code></a></td>
+<td>GET</td>
+<td>(read, free) Social analytics dashboard</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/roadmap</code></a></td>
+<td>GET</td>
+<td>(read, free) Content roadmap</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/production_plan</code></a></td>
+<td>GET</td>
+<td>(read, free) Weekly production plan</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/foundation_videos</code></a></td>
+<td>GET</td>
+<td>(read, free) Curated foundation-video templates</td>
+</tr>
+<tr>
+<td><a href="endpoints/library.html"><code>/v1/recommendations</code></a></td>
+<td>GET</td>
+<td>(read, free) Recommended video ideas</td>
+</tr>
+<tr>
+<td><a href="endpoints/connections.html"><code>/v1/connect</code></a></td>
+<td>POST</td>
+<td>(free) Get an OAuth link to connect a social platform</td>
+</tr>
+<tr>
+<td><a href="endpoints/connections.html"><code>/v1/accounts</code></a></td>
+<td>GET</td>
+<td>(free) List connected social platforms</td>
+</tr>
+<tr>
+<td><a href="endpoints/connections.html"><code>/v1/platform_settings</code></a></td>
+<td>GET/POST</td>
+<td>(free) Load / save per-platform publish settings</td>
+</tr>
+<tr>
+<td><a href="endpoints/create-video.html"><code>/v1/status/{id}</code></a></td>
+<td>GET</td>
+<td>Universal poll endpoint for any async task</td>
+</tr>
+<tr>
+<td><a href="endpoints/webhooks.html">Webhooks</a></td>
+<td>(out-of-band)</td>
+<td>Pass <code>callback_url</code> in create_video — WideCast POSTs events to your URL instead of you polling</td>
+</tr>
+<tr>
+<td><code>/openapi.json</code> / <code>/openapi.yaml</code></td>
+<td>GET</td>
+<td>This spec served from the host</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><strong>Per-platform setup guides:</strong> <a href="claude.html">Claude Web &amp; Desktop</a> · <a href="chatgpt.html">ChatGPT &amp; Codex</a> · <a href="gemini.html">Gemini &amp; Antigravity</a> · <a href="grok.html">Grok</a> — connect WideCast, then "make a video about [a real event]". The writing method (video / blog / social) ships as an MCP/Action tool (<code>getWritingSkill</code>) the model auto-fetches, so no file upload is required on platforms with tool support.</li>
+<li><strong>Writing skills (single source of truth):</strong> <a href="skills/video-script-writing.zip"><code>skills/video-script-writing.zip</code></a>, <a href="skills/blog-writing.zip"><code>skills/blog-writing.zip</code></a>, <a href="skills/social-post-writing.zip"><code>skills/social-post-writing.zip</code></a>. MCP/Action surfaces fetch the same <code>SKILL.md</code> content on demand; download a zip only for tool-less surfaces (e.g. a Gemini Gem).</li>
+<li><strong>Live playground:</strong> <a href="playground.html"><code>playground.html</code></a> — submit + auto-poll + review-URL link in one click</li>
+<li><strong>OpenAPI 3.1 spec:</strong> <a href="openapi.yaml"><code>openapi.yaml</code></a> (also at <code>https://widecast.ai/app/dashboard2/openapi.yaml</code>)</li>
+<li><strong>Python SDK:</strong> <a href="https://pypi.org/project/widecast/"><code>widecast</code> on PyPI</a></li>
+<li><strong>JS/TS SDK:</strong> <a href="https://www.npmjs.com/package/@widecast/sdk"><code>@widecast/sdk</code> on npm</a></li>
+<li><strong>MCP server (Claude / Cursor / Windsurf):</strong> <a href="https://github.com/widecast"><code>@widecast/mcp-server</code></a> — tools <code>create_video</code> / <code>get_status</code> / <code>export_video</code>.</li>
+<li><strong>Authoring Skills:</strong> <code>widecast/skills/</code> — <code>video-script-writing</code>, <code>blog-writing</code>, <code>social-post-writing</code> (best-practice guides the AI loads on demand).</li>
+<li><strong>LLM-friendly docs index:</strong> <a href="llms.txt"><code>llms.txt</code></a></li>
+</ul>
+<h2 id="conventions">Conventions</h2>
+<ul>
+<li><strong>ID format</strong>: <code>widecast&lt;alphanumeric&gt;</code> (~20 chars). The internal server's new-script detection checks for the literal <code>"widecast"</code> substring — SDKs/clients must not strip it.</li>
+<li>API key prefixes: <code>wc_live_*</code></li>
+<li><strong>Authentication</strong>: send your key as <code>Authorization: Bearer wc_live_...</code>. When key enforcement is on, a missing/malformed/revoked key → <strong>HTTP 401</strong> with <code>error.type = "authentication_error"</code> and <code>error.code</code> = <code>missing_api_key</code> or <code>invalid_api_key</code>. (Enforcement is server-toggled; while it's off, the pilot accepts unauthenticated calls.)</li>
+<li>Object marker on every resource: <code>"object": "status"</code>, <code>"object": "list"</code>, etc.</li>
+<li>Status enum (locked): <code>pending | processing | completed | failed</code></li>
+<li>Error codes (locked, v0.1.0): <code>account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled</code></li>
+<li>Input bounds (locked): <code>script_text</code> (source=text) is <strong>80–500 words</strong> (~20s–2 min, used verbatim). <code>idea_text</code> (source=idea) is <strong>5–1000 words</strong> and <code>blog_text</code> (source=blog) is <strong>30–3000 words</strong> (both interpretive — over-max auto-truncated, not rejected). Media sources (<code>video_*</code>/<code>audio_*</code>) have a <strong>2-minute duration cap</strong> (<code>media_too_long</code>, all media) and uploads a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code> / <code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code> / <code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code> / <code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code> constants.</li>
+<li><strong>Inline media in <code>script_text</code></strong> (source=text): embed a direct image/video file URL (<code>.png/.jpg/…</code> or <code>.mp4/.mov/…</code>) next to the line it should illustrate — WideCast strips it from the narration and uses it as that scene's visual instead of auto-sourced B-roll. Page links (YouTube/TikTok watch URLs) aren't inlined — use <code>source=video_url</code> for a whole clip. See <a href="endpoints/create-video.html">Create-video → Inline images &amp; video</a>.</li>
+<li>Enums (locked v0.1.0): <code>SOURCES</code> (<code>text</code>, <code>idea</code>, <code>blog</code>, <code>video_url</code>, <code>video_file</code>, <code>audio_url</code>, <code>audio_file</code>), <code>OUTPUT_TYPES</code> (<code>text</code>, <code>scene</code>, <code>video</code>), <code>LANGUAGES</code> (<code>English</code>, <code>Vietnamese</code>), <code>VIDEO_LENGTHS</code> (<code>short</code>, <code>normal</code>). For media sources <code>output_type="text"</code> = Remake (transcript only).</li>
+<li><strong>Field-requirement parity (A38)</strong>: every field constraint surfaces in 5 places — OpenAPI spec, SDK constants/types, this docs site's endpoint page, the playground UI (YAML + JS), and server enforcement (with a locked <code>error.code</code>). Adding an endpoint without all five = drift. <code>build.py</code> validates the YAML↔JS half automatically.</li>
+<li>All timestamps are ISO 8601 UTC strings (e.g. <code>2026-05-19T17:30:00Z</code>)</li>
+<li>Every response carries <code>X-Request-Id</code> — include it in any support ticket</li>
+</ul>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

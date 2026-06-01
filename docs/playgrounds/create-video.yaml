@@ -1,0 +1,357 @@
+# Playground manifest — STRUCTURE only.
+#
+# Content (industry scripts, idea briefs, labels) lives in the project-root
+# test_cases.json. This YAML defines the playground SECTIONS + which cases
+# go in each + the request_template (source / output_type / callback_url /
+# locked params) that wraps the case content.
+#
+# Workflow:
+#   • Edit a script or idea → edit test_cases.json → re-run docs/build.py.
+#   • Add a new industry pill to an existing section → add its case ID to
+#     that section's `cases: [...]` list below.
+#   • Add a new case from scratch → add JSON entry in test_cases.json,
+#     then reference its ID from any section's `cases: [...]`.
+#
+# Build flow (build.py):
+#   1. Load this YAML.
+#   2. For each use_case with `cases: [...]`, look up each id in
+#      test_cases.json, merge `request_template` + per-case content
+#      (script→script_text for source=text, idea→idea_text for source=idea,
+#      blog→blog_text for source=blog)
+#      → emit one `industries[]` entry per case.
+#   3. Render aggregator + inline playgrounds from the merged data.
+
+endpoint:
+  method: POST
+  path: /v1/create_video
+
+title: Create video — from a script, an idea, or a blog/article
+description: |
+  Every section below is a working example you can run as-is. Pick an
+  industry pill to load a domain-specific script (Real Estate market data,
+  Insurance regulation, News structural analysis…). WideCast is built for
+  videos with depth — substantive narration, story structure, B-roll that
+  matches the subject — not shallow entertainment clips.
+
+fields:
+  - name: source
+    type: select
+    label: "Source"
+    required: false
+    default: text
+    options:
+      - value: text
+        label: "text — paste a finished script"
+      - value: idea
+        label: "idea — describe the topic, AI writes the script"
+      - value: blog
+        label: "blog — paste an article, AI condenses it into a script"
+      - value: video_url
+        label: "video_url — a video link, the footage becomes the b-roll"
+      - value: audio_url
+        label: "audio_url — an audio/video link, the audio becomes the narration"
+      - value: video_file
+        label: "video_file — upload a video file (footage becomes the b-roll)"
+      - value: audio_file
+        label: "audio_file — upload an audio file (audio becomes the narration)"
+  - name: script_text
+    type: textarea
+    label: "Script text (80–500 words, used verbatim)"
+    required: true
+    rows: 10
+    placeholder: "Paste your finished narration here."
+    x-widecast-min-words: 80
+    x-widecast-max-words: 500
+  - name: idea_text
+    type: textarea
+    label: "Idea text (5–1000 words; over-max auto-truncated)"
+    required: true
+    rows: 4
+    placeholder: "Describe what the video should be about."
+    x-widecast-min-words: 5
+    x-widecast-max-words: 1000
+  - name: blog_text
+    type: textarea
+    label: "Blog / article (30–3000 words; over-max auto-truncated)"
+    required: true
+    rows: 10
+    placeholder: "Paste your blog post or article here. Pasted images become inline image URLs the AI uses as per-scene illustrations."
+    x-widecast-min-words: 30
+    x-widecast-max-words: 3000
+    # When you paste a rich web article, the browser drops the <img> tags
+    # (a textarea is plain-text only). With inline_images on, the playground
+    # intercepts the paste and splices each absolute http(s) image URL inline
+    # at its position — exactly the form the server (ai_enhance_script) detects
+    # via _MEDIA_URL_PATTERN and turns into per-scene illustration images.
+    inline_images: true
+  - name: video_url
+    type: text
+    label: "Video URL (YouTube / TikTok / Facebook, ≤2 min)"
+    required: true
+    placeholder: "https://www.youtube.com/watch?v=..."
+  - name: audio_url
+    type: text
+    label: "Audio/Video URL (YouTube / TikTok / Facebook, ≤2 min)"
+    required: true
+    placeholder: "https://www.youtube.com/watch?v=..."
+  - name: video_file
+    type: file
+    label: "Video file (≤2 min, ≤100 MB)"
+    required: true
+    accept: "video/*"
+    placeholder: "Choose a video file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+  - name: audio_file
+    type: file
+    label: "Audio file (≤2 min, ≤100 MB)"
+    required: true
+    accept: "audio/*"
+    placeholder: "Choose an audio file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+  - name: language
+    type: select
+    label: "Language"
+    required: false
+    default: English
+    options:
+      - value: English
+        label: "English"
+      - value: Vietnamese
+        label: "Tiếng Việt"
+  - name: video_length
+    type: select
+    label: "Video length"
+    required: false
+    default: short
+    options:
+      - value: short
+        label: "short (~90s)"
+      - value: normal
+        label: "normal (cap ~3 min)"
+  - name: output_type
+    type: select
+    label: "Output type"
+    required: false
+    default: scene
+    options:
+      - value: text
+        label: "text — stop at editable script (generative sources only)"
+      - value: scene
+        label: "scene — stop at scenes-ready-for-review"
+      - value: video
+        label: "video — auto-render final MP4"
+  - name: faceless
+    type: boolean
+    label: "Faceless — every scene B-roll, no narrator (scene/video · text/idea/blog only)"
+    required: false
+    default: false
+  - name: callback_url
+    type: text
+    label: "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html"
+    required: false
+    placeholder: "https://widecast.ai/app/dashboard2/webhook_test/wht_… (from webhook-test.html)"
+
+poll_after_create:
+  enabled: true
+  id_field: id
+  status_path: /v1/status/{id}
+  terminal_statuses: [completed, failed]
+  initial_interval_ms: 5000
+  max_interval_ms: 5000
+  backoff_multiplier: 1.0
+  timeout_ms: 1800000
+
+# ──────────────────────────────────────────────────────────────────────
+# Sections (= use_cases). Each section references case IDs from
+# test_cases.json. Pill order = `cases:` array order. Build.py merges
+# `request_template` + case content into the final industries[].
+#
+# To add a pill: append a case_id to a section's `cases:` array.
+# To reorder pills: reorder the array.
+# To swap an example's script: edit the case in test_cases.json.
+# ──────────────────────────────────────────────────────────────────────
+# English-only (2026-05-22): the Vietnamese demo section was removed for
+# compactness. The script + idea sections carry the FULL 20-case English
+# roster — devs see the full breadth of industries WideCast supports. The
+# blog section carries only the 5 cases that ship a full article fixture
+# (a `blog` field in test_cases.json); build.py FATALs if a blog section
+# references a case missing that field. request_template differs per
+# section, the content library stays consistent.
+# CONSOLIDATED (2026-05-22): one section per (source × language). The
+# output_type and video_length axes are now RADIO groups inside each card
+# (`choices:`) instead of separate sections — devs see all options at a
+# glance and toggle them in place. Industry pills still swap the script /
+# idea content. request_template carries the FIXED params + the default
+# radio selection; `choices` declares which params are radios.
+use_cases:
+  - id: script_en
+    title: "📜 Script · English"
+    description: "You have a finished narration (~120 words). Pick how far to take it with the **output type** radio: `scene` stops at scenes-ready-for-review; `video` renders the final MP4 end-to-end. Pick an industry pill to load a domain script, edit it freely, then Run."
+    request_template:
+      source: text
+      output_type: scene
+      faceless: false
+      callback_url: ""
+    choices:
+      - field: output_type
+        options: [scene, video]   # source=text has no Phase 1 → no 'text'
+    cases:
+      - real_estate_us
+      - finance_roth
+      - insurance_flood
+      - insurance_life
+      - tech_usbc
+      - news_sf
+      - marketing_ig
+      - ecommerce_shopify
+      - startup_burn
+      - ai_llm
+      - healthcare_fasting
+      - product_iphone
+      - politics_electoral
+      - sustainability_ev
+      - sports_marathon
+      - travel_shinkansen
+      - psychology_procrastination
+      - cooking_sourdough
+      - crypto_bitcoin_halving
+      - parenting_screen_time
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  - id: idea_en
+    title: "💡 Idea · English"
+    description: "Just a brief — the AI writes the script. Pick **output type**: `text` stops at the editable script (Script Editor); `scene` continues to scenes-ready; `video` renders the final MP4. **Video length** picks short (~90s) or normal (~3 min). Pick an industry pill to load a brief, edit it, then Run."
+    request_template:
+      source: idea
+      language: English
+      output_type: scene
+      video_length: short
+      faceless: false
+      callback_url: ""
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+      - field: video_length
+        options: [short, normal]
+        gated:
+          normal: "Normal length (~3 min) is available on paid plans. Reverting to short for this demo."
+    cases:
+      - real_estate_us
+      - finance_roth
+      - insurance_flood
+      - insurance_life
+      - tech_usbc
+      - news_sf
+      - marketing_ig
+      - ecommerce_shopify
+      - startup_burn
+      - ai_llm
+      - healthcare_fasting
+      - product_iphone
+      - politics_electoral
+      - sustainability_ev
+      - sports_marathon
+      - travel_shinkansen
+      - psychology_procrastination
+      - cooking_sourdough
+      - crypto_bitcoin_halving
+      - parenting_screen_time
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  - id: blog_en
+    title: "📰 Blog / Article · English"
+    description: "Paste a blog post or article — the AI condenses it into a video script. Default **output type** is `text` (stops at the editable script in the Script Editor, the UI default flow); switch to `scene`/`video` to go further. **Video length** picks short (~90s) or normal (~3 min). Only industries with a full article fixture appear here; pick a pill, edit the text, then Run."
+    request_template:
+      source: blog
+      language: English
+      output_type: text
+      video_length: short
+      callback_url: ""
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+      - field: video_length
+        options: [short, normal]
+        gated:
+          normal: "Normal length (~3 min) is available on paid plans. Reverting to short for this demo."
+    cases:
+      - real_estate_us
+      - insurance_flood
+      - news_sf
+      - ai_llm
+      - healthcare_fasting
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  - id: video_url_en
+    title: "🎬 Video URL → Auto-Edit · English"
+    description: "Paste a **video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)"
+    request_template:
+      source: video_url
+      output_type: scene
+      callback_url: ""
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+    cases:
+      - media_demo_bunny
+      - media_demo_sintel
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  - id: audio_url_en
+    title: "🎧 Audio URL → Audio-to-Video · English"
+    description: "Paste an **audio/video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server extracts the audio and uses it as the narration, generating matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)"
+    request_template:
+      source: audio_url
+      output_type: scene
+      callback_url: ""
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+    cases:
+      - media_demo_bunny
+      - media_demo_sintel
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  # Upload sources (A49) — single card each (a file can't be a pre-filled
+  # fixture). source=*_file → Run uploads the picked file as multipart/form-data;
+  # the Copy buttons emit the file-aware snippet. No `cases:`/industries.
+  - id: video_file_en
+    title: "🎬 Video file → Auto-Edit · English"
+    description: "**Upload a video file** (≤2 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
+    request:
+      source: video_file
+      output_type: scene
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500
+
+  - id: audio_file_en
+    title: "🎧 Audio file → Audio-to-Video · English"
+    description: "**Upload an audio file** (≤2 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
+    request:
+      source: audio_file
+      output_type: scene
+    choices:
+      - field: output_type
+        options: [text, scene, video]
+    assertions:
+      eventual_status: completed
+      has_review_url: true
+      max_wait_seconds: 1500

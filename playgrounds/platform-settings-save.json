@@ -1,0 +1,63 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/platform_settings"
+  },
+  "title": "Save publish settings",
+  "description": "Free. Save one platform's publish PREFERENCES (e.g. youtube privacy, reddit\nsubreddit, facebook page id). ⚠ Running writes to your account.\n",
+  "fields": [
+    {
+      "name": "platform",
+      "type": "select",
+      "label": "Platform",
+      "required": true,
+      "options": [
+        {
+          "value": "youtube",
+          "label": "YouTube"
+        },
+        {
+          "value": "facebook",
+          "label": "Facebook"
+        },
+        {
+          "value": "reddit",
+          "label": "Reddit"
+        },
+        {
+          "value": "pinterest",
+          "label": "Pinterest"
+        },
+        {
+          "value": "google_business",
+          "label": "Google Business"
+        }
+      ]
+    },
+    {
+      "name": "settings",
+      "type": "json",
+      "label": "settings (JSON object)",
+      "required": true,
+      "placeholder": "{\"privacy\": \"public\"}"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "save_settings",
+      "title": "💾 Save publish settings",
+      "description": "Pick a platform and provide its settings object. ⚠ Run writes to your account.",
+      "request": {
+        "platform": "youtube",
+        "settings": {
+          "privacy": "public"
+        }
+      }
+    }
+  ],
+  "_key": "platform-settings-save",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

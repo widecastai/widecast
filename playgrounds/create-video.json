@@ -1,0 +1,1041 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/create_video"
+  },
+  "title": "Create video — from a script, an idea, or a blog/article",
+  "description": "Every section below is a working example you can run as-is. Pick an\nindustry pill to load a domain-specific script (Real Estate market data,\nInsurance regulation, News structural analysis…). WideCast is built for\nvideos with depth — substantive narration, story structure, B-roll that\nmatches the subject — not shallow entertainment clips.\n",
+  "fields": [
+    {
+      "name": "source",
+      "type": "select",
+      "label": "Source",
+      "required": false,
+      "default": "text",
+      "options": [
+        {
+          "value": "text",
+          "label": "text — paste a finished script"
+        },
+        {
+          "value": "idea",
+          "label": "idea — describe the topic, AI writes the script"
+        },
+        {
+          "value": "blog",
+          "label": "blog — paste an article, AI condenses it into a script"
+        },
+        {
+          "value": "video_url",
+          "label": "video_url — a video link, the footage becomes the b-roll"
+        },
+        {
+          "value": "audio_url",
+          "label": "audio_url — an audio/video link, the audio becomes the narration"
+        },
+        {
+          "value": "video_file",
+          "label": "video_file — upload a video file (footage becomes the b-roll)"
+        },
+        {
+          "value": "audio_file",
+          "label": "audio_file — upload an audio file (audio becomes the narration)"
+        }
+      ]
+    },
+    {
+      "name": "script_text",
+      "type": "textarea",
+      "label": "Script text (80–500 words, used verbatim)",
+      "required": true,
+      "rows": 10,
+      "placeholder": "Paste your finished narration here.",
+      "x-widecast-min-words": 80,
+      "x-widecast-max-words": 500
+    },
+    {
+      "name": "idea_text",
+      "type": "textarea",
+      "label": "Idea text (5–1000 words; over-max auto-truncated)",
+      "required": true,
+      "rows": 4,
+      "placeholder": "Describe what the video should be about.",
+      "x-widecast-min-words": 5,
+      "x-widecast-max-words": 1000
+    },
+    {
+      "name": "blog_text",
+      "type": "textarea",
+      "label": "Blog / article (30–3000 words; over-max auto-truncated)",
+      "required": true,
+      "rows": 10,
+      "placeholder": "Paste your blog post or article here. Pasted images become inline image URLs the AI uses as per-scene illustrations.",
+      "x-widecast-min-words": 30,
+      "x-widecast-max-words": 3000,
+      "inline_images": true
+    },
+    {
+      "name": "video_url",
+      "type": "text",
+      "label": "Video URL (YouTube / TikTok / Facebook, ≤2 min)",
+      "required": true,
+      "placeholder": "https://www.youtube.com/watch?v=..."
+    },
+    {
+      "name": "audio_url",
+      "type": "text",
+      "label": "Audio/Video URL (YouTube / TikTok / Facebook, ≤2 min)",
+      "required": true,
+      "placeholder": "https://www.youtube.com/watch?v=..."
+    },
+    {
+      "name": "video_file",
+      "type": "file",
+      "label": "Video file (≤2 min, ≤100 MB)",
+      "required": true,
+      "accept": "video/*",
+      "placeholder": "Choose a video file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+    },
+    {
+      "name": "audio_file",
+      "type": "file",
+      "label": "Audio file (≤2 min, ≤100 MB)",
+      "required": true,
+      "accept": "audio/*",
+      "placeholder": "Choose an audio file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+    },
+    {
+      "name": "language",
+      "type": "select",
+      "label": "Language",
+      "required": false,
+      "default": "English",
+      "options": [
+        {
+          "value": "English",
+          "label": "English"
+        },
+        {
+          "value": "Vietnamese",
+          "label": "Tiếng Việt"
+        }
+      ]
+    },
+    {
+      "name": "video_length",
+      "type": "select",
+      "label": "Video length",
+      "required": false,
+      "default": "short",
+      "options": [
+        {
+          "value": "short",
+          "label": "short (~90s)"
+        },
+        {
+          "value": "normal",
+          "label": "normal (cap ~3 min)"
+        }
+      ]
+    },
+    {
+      "name": "output_type",
+      "type": "select",
+      "label": "Output type",
+      "required": false,
+      "default": "scene",
+      "options": [
+        {
+          "value": "text",
+          "label": "text — stop at editable script (generative sources only)"
+        },
+        {
+          "value": "scene",
+          "label": "scene — stop at scenes-ready-for-review"
+        },
+        {
+          "value": "video",
+          "label": "video — auto-render final MP4"
+        }
+      ]
+    },
+    {
+      "name": "faceless",
+      "type": "boolean",
+      "label": "Faceless — every scene B-roll, no narrator (scene/video · text/idea/blog only)",
+      "required": false,
+      "default": false
+    },
+    {
+      "name": "callback_url",
+      "type": "text",
+      "label": "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html",
+      "required": false,
+      "placeholder": "https://widecast.ai/app/dashboard2/webhook_test/wht_… (from webhook-test.html)"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": true,
+    "id_field": "id",
+    "status_path": "/v1/status/{id}",
+    "terminal_statuses": [
+      "completed",
+      "failed"
+    ],
+    "initial_interval_ms": 5000,
+    "max_interval_ms": 5000,
+    "backoff_multiplier": 1.0,
+    "timeout_ms": 1800000
+  },
+  "use_cases": [
+    {
+      "id": "script_en",
+      "title": "📜 Script · English",
+      "description": "You have a finished narration (~120 words). Pick how far to take it with the **output type** radio: `scene` stops at scenes-ready-for-review; `video` renders the final MP4 end-to-end. Pick an industry pill to load a domain script, edit it freely, then Run.",
+      "request_template": {
+        "source": "text",
+        "output_type": "scene",
+        "faceless": false,
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "scene",
+            "video"
+          ]
+        }
+      ],
+      "cases": [
+        "real_estate_us",
+        "finance_roth",
+        "insurance_flood",
+        "insurance_life",
+        "tech_usbc",
+        "news_sf",
+        "marketing_ig",
+        "ecommerce_shopify",
+        "startup_burn",
+        "ai_llm",
+        "healthcare_fasting",
+        "product_iphone",
+        "politics_electoral",
+        "sustainability_ev",
+        "sports_marathon",
+        "travel_shinkansen",
+        "psychology_procrastination",
+        "cooking_sourdough",
+        "crypto_bitcoin_halving",
+        "parenting_screen_time"
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      },
+      "industries": [
+        {
+          "key": "real_estate_us",
+          "label": "🏠 Real Estate",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Stop renting in the Bay Area until you've seen this number. Median home price is one point four million dollars, mortgage rates are seven percent, and you'll need at least two hundred thousand down. But here's what most people miss. Renting a two-bedroom in San Jose costs forty-two hundred a month and goes nowhere. Buying the same house, even with mortgage and tax, locks in fifty percent of that as equity over ten years. Three things kill first-time buyers in California: hidden closing costs that hit thirty thousand, property tax reassessment after purchase, and HOA fees that creep up six percent yearly. If you're earning over a hundred and eighty thousand, the math actually favors buying. Talk to a local mortgage broker before another rent check disappears."
+          }
+        },
+        {
+          "key": "finance_roth",
+          "label": "💰 Finance",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Starting your Roth IRA at twenty-five versus thirty-five costs you exactly one million dollars at retirement. Both people contribute the same six thousand a year. Both earn the same seven percent annual return. The only difference is ten years. The twenty-five-year-old ends with two point four million by age sixty-five. The thirty-five-year-old ends with one point one million. Compound interest is principal times one plus rate to the power of years. The years exponent is what matters most. Even if you can only afford a hundred dollars a month at twenty-five, do it. The math punishes waiting more than it punishes low contributions. Open the account this week. Most brokerages take ten minutes."
+          }
+        },
+        {
+          "key": "insurance_flood",
+          "label": "🛡 P&C Insurance",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Your homeowner's insurance probably doesn't cover floods. Most people learn this after a storm. Standard policies exclude rising-water damage entirely, including hurricanes, river overflow, and even heavy rain pooling. Flood insurance is a separate policy, usually sold through the federal flood program for homes in high-risk zones. Less than fifteen percent of US households carry it. The average flood claim is forty-three thousand dollars. Renters can buy contents-only flood coverage for under twenty dollars a month. Homeowners outside high-risk zones still face moderate risk, about one in four flood claims happens outside designated zones. Check your zone code, then call your agent. Floods don't wait for hurricane season."
+          }
+        },
+        {
+          "key": "insurance_life",
+          "label": "🛡 L&H Insurance",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Whole life insurance costs five to fifteen times more than term life for the same death benefit. A healthy thirty-year-old pays twenty dollars a month for half a million in term coverage over twenty years. The same person pays two hundred dollars a month for whole life. The agent will tell you whole life builds cash value. That cash value typically returns one to three percent over decades, worse than a basic index fund. Term life covers the years your kids depend on you. Whole life is mostly a commission product. If you want investing, invest. If you want protection during high-responsibility years, buy term. Most families need term, not whole."
+          }
+        },
+        {
+          "key": "tech_usbc",
+          "label": "💻 Technology",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "USB-C ended fifteen years of cable chaos in one decision. Before USB-C, every device needed its own cable. Phones used micro USB, laptops used barrel chargers, Apple used Lightning, Samsung used proprietary plugs. The original USB from nineteen ninety-six maxed out at twelve megabits per second. USB-C with Thunderbolt now handles forty gigabits, three thousand times faster. It also delivers up to two hundred forty watts of power, enough to charge a gaming laptop. The breakthrough was the reversible connector. No more checking orientation in the dark. The European Union forced Apple's hand in twenty-twenty-four. Now one cable charges your phone, your laptop, and your headphones. Throw out the drawer of old cables. You don't need them."
+          }
+        },
+        {
+          "key": "news_sf",
+          "label": "📰 News",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "San Francisco's downtown is half empty, and that's actually progress. Office occupancy dropped from ninety-four percent in twenty-nineteen to forty-one percent in twenty-twenty-three. By twenty-twenty-six, it's climbing back toward sixty percent. Three things drove the comeback. Federal return-to-office mandates pushed Bay Area firms to require at least three days a week. Tech layoffs subsided, hiring resumed at Google, OpenAI, and Anthropic. Lease prices dropped forty percent, attracting startups that couldn't afford downtown before the pandemic. The streets still don't feel like twenty-nineteen, but coffee shops on Market Street are crowded again. Recovery doesn't mean return to before. It means new equilibrium."
+          }
+        },
+        {
+          "key": "marketing_ig",
+          "label": "📣 Marketing",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Your Instagram engagement just dropped seventy percent, and nothing you posted is at fault. The algorithm shifted in twenty-twenty-six. Reels now get four times the reach of static posts. Posts with under three seconds of attention get downranked. Hashtag relevance now beats hashtag volume. Three things will recover your reach. Switch to reels-first content even if you hate filming. Open with a hook in the first one point five seconds, text, motion, or a question. Tag your niche with three precise hashtags, not twenty broad ones. Engagement isn't dead. The shortcut to it just changed. Test these three changes this week, then check insights."
+          }
+        },
+        {
+          "key": "ecommerce_shopify",
+          "label": "🛒 Ecommerce",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "If your Shopify store converts under two percent, you're losing money on every ad click. The industry average is one point four percent, but top stores hit four to six. Three issues kill conversion in twenty-twenty-six. Slow product pages, anything over three seconds loads loses sixty percent of buyers. Missing trust signals, no real product photos, no reviews, no return policy near the buy button. Friction at checkout, surprise shipping fees, forced account creation, or address fields without autofill. Fix product page speed first using Shopify's free PageSpeed report. Add five real customer photos to your top product. Move shipping cost above the cart. Conversion compounds, each fix earns the next."
+          }
+        },
+        {
+          "key": "startup_burn",
+          "label": "🚀 Startup",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Every founder should know two numbers cold: burn rate and runway. Burn rate is how much cash you spend each month. Runway is how many months until you hit zero. The formula is simple, cash divided by monthly burn equals runway. If you have eight hundred thousand in the bank and spend a hundred thousand a month, you have eight months. The threshold every startup needs is default-alive: you can reach profitability before runway ends without raising more money. If you're default-dead, you're either fundraising or cutting. There is no third option. Calculate your number tonight. Most founders find out theirs is shorter than they thought."
+          }
+        },
+        {
+          "key": "ai_llm",
+          "label": "🤖 AI & LLM",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Large language models make things up, even the best ones. GPT-4 and Claude both hallucinate facts roughly five to ten percent of the time. The reason is structural. These models predict the next likely word, not the next true word. They have no internal fact-check. Three things reduce hallucination in real use. Ground the model in source documents using retrieval, give it the relevant text, then ask. Lower the temperature to zero for factual tasks, randomness drops. Ask the model to cite or quote, it self-corrects when forced to point at the source. The goal isn't zero errors. The goal is making errors visible and recoverable. Build review into every workflow."
+          }
+        },
+        {
+          "key": "healthcare_fasting",
+          "label": "🏥 Healthcare",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Intermittent fasting works for half the people who try it, and fails for the other half. The mechanism is real. Sixteen hours without food drops insulin, lets stored fat get used, and resets hunger hormones. The fail mode is also real. People in calorie deficit during the eating window can binge in the four-hour eating window. Skipping breakfast then eating a thousand-calorie lunch defeats the metabolic benefit. Genetics matter too, about thirty percent of people have a CLOCK gene variant that handles late-day eating poorly. If you've tried intermittent fasting and gained weight, your eating window is too short and your meals are too dense. Try fourteen-ten before sixteen-eight. Build the habit before stretching the fast."
+          }
+        },
+        {
+          "key": "product_iphone",
+          "label": "📱 Product Review",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Skip the iPhone 17 if you're on iPhone 15. The processor is twenty percent faster but you won't feel it. The camera adds a one-twenty-millimeter telephoto, useful only if you shoot portraits or sports. The screen is the same. Battery life improved by ninety minutes. Price went up by two hundred dollars. Three real reasons to upgrade exist. You're on iPhone 13 or older, the jump is meaningful. Your battery is below eighty percent health and replacement costs two hundred. You shoot pro video at 4K HDR, the new ISP earns its keep. Otherwise wait for iPhone 18 next year. Most users won't notice the difference."
+          }
+        },
+        {
+          "key": "politics_electoral",
+          "label": "🗳 Politics",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "The electoral college exists because the founders didn't trust voters directly. In seventeen eighty-seven, the United States had no telephones, no national newspapers, and no party machinery. The Constitution gave states electors instead of a popular vote. Each state gets electors equal to its house seats plus two senators. Wyoming with six hundred thousand people gets three. California with thirty-nine million gets fifty-four. That ratio means a vote in Wyoming weighs three point seven times more than a vote in California. Five times in US history the popular vote loser won the presidency. Most recently in twenty-sixteen. Abolishing the electoral college needs a constitutional amendment, and two-thirds of states. The math means it stays."
+          }
+        },
+        {
+          "key": "sustainability_ev",
+          "label": "🌱 Sustainability",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Electric vehicles aren't zero-emission, but they're still better. Building a Tesla emits about ten metric tons of CO2 mostly from battery production. Building a Camry emits about six metric tons. So an EV starts four tons in the hole. The break-even depends on your local grid. If you charge in California with renewables, you erase that gap in eighteen months. In West Virginia where coal dominates, it takes about five years. Over a fifteen-year lifespan, even a coal-charged EV emits half what a gas car emits. The honest answer isn't zero, it's still cleaner. If you live where the grid is dirty, push for cleaner power first, then EVs follow."
+          }
+        },
+        {
+          "key": "sports_marathon",
+          "label": "🏃 Sports & Fitness",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "The marathon wall is real, and it happens at mile twenty for almost everyone. Your body stores about two thousand calories of glycogen in muscles and liver. Running uses about a hundred calories per mile. That math means glycogen runs empty between mile eighteen and twenty-two. When glycogen runs out, your body switches to fat for fuel. Fat burns slower. Your pace drops twenty to thirty percent. Your legs feel like cement. Two ways to push the wall back exist. Eat thirty to sixty grams of carbs per hour during the run. Train your body to burn fat better through long, slow weekend runs. The wall isn't lack of fitness. It's biochemistry."
+          }
+        },
+        {
+          "key": "travel_shinkansen",
+          "label": "✈️ Travel",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Japan's Shinkansen has carried ten billion passengers in sixty years, with zero passenger deaths from accidents. The US Amtrak system, much smaller, has had over a hundred fatal incidents in the same period. Three engineering choices made this possible. Dedicated tracks, bullet trains never share rail with freight or commuter trains. Automatic train control overrides the driver if speed exceeds the limit. Earthquake detection cuts power within one second of seismic waves, before the train even feels the shake. The cost is enormous. Japan spent the equivalent of half a trillion dollars over six decades on rail. The result is the safest mass transit system humans have built."
+          }
+        },
+        {
+          "key": "psychology_procrastination",
+          "label": "🧠 Psychology",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "You don't procrastinate because you're lazy. You procrastinate because your brain treats future-you as a stranger. The prefrontal cortex handles planning and discipline. The limbic system handles instant reward. When they argue, limbic wins by default, even on tasks you love. Three techniques flip the balance. The two-minute rule, commit to just two minutes of the task; momentum does the rest. Implementation intentions, write \"when X happens I will do Y\" instead of vague goals. Pre-commitment, remove the alternative; if you can't open social media, you don't choose to. Discipline isn't more willpower. It's better architecture. Build the environment, then your future self follows."
+          }
+        },
+        {
+          "key": "cooking_sourdough",
+          "label": "🍞 Cooking",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Your sourdough is dense because three things are wrong, not one. Hydration matters more than recipe. Most beginners use sixty-five percent hydration, expert bakers go seventy-five to eighty. Higher water means more steam during the bake, more steam means open crumb. Temperature controls fermentation speed. At twenty-eight degrees Celsius your starter doubles in three hours, at room temperature it takes ten. Most home doughs are under-fermented because the kitchen is cold. Shape matters too. Loose shaping kills surface tension; the loaf flattens instead of rising. Build a tight skin in final shaping. Bake hot, two hundred fifty Celsius with steam for the first ten minutes. Crust forms last, oven spring happens first."
+          }
+        },
+        {
+          "key": "crypto_bitcoin_halving",
+          "label": "₿ Crypto",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "Bitcoin's supply schedule was decided in two thousand nine by Satoshi, and no one can change it. The protocol caps total supply at twenty-one million coins. Every four years, the reward for mining a block cuts in half. This is called the halving. In two thousand nine miners earned fifty bitcoin per block. By twenty-twelve it dropped to twenty-five. By twenty-sixteen to twelve point five. The most recent halving in twenty-twenty-four brought it to three point one two five. Each halving has historically preceded a major price rally. The next halving in twenty-twenty-eight will reduce new supply to one point five six. Scarcity is mathematical, not opinion. The supply curve is the only thing in crypto you can predict."
+          }
+        },
+        {
+          "key": "parenting_screen_time",
+          "label": "👶 Parenting",
+          "request": {
+            "source": "text",
+            "output_type": "scene",
+            "faceless": false,
+            "callback_url": "",
+            "script_text": "A toddler who watches over two hours of screen daily has a thirty percent higher chance of language delay at age three. The mechanism is real. Language develops through back-and-forth conversation, not one-way listening. When a parent reads, points, and waits for a response, neural pathways form for both comprehension and production. A screen plays at the child but never responds. Six months of two-plus hours daily can set development back another six months in vocabulary. Two changes flip the trajectory. Replace one hour of passive screen with one hour of \"serve and return\" conversation. Use any screen time as a starting point: pause, ask \"what do you see?\", wait. The brain wires what you practice. Choose what to practice."
+          }
+        }
+      ]
+    },
+    {
+      "id": "idea_en",
+      "title": "💡 Idea · English",
+      "description": "Just a brief — the AI writes the script. Pick **output type**: `text` stops at the editable script (Script Editor); `scene` continues to scenes-ready; `video` renders the final MP4. **Video length** picks short (~90s) or normal (~3 min). Pick an industry pill to load a brief, edit it, then Run.",
+      "request_template": {
+        "source": "idea",
+        "language": "English",
+        "output_type": "scene",
+        "video_length": "short",
+        "faceless": false,
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        },
+        {
+          "field": "video_length",
+          "options": [
+            "short",
+            "normal"
+          ],
+          "gated": {
+            "normal": "Normal length (~3 min) is available on paid plans. Reverting to short for this demo."
+          }
+        }
+      ],
+      "cases": [
+        "real_estate_us",
+        "finance_roth",
+        "insurance_flood",
+        "insurance_life",
+        "tech_usbc",
+        "news_sf",
+        "marketing_ig",
+        "ecommerce_shopify",
+        "startup_burn",
+        "ai_llm",
+        "healthcare_fasting",
+        "product_iphone",
+        "politics_electoral",
+        "sustainability_ev",
+        "sports_marathon",
+        "travel_shinkansen",
+        "psychology_procrastination",
+        "cooking_sourdough",
+        "crypto_bitcoin_halving",
+        "parenting_screen_time"
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      },
+      "industries": [
+        {
+          "key": "real_estate_us",
+          "label": "🏠 Real Estate",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why first-time Bay Area buyers should run the rent-vs-buy math before signing another lease — median home price, mortgage rates, hidden closing costs, and the income threshold where buying beats renting."
+          }
+        },
+        {
+          "key": "finance_roth",
+          "label": "💰 Finance",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why a Roth IRA opened at 25 ends up worth $1M more than the same plan started at 35 — compound interest, the years exponent that matters most, and the $100/month threshold most people miss."
+          }
+        },
+        {
+          "key": "insurance_flood",
+          "label": "🛡 P&C Insurance",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why standard homeowner's insurance excludes flood damage — the federal flood program, the 15% of households actually covered, and why one in four flood claims comes from outside high-risk zones."
+          }
+        },
+        {
+          "key": "insurance_life",
+          "label": "🛡 L&H Insurance",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why term life insurance covers families better than whole life for the same death benefit — the 5-15x premium gap, the cash-value myth, and the years your kids actually depend on you."
+          }
+        },
+        {
+          "key": "tech_usbc",
+          "label": "💻 Technology",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "How USB-C ended fifteen years of cable chaos — from 1996 micro-USB at 12 Mbps to USB-C with Thunderbolt at 40 Gbps and 240W power, plus the EU mandate that forced Apple's hand."
+          }
+        },
+        {
+          "key": "news_sf",
+          "label": "📰 News",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why San Francisco's office occupancy climbed back from 41% to nearly 60% in two years — return-to-office mandates, tech hiring resuming at OpenAI and Anthropic, and a 40% drop in lease prices."
+          }
+        },
+        {
+          "key": "marketing_ig",
+          "label": "📣 Marketing",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why Instagram engagement dropped 70% in 2026 and how to recover — the algorithm shift toward Reels, the 1.5-second hook rule, and the hashtag relevance change."
+          }
+        },
+        {
+          "key": "ecommerce_shopify",
+          "label": "🛒 Ecommerce",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why most Shopify stores convert under 2% and how the top stores hit 4-6% — page speed under 3 seconds, real customer photos, and shipping costs surfaced above the cart."
+          }
+        },
+        {
+          "key": "startup_burn",
+          "label": "🚀 Startup",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Every founder's two non-negotiable numbers — burn rate and runway. The formula, the eight-month case study, and the default-alive threshold separating fundable startups from desperate ones."
+          }
+        },
+        {
+          "key": "ai_llm",
+          "label": "🤖 AI & LLM",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why GPT-4 and Claude hallucinate 5-10% of the time and three concrete fixes — retrieval grounding, temperature zero for factual tasks, and forcing the model to cite or quote."
+          }
+        },
+        {
+          "key": "healthcare_fasting",
+          "label": "🏥 Healthcare",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why intermittent fasting works for half the people who try it and fails for the other half — insulin mechanism, the binge trap in the eating window, and the 30% of people with a CLOCK gene variant."
+          }
+        },
+        {
+          "key": "product_iphone",
+          "label": "📱 Product Review",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why most iPhone 15 owners should skip the iPhone 17 — 20% faster processor you won't feel, the camera upgrade that only matters for portraits, and the $200 price jump."
+          }
+        },
+        {
+          "key": "politics_electoral",
+          "label": "🗳 Politics",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why the electoral college persists despite Wyoming voters counting 3.7x more than California voters — the 1787 origin without telephones or national parties, and the constitutional amendment math that keeps it."
+          }
+        },
+        {
+          "key": "sustainability_ev",
+          "label": "🌱 Sustainability",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why electric vehicles aren't truly zero-emission but still beat gas cars — the 10-ton manufacturing footprint, the 18-month break-even in California's grid, and the 5-year break-even in coal-heavy regions."
+          }
+        },
+        {
+          "key": "sports_marathon",
+          "label": "🏃 Sports & Fitness",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why marathoners hit the wall at mile 20 — the 2000-calorie glycogen tank, the 100-calorie-per-mile burn rate, and the two training fixes that push the wall back."
+          }
+        },
+        {
+          "key": "travel_shinkansen",
+          "label": "✈️ Travel",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why Japan's Shinkansen has had zero passenger deaths in 60 years and 10 billion riders — dedicated tracks, automatic train control, and earthquake detection that cuts power in one second."
+          }
+        },
+        {
+          "key": "psychology_procrastination",
+          "label": "🧠 Psychology",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why you procrastinate even on things you love — the prefrontal-vs-limbic argument, the two-minute rule, and implementation intentions that flip the balance."
+          }
+        },
+        {
+          "key": "cooking_sourdough",
+          "label": "🍞 Cooking",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why your sourdough is dense — 75% hydration vs 65%, the 28°C fermentation sweet spot, and tight final shaping. Three fixes that produce open crumb."
+          }
+        },
+        {
+          "key": "crypto_bitcoin_halving",
+          "label": "₿ Crypto",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why Bitcoin's halving every four years matters — Satoshi's 21M supply cap, the mining reward schedule from 2009 onwards, and why scarcity is mathematical not opinion."
+          }
+        },
+        {
+          "key": "parenting_screen_time",
+          "label": "👶 Parenting",
+          "request": {
+            "source": "idea",
+            "language": "English",
+            "output_type": "scene",
+            "video_length": "short",
+            "faceless": false,
+            "callback_url": "",
+            "idea_text": "Why screen time over 2 hours daily at age 2 raises language-delay risk by 30% — serve-and-return conversation, brain wiring, and the recovery path."
+          }
+        }
+      ]
+    },
+    {
+      "id": "blog_en",
+      "title": "📰 Blog / Article · English",
+      "description": "Paste a blog post or article — the AI condenses it into a video script. Default **output type** is `text` (stops at the editable script in the Script Editor, the UI default flow); switch to `scene`/`video` to go further. **Video length** picks short (~90s) or normal (~3 min). Only industries with a full article fixture appear here; pick a pill, edit the text, then Run.",
+      "request_template": {
+        "source": "blog",
+        "language": "English",
+        "output_type": "text",
+        "video_length": "short",
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        },
+        {
+          "field": "video_length",
+          "options": [
+            "short",
+            "normal"
+          ],
+          "gated": {
+            "normal": "Normal length (~3 min) is available on paid plans. Reverting to short for this demo."
+          }
+        }
+      ],
+      "cases": [
+        "real_estate_us",
+        "insurance_flood",
+        "news_sf",
+        "ai_llm",
+        "healthcare_fasting"
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      },
+      "industries": [
+        {
+          "key": "real_estate_us",
+          "label": "🏠 Real Estate",
+          "request": {
+            "source": "blog",
+            "language": "English",
+            "output_type": "text",
+            "video_length": "short",
+            "callback_url": "",
+            "blog_text": "Most first-time buyers in the Bay Area give up before they even run the numbers, convinced that homeownership is permanently out of reach. The headline figures are genuinely intimidating: a median home price around 1.4 million dollars, mortgage rates near 7 percent, and a down payment expectation of at least 200 thousand. But fixating on those numbers in isolation misses the comparison that actually matters. Renting a two-bedroom in San Jose runs about 4,200 dollars a month, and every one of those dollars is gone for good. Buying the equivalent home, even after accounting for mortgage interest, property tax, and maintenance, converts roughly half of your monthly housing cost into equity over a ten-year horizon. That is the part the rent-versus-buy debate usually skips. There are three traps that genuinely sink first-time buyers in California, and none of them is the sticker price. The first is closing costs, which routinely hit 30 thousand dollars and catch buyers who budgeted only for the down payment. The second is property tax reassessment: your tax basis resets at purchase, so the number the previous owner paid tells you nothing about what you will owe. The third is HOA fees, which creep upward around 6 percent a year and can quietly erode affordability over a decade. Once you model all three honestly, a household earning above 180 thousand dollars usually comes out ahead by buying, not renting. The math is not the obstacle most people assume it is. The real obstacle is never sitting down to do it. Before you sign another twelve-month lease, talk to a local mortgage broker and run your actual numbers."
+          }
+        },
+        {
+          "key": "insurance_flood",
+          "label": "🛡 P&C Insurance",
+          "request": {
+            "source": "blog",
+            "language": "English",
+            "output_type": "text",
+            "video_length": "short",
+            "callback_url": "",
+            "blog_text": "Every hurricane season, thousands of homeowners discover the same painful fact at the worst possible moment: their homeowner's insurance does not cover flood damage. This is not fine print or a loophole. Standard policies exclude rising-water damage entirely, and the definition of rising water is broader than most people expect. It includes hurricane storm surge, river and creek overflow, and even heavy rain that simply pools faster than the ground can absorb it. If water rises from the ground up, your standard policy almost certainly will not pay. Flood coverage is a separate product. For homes in designated high-risk zones, it is typically written through the federal flood program rather than a private carrier. Despite the exposure, fewer than 15 percent of US households actually carry flood insurance, and the consequences are expensive: the average flood claim runs about 43 thousand dollars, a number large enough to wipe out most families' savings. The assumption that drives this underinsurance is that flooding is somebody else's problem, something that happens only in marked flood plains near the coast. The data says otherwise. Roughly one in four flood claims comes from properties outside the designated high-risk zones, which means moderate-risk homeowners are routinely caught uncovered. Renters are not exempt from the logic either; contents-only flood coverage is available for under 20 dollars a month and protects belongings that a landlord's policy never will. The practical step is simple and takes ten minutes. Look up your property's flood zone code, then call your agent and ask specifically about flood coverage as a separate policy. Floods do not wait for hurricane season, and neither should you."
+          }
+        },
+        {
+          "key": "news_sf",
+          "label": "📰 News",
+          "request": {
+            "source": "blog",
+            "language": "English",
+            "output_type": "text",
+            "video_length": "short",
+            "callback_url": "",
+            "blog_text": "For three years the dominant story about San Francisco's downtown was decline, and the numbers did look grim. Office occupancy collapsed from 94 percent in 2019 to just 41 percent by 2023, hollowing out a district that had defined the city's economy for a generation. The empty towers became a national symbol of the remote-work era. But the story for 2026 is more interesting than simple collapse, because occupancy has been climbing back toward 60 percent, and the recovery is being driven by three concrete forces rather than wishful thinking. The first is policy: federal return-to-office mandates pushed Bay Area firms to require at least three days a week in person, reversing the fully-remote default. The second is the labor market. The wave of tech layoffs that defined 2022 and 2023 subsided, and hiring resumed at the companies anchoring the city's economy, including Google, OpenAI, and Anthropic. The third is price. Commercial lease rates fell roughly 40 percent from their peak, and that discount did something the boom years never allowed: it brought in startups that could never previously afford a downtown address. Walk down Market Street today and the texture is different from the pandemic years. Coffee shops have lines again, foot traffic has returned, and the ground floor feels alive in a way it did not in 2021. The mistake is to measure recovery against 2019, as if the only success is a return to the old normal. It will not look like 2019. What is emerging instead is a new equilibrium, and on its own terms, it is working."
+          }
+        },
+        {
+          "key": "ai_llm",
+          "label": "🤖 AI & LLM",
+          "request": {
+            "source": "blog",
+            "language": "English",
+            "output_type": "text",
+            "video_length": "short",
+            "callback_url": "",
+            "blog_text": "Large language models make things up, and that includes the best ones on the market. GPT-4 and Claude both hallucinate factual claims somewhere in the range of five to ten percent of the time, and no amount of prompting eliminates the behavior entirely, because the cause is structural rather than a bug to be patched. These models are trained to predict the next likely word given everything before it, not the next true word. They have no internal database to check a claim against and no built-in sense of when they are guessing versus reciting. Understanding that single fact changes how you should build with them. The goal is not to chase zero errors, which is not achievable today, but to make errors visible and recoverable. Three techniques do most of the work in practice. The first is retrieval grounding: instead of asking the model to recall a fact from training, give it the relevant source documents and ask it to answer from that text. The second is lowering the temperature to zero for factual tasks, which strips out the randomness that produces creative but unreliable answers. The third is forcing the model to cite or quote its source, because the act of pointing at specific text makes the model far more likely to self-correct when it cannot actually find support for a claim. None of these turn a language model into an oracle, and treating one as if it were is the real risk. The durable solution is architectural: build a review step into every workflow so that when the model is wrong, a human or a second check catches it before it ships."
+          }
+        },
+        {
+          "key": "healthcare_fasting",
+          "label": "🏥 Healthcare",
+          "request": {
+            "source": "blog",
+            "language": "English",
+            "output_type": "text",
+            "video_length": "short",
+            "callback_url": "",
+            "blog_text": "Intermittent fasting has a reputation problem: half the people who try it swear it transformed their health, and the other half quietly gained weight and concluded it was a scam. Both groups are telling the truth, because the outcome depends entirely on mechanism and individual biology. The mechanism is real and well understood. Going roughly sixteen hours without food lowers circulating insulin, which allows the body to access and burn stored fat, and over time it helps reset the hunger hormones that drive constant snacking. That is the version that works. The failure mode is equally real and far more common than the success stories admit. When someone restricts their eating to a short window but then overeats inside it, the metabolic benefit evaporates. Skipping breakfast only to consume a thousand-calorie lunch defeats the entire point. Genetics complicate the picture further: roughly 30 percent of people carry a CLOCK gene variant that handles late-day eating poorly, which means the exact same fasting schedule produces different results in different bodies. If you tried intermittent fasting and gained weight, the usual culprit is not a lack of willpower. It is an eating window that is too short paired with meals that are too calorie-dense, a combination that practically guarantees a binge. The fix is to ease in rather than jump to the most aggressive schedule. Start with a fourteen-hour fast and a ten-hour eating window before attempting sixteen-eight. Build the habit and let your body adapt before stretching the fast. The schedule is a tool, not a moral test, and the right one is the one your biology can actually sustain."
+          }
+        }
+      ]
+    },
+    {
+      "id": "video_url_en",
+      "title": "🎬 Video URL → Auto-Edit · English",
+      "description": "Paste a **video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)",
+      "request_template": {
+        "source": "video_url",
+        "output_type": "scene",
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        }
+      ],
+      "cases": [
+        "media_demo_bunny",
+        "media_demo_sintel"
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      },
+      "industries": [
+        {
+          "key": "media_demo_bunny",
+          "label": "🎬 Open Movie (Big Buck Bunny)",
+          "request": {
+            "source": "video_url",
+            "output_type": "scene",
+            "callback_url": "",
+            "video_url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"
+          }
+        },
+        {
+          "key": "media_demo_sintel",
+          "label": "🎬 Open Movie (Sintel)",
+          "request": {
+            "source": "video_url",
+            "output_type": "scene",
+            "callback_url": "",
+            "video_url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio_url_en",
+      "title": "🎧 Audio URL → Audio-to-Video · English",
+      "description": "Paste an **audio/video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server extracts the audio and uses it as the narration, generating matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)",
+      "request_template": {
+        "source": "audio_url",
+        "output_type": "scene",
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        }
+      ],
+      "cases": [
+        "media_demo_bunny",
+        "media_demo_sintel"
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      },
+      "industries": [
+        {
+          "key": "media_demo_bunny",
+          "label": "🎬 Open Movie (Big Buck Bunny)",
+          "request": {
+            "source": "audio_url",
+            "output_type": "scene",
+            "callback_url": "",
+            "audio_url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"
+          }
+        },
+        {
+          "key": "media_demo_sintel",
+          "label": "🎬 Open Movie (Sintel)",
+          "request": {
+            "source": "audio_url",
+            "output_type": "scene",
+            "callback_url": "",
+            "audio_url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"
+          }
+        }
+      ]
+    },
+    {
+      "id": "video_file_en",
+      "title": "🎬 Video file → Auto-Edit · English",
+      "description": "**Upload a video file** (≤2 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.",
+      "request": {
+        "source": "video_file",
+        "output_type": "scene"
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        }
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      }
+    },
+    {
+      "id": "audio_file_en",
+      "title": "🎧 Audio file → Audio-to-Video · English",
+      "description": "**Upload an audio file** (≤2 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.",
+      "request": {
+        "source": "audio_file",
+        "output_type": "scene"
+      },
+      "choices": [
+        {
+          "field": "output_type",
+          "options": [
+            "text",
+            "scene",
+            "video"
+          ]
+        }
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 1500
+      }
+    }
+  ],
+  "_key": "create-video",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

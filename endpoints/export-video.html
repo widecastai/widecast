@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Export to final MP4 — `POST /v1/export_video` · WideCast Docs</title>
+  <meta name="description" content="Pairs with `output_type: "scene"` on [`POST /v1/create_video`](create-video.md). After scenes are ready (you reviewed `result.review_url` and you're happy), call this to kick the final renderer.">
+  <link rel="canonical" href="https://widecast.ai/endpoints/export-video.html">
+
+  <meta property="og:title" content="Export to final MP4 — `POST /v1/export_video` · WideCast Docs">
+  <meta property="og:description" content="Pairs with `output_type: "scene"` on [`POST /v1/create_video`](create-video.md). After scenes are ready (you reviewed `result.review_url` and you're happy), call this to kick the final renderer.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/export-video.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Export to final MP4 — `POST /v1/export_video` · WideCast Docs">
+  <meta name="twitter:description" content="Pairs with `output_type: "scene"` on [`POST /v1/create_video`](create-video.md). After scenes are ready (you reviewed `result.review_url` and you're happy), call this to kick the final renderer.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="export-to-final-mp4-post-v1export_video">Export to final MP4 — <code>POST /v1/export_video</code></h1>
+<p>Pairs with <code>output_type: "scene"</code> on <a href="create-video.md"><code>POST /v1/create_video</code></a>. After scenes are ready (you reviewed <code>result.review_url</code> and you're happy), call this to kick the final renderer.</p>
+<p>The endpoint is <strong>idempotent</strong> — calling it a second time for the same <code>id</code> is a no-op that returns the current status.</p>
+<blockquote>
+<p><strong>Skip this endpoint</strong> when you create the video with <code>output_type: "video"</code>. The server's auto-export watcher will chain into the renderer for you, and <code>result.video_url</code> will appear on <code>/v1/status</code> directly.</p>
+</blockquote>
+<hr />
+<h2 id="request">Request</h2>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/export_video</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME   # optional in pilot</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;id&quot;: &quot;widecast7c0d4f8a9b1e2d3f&quot;</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<h3 id="field-reference">Field reference</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>topic_id</code> returned by <code>/v1/create_video</code>. Must match <code>widecast&lt;alphanumeric&gt;</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="responses">Responses</h2>
+<h3 id="202-accepted-render-queued"><code>202 Accepted</code> — render queued</h3>
+<p>Returned the first time <code>/v1/export_video</code> is called for an id (and scenes are ready). The body is a fresh <code>/v1/status</code> snapshot — typically <code>status: "processing"</code>, <code>stage: "rendering_video"</code>, <code>progress &gt;= 0.85</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;rendering_video&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w">  </span><span class="mf">0.85</span><span class="p">,</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="200-ok-idempotent-no-op"><code>200 OK</code> — idempotent no-op</h3>
+<p>If a queue row already exists (export was previously kicked), the server returns the current status snapshot without re-enqueueing.</p>
+<h3 id="409-precondition-failed-scenes_not_ready"><code>409 Precondition Failed</code> — <code>scenes_not_ready</code></h3>
+<p>The video exists but hasn't reached <code>scenes_ready_for_review</code> yet. Poll <code>/v1/status/{id}</code> until <code>status === "completed"</code> (with <code>stage === "scenes_ready_for_review"</code>), then retry.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;precondition_failed&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;scenes_not_ready&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Scenes are not ready yet. Poll GET /v1/status/{id} until status=completed with stage=scenes_ready_for_review, then retry.&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;param&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="err">...</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="404-not-found-video_not_found"><code>404 Not Found</code> — <code>video_not_found</code></h3>
+<p>No video with this id exists in your account.</p>
+<h3 id="400-bad-request-invalid_json-missing_field-invalid_id"><code>400 Bad Request</code> — <code>invalid_json</code>, <code>missing_field</code>, <code>invalid_id</code></h3>
+<p>Standard request-validation errors.</p>
+<hr />
+<h2 id="lifecycle-effects">Lifecycle effects</h2>
+<p>Calling <code>/v1/export_video</code> has two persistent effects on the video:</p>
+<ol>
+<li><strong><code>output_type</code> is promoted to <code>"video"</code></strong> in the server's state — even if the original <code>/v1/create_video</code> call used <code>output_type: "scene"</code>. This changes the <code>/v1/status</code> completion gate from "scenes ready" to "final MP4 rendered".</li>
+<li><strong>The <code>video.completed</code> webhook marker is reset</strong> if a <code>video.completed</code> event already fired (it would have fired at scenes-ready). This lets the webhook fire a second time when the MP4 is ready — your handler may receive <strong>two</strong> <code>video.completed</code> events for the same id: once with <code>result.review_url</code> only, then again with <code>result.video_url</code> populated. Dedupe on <code>event_id</code> if you care.</li>
+</ol>
+<hr />
+<h2 id="sdk-examples">SDK examples</h2>
+<h3 id="python">Python</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
+<span class="n">video</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span><span class="n">script_text</span><span class="o">=</span><span class="n">script</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scenes ready — review at: </span><span class="si">{</span><span class="n">video</span><span class="o">.</span><span class="n">review_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># ... user reviews scenes ...</span>
+
+<span class="n">exported</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">export_video</span><span class="p">(</span><span class="n">video</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">900</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MP4: </span><span class="si">{</span><span class="n">exported</span><span class="o">.</span><span class="n">video_url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="typescript">TypeScript</h3>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span><span class="w"> </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="kt">script</span><span class="w"> </span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Review: </span><span class="si">${</span><span class="nx">v</span><span class="p">.</span><span class="nx">review_url</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+
+<span class="c1">// ... user reviews scenes ...</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="kr">final</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">export_video</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">({</span><span class="w"> </span><span class="nx">timeoutMs</span><span class="o">:</span><span class="w"> </span><span class="kt">900_000</span><span class="w"> </span><span class="p">}));</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`MP4: </span><span class="si">${</span><span class="kr">final</span><span class="p">.</span><span class="nx">video_url</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</code></pre></div>
+
+<h3 id="manual-curl">Manual (curl)</h3>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/export_video&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;widecast7c0d4f8a9b1e2d3f&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
+</code></pre></div>
+
+<p>Then poll <code>/v1/status/{id}</code> until <code>status === "completed"</code> with <code>result.video_url</code> set.</p>
+<hr />
+<h2 id="when-to-call-this-vs-output_type-video">When to call this vs <code>output_type: "video"</code></h2>
+<table>
+<thead>
+<tr>
+<th>You want…</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always produce the final MP4, no human review</td>
+<td><code>POST /v1/create_video</code> with <code>output_type: "video"</code> — one call.</td>
+</tr>
+<tr>
+<td>Review scenes first, decide whether to render</td>
+<td><code>POST /v1/create_video</code> with <code>output_type: "scene"</code>, review <code>review_url</code>, then <code>POST /v1/export_video</code> when ready.</td>
+</tr>
+<tr>
+<td>Programmatic batch jobs</td>
+<td>Either works — <code>output_type: "video"</code> is one fewer API call.</td>
+</tr>
+<tr>
+<td>Interactive UI ("preview → render" button)</td>
+<td><code>scene</code> + <code>export_video</code> — explicit confirmation step.</td>
+</tr>
+</tbody>
+</table>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

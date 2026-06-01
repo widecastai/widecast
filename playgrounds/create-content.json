@@ -1,0 +1,118 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/create_content"
+  },
+  "title": "Create written content — a blog or social post",
+  "description": "Generate written content (blog / Facebook / X / LinkedIn post) from a URL, an\nidea/topic, or pasted text. Async: submit, then this card auto-polls\n`/v1/status` until `completed` — `result.review_url` is the public content\nviewer. Consumes credits.\n",
+  "fields": [
+    {
+      "name": "content",
+      "type": "textarea",
+      "label": "Content source — a URL, an idea/topic, or pasted text",
+      "required": true,
+      "rows": 4,
+      "placeholder": "https://example.com/article  —  or  —  an idea like 'why founders should ship weekly'  —  or paste text"
+    },
+    {
+      "name": "content_type",
+      "type": "select",
+      "label": "Content type",
+      "required": false,
+      "default": "blog",
+      "options": [
+        {
+          "value": "blog",
+          "label": "blog — long-form article"
+        },
+        {
+          "value": "facebook",
+          "label": "facebook — Facebook post"
+        },
+        {
+          "value": "x",
+          "label": "x — Twitter/X post"
+        },
+        {
+          "value": "linkedin",
+          "label": "linkedin — LinkedIn post"
+        }
+      ]
+    },
+    {
+      "name": "language",
+      "type": "select",
+      "label": "Language",
+      "required": false,
+      "default": "English",
+      "options": [
+        {
+          "value": "English",
+          "label": "English"
+        },
+        {
+          "value": "Vietnamese",
+          "label": "Tiếng Việt"
+        }
+      ]
+    },
+    {
+      "name": "callback_url",
+      "type": "text",
+      "label": "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html",
+      "required": false,
+      "placeholder": "https://widecast.ai/app/dashboard2/webhook_test/wht_… (from webhook-test.html)"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": true,
+    "id_field": "id",
+    "status_path": "/v1/status/{id}",
+    "terminal_statuses": [
+      "completed",
+      "failed"
+    ],
+    "initial_interval_ms": 5000,
+    "max_interval_ms": 5000,
+    "backoff_multiplier": 1.0,
+    "timeout_ms": 600000
+  },
+  "use_cases": [
+    {
+      "id": "written_content",
+      "title": "📝 Written content",
+      "description": "Paste a URL / idea / text, pick the **content type** (blog, Facebook, X, LinkedIn) and **language**, then Run. WideCast queues the content; this card polls until it's ready and shows the viewer URL.",
+      "request": {
+        "content": "Why early-stage founders should ship a new feature every week",
+        "content_type": "blog",
+        "language": "English",
+        "callback_url": ""
+      },
+      "choices": [
+        {
+          "field": "content_type",
+          "options": [
+            "blog",
+            "facebook",
+            "x",
+            "linkedin"
+          ]
+        },
+        {
+          "field": "language",
+          "options": [
+            "English",
+            "Vietnamese"
+          ]
+        }
+      ],
+      "assertions": {
+        "eventual_status": "completed",
+        "has_review_url": true,
+        "max_wait_seconds": 600
+      }
+    }
+  ],
+  "_key": "create-content",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

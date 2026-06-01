@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Create written content — `POST /v1/create_content` · WideCast Docs</title>
+  <meta name="description" content="Turn a **URL**, an **idea/topic**, or **pasted text** into a **blog post** or a **social post** (Facebook / X / LinkedIn). This is the *written* half of WideCast's output model (video + blog + social).">
+  <link rel="canonical" href="https://widecast.ai/endpoints/create-content.html">
+
+  <meta property="og:title" content="Create written content — `POST /v1/create_content` · WideCast Docs">
+  <meta property="og:description" content="Turn a **URL**, an **idea/topic**, or **pasted text** into a **blog post** or a **social post** (Facebook / X / LinkedIn). This is the *written* half of WideCast's output model (video + blog + social).">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/create-content.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Create written content — `POST /v1/create_content` · WideCast Docs">
+  <meta name="twitter:description" content="Turn a **URL**, an **idea/topic**, or **pasted text** into a **blog post** or a **social post** (Facebook / X / LinkedIn). This is the *written* half of WideCast's output model (video + blog + social).">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="create-written-content-post-v1create_content">Create written content — <code>POST /v1/create_content</code></h1>
+<p>Turn a <strong>URL</strong>, an <strong>idea/topic</strong>, or <strong>pasted text</strong> into a <strong>blog post</strong> or a <strong>social post</strong> (Facebook / X / LinkedIn). This is the <em>written</em> half of WideCast's output model (video + blog + social).</p>
+<p>Async: returns a <code>widecast*</code> id, <code>status: "processing"</code>, AND <code>result.review_url</code> (the public content viewer) in the create response itself — safe to hand the user immediately; the viewer shows a spinner while content generates. Poll <code>GET /v1/status/{id}</code> until <code>completed</code> for the final state. Consumes credits.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/create_content</code></div><section class="wc-pg-example" data-cfg="playgrounds/create-content.json" data-usecase-id="written_content" id="ex-create-content--written_content"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Written content</h3><p class="wc-pg-example-desc">Paste a URL / idea / text, pick the **content type** (blog, Facebook, X, LinkedIn) and **language**, then Run. WideCast queues the content; this card polls until it's ready and shows the viewer URL.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h3 id="request-fields">Request fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>content</code></td>
+<td>string</td>
+<td>yes</td>
+<td>What to create from: a URL, an idea/topic description, or pasted text.</td>
+</tr>
+<tr>
+<td><code>content_type</code></td>
+<td>string</td>
+<td>no</td>
+<td><code>blog</code> (default, long-form), <code>facebook</code>, <code>x</code> (Twitter/X), or <code>linkedin</code>. SDK constant <code>CONTENT_TYPES</code>.</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td>string</td>
+<td>no</td>
+<td>Output language (e.g. <code>English</code>, <code>Vietnamese</code>). Default <code>English</code>.</td>
+</tr>
+<tr>
+<td><code>callback_url</code></td>
+<td>string (url)</td>
+<td>no</td>
+<td>HTTPS webhook for completion events (HMAC-signed).</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>object</td>
+<td>no</td>
+<td>Up to 16 keys, echoed back on <code>/v1/status</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="response-202-accepted-poll-v1status">Response — <code>202 Accepted</code> → poll <code>/v1/status</code></h3>
+<p>Returns the unified <code>/v1/status</code> envelope (with <code>type: "content"</code>) and <code>status: "processing"</code>. <code>result.review_url</code> is already populated in this response — the content viewer (<code>https://widecast.ai/viewer.html?topic_id=…&amp;company_id=…</code>) — share with the user now. Then poll <code>GET /v1/status/{id}</code> (cadence 5s):
+- <code>status == "completed"</code> → content is ready in the viewer.
+- <code>status == "failed"</code> → <code>result.error</code> explains why.</p>
+<p>While processing, <code>details.status</code> surfaces the writer's own stage (the content pipeline has its own progression, <strong>not</strong> a numeric step machine): <code>Queued → Processing → Researching → Deep research completed → Checking media → Completed</code>. Branch your logic on the top-level <code>status</code> enum, not on <code>details.status</code> / <code>details.step</code>.</p>
+<h3 id="sdk">SDK</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;wc_live_…&quot;</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">create_content</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="s2">&quot;https://example.com/article&quot;</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;blog&quot;</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s2">&quot;English&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">review_url</span><span class="p">)</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_content</span><span class="p">({</span><span class="w"> </span><span class="nx">content</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;An idea for a LinkedIn post&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">content_type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;linkedin&quot;</span><span class="w"> </span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+</code></pre></div>
+
+<h3 id="errors">Errors</h3>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>missing_field</code></td>
+<td>400</td>
+<td><code>content</code> or <code>language</code> is missing/empty.</td>
+</tr>
+<tr>
+<td><code>invalid_content_type</code></td>
+<td>400</td>
+<td><code>content_type</code> not in <code>blog</code> / <code>facebook</code> / <code>x</code> / <code>linkedin</code>.</td>
+</tr>
+<tr>
+<td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
+<td>401</td>
+<td>API-key auth.</td>
+</tr>
+<tr>
+<td><code>account_expired</code> / <code>credit_exhausted</code></td>
+<td>402</td>
+<td>Account expired or out of credits.</td>
+</tr>
+</tbody>
+</table>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

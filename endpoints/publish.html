@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- BASE_HREF is computed per page so relative links resolve at ANY mount point.
+       Root pages use "./", subfolder pages use "../". This means the same HTML
+       works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
+  <base href="../">
+
+  <title>Publish to social platforms — `POST /v1/publish` · WideCast Docs</title>
+  <meta name="description" content="Distribute content to the social platforms connected to your account. This is the *distribution* half of WideCast's output model (create → review → **publish**).">
+  <link rel="canonical" href="https://widecast.ai/endpoints/publish.html">
+
+  <meta property="og:title" content="Publish to social platforms — `POST /v1/publish` · WideCast Docs">
+  <meta property="og:description" content="Distribute content to the social platforms connected to your account. This is the *distribution* half of WideCast's output model (create → review → **publish**).">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://widecast.ai/endpoints/publish.html">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Publish to social platforms — `POST /v1/publish` · WideCast Docs">
+  <meta name="twitter:description" content="Distribute content to the social platforms connected to your account. This is the *distribution* half of WideCast's output model (create → review → **publish**).">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pygments.css">
+  <link rel="alternate" type="application/json" title="WideCast OpenAPI" href="openapi.json">
+
+  <script>
+    window.WIDECAST_API_BASE_URL = "https://widecast.ai/app/dashboard2";
+  </script>
+</head>
+<body class="endpoint-page">
+  <header class="wc-nav">
+    <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
+    <nav>
+      <a href="docs.html">Docs</a>
+      <a href="playground.html">Playground</a>
+      <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="wc-main">
+    <article class="wc-article">
+      <h1 id="publish-to-social-platforms-post-v1publish">Publish to social platforms — <code>POST /v1/publish</code></h1>
+<p>Distribute content to the social platforms connected to your account. This is the <em>distribution</em> half of WideCast's output model (create → review → <strong>publish</strong>).</p>
+<p>Provide <strong>exactly one</strong> content mode:</p>
+<ul>
+<li><strong><code>topic_id</code></strong> — publish a WideCast <strong>video</strong> OR <strong>blog/social post</strong> you already created (via <code>/v1/create_video</code> or <code>/v1/create_content</code>). WideCast auto-detects article vs video. A video must be <strong>rendered first</strong> (<code>/v1/export_video</code>, wait for <code>completed</code>) else <code>publish_not_ready</code> (409).</li>
+<li><strong><code>text</code></strong> — post arbitrary text (optionally with <code>photo_urls</code>).</li>
+<li><strong><code>video_url</code></strong> — a <strong>direct video FILE url</strong> (<code>.mp4</code>/<code>.mov</code>/…) to download + publish. Requires <code>title</code>.</li>
+</ul>
+<p><code>platforms</code> defaults to <strong>all connected</strong> platforms. Charges <strong>1 credit</strong> and posts <strong>publicly</strong>.</p>
+<p>Publishing is asynchronous on the platform side: this returns the upstream <code>request_ids</code> <strong>immediately</strong> (<code>202</code>). Poll <code>GET /v1/status/{request_id}</code> for per-platform post URLs in <code>result.posts</code>. An article spanning text + photo platforms may return <strong>up to two</strong> <code>request_ids</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/publish</code></div><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_topic" id="ex-publish--publish_topic"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📣 Publish an existing WideCast video/blog</h3><p class="wc-pg-example-desc">Pass the `topic_id` from /v1/create_video or /v1/create_content. WideCast auto-detects article vs video (a video must be rendered first). Omit `platforms` to post to all connected.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_text" id="ex-publish--publish_text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✍️ Post arbitrary text</h3><p class="wc-pg-example-desc">Post text you provide directly (not from a WideCast topic) to all connected text platforms.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_external_video" id="ex-publish--publish_external_video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Post an external video URL</h3><p class="wc-pg-example-desc">Give a direct video FILE url + a `title`; WideCast downloads it and posts it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h3 id="request-fields">Request fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topic_id</code></td>
+<td>string</td>
+<td>one-of</td>
+<td>Publish an existing WideCast video/blog (article vs video auto-detected).</td>
+</tr>
+<tr>
+<td><code>text</code></td>
+<td>string</td>
+<td>one-of</td>
+<td>Arbitrary text to post.</td>
+</tr>
+<tr>
+<td><code>video_url</code></td>
+<td>string (url)</td>
+<td>one-of</td>
+<td>A direct video file URL to download + publish. Requires <code>title</code>.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>string</td>
+<td>conditional</td>
+<td>Caption/title. <strong>Required</strong> with <code>video_url</code>; optional override for <code>topic_id</code>.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>no</td>
+<td>Optional body/description text.</td>
+</tr>
+<tr>
+<td><code>photo_urls</code></td>
+<td>array[string]</td>
+<td>no</td>
+<td>Image URLs to attach (with <code>text</code>).</td>
+</tr>
+<tr>
+<td><code>platforms</code></td>
+<td>array[string]</td>
+<td>no</td>
+<td>Target platforms. Defaults to <strong>all connected</strong>. SDK constant <code>PUBLISH_PLATFORMS</code>: <code>youtube</code>, <code>tiktok</code>, <code>instagram</code>, <code>facebook</code>, <code>linkedin</code>, <code>x</code>, <code>threads</code>, <code>pinterest</code>, <code>reddit</code>, <code>bluesky</code>, <code>google_business</code>.</td>
+</tr>
+<tr>
+<td><code>scheduled_date</code></td>
+<td>string</td>
+<td>no</td>
+<td>ISO date/time to schedule the post (with <code>timezone</code>).</td>
+</tr>
+<tr>
+<td><code>timezone</code></td>
+<td>string</td>
+<td>no</td>
+<td>Timezone for <code>scheduled_date</code> (default <code>UTC</code>).</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>object</td>
+<td>no</td>
+<td>Echoed back on the response.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="response-202-accepted-poll-v1status">Response — <code>202 Accepted</code> → poll <code>/v1/status</code></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;publish&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;request_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;abc123&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;platforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;youtube&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;x&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;skipped&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Poll <code>GET /v1/status/{request_id}</code> (cadence 5s). For a publish id, <code>type</code> is <code>"publish"</code> and <code>result.posts[]</code> carries <code>{platform, success, post_url, post_id, error}</code>:
+- <code>status == "completed"</code> → all platforms reported back; check each <code>result.posts[].success</code>.
+- <code>status == "failed"</code> → the publish job failed upstream.</p>
+<h3 id="sdk">SDK</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;wc_live_…&quot;</span><span class="p">)</span>
+<span class="n">pub</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">topic_id</span><span class="o">=</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span> <span class="n">platforms</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;youtube&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">])</span>
+<span class="n">status</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get_status</span><span class="p">(</span><span class="n">pub</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>      <span class="c1"># poll for per-platform post URLs</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">pub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">publish</span><span class="p">({</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;We just shipped v2 — try it free today!&quot;</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">get_status</span><span class="p">(</span><span class="nx">pub</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+</code></pre></div>
+
+<h3 id="errors">Errors</h3>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invalid_publish_input</code></td>
+<td>400</td>
+<td>Not exactly one of <code>topic_id</code> / <code>text</code> / <code>video_url</code>.</td>
+</tr>
+<tr>
+<td><code>missing_field</code></td>
+<td>400</td>
+<td><code>title</code> missing with <code>video_url</code>.</td>
+</tr>
+<tr>
+<td><code>invalid_platforms</code></td>
+<td>400</td>
+<td><code>platforms</code> not a list, or an unknown platform name.</td>
+</tr>
+<tr>
+<td><code>no_platforms_connected</code></td>
+<td>400</td>
+<td>No connected platforms (or none of the requested are connected).</td>
+</tr>
+<tr>
+<td><code>video_not_found</code></td>
+<td>404</td>
+<td><code>topic_id</code> doesn't exist for your account.</td>
+</tr>
+<tr>
+<td><code>publish_not_ready</code></td>
+<td>409</td>
+<td>The topic's video isn't rendered yet — export it first.</td>
+</tr>
+<tr>
+<td><code>download_failed</code></td>
+<td>400</td>
+<td>The external <code>video_url</code> could not be downloaded.</td>
+</tr>
+<tr>
+<td><code>publish_failed</code></td>
+<td>400/500</td>
+<td>The publish backend rejected the request.</td>
+</tr>
+<tr>
+<td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
+<td>401</td>
+<td>API-key auth.</td>
+</tr>
+<tr>
+<td><code>account_expired</code> / <code>credit_exhausted</code></td>
+<td>402</td>
+<td>Account expired or out of credits.</td>
+</tr>
+</tbody>
+</table>
+    </article>
+  </main>
+
+  <footer class="wc-footer">
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+  </footer>
+
+  <script src="assets/playground.js" defer></script>
+</body>
+</html>

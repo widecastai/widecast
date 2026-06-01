@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>WideCast — Give your AI agent a media team</title>
+  <meta name="description" content="WideCast is the content production & distribution layer for AI agents. One install — your agent goes from a raw idea to published across 10 platforms." />
+  <meta name="theme-color" content="#170d11" />
+
+  <!-- Google Fonts: Bricolage Grotesque (display) · Inter (body) · JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- warm sunset/firelight ambient layers -->
+  <div class="ambient" aria-hidden="true">
+    <span class="glow glow--coral"></span>
+    <span class="glow glow--amber"></span>
+    <span class="glow glow--gold"></span>
+    <span class="grain" id="grain"></span>
+  </div>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="nav">
+    <div class="wrap nav__inner">
+      <a class="brand" href="#" data-inert aria-label="WideCast home">
+        <span class="brand__mark" aria-hidden="true">
+          <span class="brand__ember"></span>
+        </span>
+        <span class="brand__name">WideCast</span>
+      </a>
+
+      <nav class="nav__links" id="navLinks" aria-label="Primary">
+        <a href="#loop">The loop</a>
+        <a href="#inputs">Inputs</a>
+        <a href="#human">Human-in-the-loop</a>
+        <a href="#integrations">Integrations</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#" data-inert>Docs</a>
+        <a class="btn btn--ember nav__cta" href="#" data-inert>Get started</a>
+      </nav>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="wrap hero__grid">
+        <div class="hero__copy reveal">
+          <span class="eyebrow">Content production &amp; distribution layer for AI agents</span>
+          <h1 class="hero__h1">Give your AI agent a <span class="grad">media team</span>.</h1>
+          <p class="lead">WideCast is the production &amp; distribution layer for AI agents. One install — your agent goes from a raw idea to published across 10 platforms. <strong>95% AI, 5% you.</strong></p>
+
+          <!-- install block — 4 commands + copy buttons -->
+          <div class="install" aria-label="Install commands">
+            <div class="install__tabs" role="tablist" aria-label="Install method">
+              <button class="install__tab is-active" role="tab" aria-selected="true" data-install="mcp">MCP</button>
+              <button class="install__tab" role="tab" aria-selected="false" data-install="py">Python</button>
+              <button class="install__tab" role="tab" aria-selected="false" data-install="node">Node</button>
+              <button class="install__tab" role="tab" aria-selected="false" data-install="skill">Skill</button>
+            </div>
+            <div class="install__panes">
+              <div class="install__pane is-active" data-install-panel="mcp">
+                <code class="install__code" id="cmd-mcp">claude mcp add widecast widecast-mcp --env WIDECAST_API_KEY=wc_live_REPLACE_ME</code>
+                <button class="copy-btn" data-copy-target="#cmd-mcp" aria-label="Copy MCP command">Copy</button>
+              </div>
+              <div class="install__pane" data-install-panel="py">
+                <code class="install__code" id="cmd-py">pip install widecast</code>
+                <button class="copy-btn" data-copy-target="#cmd-py" aria-label="Copy Python command">Copy</button>
+              </div>
+              <div class="install__pane" data-install-panel="node">
+                <code class="install__code" id="cmd-node">npm i @widecast/sdk</code>
+                <button class="copy-btn" data-copy-target="#cmd-node" aria-label="Copy Node command">Copy</button>
+              </div>
+              <div class="install__pane" data-install-panel="skill">
+                <code class="install__code" id="cmd-skill">npx @widecast/skill add</code>
+                <button class="copy-btn" data-copy-target="#cmd-skill" aria-label="Copy Skill command">Copy</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero__btns">
+            <a class="btn btn--ember" href="#demos" data-inert>See an agent do it →</a>
+            <a class="btn btn--ghost" href="#" data-inert>Read the docs</a>
+          </div>
+        </div>
+
+        <!-- illustrative PLACEHOLDER agent transcript -->
+        <!-- PLACEHOLDER: demo transcript — illustrative, not a live session -->
+        <aside class="transcript reveal" data-reveal-delay="120" aria-label="Example agent session">
+          <div class="transcript__bar">
+            <span class="transcript__dot"></span>
+            <span class="transcript__title">agent · session</span>
+            <span class="transcript__live">live</span>
+          </div>
+          <div class="transcript__log" id="agentLog">
+            <div class="t-line t-user" data-line>
+              <span class="t-who">user</span>
+              <span class="t-msg">make a short video about our launch and post it everywhere</span>
+            </div>
+            <div class="t-line t-call" data-line>
+              <span class="t-who">agent</span>
+              <span class="t-msg"><code>widecast.create_video()</code></span>
+            </div>
+            <div class="t-line t-step" data-line>
+              <span class="t-tick">›</span>
+              <span class="t-msg">writing script <span class="t-ai">95% AI</span></span>
+            </div>
+            <div class="t-line t-step" data-line>
+              <span class="t-tick">›</span>
+              <span class="t-msg">scenes ready</span>
+            </div>
+            <div class="t-line t-human" data-line>
+              <span class="t-tick">⏸</span>
+              <span class="t-msg">human review <span class="t-you">5% you</span></span>
+            </div>
+            <div class="t-line t-step" data-line>
+              <span class="t-tick">✓</span>
+              <span class="t-msg">approved — rendering…</span>
+            </div>
+            <div class="t-line t-done" data-line>
+              <span class="t-tick">↑</span>
+              <span class="t-msg">published: <b>TikTok·YouTube·IG·X·+6</b></span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ BAND — agents ============ -->
+    <section class="band reveal" aria-label="Supported agents">
+      <div class="wrap">
+        <p class="band__label">Built for the agents your developers ship</p>
+        <ul class="band__row">
+          <li>Hermes</li>
+          <li>OpenClaw</li>
+          <li>Claude Agents</li>
+          <li>LangChain</li>
+          <li>Vercel AI</li>
+          <li>Custom agents</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ THE LOOP — signature firelight journey ============ -->
+    <section class="loop" id="loop">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">The closed loop</span>
+          <h2 class="sec-h2">From zero to ten platforms. <span class="grad">Autonomously.</span></h2>
+          <p class="sec-intro">Most AI tools stop at generation. WideCast closes the whole circle — every input becomes finished, publishable content (a video, a blog post, or a social post — each with its own visuals) and posts itself to every platform you've connected. Script &amp; scenes in between are the production stage: review, record, or hand off to an AI avatar.</p>
+        </div>
+
+        <!-- firelight path: 4 EQUAL ember nodes; spark travels coral→amber→gold;
+             connectors visible horizontally (desktop) AND vertically (mobile) -->
+        <div class="journey reveal" id="journey">
+          <span class="journey__spark" id="journeySpark" aria-hidden="true"></span>
+
+          <!-- STAGE 1 — INPUTS -->
+          <article class="node" data-node="1">
+            <div class="node__head">
+              <span class="node__no">01</span>
+              <span class="node__tag">6 inputs</span>
+            </div>
+            <div class="node__body">
+              <span class="node__ember" aria-hidden="true"></span>
+              <h3 class="node__title">Inputs</h3>
+              <ul class="chips">
+                <li>Idea</li><li>Blog</li><li>Script</li><li>Audio</li><li>Video</li><li>URL</li>
+              </ul>
+            </div>
+          </article>
+
+          <span class="connector" aria-hidden="true"><i></i></span>
+
+          <!-- STAGE 2 — REVIEW & APPROVE checkpoint (human checkpoint, no 95/5 here) -->
+          <article class="node node--check" data-node="2">
+            <div class="node__head">
+              <span class="node__no">02</span>
+              <span class="node__tag node__tag--human">human checkpoint</span>
+            </div>
+            <div class="node__body">
+              <span class="node__ember" aria-hidden="true"></span>
+              <h3 class="node__title">Review &amp; approve <span class="node__alt">| modify</span></h3>
+              <p class="node__sub">script · scenes</p>
+            </div>
+          </article>
+
+          <span class="connector" aria-hidden="true"><i></i></span>
+
+          <!-- STAGE 3 — FINISHED CONTENT -->
+          <article class="node" data-node="3">
+            <div class="node__head">
+              <span class="node__no">03</span>
+              <span class="node__tag">finished content</span>
+            </div>
+            <div class="node__body">
+              <span class="node__ember" aria-hidden="true"></span>
+              <h3 class="node__title">Finished content</h3>
+              <ul class="deliver">
+                <li>Video</li>
+                <li>Blog post <span class="dim">+ image</span></li>
+                <li>Social post <span class="dim">+ image</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <span class="connector" aria-hidden="true"><i></i></span>
+
+          <!-- STAGE 4 — DISTRIBUTE (10 platforms bloom in warm light) -->
+          <article class="node node--dist" data-node="4">
+            <div class="node__head">
+              <span class="node__no">04</span>
+              <span class="node__tag">10 platforms</span>
+            </div>
+            <div class="node__body">
+              <span class="node__ember" aria-hidden="true"></span>
+              <h3 class="node__title">Distribute</h3>
+              <!-- PLACEHOLDER: platform list is illustrative -->
+              <ul class="platforms" id="loopPlatforms">
+                <li data-platform>TikTok</li>
+                <li data-platform>YouTube</li>
+                <li data-platform>Instagram</li>
+                <li data-platform>Facebook</li>
+                <li data-platform>X</li>
+                <li data-platform>LinkedIn</li>
+                <li data-platform>Threads</li>
+                <li data-platform>Pinterest</li>
+                <li data-platform>Reddit</li>
+                <li data-platform>Snapchat</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BUY VS BUILD ============ -->
+    <section class="bvb" id="buyvsbuild">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Buy vs build</span>
+          <h2 class="sec-h2">One call. Not a pipeline you maintain.</h2>
+          <p class="sec-intro">You could wire up a script LLM, a voice API, an avatar engine, stock-footage search, a captioner, a renderer, and a posting service for every platform — then keep them all in sync. Or call WideCast once.</p>
+        </div>
+
+        <div class="bvb__grid">
+          <article class="bvb__card bvb__card--diy reveal">
+            <h3 class="bvb__title">Stitch it yourself</h3>
+            <ul class="bvb__list bvb__list--diy">
+              <li>Script generation (LLM prompts you tune)</li>
+              <li>Voice / TTS vendor</li>
+              <li>Avatar &amp; talking-head engine</li>
+              <li>B-roll search + licensing</li>
+              <li>Captions, overlays, SFX, music</li>
+              <li>Renderer + queue + retries</li>
+              <li>OAuth + posting for each of 10 platforms</li>
+            </ul>
+            <p class="bvb__foot">7+ vendors · 7+ bills · glue code you own forever</p>
+          </article>
+
+          <article class="bvb__card bvb__card--wc reveal" data-reveal-delay="100">
+            <h3 class="bvb__title">With WideCast</h3>
+            <pre class="bvb__code"><code><span class="c-obj">client</span>.<span class="c-fn">create_video</span>(…).<span class="c-fn">publish</span>()</code></pre>
+            <ul class="bvb__list bvb__list--wc">
+              <li>One API, one SDK, one bill</li>
+              <li>Orchestration, human review &amp; distribution included</li>
+              <li>Avatar, B-roll, captions, render — handled</li>
+              <li>OAuth + posting for all 10 platforms — handled</li>
+            </ul>
+            <p class="bvb__foot bvb__foot--wc">The part most stitched stacks never finish: it actually posts.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INPUTS ============ -->
+    <section class="inputs" id="inputs">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Whatever your agent starts with</span>
+          <h2 class="sec-h2">Six ways in. Publishable content out.</h2>
+          <p class="sec-intro">Every input converges to the same pipeline: source → script → scenes → deliver. Script and scenes are review checkpoints for the perfectionists; the deliverable your agent ships is a video, a blog post, or a social post — each with its own visuals, ready to publish.</p>
+        </div>
+
+        <div class="cards">
+          <article class="card reveal">
+            <span class="card__state card__state--live">live</span>
+            <h3 class="card__title">From a script</h3>
+            <p class="card__desc">Hand WideCast finished copy and it produces, reviews, and ships the video.</p>
+            <code class="card__code">POST /v1/create_video</code>
+          </article>
+          <article class="card reveal" data-reveal-delay="60">
+            <span class="card__state card__state--live">live</span>
+            <h3 class="card__title">From an idea</h3>
+            <p class="card__desc">A one-line prompt becomes a full script, scenes, and a finished video.</p>
+            <code class="card__code">source="idea"</code>
+          </article>
+          <article class="card reveal" data-reveal-delay="120">
+            <span class="card__state card__state--live">live</span>
+            <h3 class="card__title">From a blog or article</h3>
+            <p class="card__desc">Turn an existing post into a video, plus a social post with its own image.</p>
+            <code class="card__code">source="blog"</code>
+          </article>
+          <article class="card reveal">
+            <span class="card__state card__state--next">next</span>
+            <h3 class="card__title">From audio</h3>
+            <p class="card__desc">Drop in a voice note or podcast clip and let it become scenes.</p>
+            <code class="card__code">source="audio"</code>
+          </article>
+          <article class="card reveal" data-reveal-delay="60">
+            <span class="card__state card__state--next">next</span>
+            <h3 class="card__title">Remake a video</h3>
+            <p class="card__desc">Re-cut and re-caption an existing video into a fresh, on-brand edit.</p>
+            <code class="card__code">source="video"</code>
+          </article>
+          <article class="card reveal" data-reveal-delay="120">
+            <span class="card__state card__state--next">next</span>
+            <h3 class="card__title">From any URL</h3>
+            <p class="card__desc">Point it at a link and WideCast pulls the story into a publishable clip.</p>
+            <code class="card__code">source="url"</code>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HUMAN-IN-THE-LOOP ============ -->
+    <section class="human" id="human">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Production-grade by design</span>
+          <h2 class="sec-h2">The 5% that separates agency work from AI slop.</h2>
+          <p class="sec-intro">When the scenes are ready, you choose how hands-on to be — record every line yourself for an authentic feel, or let WideCast run fully automatic. Either way it sources the B-roll, overlays, animation, SFX and captions. You never open a timeline.</p>
+        </div>
+
+        <div class="human__grid">
+          <div class="doors">
+            <article class="door reveal">
+              <span class="door__kick">For perfectionists</span>
+              <h3 class="door__title">Be authentic.</h3>
+              <p>Built-in teleprompter — your script scrolls while you record video or audio, scene by scene.</p>
+              <p>Fumbled a line? Re-record just that one scene — never the whole video.</p>
+            </article>
+            <article class="door reveal" data-reveal-delay="80">
+              <span class="door__kick">For the camera-shy</span>
+              <h3 class="door__title">Be hands-off.</h3>
+              <p>Let an AI avatar or your digital twin deliver every line.</p>
+              <p>Or go 100% automatic — approve and ship, no recording at all.</p>
+            </article>
+          </div>
+
+          <!-- teleprompter / record mock -->
+          <!-- PLACEHOLDER: teleprompter mock — illustrative UI -->
+          <aside class="prompter reveal" data-reveal-delay="120" aria-label="Teleprompter record mock">
+            <div class="prompter__modes" role="tablist" aria-label="Record source">
+              <button class="prompter__mode is-active" role="tab" aria-selected="true">Camera</button>
+              <button class="prompter__mode" role="tab" aria-selected="false">Avatar</button>
+              <button class="prompter__mode" role="tab" aria-selected="false">Audio</button>
+            </div>
+            <div class="prompter__screen">
+              <p class="prompter__line is-past">Welcome to our launch —</p>
+              <p class="prompter__line is-now">today we're shipping something we've wanted for years.</p>
+              <p class="prompter__line">Here's what it does in sixty seconds.</p>
+              <p class="prompter__line">And here's how to get it.</p>
+            </div>
+            <div class="prompter__controls">
+              <button class="prompter__redo">↺ Redo scene</button>
+              <button class="prompter__rec"><span class="prompter__recdot"></span> Record</button>
+            </div>
+            <div class="prompter__progress" aria-label="Scene progress">
+              <span class="is-done">01 ✓</span><span class="is-active">02 ●</span><span>03</span><span>04</span>
+            </div>
+            <div class="prompter__ratio" aria-hidden="true">
+              <span class="prompter__bar"><i style="width:95%"></i></span>
+              <span class="prompter__ratiotxt">95% AI · 5% you</span>
+            </div>
+          </aside>
+        </div>
+
+        <!-- automatic either way strip -->
+        <div class="auto reveal">
+          <span class="auto__label">Automatic either way</span>
+          <ul class="auto__row">
+            <li>B-roll sourcing</li>
+            <li>Text overlays</li>
+            <li>Animation</li>
+            <li>SFX &amp; music</li>
+            <li>Captions</li>
+          </ul>
+          <p class="auto__note">preview &amp; edit any scene · approve or retry per scene · same <code>review_url</code> either door</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DEMOS ============ -->
+    <section class="demos" id="demos">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">See it in action</span>
+          <h2 class="sec-h2">Real output. Real platforms.</h2>
+        </div>
+        <!-- PLACEHOLDER: demo clips — illustrative, no real video assets -->
+        <div class="clips">
+          <figure class="clip reveal">
+            <div class="clip__frame">
+              <span class="clip__tag">TikTok</span>
+              <button class="clip__play" aria-label="Play preview" data-inert><span></span></button>
+              <span class="clip__dur">0:28</span>
+            </div>
+            <figcaption>California home tour — real-estate · 4 scenes · 1.2M views</figcaption>
+          </figure>
+          <figure class="clip reveal" data-reveal-delay="60">
+            <div class="clip__frame">
+              <span class="clip__tag">YouTube</span>
+              <button class="clip__play" aria-label="Play preview" data-inert><span></span></button>
+              <span class="clip__dur">0:55</span>
+            </div>
+            <figcaption>Make a video in 60s — tutorial · 5 scenes · 840K views</figcaption>
+          </figure>
+          <figure class="clip reveal" data-reveal-delay="120">
+            <div class="clip__frame">
+              <span class="clip__tag">Instagram</span>
+              <button class="clip__play" aria-label="Play preview" data-inert><span></span></button>
+              <span class="clip__dur">0:18</span>
+            </div>
+            <figcaption>Product drop teaser — e-commerce · auto-cut · 3.4M views</figcaption>
+          </figure>
+          <figure class="clip reveal" data-reveal-delay="180">
+            <div class="clip__frame">
+              <span class="clip__tag">LinkedIn</span>
+              <button class="clip__play" aria-label="Play preview" data-inert><span></span></button>
+              <span class="clip__dur">0:42</span>
+            </div>
+            <figcaption>Founder thought-piece — from blog · 6 scenes · 210K views</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONNECT CHANNELS / OAUTH ============ -->
+    <section class="oauth" id="connect">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Distribution, handled</span>
+          <h2 class="sec-h2">Your users connect their channels. You post on their behalf.</h2>
+          <p class="sec-intro">WideCast owns the OAuth, tokens and per-platform quirks for all 10 destinations. Your end-users authorize their own accounts once — your agent publishes to them, multi-tenant, without touching a single platform API.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step reveal">
+            <span class="step__no">1</span>
+            <h3 class="step__title">Connect once</h3>
+            <p>Hosted / embedded OAuth per user.</p>
+          </article>
+          <article class="step reveal" data-reveal-delay="60">
+            <span class="step__no">2</span>
+            <h3 class="step__title">We keep it alive</h3>
+            <p>Token refresh + rate limits + per-platform quirks managed.</p>
+          </article>
+          <article class="step reveal" data-reveal-delay="120">
+            <span class="step__no">3</span>
+            <h3 class="step__title">Publish, scoped</h3>
+            <p>Target any connected account by id, multi-tenant.</p>
+          </article>
+          <article class="step reveal" data-reveal-delay="180">
+            <span class="step__no">4</span>
+            <h3 class="step__title">Stay compliant</h3>
+            <p>Posting respects platform API terms + AI-content disclosure.</p>
+          </article>
+        </div>
+
+        <div class="oauth__code reveal">
+          <pre><code><span class="c-obj">video</span>.<span class="c-fn">publish</span>(accounts=[<span class="c-str">"acct_tiktok_8f2"</span>, <span class="c-str">"acct_youtube_a10"</span>, <span class="c-str">"acct_ig_77"</span>])</code></pre>
+          <span class="oauth__badge">10 platforms (preview)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INTEGRATIONS ============ -->
+    <section class="integrations" id="integrations">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Drops into your stack</span>
+          <h2 class="sec-h2">Talk to WideCast from anywhere your agent lives.</h2>
+        </div>
+        <div class="integ">
+          <article class="integ__item reveal"><h3>MCP server</h3><code>claude mcp add widecast</code></article>
+          <article class="integ__item reveal" data-reveal-delay="40"><h3>Claude Skill</h3><code>drop-in for Claude Code</code></article>
+          <article class="integ__item reveal" data-reveal-delay="80"><h3>Python SDK</h3><code>pip install widecast</code></article>
+          <article class="integ__item reveal" data-reveal-delay="120"><h3>JS/TS SDK</h3><code>npm i @widecast/sdk</code></article>
+          <article class="integ__item reveal"><h3>OpenAI tools</h3><code>function-calling spec</code></article>
+          <article class="integ__item reveal" data-reveal-delay="40"><h3>LangChain</h3><code>StructuredTool wrappers</code></article>
+          <article class="integ__item reveal" data-reveal-delay="80"><h3>Vercel AI SDK</h3><code>tool() bindings</code></article>
+          <article class="integ__item reveal" data-reveal-delay="120"><h3>REST + Webhooks</h3><code>HMAC-signed callbacks</code></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ QUICKSTART CODE ============ -->
+    <section class="quick" id="quickstart">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Quickstart</span>
+          <h2 class="sec-h2">Hello, video — from your agent.</h2>
+        </div>
+
+        <div class="code reveal">
+          <div class="code__tabs" role="tablist" aria-label="Language">
+            <button class="code__tab is-active" role="tab" aria-selected="true" data-code="py">Python</button>
+            <button class="code__tab" role="tab" aria-selected="false" data-code="ts">TypeScript</button>
+            <button class="code__tab" role="tab" aria-selected="false" data-code="mcp">MCP tool call</button>
+            <button class="code__tab" role="tab" aria-selected="false" data-code="curl">cURL</button>
+          </div>
+
+          <div class="code__pane is-active" data-code-panel="py">
+<pre><code><span class="c-kw">from</span> widecast <span class="c-kw">import</span> WideCast
+
+client = WideCast(api_key=<span class="c-str">"wc_live_REPLACE_ME"</span>)
+
+job = client.create_video(
+    source=<span class="c-str">"idea"</span>,
+    idea_text=<span class="c-str">"why founders should ship on day one"</span>,
+    output_type=<span class="c-str">"video"</span>,
+)
+print(client.status(job.id))  <span class="c-cm"># poll /v1/status/{id}</span></code></pre>
+          </div>
+
+          <div class="code__pane" data-code-panel="ts">
+<pre><code><span class="c-kw">import</span> { WideCast } <span class="c-kw">from</span> <span class="c-str">"@widecast/sdk"</span>;
+
+<span class="c-kw">const</span> client = <span class="c-kw">new</span> WideCast({ apiKey: <span class="c-str">"wc_live_REPLACE_ME"</span> });
+
+<span class="c-kw">const</span> job = <span class="c-kw">await</span> client.createVideo({
+  source: <span class="c-str">"idea"</span>,
+  ideaText: <span class="c-str">"why founders should ship on day one"</span>,
+  outputType: <span class="c-str">"video"</span>,
+});
+<span class="c-kw">await</span> client.status(job.id); <span class="c-cm">// poll /v1/status/{id}</span></code></pre>
+          </div>
+
+          <div class="code__pane" data-code-panel="mcp">
+<pre><code>{
+  <span class="c-str">"tool"</span>: <span class="c-str">"create_video"</span>,
+  <span class="c-str">"arguments"</span>: {
+    <span class="c-str">"source"</span>: <span class="c-str">"idea"</span>,
+    <span class="c-str">"idea_text"</span>: <span class="c-str">"why founders should ship on day one"</span>,
+    <span class="c-str">"output_type"</span>: <span class="c-str">"video"</span>
+  }
+}
+<span class="c-cm"># then poll status via tool: status(id)</span></code></pre>
+          </div>
+
+          <div class="code__pane" data-code-panel="curl">
+<pre><code>curl -X POST https://api.widecast.ai/v1/create_video \
+  -H <span class="c-str">"Authorization: Bearer wc_live_REPLACE_ME"</span> \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{"source":"idea","idea_text":"why founders should ship on day one","output_type":"video"}'</span>
+
+curl https://api.widecast.ai/v1/status/{id} <span class="c-cm"># poll</span></code></pre>
+          </div>
+        </div>
+
+        <p class="quick__bridge reveal">…then close the loop — create, (optionally) review, publish:</p>
+
+        <div class="code code--single reveal">
+          <div class="code__pane is-active">
+<pre><code>job = client.create_video(source=<span class="c-str">"idea"</span>, idea_text=<span class="c-str">"…"</span>).wait()
+print(job.review_url)         <span class="c-cm"># human-in-the-loop checkpoint</span>
+
+video = job.approve()
+video.publish(accounts=[<span class="c-str">"tiktok"</span>, <span class="c-str">"youtube"</span>, <span class="c-str">"instagram"</span>, <span class="c-str">"x"</span>, <span class="c-str">"linkedin"</span>])
+<span class="c-cm"># a marketing agency, in one script.  (publish API: preview)</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BUILT FOR AGENTS ============ -->
+    <section class="agents" id="why">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Why agents love it</span>
+          <h2 class="sec-h2">Agent-native, not bolted on.</h2>
+        </div>
+        <div class="feats">
+          <article class="feat reveal">
+            <h3>One spec, self-describing</h3>
+            <p>OpenAPI 3.1 + JSON Schema agents generate tools from <code>/openapi.json</code>.</p>
+          </article>
+          <article class="feat reveal" data-reveal-delay="60">
+            <h3>Async by default</h3>
+            <p>POST then poll <code>/v1/status/{id}</code> or an HMAC webhook.</p>
+          </article>
+          <article class="feat reveal" data-reveal-delay="120">
+            <h3>Errors agents can act on</h3>
+            <p>Structured error envelope: <code>type / code / doc_url / request_id</code>.</p>
+          </article>
+          <article class="feat reveal" data-reveal-delay="180">
+            <h3>Idempotent &amp; safe to retry</h3>
+            <p><code>Idempotency-Key</code> dedupe on every mutating call.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRUST BAND ============ -->
+    <section class="trust reveal" aria-label="Trust and standards">
+      <div class="wrap">
+        <ul class="trust__row">
+          <li>Apache-2.0 open source</li>
+          <li>OpenAPI 3.1 spec</li>
+          <li>HMAC-signed webhooks</li>
+          <li>Idempotent by design</li>
+          <li>AI-content disclosure built in</li>
+          <li>Status &amp; 99.9% uptime <span class="planned">(planned)</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="pricing" id="pricing">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Pricing</span>
+          <h2 class="sec-h2">Start free. Scale when your agent does.</h2>
+          <p class="sec-intro">Test mode is free and never touches a credit. Go live when you're ready — usage-based, no surprises. <span class="dim">(figures are PLACEHOLDER)</span></p>
+        </div>
+
+        <!-- PLACEHOLDER: pricing figures are illustrative -->
+        <div class="tiers">
+          <article class="tier reveal">
+            <h3 class="tier__name">Free</h3>
+            <p class="tier__price"><span>$0</span><small>/mo</small></p>
+            <ul class="tier__list">
+              <li>5 videos / month</li>
+              <li>Watermark</li>
+              <li>Unlimited sandbox (test mode)</li>
+              <li>All SDKs · MCP · Skill</li>
+            </ul>
+            <a class="btn btn--ghost tier__cta" href="#" data-inert>Start free</a>
+          </article>
+
+          <article class="tier tier--pop reveal" data-reveal-delay="80">
+            <span class="tier__badge">Most popular</span>
+            <h3 class="tier__name">Pro</h3>
+            <p class="tier__price"><span>$49</span><small>/mo</small></p>
+            <ul class="tier__list">
+              <li>No watermark</li>
+              <li>Video + blog + social outputs</li>
+              <li>Publish to 10 platforms</li>
+              <li>Webhooks · priority queue</li>
+            </ul>
+            <a class="btn btn--ember tier__cta" href="#" data-inert>Go Pro</a>
+          </article>
+
+          <article class="tier reveal" data-reveal-delay="160">
+            <h3 class="tier__name">Business</h3>
+            <p class="tier__price"><span>Custom</span></p>
+            <ul class="tier__list">
+              <li>High volume · SLA 99.9%</li>
+              <li>White-label · multi-tenant</li>
+              <li>"Powered by" removable</li>
+              <li>Priority support</li>
+            </ul>
+            <a class="btn btn--ghost tier__cta" href="#" data-inert>Talk to us</a>
+          </article>
+        </div>
+        <p class="pricing__foot reveal">Sandbox / test mode (<code>wc_live_*</code>) is always free — build &amp; run CI without spending a credit.</p>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="cta">
+      <div class="wrap cta__inner reveal">
+        <h2 class="cta__h2">Agents can think. Search. Code. <span class="grad">Now they can produce &amp; distribute.</span></h2>
+        <p class="cta__lead">Build a marketing agency into your agent with a single install.</p>
+        <div class="cta__install">
+          <code class="install__code" id="cmd-cta">claude mcp add widecast widecast-mcp --env WIDECAST_API_KEY=wc_live_REPLACE_ME</code>
+          <button class="copy-btn" data-copy-target="#cmd-cta" aria-label="Copy install command">Copy</button>
+        </div>
+        <div class="cta__btns">
+          <a class="btn btn--ember" href="#" data-inert>Read the docs →</a>
+          <a class="btn btn--ghost" href="#" data-inert>Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="wrap footer__grid">
+      <div class="footer__brand">
+        <a class="brand" href="#" data-inert aria-label="WideCast home">
+          <span class="brand__mark" aria-hidden="true"><span class="brand__ember"></span></span>
+          <span class="brand__name">WideCast</span>
+        </a>
+        <p class="footer__tag">The content production &amp; distribution layer for AI agents.</p>
+        <p class="footer__meta">Public API v0.1.0 · Apache-2.0</p>
+      </div>
+      <nav class="footer__col" aria-label="Product">
+        <h4>Product</h4>
+        <a href="#loop" >The loop</a>
+        <a href="#inputs">Inputs</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#" data-inert>Changelog</a>
+      </nav>
+      <nav class="footer__col" aria-label="Developers">
+        <h4>Developers</h4>
+        <a href="#" data-inert>Docs</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#integrations">Integrations</a>
+        <a href="#" data-inert>OpenAPI spec</a>
+      </nav>
+      <nav class="footer__col" aria-label="Community">
+        <h4>Community</h4>
+        <a href="#" data-inert>GitHub</a>
+        <a href="#" data-inert>Discord</a>
+        <a href="#" data-inert>X / Twitter</a>
+        <a href="#" data-inert>Status</a>
+      </nav>
+    </div>
+    <div class="wrap footer__bottom">
+      <span>© 2026 WideCast.ai</span>
+      <span class="footer__ph">PLACEHOLDER landing — demo data is illustrative</span>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

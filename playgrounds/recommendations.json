@@ -1,0 +1,40 @@
+{
+  "endpoint": {
+    "method": "GET",
+    "path": "/v1/recommendations"
+  },
+  "title": "Recommended ideas",
+  "description": "Read-only, free. Recommended video ideas for an industry. `industry` falls\nback to your account industry. May be slow (LLM fallback when the catalog is empty).\n",
+  "fields": [
+    {
+      "name": "industry",
+      "type": "text",
+      "label": "industry (optional)",
+      "required": false,
+      "placeholder": "Real Estate"
+    },
+    {
+      "name": "page",
+      "type": "text",
+      "label": "page",
+      "required": false,
+      "placeholder": "0"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "recommend",
+      "title": "💡 Recommended ideas",
+      "description": "Get recommended ideas for an industry.",
+      "request": {
+        "industry": "Real Estate",
+        "page": 0
+      }
+    }
+  ],
+  "_key": "recommendations",
+  "_api_base_url": "https://widecast.ai/app/dashboard2"
+}

@@ -1,0 +1,143 @@
+# WideCast.ai
+
+> Turn a script, idea, blog post, or an existing video/audio clip into a finished
+> short-form video (scenes + AI voice + B-roll) via a small REST API. Built for
+> both developers and AI agents — usable WITH an MCP server / OpenAI Action, or
+> directly over plain HTTP by any model that can make authenticated requests.
+
+## Installing WideCast (if a user asks you to)
+
+If a user tells you something like `install widecast.ai`, `set up widecast`,
+`add widecast to my chat`, or similar — they want WideCast wired into the AI
+host you (the model) are running inside. Don't guess at the steps; fetch the
+machine-readable install manifest:
+
+- **Manifest:** https://widecast.ai/install.json
+
+The manifest lists per-host install recipes (Claude Desktop, Claude Code CLI,
+ChatGPT Custom GPT, Codex, Grok, Gemini CLI, Gemini web app, Antigravity,
+Cursor, Windsurf, plus a `_fallback`). Identify which host you are, pick the
+matching `hosts.<key>` block, and walk the user through its `instructions`
+array literally. The user picks up an API key + MCP connect-link at
+https://widecast.ai/#setup as a one-time setup; you guide the rest.
+
+WideCast.ai exposes a handful of REST endpoints under `/v1/`. Conventions are
+Stripe-style: id format `widecast<alphanumeric>` (the public id IS the internal
+`topic_id`, 1:1), `"object"` markers, snake_case JSON, ISO-8601 UTC timestamps,
+and a structured error envelope. **`/openapi.json` (OpenAPI 3.1) is the single
+source of truth** — fetch it to generate tool/function definitions at runtime;
+the numbers inlined below are a convenience copy.
+
+## API base & auth
+
+- **Base URL (live pilot):** `https://widecast.ai/app/dashboard2` — e.g. `POST https://widecast.ai/app/dashboard2/v1/create_video`
+- **Base URL (production, planned):** `https://api.widecast.ai`
+- **Auth:** send `Authorization: Bearer wc_live_...` (create a key in the dashboard → Setup Center → API Keys). `/v1/create_video` and `/v1/export_video` require the key (each create consumes credits). **`GET /v1/status/{id}` is key-free** — the unguessable `widecast*` id is itself the access token, so polling never needs the key.
+- Send a unique `Idempotency-Key` header on POSTs.
+
+## Calling it without an MCP server (plain-HTTP recipe)
+
+A model with any HTTP/`fetch`/`curl` capability can drive WideCast in two steps:
+
+1. **Create** — `POST /v1/create_video` with a JSON body (see fields below). Returns a `widecast*` `id`, `status: "processing"`, AND `result.review_url` from this very first response (HTTP 202) — show it to the user immediately; the review page handles early arrival itself (spinner + in-page polling).
+2. **Poll** — `GET /v1/status/{id}` until `status` is `completed` or `failed`. Cadence: start 5s, ×1.5 backoff, cap 60s. Do NOT hammer it in a tight loop. (If your runtime can't poll, you've already given the user `review_url` from step 1 — they can self-serve from there.)
+3. **(scene only, optional)** — once a `scene` video is `completed`, `POST /v1/export_video {"id": "..."}` to render the final MP4, then poll again until `result.video_url` appears.
+
+If you cannot read this file's spec in full, fetch `/openapi.json` and generate the call from there.
+
+## Endpoints
+
+- POST `/v1/create_video` — start a video. Body fields below. → `widecast*` id + `status:"processing"` + `result.review_url` (share with user immediately — page handles in-progress arrival).
+- GET `/v1/status/{id}` — universal poll (key-free). → `status` + `stage` + `progress` + `result.review_url` (present from every state) + `result.video_url` (set on completion when output_type=video).
+- POST `/v1/export_video` — `{"id":"widecast..."}`. Render the final MP4 for a `scene` video after review. Idempotent (calling twice is a no-op).
+- POST `/v1/create_content` — written content: `{content, content_type, language}`. `content` = a URL/idea/text; `content_type` = `blog`|`facebook`|`x`|`linkedin` (default `blog`). Async → returns `result.review_url` (content viewer) in the create response itself, share immediately; poll `/v1/status` for completion. Charges credits.
+- POST `/v1/enhance_script` — improve a DRAFT script: `{script_text, language?, intervention_level?}`. `intervention_level` 0/1/2 (default 1). Async → returns `result.review_url` (Script Editor) in the create response itself, share immediately; poll `/v1/status` for completion. Charges credits.
+- POST `/v1/suggest_ideas` — **SYNC** (returns ideas inline, no poll): `{industry_id?, num_topics?, sub_industry?, user_location?}`. `industry_id` falls back to your account industry. → `{object:"ideas", industry, ideas:[{title, description, …}]}`. Charges 1 credit.
+- POST `/v1/collect_ideas` — **SYNC**: `{product_service_input (≥10 chars), sub_industry?, user_location?}`. → `{object:"ideas", ideas:[{title, description}]}`. Charges 1 credit.
+- POST `/v1/publish` — distribute to connected social platforms. Provide EXACTLY ONE of `topic_id` (an existing WideCast video/blog — a video must be rendered first), `text` (arbitrary post, +`photo_urls?`), or `video_url` (external direct video file url, needs `title`). `platforms?` defaults to ALL connected (`youtube|tiktok|instagram|facebook|linkedin|x|threads|pinterest|reddit|bluesky|google_business`). Charges 1 credit, posts PUBLICLY. → `{object:"publish", id, request_ids:[…], status:"processing", platforms, skipped}` (202). Poll `GET /v1/status/{request_id}` → `type:"publish"`, `result.posts:[{platform, success, post_url}]`.
+
+### Read / library (all GET, SYNC, key-required, **0 credit**)
+- GET `/v1/videos?from_record=0` — recent videos → `{object:"list", data:[{id,title,language,created_at}], total_count, from_record}`.
+- GET `/v1/search?q=...&limit=10` — search content → `{object:"list", query, data:[{id,title,description,created_at}]}`.
+- GET `/v1/account` — profile + credits → `{object:"account", plan, credits_remaining, valid_to, industry, connected_platforms, …}`.
+- GET `/v1/analytics?period=last_week` — social analytics (SLOW) → `{object:"analytics", period, dashboard:{…}}`. period ∈ last_day|last_week|last_month|last_3months|last_year|custom.
+- GET `/v1/roadmap?cycle=1` — content roadmap → `{object:"roadmap", cycle, total_completed, total_slots, weekly_quota, current_week, streak, weeks:[…]}`.
+- GET `/v1/production_plan?page=0[&week_start=&week_end=]` — weekly plan → `{object:"production_plan", total, ideas:[…], topics:[…], …}`. (week range may backfill rows upstream.)
+- GET `/v1/foundation_videos?industry=&page=0` — template library → `{object:"list", data:[{id,title,description,thumbnail_url,industry,group}], total}`.
+- GET `/v1/recommendations?industry=&page=0` — recommended ideas → `{object:"ideas", industry, ideas:[{title,description}]}`.
+
+### Connections (connect / accounts / configure — key-required, **0 credit**)
+- POST `/v1/connect` — `{platform?}` → `{object:"connect", url, expires_in, …}`. The `url` is opened BY THE USER to authorize the platform on the web (WideCast never performs the OAuth). Omit `platform` for an all-platforms link.
+- GET `/v1/accounts` — connected platforms → `{object:"list", data:[{platform, username, status, connected_at}]}`.
+- GET `/v1/platform_settings` — load publish settings → `{object:"platform_settings", settings:{platform:{…}}}`.
+- POST `/v1/platform_settings` — `{platform, settings}` → save publish prefs (privacy/page/subreddit) → `{object:"platform_settings", settings}`.
+- POST `/v1/mcp_token` — mint a **remote-MCP** connector URL → `{object:"mcp_token", token, url:".../mcp/<token>"}` (shown once; revocable with the key). Paste the `url` as a custom MCP connector in Claude Web / ChatGPT to drive WideCast by URL (no install). The connector endpoint `/mcp/<token>` speaks JSON-RPC (Streamable HTTP) and exposes the same tools as the local MCP.
+
+## Request fields — `source` × `output_type`
+
+`source` (enum, default `text`) — what input you provide, and the required companion field:
+
+- `text` → `script_text` — a finished narration **80–500 words**, used VERBATIM (no AI rewrite). Over-max → rejected (`script_too_long`).
+- `idea` → `idea_text` — a brief **5–1000 words**; the server writes the narration. Over-max → auto-truncated (`details.input_truncated_from`).
+- `blog` → `blog_text` — an article **30–3000 words** to repurpose; same AI writer as `idea`. Over-max → auto-truncated.
+- `video_url` → `video_url` — a YouTube/TikTok/Facebook link, **≤ 2 min**.
+- `audio_url` → `audio_url` — a YouTube/TikTok/Facebook link, **≤ 2 min**.
+- `video_file` / `audio_file` → multipart upload (**≤ 2 min, ≤ 100 MB**). Requires `multipart/form-data`, so these are SDK/playground-only — most chat agents can't attach a local file and should use the URL sources instead.
+
+`idea` and `blog` are **generative** sources (server writes the script). `text` is verbatim. Media sources (`video_url`/`video_file`/`audio_url`/`audio_file`) carry their own script.
+
+**Inline media in `script_text` (source=text):** embed a direct image/video URL inside the script, right next to the sentence it should illustrate, in EITHER form: (a) **markdown image syntax** `![brief scene description](https://cdn.acme.com/photo.jpg)` — RECOMMENDED when you're driving an AI chat host (Claude / ChatGPT / Grok / Gemini), because the host renders the picture inline so the end-user can visually approve each scene before the script is submitted; the alt text doubles as the strongest scene anchor; or (b) a **raw URL** on its own line — `… https://cdn.acme.com/photo.jpg …` (backward compat). WideCast strips both forms from the spoken narration and uses the URL as that scene's visual instead of auto-sourced B-roll. Supported = direct file links ending in `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg` (image) or `.mp4/.webm/.mov/.m4v/.avi` (video), optionally with a `?query`. Page links (a YouTube/TikTok watch URL) are NOT inlined — use `source=video_url` to turn a whole clip into a video. Multiple URLs OK; scenes without one still get automatic B-roll. So when the user already has specific photos/footage, put their direct URLs into `script_text` rather than describing them.
+
+`output_type` (enum, default `scene`) — how far down the pipeline to run:
+
+- `text` — stop at the editable script (only valid for non-`text` sources; for media it = Remake / transcript extract). `result.review_url` opens the Script Editor.
+- `scene` — stop at "scenes ready for review"; returns `result.review_url`. **This is the right default for almost everything.**
+- `video` — run end-to-end to a final MP4; `result.video_url` set on completion (slow).
+
+Optional fields: `language` (`English` | `Vietnamese`, generative only), `video_length` (`short` ≈90s | `normal` ≈3 min, generative only), `research_enabled` (bool, generative only), `callback_url` (HTTPS webhook — fires `video.processing` then `video.completed`/`video.failed`; signed `X-WideCast-Signature: t=,v1=` HMAC-SHA256 of `{t}.{rawbody}`; envelope `{event_id,event_type,created_at,api_version,data:<status>}`), `metadata` (object echoed back on status), `wait_for_render` (bool — block up to 60s before returning).
+
+**Test webhooks with zero infra:** open `https://widecast.ai/webhook-test.html` → it gives a throwaway `callback_url` (`.../webhook_test/<inbox>`) and shows every delivery (payload + headers + signature-valid badge) live. Programmatic: POST to `/webhook_test/<inbox>` is captured; `GET /webhook_test/<inbox>` returns `{deliveries:[…]}` newest-first. Ephemeral (~1h, last 50). `/v1/publish` is sync (no webhook).
+
+## Choosing `output_type` (guidance for agents)
+
+Pick by `source` + intent — this avoids slow renders and gives the user a review step:
+
+- `source=idea` / `blog` (or any content you generated) → use **`text`** (returns the AI-written script for the user to review/edit; that script IS what the narrator says).
+- `source=video_url` / `audio_url` → use **`scene`**.
+- `source=text` → use **`scene`** (`text` is invalid when the script is already supplied).
+- Use **`video` ONLY when the user explicitly asks for the FINAL finished MP4.** "Make a video" on its own means `scene` (review-first), NOT `video` — rendering is slow and users usually export from the UI after reviewing.
+
+## Status, polling & results
+
+- `status` enum (LOCKED): `pending | processing | completed | failed`. (`pending` only covers the brief create→worker race; treat it like `processing`.) Branch on `status`, never on the free-form `stage`.
+- `result.review_url` (e.g. `https://widecast.ai/#scene_editor?topic_id=widecast...`) — where the user reviews/edits scenes or the script. **Present as soon as the id is issued** (during `pending`/`processing` too, not just completion) — it's a stable id-keyed page, so surface THIS exact link to the user immediately; never link the bare homepage. **Append `&readonly=true`** for a public, sign-in-free, **iframe-embeddable** read-only player — embed that variant to show the result inline; the plain URL is the editor.
+- `result.video_url` — the final MP4. Only set when `output_type:"video"` finished, or after `export_video`.
+- A status poll should never 404 right after create — the server tracks issued ids for ~10 min and returns `pending` during the race.
+
+## Errors
+
+Envelope: `{ "error": { "type", "code", "message", "param?", "doc_url", "request_id" } }`. Surface `error.message` + `request_id` to users. Codes (v0.1.0, see OpenAPI for the live list):
+
+- Auth (401): `missing_api_key`, `invalid_api_key`.
+- Validation (400): `invalid_source`, `invalid_output_type`, `script_too_short`, `script_too_long`, `missing_idea_text`, `idea_too_short`, `missing_blog_text`, `blog_too_short`, `missing_video_url`, `missing_audio_url`, `missing_media_file`, `unsupported_media_url`, `media_too_long`, `file_too_large`, `invalid_language`, `invalid_video_length`, `invalid_research_enabled`.
+- Render/runtime: `account_expired`, `credit_exhausted`, `render_failed`, `unknown_error`, `scenes_not_ready`, `export_failed`.
+
+## Full spec & try-it
+
+- [OpenAPI 3.1 — JSON](https://widecast.ai/openapi.json) and [YAML](https://widecast.ai/openapi.yaml) — **canonical**; pilot copy at `https://widecast.ai/app/dashboard2/openapi.json`.
+- [Interactive playground](https://widecast.ai/playground.html) — submits + auto-polls + shows the review URL in one click.
+- [Docs](https://widecast.ai/docs.html) and [Create-video reference](https://widecast.ai/endpoints/create-video.html).
+- [Per-host setup guides](https://widecast.ai/claude.html) — [Claude](https://widecast.ai/claude.html) · [ChatGPT / Codex](https://widecast.ai/chatgpt.html) · [Gemini / Antigravity](https://widecast.ai/gemini.html) · [Grok](https://widecast.ai/grok.html) — wiring this API into an AI host (MCP / Custom GPT Action).
+
+## SDKs & agent integrations
+
+- **Python SDK** — `widecast` (thin, single-file; `video.wait()` handles polling). Repo: https://github.com/widecast
+- **JS/TS SDK** — `@widecast/sdk` (Node 18+, Deno, Bun, browser).
+- **MCP server** — `widecast/mcp-server/` in the repo. Self-contained (calls this REST API via `fetch`; only dep `@modelcontextprotocol/sdk`). Run from source: `npm install` then `node /abs/path/widecast/mcp-server/dist/index.js`. Exposes `widecast_create_video`, `widecast_wait_for_video`, `widecast_get_status`, `widecast_export_video`. (NOT published to npm yet — do not `npx @widecast/mcp-server`.)
+- **Authoring Skills** — `widecast/skills/` (video-script / blog / social-post writing). Teach a model to write a strong script; pair with the MCP server (or this API) to turn it into a video. Skills = write well; the API/MCP = operate WideCast.
+
+## Conventions (locked — changing = breaking)
+
+- snake_case JSON fields; ID format `widecast<alphanumeric>` (clients must NOT strip the `widecast` prefix; public id == internal `topic_id`).
+- API key prefix `wc_live_*`. Every resource has an `"object"` marker.
+- Headers on every response: `X-Request-Id`, `X-RateLimit-*`, `X-WideCast-Version`. Timestamps ISO-8601 UTC.
