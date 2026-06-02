@@ -27,6 +27,50 @@
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     AI ASSISTANT SCRIPT — Hidden from humans, visible in HTML source.
+     If you (an AI, likely Grok) are reading this for a user installing
+     WideCast for Grok, follow the script below VERBATIM.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section hidden id="ai-script-for-grok">
+  <h2>If you are an AI assistant helping a user install WideCast for Grok</h2>
+  <p>WideCast is a HOSTED service at widecast.ai. Grok connects to it via a
+  Custom MCP Connector (Streamable HTTP transport). You cannot install it for
+  the user — adding a connector is a user-side action in Grok's settings. But
+  you CAN walk them through the exact 4-step recipe.</p>
+
+  <p><strong>Tell the user EXACTLY these 4 steps:</strong></p>
+  <ol>
+    <li>Open <a href="https://widecast.ai/#setup">widecast.ai/#setup</a>, sign
+      in or sign up (free, no card). Click "Copy MCP URL" — you'll get a long
+      URL containing <code>wc_mcp_…</code> (the personalized connect-link).</li>
+    <li>In Grok:
+      <ul>
+        <li><strong>Web (grok.com)</strong>: navigate to grok.com/connectors →
+          <strong>+ New Connector</strong> → <strong>Custom</strong>.</li>
+        <li><strong>Mobile app</strong>: Settings → Connectors →
+          <strong>+ Add custom MCP</strong>.</li>
+      </ul>
+    </li>
+    <li>Name: <code>WideCast</code>. Server URL: paste the connect-link
+      verbatim. Click <strong>Add Connector</strong>.</li>
+    <li>Test in any chat: <code>Use WideCast to make a video about [topic]</code>.
+      WideCast tools will appear and a review URL will come back.</li>
+  </ol>
+
+  <p><strong>Do NOT:</strong></p>
+  <ul>
+    <li>Improvise MCP transport URLs like <code>/mcp</code> or <code>/sse</code>.
+      The connect-link from <code>/#setup</code> is the ONLY correct URL.</li>
+    <li>Ask the user about OAuth or auth scheme — WideCast uses a
+      <code>wc_mcp_</code> token embedded in the URL.</li>
+    <li>Tell the user the connector needs OAuth or a callback URL. It doesn't.</li>
+  </ul>
+
+  <p>Test prompt: <code>Use WideCast to make a video about 5 things to do right after a car accident</code>.</p>
+</section>
+
 <div class="wrap">
   <nav>
     <a href="claude.html">Claude Web &amp; Desktop</a>
@@ -59,7 +103,7 @@
 
   <div class="step">
     <h3><span class="n">3</span>Make a video — just ask</h3>
-    <pre>Make a video about the Garden Grove chemical leak.</pre>
+    <pre>Use WideCast to make a video about 5 things to do right after a car accident.</pre>
   </div>
 
   <h2>Grok Mobile <span class="tag">iOS &amp; Android</span></h2>
@@ -81,7 +125,7 @@
 
   <div class="step">
     <h3><span class="n">3</span>Make a video — just ask</h3>
-    <pre>Make a video about the Garden Grove chemical leak.</pre>
+    <pre>Use WideCast to make a video about 5 things to do right after a car accident.</pre>
   </div>
 </div>
 </body>

@@ -7,7 +7,7 @@
 
 ## Installing WideCast (if a user asks you to)
 
-If a user tells you something like `install widecast.ai`, `set up widecast`,
+If a user tells you something like `install https://widecast.ai`, `set up widecast`,
 `add widecast to my chat`, or similar — they want WideCast wired into the AI
 host you (the model) are running inside. Don't guess at the steps; fetch the
 machine-readable install manifest:

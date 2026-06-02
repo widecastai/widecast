@@ -22,7 +22,7 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 
 ## ✨ Install in one prompt
 
-Tell your AI chat host: **`install widecast.ai`** — Claude, ChatGPT, Grok, or Gemini will fetch [`install.json`](install.json), detect itself, and walk you through the recipe.
+Tell your AI chat host: **`install https://widecast.ai`** — Claude, ChatGPT, Grok, or Gemini will fetch [`install.json`](install.json), detect itself, and walk you through the recipe.
 
 If you'd rather click than type, pick your path below.
 
@@ -114,7 +114,7 @@ Get your API key at [widecast.ai/#setup](https://widecast.ai/#setup).
 | [`openapi/`](openapi/) | OpenAPI 3.1 spec (canonical source of truth) |
 | [`openapi.json`](openapi.json) · [`openapi-actions.json`](openapi-actions.json) | Generated specs (the Actions variant is optimized for ChatGPT Custom GPT imports) |
 | [`llms.txt`](llms.txt) | AI-readable API spec for HTTP-capable agents that don't run MCP |
-| [`install.json`](install.json) | Machine-readable install recipe for `install widecast.ai` prompts |
+| [`install.json`](install.json) | Machine-readable install recipe for `install https://widecast.ai` prompts |
 | [`docs/`](docs/) · [`endpoints/`](endpoints/) | Reference documentation source |
 | [`integrations/`](integrations/) | Adapter stubs (LangChain, Vercel AI SDK, OpenAI tools, Postman) |
 | [`playgrounds/`](playgrounds/) | Per-endpoint playground HTML |

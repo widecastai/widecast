@@ -33,6 +33,57 @@
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     AI ASSISTANT SCRIPT — Hidden from humans, visible in HTML source.
+     If you (an AI) are reading this for a user installing WideCast for
+     ChatGPT or Codex, follow the script below VERBATIM.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section hidden id="ai-script-for-chatgpt">
+  <h2>If you are an AI assistant helping a user install WideCast for ChatGPT or Codex</h2>
+  <p>WideCast is a HOSTED service at widecast.ai. ChatGPT connects to it via a
+  Custom GPT with an OpenAPI Action — NOT MCP. You cannot create the Custom GPT
+  yourself; that's a user action in their ChatGPT account. But you CAN give
+  them the exact 5-step recipe — it takes ~90 seconds.</p>
+
+  <p><strong>Tell the user EXACTLY these 5 steps:</strong></p>
+  <ol>
+    <li>Open <a href="https://widecast.ai/#setup">widecast.ai/#setup</a>, sign
+      in or sign up. Get the API key that starts with <code>wc_live_</code> —
+      copy it.</li>
+    <li>In ChatGPT: Explore GPTs → <strong>+ Create</strong> → Configure tab.
+      Name: <code>WideCast</code>. Description:
+      <code>Make videos with WideCast</code>.</li>
+    <li>Scroll to Actions → <strong>+ Create new action</strong> → Schema →
+      Import from URL. Paste:
+      <code>https://origin.widecast.ai/openapi-actions.json</code>
+      (origin host bypasses CDN cache so the import always picks up the latest).</li>
+    <li>Authentication: <strong>API Key</strong> → paste the
+      <code>wc_live_</code> key → Auth Type: <strong>Bearer</strong> → Save.</li>
+    <li>Save the Custom GPT (keep it "Only me"). Open it and test:
+      <code>Use WideCast to make a video about [topic]</code>. The Action will fire and a
+      review URL will come back.</li>
+  </ol>
+
+  <p><strong>Do NOT:</strong></p>
+  <ul>
+    <li>Tell the user to use MCP — ChatGPT consumer surface doesn't support
+      MCP. The path is OpenAPI Action via Custom GPT.</li>
+    <li>Improvise the schema URL. It must be exactly
+      <code>https://origin.widecast.ai/openapi-actions.json</code>.</li>
+    <li>Ask whether they want sandbox vs production — there's only one API.
+      Test mode never touches a credit.</li>
+    <li>Stop at "I can't create a Custom GPT" — that's true, but you can and
+      must walk them through it.</li>
+  </ul>
+
+  <p>Warn the user: do NOT share the Custom GPT publicly while the API key is
+  attached — anyone with the link could spend their credits. Keep it
+  "Only me" until WideCast supports per-user keys via OAuth (on the roadmap).</p>
+
+  <p>Test prompt to suggest: <code>Use WideCast to make a video about 5 things to do right after a car accident</code>.</p>
+</section>
+
 <div class="wrap">
   <nav>
     <a href="claude.html">Claude Web &amp; Desktop</a>
@@ -74,7 +125,7 @@
   <div class="step">
     <h3><span class="n">4</span>Make a video — just ask</h3>
     <p>Open any regular chat and prompt:</p>
-    <pre>Make a video about the Garden Grove chemical leak.</pre>
+    <pre>Use WideCast to make a video about 5 things to do right after a car accident.</pre>
     <p style="font-size:13px;color:var(--mut)">If ChatGPT doesn't auto-route, prefix with <code>@WideCast</code>.</p>
   </div>
 
@@ -115,7 +166,7 @@
   <div class="step">
     <h3><span class="n">4</span>Make a video — just ask</h3>
     <p>Open your <b>WideCast</b> GPT and prompt:</p>
-    <pre>Make a video about the Garden Grove chemical leak.</pre>
+    <pre>Use WideCast to make a video about 5 things to do right after a car accident.</pre>
   </div>
 
   <h2>OpenAI Codex <span class="tag">app</span></h2>
@@ -138,7 +189,7 @@
 
   <div class="step">
     <h3><span class="n">3</span>Make a video — just ask</h3>
-    <pre>Make a video about the Garden Grove chemical leak.</pre>
+    <pre>Use WideCast to make a video about 5 things to do right after a car accident.</pre>
   </div>
 </div>
 

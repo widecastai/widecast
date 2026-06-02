@@ -24,7 +24,7 @@
         "In Claude.ai (web): open Settings → Connectors → Add custom connector.",
         "Paste the connect-link verbatim as the Server URL field, name it `WideCast`, click Connect.",
         "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth flow, NO `/.well-known/oauth-authorization-server`, NO transport choice. Skip any 'configure auth' steps Claude offers.",
-        "Once connected, test: `Make a video about [topic]`."
+        "Once connected, test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "claude_desktop": {
@@ -37,7 +37,7 @@
         "In Claude Desktop: open Settings (cmd/ctrl+,) → Connectors → Add custom connector.",
         "Paste the connect-link verbatim as the URL field, name it `WideCast`, click Connect.",
         "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth, NO `/.well-known` endpoint. Skip any 'configure auth' steps Claude offers.",
-        "After Claude Desktop restarts the session, test: `Make a video about [topic]`."
+        "After Claude Desktop restarts the session, test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "claude_code_cli": {
@@ -50,7 +50,7 @@
         "Ask the user for their `wc_live_…` API key from https://widecast.ai/#setup. Do NOT proceed without it; the install will fail.",
         "Substitute the key into the command_template and run it in the user's shell (or ask them to run it if you can't).",
         "Restart the Claude Code session so the new MCP server is discovered.",
-        "Test: `make a video about [topic]`."
+        "Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "chatgpt_custom_gpt": {
@@ -65,7 +65,7 @@
         "Step 2: In ChatGPT → Explore GPTs → + Create → Configure tab. Name: WideCast. Description: ‘Make videos with WideCast’.",
         "Step 3: Scroll to Actions → + Create new action → Schema → Import from URL. Paste: https://origin.widecast.ai/openapi-actions.json (the origin host serves the schema fresh, bypassing CDN cache so your import always picks up the latest version).",
         "Step 4: Authentication → API Key → paste the `wc_live_` key → Auth Type: Bearer → Save.",
-        "Step 5: Save the Custom GPT. Open it and try: ‘Make a video about [topic]’."
+        "Step 5: Save the Custom GPT. Open it and try: ‘Use WideCast to make a video about [topic]’."
       ]
     },
     "codex": {
@@ -75,7 +75,7 @@
       "instructions": [
         "Ask the user to copy their MCP connect-link from https://widecast.ai/#setup (a URL containing `wc_mcp_…`).",
         "In Codex: Settings → MCP Servers → Add. Name: `widecast_mcp`. Type: Streamable HTTP. URL: paste the connect-link verbatim. Auth: leave empty (the URL contains the token).",
-        "Save. Test: `make a video about [topic]`."
+        "Save. Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "grok": {
@@ -86,7 +86,7 @@
         "Ask the user to get their MCP connect-link from https://widecast.ai/#setup (a URL with `wc_mcp_…`).",
         "Web: grok.com/connectors → + New Connector → Custom. Mobile: Settings → Connectors → + Add custom MCP.",
         "Name: `WideCast`. Server URL: paste the connect-link verbatim.",
-        "Click/tap Add Connector. Test: `make a video about [topic]`."
+        "Click/tap Add Connector. Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "gemini_cli": {
@@ -105,7 +105,7 @@
         "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
         "Edit `~/.gemini/settings.json`. Merge in the `mcpServers.widecast.httpUrl` block above (substituting the real connect-link).",
         "Restart the Gemini CLI session.",
-        "Test: `make a video about [topic]`."
+        "Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "antigravity": {
@@ -125,7 +125,7 @@
         "In Antigravity: Settings → Customizations tab → Open MCP Config.",
         "Merge in the `mcpServers.widecast.serverUrl` block above (substituting the real connect-link).",
         "Important: Antigravity uses the field name `serverUrl` — NOT `httpUrl` (Gemini CLI) or `url` (Cursor/VS Code).",
-        "Save and restart. Test: `make a video about [topic]`."
+        "Save and restart. Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "gemini_web_app": {
@@ -157,7 +157,7 @@
       "instructions": [
         "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
         "Edit `~/.cursor/mcp.json`. Add the `mcpServers.widecast.url` block above. Cursor uses the field name `url` (NOT `httpUrl` or `serverUrl`).",
-        "Restart Cursor. Test: `make a video about [topic]`."
+        "Restart Cursor. Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "windsurf": {
@@ -167,7 +167,7 @@
       "instructions": [
         "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
         "Open Windsurf → Settings → MCP → Add server. Type: Remote (HTTP). URL: paste the connect-link. Name: `widecast`.",
-        "Save. Test: `make a video about [topic]`."
+        "Save. Test: `Use WideCast to make a video about [topic]`."
       ]
     },
     "_fallback": {
@@ -185,7 +185,7 @@
     "llms_txt": "https://widecast.ai/llms.txt"
   },
   "test_after_install": {
-    "prompt": "Make a video about the Garden Grove chemical leak.",
+    "prompt": "Use WideCast to make a video about 5 things to do right after a car accident.",
     "expected_behavior": "The host calls widecast_get_writing_skill(format=\"video\"), researches the topic, drafts a script with inline media URLs, fetches the user's credit balance via widecast_account, hands off with the script + cost estimate + faceless question. After the user picks normal or faceless, the host calls widecast_create_video and returns a review URL."
   },
   "support": {

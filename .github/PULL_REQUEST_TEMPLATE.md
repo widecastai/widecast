@@ -16,7 +16,7 @@ Thanks for sending a PR! A few things that make merging fast:
 
 - [ ] Tests pass: `pytest sdk-python/tests` / `npm test --prefix sdk-js` / `node --check mcp-server/dist/index.js`
 - [ ] If touching the OpenAPI spec or the Skills: `python3 docs/build.py` runs clean (parity check passes)
-- [ ] If touching `install.json`: tested against at least one AI host's "install widecast.ai" prompt
+- [ ] If touching `install.json`: tested against at least one AI host's "install https://widecast.ai" prompt
 
 ## Scope check
 

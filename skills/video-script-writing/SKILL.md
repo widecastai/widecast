@@ -232,18 +232,18 @@ scene in one click. So: **inline the URLs you're confident about; put the
 maybes/extras in `media_pool`.** Same rules — direct file links only, never
 fabricate.
 
-**Worked example** — *"Make a video about the Garden Grove chemical leak"* →
+**Worked example** — *"Use WideCast to make a video about 5 things to do right after a car accident"* →
 (narration with inline URLs; replace each link with a real direct file URL you
 harvested in R2):
 ```
-Right now, more than 40,000 people are being told to leave Garden Grove. https://upload.wikimedia.org/wikipedia/commons/…/evacuation.jpg
-A leak at the GNK Aerospace plant pushed MMA gas across three neighborhoods.
-Police ordered a city-wide evacuation this afternoon — and the plume is still moving.
-Before you go, do these three things. https://upload.wikimedia.org/wikipedia/commons/…/evac-checklist.jpg
-Grab IDs, medications, and your pets — then head north, away from the plant.
-Watch your city's alert page for the all-clear, and share this so your neighbors see it.
+The first 10 minutes after a car crash decide whether your insurance pays — or fights you. https://upload.wikimedia.org/wikipedia/commons/…/fender-bender.jpg
+First: pull over and turn your hazards on. If anyone's hurt, dial 911 before anything else.
+Second: do NOT say "I'm sorry" or "it was my fault" at the scene — admission of fault hurts your claim later.
+Third: take photos. Both cars, both license plates, the road, skid marks, and any traffic signs nearby. https://upload.wikimedia.org/wikipedia/commons/…/accident-documentation.jpg
+Fourth: swap the other driver's name, license, plate, insurance company, and policy number. Give them yours.
+Fifth: call your insurance the same day. The longer you wait, the messier the claim — and save this so you don't have to think when it happens.
 ```
-Notice: hook leads with the stakes + a real number, each URL sits next to the beat
+Notice: hook leads with the stakes + a concrete number, each URL sits next to the beat
 it shows, and beats without a confirmed photo simply ride auto-B-roll.
 
 ## Adding images & video (inline media URLs)
