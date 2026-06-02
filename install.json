@@ -12,26 +12,42 @@
     "type": "wc_live_api_key",
     "hint": "User obtains an API key (starts with `wc_live_`) AND an MCP connect-link (the URL contains a `wc_mcp_…` token) from the setup page. The connect-link IS the auth for the MCP path — paste it verbatim as the MCP server URL. The API key is a Bearer token for the Custom GPT Action path."
   },
-  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. Identify which host you are running inside (Claude Desktop, Claude Code CLI, ChatGPT, Codex, Grok, Gemini CLI, Gemini web app, Antigravity, Cursor, Windsurf, or another). Match the host to the matching `hosts.<key>` block below. Follow the `instructions` array literally and walk the user through them. Do NOT skip steps you can't execute yourself — guide the user to perform them. If your host isn't listed, use `hosts._fallback`.",
+  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. WideCast is a HOSTED commercial service at https://widecast.ai — NOT the user's own MCP server. Identify which host you are running inside (Claude Web, Claude Desktop, Claude Code CLI, ChatGPT, Codex, Grok, Gemini CLI, Gemini web app, Antigravity, Cursor, Windsurf, or another). Match the host to the matching `hosts.<key>` block below. Follow the `instructions` array LITERALLY — do NOT improvise URLs, transport types, or auth schemes from your training data. WideCast's auth is a `wc_mcp_…` token embedded directly in the connect-link URL; there is NO OAuth flow, NO /.well-known endpoint, NO transport choice. If your host isn't listed, use `hosts._fallback`.",
   "hosts": {
+    "claude_web": {
+      "detect_hints": ["Claude.ai", "claude.ai (web)", "Claude in browser", "Claude web app", "Anthropic web app", "Claude on the web"],
+      "method": "mcp_connector",
+      "summary": "Add a custom MCP connector via Settings → Connectors.",
+      "instructions": [
+        "WideCast is a hosted service — NOT the user's own MCP server. Do NOT guess at server URLs like `/mcp` or `/sse`, and do NOT ask the user which transport or auth scheme to pick.",
+        "Ask the user to open https://widecast.ai/#setup in a new tab and sign in. They will see (or create) an API key plus a one-click `Copy MCP URL` button. Have them copy the MCP URL — it is a long URL containing a `wc_mcp_…` token.",
+        "In Claude.ai (web): open Settings → Connectors → Add custom connector.",
+        "Paste the connect-link verbatim as the Server URL field, name it `WideCast`, click Connect.",
+        "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth flow, NO `/.well-known/oauth-authorization-server`, NO transport choice. Skip any 'configure auth' steps Claude offers.",
+        "Once connected, test: `Make a video about [topic]`."
+      ]
+    },
     "claude_desktop": {
-      "detect_hints": ["Claude Desktop", "claude.ai/desktop", "Anthropic Desktop app"],
+      "detect_hints": ["Claude Desktop", "claude.ai/desktop", "Anthropic Desktop app", "Claude app for Mac", "Claude app for Windows"],
       "method": "mcp_connector",
       "summary": "Add a custom MCP connector via Settings.",
       "instructions": [
-        "Ask the user to open https://widecast.ai/#setup in a browser and sign in. They will see (or create) an API key + a one-click ‘Copy MCP URL’ button. Tell them to copy the MCP URL (a long URL containing `wc_mcp_…`).",
+        "WideCast is a hosted service — NOT the user's own MCP server. Do NOT guess at server URLs like `/mcp` or `/sse`, and do NOT ask the user which transport or auth scheme to pick.",
+        "Ask the user to open https://widecast.ai/#setup in a browser and sign in. They will see (or create) an API key plus a one-click `Copy MCP URL` button. Have them copy the MCP URL — it is a long URL containing a `wc_mcp_…` token.",
         "In Claude Desktop: open Settings (cmd/ctrl+,) → Connectors → Add custom connector.",
-        "Paste the connect-link as the URL field, name it `WideCast`, and click Connect.",
-        "After Claude Desktop restarts the session, run a quick test by typing: ‘Make a video about [topic]’. The host will surface WideCast tools."
+        "Paste the connect-link verbatim as the URL field, name it `WideCast`, click Connect.",
+        "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth, NO `/.well-known` endpoint. Skip any 'configure auth' steps Claude offers.",
+        "After Claude Desktop restarts the session, test: `Make a video about [topic]`."
       ]
     },
     "claude_code_cli": {
-      "detect_hints": ["Claude Code", "claude-code CLI", "running in terminal"],
+      "detect_hints": ["Claude Code", "claude-code CLI", "running in terminal", "Anthropic CLI tool"],
       "method": "shell_command",
       "summary": "Single-line CLI install.",
       "command_template": "claude mcp add widecast widecast-mcp --env WIDECAST_API_KEY=<USER_WC_LIVE_KEY>",
       "instructions": [
-        "Ask the user for their `wc_live_…` API key from https://widecast.ai/#setup. Do NOT proceed without it; the install will fail otherwise.",
+        "WideCast is a hosted service. The Claude Code CLI install uses the `wc_live_` API key directly — NOT a connect-link URL (that pattern is for the GUI Claude apps). Do NOT guess at server URLs.",
+        "Ask the user for their `wc_live_…` API key from https://widecast.ai/#setup. Do NOT proceed without it; the install will fail.",
         "Substitute the key into the command_template and run it in the user's shell (or ask them to run it if you can't).",
         "Restart the Claude Code session so the new MCP server is discovered.",
         "Test: `make a video about [topic]`."
