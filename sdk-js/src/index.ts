@@ -352,6 +352,25 @@ interface ErrorBody {
   param?: string;
   doc_url?: string;
   request_id?: string;
+  details?: CreditErrorDetails | Record<string, unknown> | null;
+}
+
+/**
+ * Structured upgrade / wait info attached to HTTP 402 responses
+ * (`credit_exhausted` or `account_expired`). Surface both options to the user:
+ * wait until `reset_at` (monthly quota refresh) OR upgrade via `upgrade_url`.
+ */
+export interface CreditErrorDetails {
+  upgrade_url: string;
+  reset_at?: string | null;       // credit_exhausted only
+  expired_at?: string | null;     // account_expired only
+  renew_url?: string | null;      // account_expired only
+  current_plan: string;
+  current_plan_quota?: number | null;
+  credits_remaining: number;
+  credits_required: number;
+  next_plan?: string | null;
+  next_plan_quota?: number | null;
 }
 
 export class WidecastError extends Error {
@@ -361,9 +380,14 @@ export class WidecastError extends Error {
   docUrl: string;
   param?: string;
   responseJson: unknown;
+  /** Code-specific structured data. Populated for HTTP 402 (`credit_exhausted`
+   *  / `account_expired`) with a `CreditErrorDetails` payload. Null for other
+   *  error codes. */
+  details?: CreditErrorDetails | Record<string, unknown> | null;
   constructor(message: string, opts: Partial<{
     code: string; requestId: string; status: number;
     docUrl: string; param: string; responseJson: unknown;
+    details: CreditErrorDetails | Record<string, unknown> | null;
   }> = {}) {
     super(message);
     this.name = "WidecastError";
@@ -373,6 +397,11 @@ export class WidecastError extends Error {
     this.docUrl = opts.docUrl ?? "";
     this.param = opts.param;
     this.responseJson = opts.responseJson;
+    this.details = opts.details ?? null;
+  }
+  /** Shortcut for `details.upgrade_url` — empty when not a 402. */
+  get upgrade_url(): string {
+    return (this.details && (this.details as CreditErrorDetails).upgrade_url) || "";
   }
 }
 export class InvalidRequestError    extends WidecastError { constructor(m: string, o = {}) { super(m, o); this.name = "InvalidRequestError"; } }
@@ -1038,6 +1067,7 @@ async function decodeResponse<T>(resp: Response): Promise<T> {
     status: resp.status,
     docUrl: err.doc_url ?? "",
     param: err.param,
+    details: (err as { details?: unknown }).details ?? null,
     responseJson: data,
   });
 }

@@ -347,4 +347,17 @@ player) in an HTML artifact `<iframe>` so the user can watch right in the
 chat, and offer `review_url` as the "open / edit in WideCast" link. If the
 host won't render the iframe, show `review_url` as a clickable button.
 
+**If the create call returns HTTP 402** (`error.code` is `credit_exhausted`
+or `account_expired`), `error.details` carries a structured upgrade/wait
+block. Surface BOTH options to the user instead of only relaying the
+`error.message`:
+1. **Wait** until `details.reset_at` (the next monthly quota refresh) —
+   e.g. "your free quota refreshes on Mar 1".
+2. **Upgrade now** to `details.next_plan` (`details.next_plan_quota`
+   credits/month) at `details.upgrade_url` —
+   `https://widecast.ai/#pricing_plans`.
+
+For `account_expired`, use `details.expired_at` + `details.renew_url`
+instead of `reset_at`.
+
 Deep references: `hooks.md` (hook playbook + 12 templates), `ctas.md` (CTA banks).

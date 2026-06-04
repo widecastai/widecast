@@ -108,7 +108,8 @@ def _default_base_url() -> str:
 class WidecastError(Exception):
     def __init__(self, message: str, *, code: str = "", request_id: str = "",
                  status: int = 0, doc_url: str = "", param: Optional[str] = None,
-                 response_json: Optional[dict] = None):
+                 response_json: Optional[dict] = None,
+                 details: Optional[dict] = None):
         super().__init__(message)
         self.code = code
         self.request_id = request_id
@@ -116,6 +117,21 @@ class WidecastError(Exception):
         self.doc_url = doc_url
         self.param = param
         self.response_json = response_json or {}
+        # Code-specific structured data. Populated for HTTP 402 (`credit_exhausted`
+        # / `account_expired`) with {upgrade_url, reset_at | expired_at,
+        # current_plan, credits_remaining, credits_required, ...}. None for
+        # other error codes.
+        self.details = details or None
+
+    @property
+    def upgrade_url(self) -> str:
+        """Shortcut for ``details["upgrade_url"]`` — empty when not a 402."""
+        return (self.details or {}).get("upgrade_url", "") or ""
+
+    @property
+    def reset_at(self) -> str:
+        """ISO timestamp when the monthly quota next refreshes (credit_exhausted only)."""
+        return (self.details or {}).get("reset_at", "") or ""
 
     def __repr__(self) -> str:
         return (f"{type(self).__name__}(code={self.code!r}, "
@@ -1011,4 +1027,5 @@ def _decode_response(resp: requests.Response) -> dict:
         doc_url=err.get("doc_url", ""),
         param=err.get("param"),
         response_json=data,
+        details=err.get("details"),
     )

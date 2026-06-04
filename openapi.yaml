@@ -2030,6 +2030,90 @@ components:
             param: { type: string, nullable: true }
             doc_url: { type: string, format: uri }
             request_id: { type: string }
+            details:
+              oneOf:
+                - { type: "null" }
+                - $ref: '#/components/schemas/CreditErrorDetails'
+              description: |
+                Code-specific structured data. Currently populated for
+                `code == "credit_exhausted"` and `code == "account_expired"`
+                (HTTP 402) — see `CreditErrorDetails`. Other error codes
+                leave this `null`.
+
+    CreditErrorDetails:
+      type: object
+      description: |
+        Structured upgrade / wait info attached to HTTP 402 responses
+        (`credit_exhausted` or `account_expired`). AI clients should surface
+        both options to the user — wait until the next monthly reset
+        (`reset_at`) OR upgrade now via `upgrade_url` — rather than only
+        relaying the prose `message`.
+      required: [upgrade_url, current_plan, credits_remaining, credits_required]
+      properties:
+        upgrade_url:
+          type: string
+          format: uri
+          description: Pricing page where the user can upgrade their plan.
+          example: "https://widecast.ai/#pricing_plans"
+        reset_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            ISO-8601 UTC timestamp when the user's current period ends and the
+            quota refreshes. Sourced from `system_configs.valid_to` — same
+            field that drives the `account_expired` gate (interpretation flips
+            based on whether `valid_to` is past or future relative to now).
+            Present for `credit_exhausted`; absent for `account_expired`.
+          example: "2026-03-01T00:00:00Z"
+        expired_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            ISO-8601 UTC timestamp when the paid plan expired.
+            Present for `account_expired`; absent for `credit_exhausted`.
+          example: "2026-02-15T00:00:00Z"
+        renew_url:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            Where the user renews an expired plan. Present for
+            `account_expired`; identical to `upgrade_url` in practice.
+          example: "https://widecast.ai/#pricing_plans"
+        current_plan:
+          type: string
+          description: User's current plan tier name.
+          enum: [Free, Starter, Pro, Business, Enterprise]
+          example: "Free"
+        current_plan_quota:
+          type: integer
+          nullable: true
+          description: Monthly credit allocation on the user's current plan.
+          example: 50
+        credits_remaining:
+          type: integer
+          minimum: 0
+          description: Credits left in the user's current monthly allocation.
+          example: 0
+        credits_required:
+          type: integer
+          minimum: 0
+          description: Credits this operation would have consumed.
+          example: 5
+        next_plan:
+          type: string
+          nullable: true
+          description: |
+            Suggested next plan to upgrade to (one tier above current).
+            `null` when the user is already on the top tier (Enterprise).
+          example: "Starter"
+        next_plan_quota:
+          type: integer
+          nullable: true
+          description: Monthly credit allocation on the suggested next plan.
+          example: 500
 
   responses:
     BadRequest:
@@ -2054,7 +2138,11 @@ components:
     PaymentRequired:
       description: |
         The account cannot be charged for this operation — `error.code` is
-        `credit_exhausted` (out of credits) or `account_expired`.
+        `credit_exhausted` (out of credits) or `account_expired`. The
+        response carries an `error.details` object (see `CreditErrorDetails`)
+        with the upgrade URL, next monthly reset, and current/next plan info
+        so AI clients can format a "wait vs upgrade" choice for the user
+        instead of just relaying the prose message.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

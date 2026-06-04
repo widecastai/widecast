@@ -2984,8 +2984,100 @@
               },
               "request_id": {
                 "type": "string"
+              },
+              "details": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreditErrorDetails"
+                  }
+                ],
+                "description": "Code-specific structured data. Currently populated for\n`code == \"credit_exhausted\"` and `code == \"account_expired\"`\n(HTTP 402) — see `CreditErrorDetails`. Other error codes\nleave this `null`.\n"
               }
             }
+          }
+        }
+      },
+      "CreditErrorDetails": {
+        "type": "object",
+        "description": "Structured upgrade / wait info attached to HTTP 402 responses\n(`credit_exhausted` or `account_expired`). AI clients should surface\nboth options to the user — wait until the next monthly reset\n(`reset_at`) OR upgrade now via `upgrade_url` — rather than only\nrelaying the prose `message`.\n",
+        "required": [
+          "upgrade_url",
+          "current_plan",
+          "credits_remaining",
+          "credits_required"
+        ],
+        "properties": {
+          "upgrade_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Pricing page where the user can upgrade their plan.",
+            "example": "https://widecast.ai/#pricing_plans"
+          },
+          "reset_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "ISO-8601 UTC timestamp when the user's current period ends and the\nquota refreshes. Sourced from `system_configs.valid_to` — same\nfield that drives the `account_expired` gate (interpretation flips\nbased on whether `valid_to` is past or future relative to now).\nPresent for `credit_exhausted`; absent for `account_expired`.\n",
+            "example": "2026-03-01T00:00:00Z"
+          },
+          "expired_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "ISO-8601 UTC timestamp when the paid plan expired.\nPresent for `account_expired`; absent for `credit_exhausted`.\n",
+            "example": "2026-02-15T00:00:00Z"
+          },
+          "renew_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Where the user renews an expired plan. Present for\n`account_expired`; identical to `upgrade_url` in practice.\n",
+            "example": "https://widecast.ai/#pricing_plans"
+          },
+          "current_plan": {
+            "type": "string",
+            "description": "User's current plan tier name.",
+            "enum": [
+              "Free",
+              "Starter",
+              "Pro",
+              "Business",
+              "Enterprise"
+            ],
+            "example": "Free"
+          },
+          "current_plan_quota": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Monthly credit allocation on the user's current plan.",
+            "example": 50
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Credits left in the user's current monthly allocation.",
+            "example": 0
+          },
+          "credits_required": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Credits this operation would have consumed.",
+            "example": 5
+          },
+          "next_plan": {
+            "type": "string",
+            "nullable": true,
+            "description": "Suggested next plan to upgrade to (one tier above current).\n`null` when the user is already on the top tier (Enterprise).\n",
+            "example": "Starter"
+          },
+          "next_plan_quota": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Monthly credit allocation on the suggested next plan.",
+            "example": 500
           }
         }
       }
@@ -3022,7 +3114,7 @@
         }
       },
       "PaymentRequired": {
-        "description": "The account cannot be charged for this operation — `error.code` is\n`credit_exhausted` (out of credits) or `account_expired`.\n",
+        "description": "The account cannot be charged for this operation — `error.code` is\n`credit_exhausted` (out of credits) or `account_expired`. The\nresponse carries an `error.details` object (see `CreditErrorDetails`)\nwith the upgrade URL, next monthly reset, and current/next plan info\nso AI clients can format a \"wait vs upgrade\" choice for the user\ninstead of just relaying the prose message.\n",
         "content": {
           "application/json": {
             "schema": {

@@ -116,11 +116,13 @@ Pick by `source` + intent — this avoids slow renders and gives the user a revi
 
 ## Errors
 
-Envelope: `{ "error": { "type", "code", "message", "param?", "doc_url", "request_id" } }`. Surface `error.message` + `request_id` to users. Codes (v0.1.0, see OpenAPI for the live list):
+Envelope: `{ "error": { "type", "code", "message", "param?", "doc_url", "request_id", "details?" } }`. Surface `error.message` + `request_id` to users. Codes (v0.1.0, see OpenAPI for the live list):
 
 - Auth (401): `missing_api_key`, `invalid_api_key`.
 - Validation (400): `invalid_source`, `invalid_output_type`, `script_too_short`, `script_too_long`, `missing_idea_text`, `idea_too_short`, `missing_blog_text`, `blog_too_short`, `missing_video_url`, `missing_audio_url`, `missing_media_file`, `unsupported_media_url`, `media_too_long`, `file_too_large`, `invalid_language`, `invalid_video_length`, `invalid_research_enabled`.
 - Render/runtime: `account_expired`, `credit_exhausted`, `render_failed`, `unknown_error`, `scenes_not_ready`, `export_failed`.
+
+For HTTP 402 (`credit_exhausted` / `account_expired`), `error.details` is populated with structured upgrade/wait info — `{upgrade_url, reset_at (or expired_at), current_plan, credits_remaining, credits_required, current_plan_quota, next_plan, next_plan_quota}`. AIs should present BOTH options to the user: wait until `reset_at` for the monthly quota to refresh, OR upgrade to `next_plan` via `upgrade_url`.
 
 ## Full spec & try-it
 
