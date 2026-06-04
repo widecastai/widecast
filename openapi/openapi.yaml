@@ -1854,9 +1854,8 @@ components:
               * `create_video` `output_type=video` (full pipeline, ~15 min):
                 queued / research / script / segmentation / voice_gen /
                 image_gen / broll_fetch / composition / encoding / uploading
-              * `create_video` `output_type=scene` (stops at scene editor, ~12 min):
-                queued / research / script / segmentation / voice_gen /
-                image_gen / broll_fetch / composition
+              * `create_video` `output_type=scene` (stops at scene editor, ~3 min):
+                queued / research / script / segmentation / finalizing
               * `create_video` `output_type=text` (media-source Remake, ~3 min):
                 queued / ingest / transcribe / script
               * `export_video` (post-review MP4 render, ~3 min):

@@ -2771,7 +2771,7 @@
         "properties": {
           "stage": {
             "type": "string",
-            "description": "Machine-readable sub-stage key. Stable for code; not for display.\nThe set varies by what's running:\n  * `create_video` `output_type=video` (full pipeline, ~15 min):\n    queued / research / script / segmentation / voice_gen /\n    image_gen / broll_fetch / composition / encoding / uploading\n  * `create_video` `output_type=scene` (stops at scene editor, ~12 min):\n    queued / research / script / segmentation / voice_gen /\n    image_gen / broll_fetch / composition\n  * `create_video` `output_type=text` (media-source Remake, ~3 min):\n    queued / ingest / transcribe / script\n  * `export_video` (post-review MP4 render, ~3 min):\n    preparing / encoding_video / encoding_audio / muxing / uploading\n",
+            "description": "Machine-readable sub-stage key. Stable for code; not for display.\nThe set varies by what's running:\n  * `create_video` `output_type=video` (full pipeline, ~15 min):\n    queued / research / script / segmentation / voice_gen /\n    image_gen / broll_fetch / composition / encoding / uploading\n  * `create_video` `output_type=scene` (stops at scene editor, ~3 min):\n    queued / research / script / segmentation / finalizing\n  * `create_video` `output_type=text` (media-source Remake, ~3 min):\n    queued / ingest / transcribe / script\n  * `export_video` (post-review MP4 render, ~3 min):\n    preparing / encoding_video / encoding_audio / muxing / uploading\n",
             "example": "image_gen"
           },
           "label": {
