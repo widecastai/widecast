@@ -207,8 +207,10 @@ tracking pixel, hard-paywalled, a logo/ad, or the wrong subject — but try anot
 candidate from the SAME rung before descending.
 
 **R3 · Verify it's a DIRECT FILE link, and truly verified (not guessed).** The URL
-must end in an image/video extension (`.jpg/.png/.webp/.mp4/…`, a `?query` is fine) —
-an article page, a Google-Images result, or a "view image" page **won't work**.
+must end in an allowed extension — images **`.jpg`/`.jpeg`/`.png` only** (no
+`.gif`/`.webp`/`.svg`/`.bmp`/`.avif`/`.ico`/`.tiff` — those don't render reliably
+in our pipeline), videos `.mp4`/`.webm`/`.mov`/`.m4v`/`.avi`. A `?query` suffix
+is fine. An article page, a Google-Images result, or a "view image" page **won't work**.
 - **Verified ✓** — the URL came from a `web_fetch` body, a search result, the user's
   message, or a known-stable pattern (an `upload.wikimedia.org` file you saw listed).
 - **Fabrication ✗** — guessing a URL from a naming convention
@@ -273,7 +275,7 @@ auto-B-roll cover those** — do not fabricate to fill the gaps.
 Format rules:
 - **Prefer markdown image syntax** `![brief scene description](https://…)` — chat hosts (Claude / ChatGPT / Grok / Gemini) render the image inline so the user can SEE whether the picked visual fits the narration before approving. The alt text (your brief description) is also used by the scene matcher as the strongest possible anchor. WideCast strips the entire `![…](…)` construct from the spoken narration.
 - Raw URLs on their own line still work for backward compat (`Cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg That slow extraction…`). Mix forms freely.
-- **Direct file links only**: images `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`, video `.mp4/.webm/.mov/.m4v/.avi` (a `?query` suffix is fine).
+- **Direct file links only**: images `.jpg`/`.jpeg`/`.png` ONLY (no `.gif`/`.webp`/`.svg`/`.bmp`/`.avif`/`.ico`/`.tiff` — they don't render reliably in our pipeline; if you only have one of those, leave the beat for auto-B-roll), video `.mp4`/`.webm`/`.mov`/`.m4v`/`.avi` (a `?query` suffix is fine).
 - A YouTube/TikTok **page** link won't work as inline media. If the user wants a whole clip turned into a video, that's `source="video_url"`, not an inline URL in `source="text"`.
 - Place the URL next to descriptive words so it anchors to the right scene; you can use several; beats without a URL still get automatic B-roll.
 
@@ -333,9 +335,16 @@ reviewable scenes; the user renders the final MP4 from the WideCast UI when
 they're ready.
 
 Then poll `wait_for_video` (or poll `get_status` no faster than **every 5
-seconds**) until `completed`. **Show the result INLINE**: embed
-`embed_url` (a read-only player) in an HTML artifact `<iframe>` so the user can
-watch right in the chat, and offer `review_url` as the "open / edit in WideCast"
-link. If the host won't render the iframe, show `review_url` as a clickable button.
+seconds**) until `completed`. While waiting, the status response carries a
+`progress_hint.label` field — a human-readable English sub-stage with ETA
+(e.g. `"Generating scene visuals · ~7 min left"`). **Relay this to the user
+every poll**, translating to their language, so the 15-minute wait feels
+alive rather than stuck on "processing". The label is pseudo-progress
+(time-based, not real worker state) — don't gate logic on it, only display.
+
+**Show the result INLINE** when done: embed `embed_url` (a read-only
+player) in an HTML artifact `<iframe>` so the user can watch right in the
+chat, and offer `review_url` as the "open / edit in WideCast" link. If the
+host won't render the iframe, show `review_url` as a clickable button.
 
 Deep references: `hooks.md` (hook playbook + 12 templates), `ctas.md` (CTA banks).

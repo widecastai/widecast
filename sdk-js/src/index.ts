@@ -219,6 +219,22 @@ export interface StatusError {
   message: string;
 }
 
+/**
+ * Time-based pseudo-progress for UX during long renders. Present only while
+ * `status === "processing"`. Derived from elapsed time alone — `stage` may
+ * not match what the worker is actually doing internally. Display only.
+ *
+ * `label` is English with a baked ETA suffix
+ * (`"Generating scene visuals · ~7 min left"`). AIs are expected to translate
+ * to the user's language when relaying.
+ */
+export interface ProgressHint {
+  stage: string;
+  label: string;
+  elapsed_ms: number;
+  remaining_ms_estimate: number;
+}
+
 export interface VideoResource {
   object: "status";
   id: string;
@@ -227,6 +243,7 @@ export interface VideoResource {
   status: VideoStatus;
   stage: string;
   progress: number;
+  progress_hint?: ProgressHint | null;
   details: ProcessingDetails | null;
   result: StatusResult | null;
   error: StatusError | null;
@@ -385,6 +402,7 @@ export class Video implements VideoResource {
   status!: VideoStatus;
   stage!: string;
   progress!: number;
+  progress_hint?: ProgressHint | null;
   details!: ProcessingDetails | null;
   result!: StatusResult | null;
   error!: StatusError | null;
@@ -410,6 +428,10 @@ export class Video implements VideoResource {
    *  first response (pending / processing / completed) — the review page
    *  handles early arrival itself (spinner + in-page polling), so this is
    *  safe to share with the user before status='completed'. */
+  /** Time-based pseudo-progress label with baked ETA, e.g.
+   *  "Generating scene visuals · ~7 min left". Empty while not processing.
+   *  Display only — translate to the user's language when relaying. */
+  get progress_label(): string { return this.progress_hint?.label ?? ""; }
   get review_url(): string | null { return this.result?.review_url ?? null; }
   /** Direct MP4 URL — present only when status='completed' AND the video was
    *  created with output_type='video' (or exported via client.export_video). */

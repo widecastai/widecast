@@ -142,6 +142,7 @@ const TOOLS = [
     description:
       "Wait for a video to finish (or make progress). Polls status server-side for up to ~45s, then returns the latest state. " +
       "**Use this instead of calling widecast_get_status in a loop.** If the returned status isn't 'completed'/'failed', just call this tool again to keep waiting — the video is still rendering on WideCast's side. Returns id/status/progress, plus review_url/embed_url from the very first response (the review page handles early arrival itself); video_url appears when status='completed'. " +
+      "While processing, the response includes `progress_hint.label` — a human-readable sub-stage with ETA (e.g. \"Generating scene visuals · ~7 min left\"). Relay this to the user each poll, translating to their language, so the 15-min wait feels alive rather than stuck. The label is pseudo-progress (time-based, not real worker state) — don't gate logic on it, only display. " +
       "When status='completed', show the result INLINE for the user: put `embed_url` (a public, read-only player) into an HTML artifact `<iframe>` so they can watch without leaving the chat, and offer `review_url` as the 'Open / edit in WideCast' link. If the host won't render the iframe, show `review_url` as a clickable button instead. Before completion, you can also share `review_url` so the user can open the review page early and watch the spinner there.",
     inputSchema: {
       type: "object",

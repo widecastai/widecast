@@ -176,6 +176,26 @@ class Video(dict):
         return float(self.get("progress", 0.0) or 0.0)
 
     @property
+    def progress_hint(self) -> Optional[dict]:
+        """Time-based pseudo-progress for UX during long renders.
+
+        Returns ``{stage, label, elapsed_ms, remaining_ms_estimate}`` when the
+        server is computing it (only while ``status == "processing"``), else
+        ``None``. Display only — don't gate logic on ``stage`` since it's
+        derived from elapsed time, not real worker state.
+
+        The ``label`` is English with a baked ETA suffix
+        (``"Generating scene visuals · ~7 min left"``).
+        """
+        return self.get("progress_hint")
+
+    @property
+    def progress_label(self) -> str:
+        """Shortcut to ``progress_hint["label"]`` — empty string when unset."""
+        hint = self.progress_hint
+        return (hint or {}).get("label", "") or ""
+
+    @property
     def details(self) -> Optional[dict]:
         """Raw worker state — {step, status, notes, updated_at}. `None` during
         the pending race window. Note `details["status"]` is a free-form

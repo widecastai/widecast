@@ -790,6 +790,24 @@ def _copy_assets() -> None:
     # Inject Pygments CSS for code blocks
     (dst / "pygments.css").write_text(HtmlFormatter(style="default").get_style_defs(".highlight"),
                                        encoding="utf-8")
+    # Generate widecast-config.js — single source of truth for the API base URL.
+    # Every served page loads <script src="assets/widecast-config.js"> instead
+    # of inline-setting window.WIDECAST_API_BASE_URL. To change at runtime,
+    # edit this file on the deployed server (no rebuild needed). To change at
+    # build time, set WIDECAST_API_BASE_URL env and re-run this script.
+    (dst / "widecast-config.js").write_text(
+        f"""// WideCast API base URL — single source of truth.
+//
+// All client-side pages (docs.html, playground.html, endpoints/*.html,
+// webhook-test.html) load this file via <script src="assets/widecast-config.js">.
+// Edit the URL here to redirect every page at once — no rebuild required.
+//
+// At build time, docs/build.py regenerates this file from the
+// WIDECAST_API_BASE_URL env var (defaults to https://widecast.ai/app/dashboard2).
+window.WIDECAST_API_BASE_URL = {json.dumps(API_BASE_URL)};
+""",
+        encoding="utf-8",
+    )
     print(f"  assets → {dst.relative_to(SITE_ROOT)}/")
 
 

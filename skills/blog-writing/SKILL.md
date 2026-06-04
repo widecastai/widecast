@@ -143,8 +143,9 @@ see whether the image fits before approving the draft. The alt text doubles as
 the strongest possible scene anchor. Raw URLs still work for backward compat.
 For a **real/current-event** article, research with web search and **harvest
 STABLE, DIRECT image URLs** (Wikimedia "Original file", official/agency pages,
-reputable CDNs) that end in `.jpg/.png/.webp/…` (a `?query` is fine). **Verify
-each is a direct file link, not a page URL, and NEVER fabricate one** — a dead
+reputable CDNs) that end in **`.jpg`/`.jpeg`/`.png` ONLY** (no `.gif`/`.webp`/`.svg`/`.bmp`/`.avif`/`.ico`/`.tiff`
+— they don't render reliably in our pipeline; a `?query` suffix is fine).
+**Verify each is a direct file link, not a page URL, and NEVER fabricate one** — a dead
 link just drops the image. No suitable real URL → leave it; WideCast still
 illustrates the rest. (Same discipline as the video-script Skill's *Research
 first — harvest real visuals* image-sourcing ladder: Wikimedia → the subject's

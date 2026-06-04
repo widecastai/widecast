@@ -1739,6 +1739,18 @@ components:
               * 0.30 — topic row exists, no rendered script yet (worker starting)
               * 0.80 — script with segments present, finalisation pending
               * 1.00 — completed
+        progress_hint:
+          oneOf:
+            - { type: "null" }
+            - $ref: '#/components/schemas/ProgressHint'
+          description: |
+            UX-friendly sub-stage label derived from elapsed time (NOT from real
+            worker state). Present only while `status == "processing"`. Polling
+            AIs should relay `progress_hint.label` to the user every poll to
+            keep the wait feeling alive. The label includes an ETA suffix in
+            English (e.g. "Generating scene visuals · ~7 min left") — the AI is
+            expected to translate to the user's language. Pseudo-progress: the
+            stage may not exactly match what the worker is doing internally.
         details:
           oneOf:
             - { type: "null" }
@@ -1818,6 +1830,56 @@ components:
             Direct URL to the rendered MP4. Populated only for videos created
             with `output_type: "video"` or exported via `POST /v1/export_video`.
           example: https://widecast.ai/exports/huubinhnguyen/widecast7c0d4f8a9b1e2d3f/final.mp4
+
+    ProgressHint:
+      type: object
+      description: |
+        Time-based pseudo-progress for UX during the 15-min create_video render
+        (and ~3-min export_video encode). Derived in the server from elapsed
+        time since the id was issued — NOT from real worker state — so the
+        stage label may not exactly match what the worker is doing internally.
+        Good enough for "show the user something" UX; not for gating logic.
+
+        Polling AIs should relay `label` to the user verbatim (translating to
+        the user's language as needed). `remaining_ms_estimate` is provided
+        separately for clients that want to format ETA differently than the
+        baked English "· ~N min left" suffix in `label`.
+      required: [stage, label, elapsed_ms, remaining_ms_estimate]
+      properties:
+        stage:
+          type: string
+          description: |
+            Machine-readable sub-stage key. Stable for code; not for display.
+            The set varies by what's running:
+              * `create_video` `output_type=video` (full pipeline, ~15 min):
+                queued / research / script / segmentation / voice_gen /
+                image_gen / broll_fetch / composition / encoding / uploading
+              * `create_video` `output_type=scene` (stops at scene editor, ~12 min):
+                queued / research / script / segmentation / voice_gen /
+                image_gen / broll_fetch / composition
+              * `create_video` `output_type=text` (media-source Remake, ~3 min):
+                queued / ingest / transcribe / script
+              * `export_video` (post-review MP4 render, ~3 min):
+                preparing / encoding_video / encoding_audio / muxing / uploading
+          example: image_gen
+        label:
+          type: string
+          description: |
+            Human-readable English label with ETA suffix appended. Format:
+            `"<Sentence> · ~N min left"` (or `· Almost done` near the end).
+          example: "Generating scene visuals · ~7 min left"
+        elapsed_ms:
+          type: integer
+          minimum: 0
+          description: Milliseconds since the id was issued.
+          example: 270000
+        remaining_ms_estimate:
+          type: integer
+          minimum: 0
+          description: |
+            Estimated milliseconds until completion (best-effort, ≥15 sec floor).
+            Drifts off if the worker is faster or slower than the typical timing.
+          example: 420000
 
     ProcessingDetails:
       type: object

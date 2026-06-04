@@ -2709,6 +2709,17 @@
             "maximum": 1.0,
             "description": "Honest progress estimate (not step-based, since the worker stays at\nstep=0 for most of the run):\n  * 0.05 — id issued, no topic row yet (pending / race)\n  * 0.30 — topic row exists, no rendered script yet (worker starting)\n  * 0.80 — script with segments present, finalisation pending\n  * 1.00 — completed\n"
           },
+          "progress_hint": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProgressHint"
+              }
+            ],
+            "description": "UX-friendly sub-stage label derived from elapsed time (NOT from real\nworker state). Present only while `status == \"processing\"`. Polling\nAIs should relay `progress_hint.label` to the user every poll to\nkeep the wait feeling alive. The label includes an ETA suffix in\nEnglish (e.g. \"Generating scene visuals · ~7 min left\") — the AI is\nexpected to translate to the user's language. Pseudo-progress: the\nstage may not exactly match what the worker is doing internally.\n"
+          },
           "details": {
             "oneOf": [
               {
@@ -2796,6 +2807,40 @@
             "format": "uri",
             "description": "Direct URL to the rendered MP4. Populated only for videos created\nwith `output_type: \"video\"` or exported via `POST /v1/export_video`.\n",
             "example": "https://widecast.ai/exports/huubinhnguyen/widecast7c0d4f8a9b1e2d3f/final.mp4"
+          }
+        }
+      },
+      "ProgressHint": {
+        "type": "object",
+        "description": "Time-based pseudo-progress for UX during the 15-min create_video render\n(and ~3-min export_video encode). Derived in the server from elapsed\ntime since the id was issued — NOT from real worker state — so the\nstage label may not exactly match what the worker is doing internally.\nGood enough for \"show the user something\" UX; not for gating logic.\n\nPolling AIs should relay `label` to the user verbatim (translating to\nthe user's language as needed). `remaining_ms_estimate` is provided\nseparately for clients that want to format ETA differently than the\nbaked English \"· ~N min left\" suffix in `label`.\n",
+        "required": [
+          "stage",
+          "label",
+          "elapsed_ms",
+          "remaining_ms_estimate"
+        ],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "description": "Machine-readable sub-stage key. Stable for code; not for display.\nThe set varies by what's running:\n  * `create_video` `output_type=video` (full pipeline, ~15 min):\n    queued / research / script / segmentation / voice_gen /\n    image_gen / broll_fetch / composition / encoding / uploading\n  * `create_video` `output_type=scene` (stops at scene editor, ~12 min):\n    queued / research / script / segmentation / voice_gen /\n    image_gen / broll_fetch / composition\n  * `create_video` `output_type=text` (media-source Remake, ~3 min):\n    queued / ingest / transcribe / script\n  * `export_video` (post-review MP4 render, ~3 min):\n    preparing / encoding_video / encoding_audio / muxing / uploading\n",
+            "example": "image_gen"
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable English label with ETA suffix appended. Format:\n`\"<Sentence> · ~N min left\"` (or `· Almost done` near the end).\n",
+            "example": "Generating scene visuals · ~7 min left"
+          },
+          "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Milliseconds since the id was issued.",
+            "example": 270000
+          },
+          "remaining_ms_estimate": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Estimated milliseconds until completion (best-effort, ≥15 sec floor).\nDrifts off if the worker is faster or slower than the typical timing.\n",
+            "example": 420000
           }
         }
       },

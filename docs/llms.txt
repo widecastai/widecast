@@ -48,7 +48,7 @@ If you cannot read this file's spec in full, fetch `/openapi.json` and generate 
 ## Endpoints
 
 - POST `/v1/create_video` — start a video. Body fields below. → `widecast*` id + `status:"processing"` + `result.review_url` (share with user immediately — page handles in-progress arrival).
-- GET `/v1/status/{id}` — universal poll (key-free). → `status` + `stage` + `progress` + `result.review_url` (present from every state) + `result.video_url` (set on completion when output_type=video).
+- GET `/v1/status/{id}` — universal poll (key-free). → `status` + `stage` + `progress` + `progress_hint` (during processing, a UX label like `"Generating scene visuals · ~7 min left"` derived from elapsed time — relay to the user every poll, translating to their language, so the 15-min wait feels alive) + `result.review_url` (present from every state) + `result.video_url` (set on completion when output_type=video).
 - POST `/v1/export_video` — `{"id":"widecast..."}`. Render the final MP4 for a `scene` video after review. Idempotent (calling twice is a no-op).
 - POST `/v1/create_content` — written content: `{content, content_type, language}`. `content` = a URL/idea/text; `content_type` = `blog`|`facebook`|`x`|`linkedin` (default `blog`). Async → returns `result.review_url` (content viewer) in the create response itself, share immediately; poll `/v1/status` for completion. Charges credits.
 - POST `/v1/enhance_script` — improve a DRAFT script: `{script_text, language?, intervention_level?}`. `intervention_level` 0/1/2 (default 1). Async → returns `result.review_url` (Script Editor) in the create response itself, share immediately; poll `/v1/status` for completion. Charges credits.
