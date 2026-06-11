@@ -2709,6 +2709,12 @@
             "maximum": 1.0,
             "description": "Honest progress estimate (not step-based, since the worker stays at\nstep=0 for most of the run):\n  * 0.05 — id issued, no topic row yet (pending / race)\n  * 0.30 — topic row exists, no rendered script yet (worker starting)\n  * 0.80 — script with segments present, finalisation pending\n  * 1.00 — completed\n"
           },
+          "skill_hint": {
+            "type": "string",
+            "nullable": true,
+            "description": "Informational nudge present on the `POST /v1/create_video` response\n(NOT on `/v1/status` polls) when the supplied `script_text` looks\nlike the caller skipped `widecast_get_writing_skill` — e.g. no\ninline `![alt](url)` markdown and no raw image/video URLs anywhere\nin the script. The render still proceeds (auto-B-roll fills the\ngap); this just teaches the AI to fetch the writing method next\ntime. The method is vendor-neutral — applies to any LLM.\n",
+            "example": "script_text contains no inline media URLs. WideCast's writing method recommends …"
+          },
           "progress_hint": {
             "oneOf": [
               {

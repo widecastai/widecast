@@ -35,7 +35,12 @@
        https://widecast.ai/app/dashboard2). Edit the config.js file to change
        at runtime without rebuilding. -->
   <script src="../assets/widecast-config.js"></script>
-    <link rel="icon" href="https://widecast.ai/statics/favicon.ico" type="image/x-icon">
+    <!-- Favicon — root /favicon.ico is the canonical fetch path used by
+         browsers AND by MCP clients (Claude Desktop / Claude.ai). High-res
+         PNG variant is offered as a fallback for retina + share previews. -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="256x256" href="/statics/widecast_spinner_white.png">
+    <link rel="apple-touch-icon" sizes="256x256" href="/statics/widecast_spinner_white.png">
 </head>
 <body class="endpoint-page">
   <header class="wc-nav">
@@ -44,6 +49,7 @@
       <a href="docs.html">Docs</a>
       <a href="playground.html">Playground</a>
       <a href="endpoints/create-video.html">API</a>
+      <a href="https://github.com/widecastai/widecast/discussions" target="_blank" rel="noopener">Support</a>
       <a href="https://github.com/widecast" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>
@@ -146,7 +152,7 @@
   </main>
 
   <footer class="wc-footer">
-    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="llms.txt">llms.txt</a></p>
+    <p>WideCast.ai · Public API v0.1.0 · <a href="https://github.com/widecast">GitHub</a> · <a href="https://github.com/widecastai/widecast/discussions" target="_blank" rel="noopener">Support</a> · <a href="llms.txt">llms.txt</a></p>
   </footer>
 
   <script src="assets/playground.js" defer></script>

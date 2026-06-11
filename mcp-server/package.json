@@ -1,6 +1,6 @@
 {
   "name": "@widecast/mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol (MCP) server for WideCast.ai — exposes WideCast tools to Claude Desktop, Claude Code, Cursor, Windsurf, OpenHands, and any other MCP-compatible host.",
   "keywords": [
     "mcp",

@@ -28,7 +28,11 @@
   .note{font-size:13px;color:var(--mut);border-left:3px solid var(--violet);padding:4px 0 4px 12px;margin:12px 0}
   .warn{border-left-color:#f59e0b;color:#fcd9a0}
 </style>
-    <link rel="icon" href="https://widecast.ai/statics/favicon.ico" type="image/x-icon">
+    <!-- Favicon — root /favicon.ico is the canonical fetch path used by
+         browsers AND by MCP clients (Claude Desktop / Claude.ai). -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="256x256" href="/statics/widecast_spinner_white.png">
+    <link rel="apple-touch-icon" sizes="256x256" href="/statics/widecast_spinner_white.png">
 </head>
 <body>
 
@@ -107,6 +111,7 @@
     <a href="gemini.html" class="active">Gemini &amp; Antigravity</a>
     <a href="grok.html">Grok</a>
     <a href="playground.html">Playground</a>
+    <a href="https://github.com/widecastai/widecast/discussions" target="_blank" rel="noopener">Support</a>
     <a href="docs.html">Docs</a>
   </nav>
 

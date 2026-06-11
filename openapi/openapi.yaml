@@ -1739,6 +1739,18 @@ components:
               * 0.30 — topic row exists, no rendered script yet (worker starting)
               * 0.80 — script with segments present, finalisation pending
               * 1.00 — completed
+        skill_hint:
+          type: string
+          nullable: true
+          description: |
+            Informational nudge present on the `POST /v1/create_video` response
+            (NOT on `/v1/status` polls) when the supplied `script_text` looks
+            like the caller skipped `widecast_get_writing_skill` — e.g. no
+            inline `![alt](url)` markdown and no raw image/video URLs anywhere
+            in the script. The render still proceeds (auto-B-roll fills the
+            gap); this just teaches the AI to fetch the writing method next
+            time. The method is vendor-neutral — applies to any LLM.
+          example: "script_text contains no inline media URLs. WideCast's writing method recommends …"
         progress_hint:
           oneOf:
             - { type: "null" }

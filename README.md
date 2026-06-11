@@ -20,6 +20,134 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 
 ---
 
+## 🎬 See it in action
+
+**From faceless AI to fully authentic — same prompt, four modes.** Each clip below was created from a single line of natural-language prompt typed into an AI chat.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <video src="https://widecast.ai/landing/easement_small.mp4"
+             poster="https://widecast.ai/landing/easement_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>👤 <b>Real face</b> · 🎙️ <b>Real voice</b></sub><br>
+      <b>What is an easement?</b>
+    </td>
+    <td align="center" width="50%">
+      <video src="https://widecast.ai/landing/crashscene_small.mp4"
+             poster="https://widecast.ai/landing/crashscene_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>🤖 <b>AI face</b> · 🤖 <b>AI voice</b></sub><br>
+      <b>Eight things to do at the crash scene</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://widecast.ai/landing/roof_small.mp4"
+             poster="https://widecast.ai/landing/roof_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>🎬 <b>Faceless</b> · 🎙️ <b>Real voice</b></sub><br>
+      <b>Top 5 things to ask at an open house</b>
+    </td>
+    <td align="center">
+      <video src="https://widecast.ai/landing/ideablognews_small.mp4"
+             poster="https://widecast.ai/landing/ideablognews_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>🎬 <b>Faceless</b> · 🤖 <b>AI voice</b></sub><br>
+      <b>Jensen Huang's quote at CES 2026</b>
+    </td>
+  </tr>
+</table>
+
+The same engine, picking real-world topics across categories — every one driven by an AI agent calling WideCast:
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <video src="https://widecast.ai/landing/8_firsttime_homebuyer.mp4"
+             poster="https://widecast.ai/landing/8_firsttime_homebuyer_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Real estate</sub><br>
+      <b>8 things first-time home buyers need to know</b>
+    </td>
+    <td align="center" width="50%">
+      <video src="https://widecast.ai/landing/scam_text.mp4"
+             poster="https://widecast.ai/landing/scam_text_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Scam awareness</sub><br>
+      <b>Scam texts: 5 signs not to click</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://widecast.ai/landing/laidoff.mp4"
+             poster="https://widecast.ai/landing/laidoff_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Career</sub><br>
+      <b>Laid off? 7 things to do in the first 48 hours</b>
+    </td>
+    <td align="center">
+      <video src="https://widecast.ai/landing/ask_doctor.mp4"
+             poster="https://widecast.ai/landing/ask_doctor_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Health</sub><br>
+      <b>7 questions to ask your doctor before you leave</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://widecast.ai/landing/buy_used_car.mp4"
+             poster="https://widecast.ai/landing/buy_used_car_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Automotive</sub><br>
+      <b>Buying a used car: 6 red flags in 5 minutes</b>
+    </td>
+    <td align="center">
+      <video src="https://widecast.ai/landing/AI_halu.mp4"
+             poster="https://widecast.ai/landing/AI_halu_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>AI literacy</sub><br>
+      <b>5 ways to fact-check ChatGPT and Claude</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://widecast.ai/landing/renting_buying_home.mp4"
+             poster="https://widecast.ai/landing/renting_buying_home_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Real estate</sub><br>
+      <b>Renting or buying: 7 things to check before deposit</b>
+    </td>
+    <td align="center">
+      <video src="https://widecast.ai/landing/sunscreen.mp4"
+             poster="https://widecast.ai/landing/sunscreen_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Skincare</sub><br>
+      <b>Sunscreen: 6 mistakes that still leave dark spots</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://widecast.ai/landing/creditcard_minimum.mp4"
+             poster="https://widecast.ai/landing/creditcard_minimum_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Personal finance</sub><br>
+      <b>Credit card debt: why minimum payments trap you</b>
+    </td>
+    <td align="center">
+      <video src="https://widecast.ai/landing/insurance_fee_up.mp4"
+             poster="https://widecast.ai/landing/insurance_fee_up_thumb.jpg"
+             controls muted playsinline width="100%"></video>
+      <br><sub>Insurance</sub><br>
+      <b>Car insurance going up? 6 factors that could be the cause</b>
+    </td>
+  </tr>
+</table>
+
+→ See the full gallery + live playground at **[widecast.ai](https://widecast.ai/#see-it-in-action)**.
+
+---
+
 ## ✨ Install in one prompt
 
 Tell your AI chat host: **`install https://widecast.ai`** — Claude, ChatGPT, Grok, or Gemini will fetch [`install.json`](install.json), detect itself, and walk you through the recipe.
