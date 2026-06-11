@@ -27,24 +27,24 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/easement_thumb.jpg" width="100%" alt="What is an easement?"></a>
+      <video src="https://github.com/user-attachments/assets/426abb5d-fb49-4688-a9d9-8aeea3177c9f" poster="https://widecast.ai/landing/easement_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>👤 <b>Real face</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>What is an easement?</b>
     </td>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/crashscene_thumb.jpg" width="100%" alt="Eight things to do at the crash scene"></a>
+      <video src="https://github.com/user-attachments/assets/a37f19c3-8761-401a-ac66-65a664cf39e8" poster="https://widecast.ai/landing/crashscene_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🤖 <b>AI face</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Eight things to do at the crash scene</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/roof_thumb.jpg" width="100%" alt="Top 5 things to ask at an open house"></a>
+      <video src="https://github.com/user-attachments/assets/1bef334a-0c2f-4145-b834-f67986e434b4" poster="https://widecast.ai/landing/roof_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🎬 <b>Faceless</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>Top 5 things to ask at an open house</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/ideablognews_thumb.jpg" width="100%" alt="Jensen Huang's quote at CES 2026"></a>
+      <video src="https://github.com/user-attachments/assets/8e6657f0-d3f1-4a2f-9cdd-a9ec5773ea13" poster="https://widecast.ai/landing/ideablognews_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🎬 <b>Faceless</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Jensen Huang's quote at CES 2026</b>
     </td>
