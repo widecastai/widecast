@@ -27,24 +27,24 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/landing/easement_small.mp4" target="_blank"><img src="https://widecast.ai/landing/easement_thumb.jpg" width="100%" alt="Click to play"></a>
+      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/easement_thumb.jpg" width="100%" alt="What is an easement?"></a>
       <br><sub>👤 <b>Real face</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>What is an easement?</b>
     </td>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/landing/crashscene_small.mp4" target="_blank"><img src="https://widecast.ai/landing/crashscene_thumb.jpg" width="100%" alt="Click to play"></a>
+      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/crashscene_thumb.jpg" width="100%" alt="Eight things to do at the crash scene"></a>
       <br><sub>🤖 <b>AI face</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Eight things to do at the crash scene</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/landing/roof_small.mp4" target="_blank"><img src="https://widecast.ai/landing/roof_thumb.jpg" width="100%" alt="Click to play"></a>
+      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/roof_thumb.jpg" width="100%" alt="Top 5 things to ask at an open house"></a>
       <br><sub>🎬 <b>Faceless</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>Top 5 things to ask at an open house</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/landing/ideablognews_small.mp4" target="_blank"><img src="https://widecast.ai/landing/ideablognews_thumb.jpg" width="100%" alt="Click to play"></a>
+      <a href="https://widecast.ai/#see-it-in-action" target="_blank"><img src="https://widecast.ai/landing/ideablognews_thumb.jpg" width="100%" alt="Jensen Huang's quote at CES 2026"></a>
       <br><sub>🎬 <b>Faceless</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Jensen Huang's quote at CES 2026</b>
     </td>
