@@ -73,7 +73,7 @@ The same engine, picking real-world topics across categories — every one drive
       <b>Laid off? 7 things to do in the first 48 hours</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/4bcf9472-ade6-4fe6-b74b-2ca7243bd98b" poster="https://widecast.ai/landing/ask_doctor_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/79dd58f8-df9f-4597-8473-ef42db7b4530" poster="https://widecast.ai/landing/ask_doctor_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Health</sub><br>
       <b>7 questions to ask your doctor before you leave</b>
     </td>
