@@ -1,6 +1,6 @@
 {
   "name": "@widecast/sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "WideCast.ai TypeScript/JavaScript SDK — generate videos from scripts, ideas, audio, or existing videos.",
   "keywords": [
     "widecast",
