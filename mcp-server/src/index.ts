@@ -108,6 +108,10 @@ const TOOLS = [
     name: "widecast_create_video",
     title: "WideCast: Create video",
     description:
+      "REQUIRED CONFIRMATION GATES — the tool enforces these and will reject calls that skip them:\n" +
+      "• `script_approved` MUST be true. Set ONLY after you've shown the user your full hand-off (Research / Visual assets / Script with inline ![alt](url) / Backup pool / Production sections) AND they edited it OR answered the production question. A bare 'make a video about X' from the user is NOT approval — that's the request, not the approval. Always show the script first, then mark approved.\n" +
+      "• `production_mode` MUST be 'faceless' or 'normal' for source=text/idea/blog, matching the user's EXPLICIT answer in THIS conversation round. Do NOT infer from a video earlier in the same chat — users change their mind. Ignored for source=video_url/audio_url (those sources don't have the faceless mode).\n" +
+      "Setting these flags blindly to bypass the gate defeats the purpose. The skill explains the dialog flow; the flags enforce that it actually happened.\n" +
       "REQUIRED PREREQUISITE for source='text': call widecast_get_writing_skill(format='video') FIRST and follow the returned 7-step method. The method is universal — it applies to Claude, GPT, Gemini, Grok, Hermes, Llama, or any other LLM, not just one host. Scripts written without it consistently produce weaker videos (missing inline media, weak hooks, no research grounding). Skip only if the user is providing a pre-written script verbatim.\n" +
       "SOURCE ROUTING (IMPORTANT — pick honestly):\n" +
       "• If your runtime CAN do real research — web search, fetch live pages, harvest verifiable image URLs — use source='text' and follow the writing method.\n" +
@@ -125,8 +129,11 @@ const TOOLS = [
       "Returns a `widecast*` id + status='processing' + `review_url` from the first response (the scene editor / script editor page handles early arrival itself — spinner + in-page polling — so you can share the link before completion). Then call widecast_wait_for_video (don't busy-loop) for the final state.",
     inputSchema: {
       type: "object",
+      required: ["source", "script_approved"],
       properties: {
         source: { type: "string", enum: ["text", "idea", "blog", "video_url", "audio_url"], default: "text", description: "Which input flow." },
+        script_approved: { type: "boolean", description: "REQUIRED. Must be true. Set ONLY after you've shown the user the full hand-off (Research / Visual assets / Script / Backup pool / Production sections) AND they edited or answered the production question. A bare 'make a video about X' from the user is the REQUEST, not the approval — show the plan first. The tool rejects script_approved=false or missing." },
+        production_mode: { type: "string", enum: ["faceless", "normal"], description: "Required for source=text/idea/blog. The user's EXPLICIT answer in THIS conversation round to 'faceless or normal?'. Do NOT infer from a video earlier in the chat — ask each time. The MCP wrapper maps this to the legacy `faceless` boolean on the REST API. Ignored for source=video_url/audio_url." },
         script_text: { type: "string", description: "Required when source='text'. 80–500 words, used verbatim. You may embed inline media right after the sentence each should illustrate, in either form: (a) markdown image syntax `![brief description](https://cdn.acme.com/photo.jpg)` — RECOMMENDED for AI-chat callers because the chat host renders the picture inline so the end-user can visually approve each scene; or (b) a raw URL on its own line (backward-compat). WideCast strips both forms from the narration and uses them as that scene's visual instead of stock B-roll. Direct file links only (.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg or .mp4/.webm/.mov/.m4v/.avi); page links like youtube.com/watch are NOT inlined (use source='video_url' for a whole clip)." },
         idea_text: { type: "string", description: "Required when source='idea'. 5–1000 words." },
         blog_text: { type: "string", description: "Required when source='blog'. 30–3000 words." },
@@ -135,7 +142,6 @@ const TOOLS = [
         language: { type: "string", enum: ["English", "Vietnamese"], description: "Narration language (idea/blog)." },
         video_length: { type: "string", enum: ["short", "normal"], description: "short ≈90s, normal ≈3 min (idea/blog)." },
         output_type: { type: "string", enum: ["text", "scene"], default: "scene", description: "Reviewable stage only: 'text' for idea/blog (editable script), 'scene' otherwise (scenes to review). The final MP4 is rendered by the user from the WideCast UI." },
-        faceless: { type: "boolean", default: false, description: "Faceless video — every scene is B-roll (stock / AI image) with NO narrator A-roll anywhere. Default false (scenes mix narrator A-roll + B-roll). Set true ONLY after asking the user and they chose faceless. Valid ONLY for source text/idea/blog with scenes (output_type='scene'); the server rejects it (invalid_faceless) for video_url/audio_url or output_type='text'." },
         media_pool: { type: "array", items: { type: "string" }, description: "Extra direct image/video URLs you couldn't confidently place inline in script_text. WideCast downloads each (+thumbnail) and adds them to the scene editor's media library so the user can drop any into any scene. Inline the URLs you're sure about; put the maybes/extras here. Direct file links only, never fabricated." },
         callback_url: { type: "string", description: "Optional HTTPS webhook." },
         metadata: { type: "object", description: "Optional key-value pairs echoed back on status." },
@@ -178,14 +184,16 @@ const TOOLS = [
     name: "widecast_export_video",
     title: "WideCast: Render final MP4",
     description:
-      "Render the final MP4 for a 'scene' video after the user has reviewed it (the final render takes 10+ minutes). " +
-      "Confirm with the user before calling — even if they already asked for the final video, ask once to confirm (don't infer it); never call this off your own guess. " +
-      "Idempotent. Then call widecast_wait_for_video until status='completed' with video_url.",
+      "Render the final MP4 for a 'scene' video after the user has reviewed it (the final render takes 10+ minutes and charges credit).\n" +
+      "REQUIRED CONFIRMATION GATE — the tool enforces this and will reject calls that skip it:\n" +
+      "• `user_confirmed_render` MUST be true. Set ONLY after asking the user EXPLICITLY in THIS message round: 'Render the final video now, or do you want to review the scenes first?' and getting an explicit yes. Do NOT infer from earlier in the conversation, do NOT assume 'the user wanted the final video originally', do NOT call this off your own guess. Each export is a new decision — ask each time.\n" +
+      "Idempotent on the REST side. Then call widecast_wait_for_video until status='completed' with video_url.",
     inputSchema: {
       type: "object",
-      required: ["video_id"],
+      required: ["video_id", "user_confirmed_render"],
       properties: {
         video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id to render." },
+        user_confirmed_render: { type: "boolean", description: "REQUIRED. Must be true. Set ONLY after the user EXPLICITLY confirmed they want the final MP4 rendered (~10+ min, charges credit) in THIS message round. The tool rejects user_confirmed_render=false or missing." },
       },
     },
   },
@@ -411,10 +419,49 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
     if (name === "widecast_create_video") {
+      // ── Confirmation gates — enforced at MCP layer, NOT at REST API ────
+      // SDK / curl / Postman callers go directly to /v1/create_video and
+      // are unaffected. AI agents calling through MCP must prove the
+      // dialog flow happened. See SKILL.md "Hand-off to WideCast" §C.
+      if (args.script_approved !== true) {
+        return {
+          content: [{ type: "text", text:
+            "ERROR: script_approved must be true. This tool requires you to show the user " +
+            "the full hand-off (Research / Visual assets / Script with inline ![](url) / " +
+            "Backup pool / Production sections) and get their explicit approval BEFORE " +
+            "calling. A bare 'make a video about X' from the user is the REQUEST, not " +
+            "the approval. Go back, show the script and ask the production question " +
+            "(faceless or normal?), wait for the user's response, then re-call this tool " +
+            "with script_approved=true AND production_mode='faceless'|'normal' set to " +
+            "their answer. Do NOT bypass this by setting the flags blindly — the goal " +
+            "is the dialog flow happens, not the flag values."
+          }],
+          isError: true,
+        };
+      }
+      const src = (args.source as string | undefined) ?? "text";
+      const needsMode = src === "text" || src === "idea" || src === "blog";
+      const mode = args.production_mode as string | undefined;
+      if (needsMode && mode !== "faceless" && mode !== "normal") {
+        return {
+          content: [{ type: "text", text:
+            "ERROR: production_mode is required for source='" + src + "' and must be " +
+            "'faceless' or 'normal'. Ask the user EXPLICITLY in their language: " +
+            "'A normal video (with a narrator), or a faceless one (B-roll only, no " +
+            "narrator)?' — and pass their answer here. Do NOT infer from a previous " +
+            "video in the same conversation; users change their mind, ask each time."
+          }],
+          isError: true,
+        };
+      }
+      // ──────────────────────────────────────────────────────────────────
       const body: Record<string, unknown> = {};
-      for (const k of ["source", "script_text", "idea_text", "blog_text", "video_url", "audio_url", "language", "video_length", "output_type", "faceless", "media_pool", "callback_url", "metadata"]) {
+      for (const k of ["source", "script_text", "idea_text", "blog_text", "video_url", "audio_url", "language", "video_length", "output_type", "media_pool", "callback_url", "metadata"]) {
         if (args[k] !== undefined) body[k] = args[k];
       }
+      // Map production_mode → faceless boolean for the REST API (which keeps
+      // its existing field name for SDK / HTTP backward compatibility).
+      if (needsMode) body.faceless = (mode === "faceless");
       // MCP never produces the final MP4 — it stops at reviewable scenes and
       // the user renders from the WideCast UI. The enum already excludes
       // "video"; downgrade any stray value as a belt-and-braces guard.
@@ -474,6 +521,20 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       return { content: [{ type: "text", text: JSON.stringify(summarize(data), null, 2) }] };
     }
     if (name === "widecast_export_video") {
+      // Confirmation gate at MCP layer — REST stays unchanged for SDK / HTTP.
+      if (args.user_confirmed_render !== true) {
+        return {
+          content: [{ type: "text", text:
+            "ERROR: user_confirmed_render must be true. The final MP4 render takes 10+ " +
+            "minutes and charges credit — too costly to call off your own guess. Ask " +
+            "the user EXPLICITLY in THIS message round: 'Render the final video now, " +
+            "or do you want to review the scenes first?' and pass user_confirmed_render=true " +
+            "ONLY after they explicitly say yes. Do NOT infer from earlier in the chat — " +
+            "even if they wanted the final video originally, ask again each time."
+          }],
+          isError: true,
+        };
+      }
       const data = await wc("POST", "/v1/export_video", { id: String(args.video_id) });
       return { content: [{ type: "text", text: JSON.stringify(summarize(data), null, 2) }] };
     }

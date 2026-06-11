@@ -72,7 +72,7 @@
         ],
         "operationId": "createVideo",
         "summary": "⚠ LAST STEP. Requires getWritingSkill(format=video) 5-step checklist: research → write → inline URLs → hand script + ask the faceless question → user answered. Then create the video. Don't ask production questions here — they were answered at step 4/5.",
-        "description": "Create a video from either a plain-text script (`source: \"text\"`) or\na short idea description (`source: \"idea\"`). The server wraps the\nsame background workers that power the Script Editor + Idea-to-Video\nflows in the Gubo UI.\n\n- Returns immediately with `status: \"processing\"` (HTTP 202). Poll\n  `GET /v1/status/{id}` until terminal.\n- If `wait_for_render: true`, blocks up to **60 seconds**. If render\n  completes within the window, returns `status: \"completed\"` (HTTP 200).\n  Otherwise returns the in-flight state and the client polls.\n\n### source\n\n- `\"text\"` (default — backward-compat): provide `script_text`\n  (80-500 words, used VERBATIM by the narrator). Worker:\n  `request_video_script_from_script`.\n- `\"idea\"`: provide `idea_text` (5-1000 words; >1000 auto-truncated)\n  plus optional `language` / `video_length` / `research_enabled`.\n  Worker chain: `ai_enhance_script` (idea → narration) →\n  `request_video_script_from_script` (narration → scenes).\n\n### output_type\n\n- `\"scene\"` (default): pipeline stops at scenes-ready-for-review.\n  `result.review_url` is in the create response itself (safe to share\n  immediately — the page handles early arrival). You can then call\n  `POST /v1/export_video` to render the final MP4.\n- `\"video\"`: pipeline auto-chains into the renderer once scenes are\n  ready. `result.review_url` ships from the create response; the\n  `result.video_url` field appears on completion. No manual\n  `/v1/export_video` call needed.\n\n### Bounds (LOCKED — see SDK constants)\n\n| Field | When required | Min words | Max words | Over-max behavior |\n|---|---|---|---|---|\n| `script_text` | source=text | 80 (`SCRIPT_MIN_WORDS`) | 500 (`SCRIPT_MAX_WORDS`) | reject `script_too_long` |\n| `idea_text` | source=idea | 5 (`IDEA_MIN_WORDS`) | 1000 (`IDEA_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n| `blog_text` | source=blog | 30 (`BLOG_MIN_WORDS`) | 3000 (`BLOG_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n\nSDKs export these as named constants — refer to those instead of\nhard-coding the numbers. Word count = whitespace split, works for\nEnglish + Vietnamese.\n",
+        "description": "Create a video from either a plain-text script (`source: \"text\"`) or\na short idea description (`source: \"idea\"`). The server wraps the\nsame background workers that power the Script Editor + Idea-to-Video\nflows in the WideCast UI.\n\n- Returns immediately with `status: \"processing\"` (HTTP 202). Poll\n  `GET /v1/status/{id}` until terminal.\n- If `wait_for_render: true`, blocks up to **60 seconds**. If render\n  completes within the window, returns `status: \"completed\"` (HTTP 200).\n  Otherwise returns the in-flight state and the client polls.\n\n### source\n\n- `\"text\"` (default — backward-compat): provide `script_text`\n  (80-500 words, used VERBATIM by the narrator). Worker:\n  `request_video_script_from_script`.\n- `\"idea\"`: provide `idea_text` (5-1000 words; >1000 auto-truncated)\n  plus optional `language` / `video_length` / `research_enabled`.\n  Worker chain: `ai_enhance_script` (idea → narration) →\n  `request_video_script_from_script` (narration → scenes).\n\n### output_type\n\n- `\"scene\"` (default): pipeline stops at scenes-ready-for-review.\n  `result.review_url` is in the create response itself (safe to share\n  immediately — the page handles early arrival). You can then call\n  `POST /v1/export_video` to render the final MP4.\n- `\"video\"`: pipeline auto-chains into the renderer once scenes are\n  ready. `result.review_url` ships from the create response; the\n  `result.video_url` field appears on completion. No manual\n  `/v1/export_video` call needed.\n\n### Bounds (LOCKED — see SDK constants)\n\n| Field | When required | Min words | Max words | Over-max behavior |\n|---|---|---|---|---|\n| `script_text` | source=text | 80 (`SCRIPT_MIN_WORDS`) | 500 (`SCRIPT_MAX_WORDS`) | reject `script_too_long` |\n| `idea_text` | source=idea | 5 (`IDEA_MIN_WORDS`) | 1000 (`IDEA_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n| `blog_text` | source=blog | 30 (`BLOG_MIN_WORDS`) | 3000 (`BLOG_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n\nSDKs export these as named constants — refer to those instead of\nhard-coding the numbers. Word count = whitespace split, works for\nEnglish + Vietnamese.\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -2171,6 +2171,18 @@
           "source"
         ],
         "properties": {
+          "script_approved": {
+            "type": "boolean",
+            "description": "Confirmation flag for AI agents calling via MCP or ChatGPT Action.\n**MCP callers**: REQUIRED (the MCP wrapper rejects calls where this\nis missing or false). **ChatGPT Action callers**: should set true\nafter showing the user the full hand-off and getting explicit\napproval. **SDK / curl / Postman callers**: this field is ignored\nby the REST endpoint; SDK consumers are trusted to handle their\nown UX. The point of the flag is to enforce that the dialog flow\nwith the end user actually happened — a bare \"make a video about X\"\nfrom the user is the REQUEST, not the approval.\n"
+          },
+          "production_mode": {
+            "type": "string",
+            "enum": [
+              "faceless",
+              "normal"
+            ],
+            "description": "User's explicit answer to the \"faceless or normal?\" production\nquestion. Applies to source=text/idea/blog (ignored for media\nsources). **MCP / Action callers**: pass the user's answer here\nand the MCP wrapper maps it to the legacy `faceless` boolean\nbelow before forwarding. **SDK callers**: skip this field, set\n`faceless` directly as before.\n"
+          },
           "source": {
             "type": "string",
             "enum": [
@@ -2324,6 +2336,10 @@
             "pattern": "^widecast[a-zA-Z0-9]{12,32}$",
             "description": "`topic_id` returned by `/v1/create_video`. The video must have\nreached `scenes_ready_for_review` (HTTP 409 otherwise).\n",
             "example": "widecast7c0d4f8a9b1e2d3f"
+          },
+          "user_confirmed_render": {
+            "type": "boolean",
+            "description": "Confirmation flag for AI agents calling via MCP or ChatGPT Action.\n**MCP callers**: REQUIRED (the MCP wrapper rejects calls where\nthis is missing or false). **ChatGPT Action callers**: should set\ntrue after asking the user \"Render the final video now, or do\nyou want to review the scenes first?\" and getting an explicit\nyes. **SDK / curl / Postman callers**: this field is ignored by\nthe REST endpoint. Each export is a new decision — never infer\nfrom earlier in the conversation; even if the user wanted the\nfinal video originally, ask again each time.\n"
           }
         }
       },

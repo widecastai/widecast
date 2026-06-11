@@ -361,10 +361,34 @@ WideCast always returns scenes ready for review first; the user opens
   of the script. Move to Step C.
 
 ### C · Call `create_video`
+
+> **⚠ MCP / ChatGPT-Action callers — required confirmation flags**
+>
+> The `widecast_create_video` tool now requires TWO flags to gate the
+> dialog flow (the underlying REST API stays free of these — SDK / curl
+> callers are unaffected):
+>
+> - `script_approved: true` — set ONLY after you've completed Step A above
+>   (showed the user the full hand-off: Research / Visual assets / Script
+>   with inline `![](url)` markdown / Backup pool / Production sections)
+>   AND the user has either edited or answered the production question.
+>   If you're tempted to set this true because the user said something
+>   generic like "make a video about X" — STOP, that's not approval.
+>   Go run Step A first.
+> - `production_mode: "faceless" | "normal"` — must match the user's
+>   EXPLICIT answer in this conversation round. Do NOT infer from a
+>   prior video earlier in the same chat. Ask each time, even when it
+>   feels redundant — users change their mind.
+>
+> The tool will reject with a clear error if either is missing or false.
+> Don't try to bypass with placeholder values — go fix the dialog flow.
+
 - **Finished script →** `source="text"`, `script_text=<the script, inline
   URLs VERBATIM>`, plus the confirmed setting:
-  - `faceless=true` ONLY if they chose faceless (B-roll only, no narrator
-    A-roll; only valid for source text/idea/blog with scenes).
+  - `script_approved=true` (after Step A — see warning above).
+  - `production_mode="faceless"` OR `"normal"` (user's explicit answer).
+  - (Legacy SDK / HTTP callers: keep using `faceless=true|false` — the
+    MCP wrapper maps `production_mode` to the same underlying field.)
 - **Only a topic (no script yet) →** `source="idea"`, `idea_text=<a tight 1–3
   sentence brief>`, plus `language`, `video_length` ("short"/"normal"). Same
   hand-off / handle-reply order applies if the engine surfaces a script for

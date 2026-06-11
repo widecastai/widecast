@@ -205,7 +205,7 @@ paths:
         Create a video from either a plain-text script (`source: "text"`) or
         a short idea description (`source: "idea"`). The server wraps the
         same background workers that power the Script Editor + Idea-to-Video
-        flows in the Gubo UI.
+        flows in the WideCast UI.
 
         - Returns immediately with `status: "processing"` (HTTP 202). Poll
           `GET /v1/status/{id}` until terminal.
@@ -1205,6 +1205,28 @@ components:
         The other text field is ignored when not matching `source`.
       required: [source]
       properties:
+        script_approved:
+          type: boolean
+          description: |
+            Confirmation flag for AI agents calling via MCP or ChatGPT Action.
+            **MCP callers**: REQUIRED (the MCP wrapper rejects calls where this
+            is missing or false). **ChatGPT Action callers**: should set true
+            after showing the user the full hand-off and getting explicit
+            approval. **SDK / curl / Postman callers**: this field is ignored
+            by the REST endpoint; SDK consumers are trusted to handle their
+            own UX. The point of the flag is to enforce that the dialog flow
+            with the end user actually happened — a bare "make a video about X"
+            from the user is the REQUEST, not the approval.
+        production_mode:
+          type: string
+          enum: [faceless, normal]
+          description: |
+            User's explicit answer to the "faceless or normal?" production
+            question. Applies to source=text/idea/blog (ignored for media
+            sources). **MCP / Action callers**: pass the user's answer here
+            and the MCP wrapper maps it to the legacy `faceless` boolean
+            below before forwarding. **SDK callers**: skip this field, set
+            `faceless` directly as before.
         source:
           type: string
           enum: [text, idea, blog, video_url, video_file, audio_url, audio_file]
@@ -1461,6 +1483,18 @@ components:
             `topic_id` returned by `/v1/create_video`. The video must have
             reached `scenes_ready_for_review` (HTTP 409 otherwise).
           example: widecast7c0d4f8a9b1e2d3f
+        user_confirmed_render:
+          type: boolean
+          description: |
+            Confirmation flag for AI agents calling via MCP or ChatGPT Action.
+            **MCP callers**: REQUIRED (the MCP wrapper rejects calls where
+            this is missing or false). **ChatGPT Action callers**: should set
+            true after asking the user "Render the final video now, or do
+            you want to review the scenes first?" and getting an explicit
+            yes. **SDK / curl / Postman callers**: this field is ignored by
+            the REST endpoint. Each export is a new decision — never infer
+            from earlier in the conversation; even if the user wanted the
+            final video originally, ask again each time.
 
     CreateContentRequest:
       type: object
