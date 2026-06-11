@@ -27,24 +27,24 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 <table>
   <tr>
     <td align="center" width="50%">
-      <video src="https://github.com/user-attachments/assets/426abb5d-fb49-4688-a9d9-8aeea3177c9f" poster="https://widecast.ai/landing/easement_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/f37a88f8-704b-4bc3-a358-5b315207ad80" poster="https://widecast.ai/landing/easement_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>👤 <b>Real face</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>What is an easement?</b>
     </td>
     <td align="center" width="50%">
-      <video src="https://github.com/user-attachments/assets/a37f19c3-8761-401a-ac66-65a664cf39e8" poster="https://widecast.ai/landing/crashscene_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/e9dceacb-2d8d-4191-937b-dcead61d7735" poster="https://widecast.ai/landing/crashscene_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🤖 <b>AI face</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Eight things to do at the crash scene</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/1bef334a-0c2f-4145-b834-f67986e434b4" poster="https://widecast.ai/landing/roof_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/cb88c304-768a-48fd-a937-c29b4030f46b" poster="https://widecast.ai/landing/roof_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🎬 <b>Faceless</b> · 🎙️ <b>Real voice</b></sub><br>
       <b>Top 5 things to ask at an open house</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/8e6657f0-d3f1-4a2f-9cdd-a9ec5773ea13" poster="https://widecast.ai/landing/ideablognews_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/bb454d54-dcb9-4bb7-8948-e635a20582d3" poster="https://widecast.ai/landing/ideablognews_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>🎬 <b>Faceless</b> · 🤖 <b>AI voice</b></sub><br>
       <b>Jensen Huang's quote at CES 2026</b>
     </td>
@@ -56,60 +56,60 @@ The same engine, picking real-world topics across categories — every one drive
 <table>
   <tr>
     <td align="center" width="50%">
-      <video src="https://github.com/user-attachments/assets/f3563318-25e2-4681-a2c2-40df80ba478f" poster="https://widecast.ai/landing/8_firsttime_homebuyer_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/cec5b4a1-9775-4fbc-a34e-0d427833df85" poster="https://widecast.ai/landing/8_firsttime_homebuyer_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Real estate</sub><br>
       <b>8 things first-time home buyers need to know</b>
     </td>
     <td align="center" width="50%">
-      <video src="https://github.com/user-attachments/assets/1d9f4876-c497-4320-bd0a-b89b61c947a7" poster="https://widecast.ai/landing/scam_text_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/94a5ef02-0fb9-469a-ae3a-762691562ab5" poster="https://widecast.ai/landing/scam_text_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Scam awareness</sub><br>
       <b>Scam texts: 5 signs not to click</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/f7599922-f847-4f5a-9d93-5bd765d92255" poster="https://widecast.ai/landing/laidoff_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/068daa42-3ba4-494d-95a5-98a2111b195b" poster="https://widecast.ai/landing/laidoff_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Career</sub><br>
       <b>Laid off? 7 things to do in the first 48 hours</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/6115a7b8-fd54-4b09-9273-8c4d6ff31073" poster="https://widecast.ai/landing/ask_doctor_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/4bcf9472-ade6-4fe6-b74b-2ca7243bd98b" poster="https://widecast.ai/landing/ask_doctor_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Health</sub><br>
       <b>7 questions to ask your doctor before you leave</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/29508504-e532-4332-88a3-85193159b39f" poster="https://widecast.ai/landing/buy_used_car_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/6cf71786-1697-4a07-acf6-ff18ec5c6a0e" poster="https://widecast.ai/landing/buy_used_car_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Automotive</sub><br>
       <b>Buying a used car: 6 red flags in 5 minutes</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/49c6bfae-03f8-459c-9c4b-1c7649f0a23e" poster="https://widecast.ai/landing/AI_halu_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/8cdcb47e-7fa5-4860-825c-d7a730ddcf33" poster="https://widecast.ai/landing/AI_halu_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>AI literacy</sub><br>
       <b>5 ways to fact-check ChatGPT and Claude</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/801d3865-f4b6-4814-81fb-46627302a2bc" poster="https://widecast.ai/landing/renting_buying_home_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/605bfa4c-ff2b-4959-b5ef-9ebdfa451fe6" poster="https://widecast.ai/landing/renting_buying_home_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Real estate</sub><br>
       <b>Renting or buying: 7 things to check before deposit</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/bcd24e97-bf5c-4e9c-b802-6329b426062e" poster="https://widecast.ai/landing/sunscreen_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/fa075a23-3358-4bac-a6d2-b6257f4e2a68" poster="https://widecast.ai/landing/sunscreen_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Skincare</sub><br>
       <b>Sunscreen: 6 mistakes that still leave dark spots</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/db8035b9-8667-411b-8ea3-b82286d97c08" poster="https://widecast.ai/landing/creditcard_minimum_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/3f372ee0-ed5b-4b44-9ade-9c2e6af41d79" poster="https://widecast.ai/landing/creditcard_minimum_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Personal finance</sub><br>
       <b>Credit card debt: why minimum payments trap you</b>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/e43bbd7a-8cc3-4583-90a4-0e60dedfcc0a" poster="https://widecast.ai/landing/insurance_fee_up_thumb.jpg" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/c172e57b-a79a-4218-9208-42422a8459ff" poster="https://widecast.ai/landing/insurance_fee_up_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Insurance</sub><br>
       <b>Car insurance going up? 6 factors that could be the cause</b>
     </td>
