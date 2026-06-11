@@ -56,60 +56,60 @@ The same engine, picking real-world topics across categories — every one drive
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/landing/8_firsttime_homebuyer.mp4" target="_blank"><img src="https://widecast.ai/landing/8_firsttime_homebuyer_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/f3563318-25e2-4681-a2c2-40df80ba478f" poster="https://widecast.ai/landing/8_firsttime_homebuyer_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Real estate</sub><br>
       <b>8 things first-time home buyers need to know</b>
     </td>
     <td align="center" width="50%">
-      <a href="https://widecast.ai/landing/scam_text.mp4" target="_blank"><img src="https://widecast.ai/landing/scam_text_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/1d9f4876-c497-4320-bd0a-b89b61c947a7" poster="https://widecast.ai/landing/scam_text_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Scam awareness</sub><br>
       <b>Scam texts: 5 signs not to click</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/landing/laidoff.mp4" target="_blank"><img src="https://widecast.ai/landing/laidoff_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/f7599922-f847-4f5a-9d93-5bd765d92255" poster="https://widecast.ai/landing/laidoff_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Career</sub><br>
       <b>Laid off? 7 things to do in the first 48 hours</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/landing/ask_doctor.mp4" target="_blank"><img src="https://widecast.ai/landing/ask_doctor_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/6115a7b8-fd54-4b09-9273-8c4d6ff31073" poster="https://widecast.ai/landing/ask_doctor_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Health</sub><br>
       <b>7 questions to ask your doctor before you leave</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/landing/buy_used_car.mp4" target="_blank"><img src="https://widecast.ai/landing/buy_used_car_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/29508504-e532-4332-88a3-85193159b39f" poster="https://widecast.ai/landing/buy_used_car_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Automotive</sub><br>
       <b>Buying a used car: 6 red flags in 5 minutes</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/landing/AI_halu.mp4" target="_blank"><img src="https://widecast.ai/landing/AI_halu_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/49c6bfae-03f8-459c-9c4b-1c7649f0a23e" poster="https://widecast.ai/landing/AI_halu_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>AI literacy</sub><br>
       <b>5 ways to fact-check ChatGPT and Claude</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/landing/renting_buying_home.mp4" target="_blank"><img src="https://widecast.ai/landing/renting_buying_home_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/801d3865-f4b6-4814-81fb-46627302a2bc" poster="https://widecast.ai/landing/renting_buying_home_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Real estate</sub><br>
       <b>Renting or buying: 7 things to check before deposit</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/landing/sunscreen.mp4" target="_blank"><img src="https://widecast.ai/landing/sunscreen_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/bcd24e97-bf5c-4e9c-b802-6329b426062e" poster="https://widecast.ai/landing/sunscreen_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Skincare</sub><br>
       <b>Sunscreen: 6 mistakes that still leave dark spots</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <a href="https://widecast.ai/landing/creditcard_minimum.mp4" target="_blank"><img src="https://widecast.ai/landing/creditcard_minimum_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/db8035b9-8667-411b-8ea3-b82286d97c08" poster="https://widecast.ai/landing/creditcard_minimum_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Personal finance</sub><br>
       <b>Credit card debt: why minimum payments trap you</b>
     </td>
     <td align="center">
-      <a href="https://widecast.ai/landing/insurance_fee_up.mp4" target="_blank"><img src="https://widecast.ai/landing/insurance_fee_up_thumb.jpg" width="100%" alt="Click to play"></a>
+      <video src="https://github.com/user-attachments/assets/e43bbd7a-8cc3-4583-90a4-0e60dedfcc0a" poster="https://widecast.ai/landing/insurance_fee_up_thumb.jpg" controls muted playsinline width="100%"></video>
       <br><sub>Insurance</sub><br>
       <b>Car insurance going up? 6 factors that could be the cause</b>
     </td>
