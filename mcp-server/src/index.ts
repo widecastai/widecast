@@ -110,7 +110,7 @@ const TOOLS = [
     description:
       "REQUIRED CONFIRMATION GATES — the tool enforces these and will reject calls that skip them:\n" +
       "• `script_approved` MUST be true. Set ONLY after you've shown the user your full hand-off (Research / Visual assets / Script with inline ![alt](url) / Backup pool / Production sections) AND they edited it OR answered the production question. A bare 'make a video about X' from the user is NOT approval — that's the request, not the approval. Always show the script first, then mark approved.\n" +
-      "• `production_mode` MUST be 'faceless' or 'normal' for source=text/idea/blog, matching the user's EXPLICIT answer in THIS conversation round. Do NOT infer from a video earlier in the same chat — users change their mind. Ignored for source=video_url/audio_url (those sources don't have the faceless mode).\n" +
+      "• `production_mode` MUST be ONE of THREE explicit values for source=text/idea/blog. Ask the user in their language and pass their literal answer: (1) `faceless` — B-roll only, no narrator on screen, no recording needed. (2) `face_clone` — narrator A-roll generated from the user's pre-trained face + voice clone (they must have it set up at https://widecast.ai/#setup BEFORE the video renders — if they pick this and haven't set it up yet, point them at that URL). (3) `teleprompter` — the user records themselves reading the script via WideCast's built-in teleprompter (no clone needed, but they need to physically record after the scenes are prepared). Both `face_clone` and `teleprompter` produce a 'normal' video (narrator on screen) — they're just the two ways the user can supply the narrator. Do NOT default to one of them; the choice and downstream UX are different. Ignored for source=video_url/audio_url.\n" +
       "Setting these flags blindly to bypass the gate defeats the purpose. The skill explains the dialog flow; the flags enforce that it actually happened.\n" +
       "REQUIRED PREREQUISITE for source='text': call widecast_get_writing_skill(format='video') FIRST and follow the returned 7-step method. The method is universal — it applies to Claude, GPT, Gemini, Grok, Hermes, Llama, or any other LLM, not just one host. Scripts written without it consistently produce weaker videos (missing inline media, weak hooks, no research grounding). Skip only if the user is providing a pre-written script verbatim.\n" +
       "SOURCE ROUTING (IMPORTANT — pick honestly):\n" +
@@ -133,7 +133,7 @@ const TOOLS = [
       properties: {
         source: { type: "string", enum: ["text", "idea", "blog", "video_url", "audio_url"], default: "text", description: "Which input flow." },
         script_approved: { type: "boolean", description: "REQUIRED. Must be true. Set ONLY after you've shown the user the full hand-off (Research / Visual assets / Script / Backup pool / Production sections) AND they edited or answered the production question. A bare 'make a video about X' from the user is the REQUEST, not the approval — show the plan first. The tool rejects script_approved=false or missing." },
-        production_mode: { type: "string", enum: ["faceless", "normal"], description: "Required for source=text/idea/blog. The user's EXPLICIT answer in THIS conversation round to 'faceless or normal?'. Do NOT infer from a video earlier in the chat — ask each time. The MCP wrapper maps this to the legacy `faceless` boolean on the REST API. Ignored for source=video_url/audio_url." },
+        production_mode: { type: "string", enum: ["faceless", "face_clone", "teleprompter"], description: "Required for source=text/idea/blog. The user's EXPLICIT answer to the three-way production question (in their language): (1) 'faceless' — B-roll only, no narrator on screen; (2) 'face_clone' — the user's pre-trained Face clone + Voice clone speak the script (they MUST have it set up at https://widecast.ai/#setup before rendering — if they pick this and haven't set up, point them there before calling); (3) 'teleprompter' — the user records themselves reading the script via WideCast's built-in teleprompter after scenes prepare. Both face_clone and teleprompter map to the legacy `faceless=false` on the REST API; the distinction is for downstream UX so the user knows what to do next. Do NOT infer from a video earlier in the same chat — ask each time. Ignored for source=video_url/audio_url." },
         script_text: { type: "string", description: "Required when source='text'. 80–500 words, used verbatim. You may embed inline media right after the sentence each should illustrate, in either form: (a) markdown image syntax `![brief description](https://cdn.acme.com/photo.jpg)` — RECOMMENDED for AI-chat callers because the chat host renders the picture inline so the end-user can visually approve each scene; or (b) a raw URL on its own line (backward-compat). WideCast strips both forms from the narration and uses them as that scene's visual instead of stock B-roll. Direct file links only (.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg or .mp4/.webm/.mov/.m4v/.avi); page links like youtube.com/watch are NOT inlined (use source='video_url' for a whole clip)." },
         idea_text: { type: "string", description: "Required when source='idea'. 5–1000 words." },
         blog_text: { type: "string", description: "Required when source='blog'. 30–3000 words." },
@@ -442,14 +442,19 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       const src = (args.source as string | undefined) ?? "text";
       const needsMode = src === "text" || src === "idea" || src === "blog";
       const mode = args.production_mode as string | undefined;
-      if (needsMode && mode !== "faceless" && mode !== "normal") {
+      const VALID_MODES = ["faceless", "face_clone", "teleprompter"];
+      if (needsMode && !VALID_MODES.includes(mode ?? "")) {
         return {
           content: [{ type: "text", text:
             "ERROR: production_mode is required for source='" + src + "' and must be " +
-            "'faceless' or 'normal'. Ask the user EXPLICITLY in their language: " +
-            "'A normal video (with a narrator), or a faceless one (B-roll only, no " +
-            "narrator)?' — and pass their answer here. Do NOT infer from a previous " +
-            "video in the same conversation; users change their mind, ask each time."
+            "one of: 'faceless' | 'face_clone' | 'teleprompter'. Ask the user EXPLICITLY " +
+            "in their language with all THREE options spelled out: (1) Faceless — " +
+            "B-roll only, no narrator on screen; (2) Face clone — their pre-trained " +
+            "Face + Voice clone speaks the script (must be set up at " +
+            "https://widecast.ai/#setup first); (3) Teleprompter — they record themselves " +
+            "reading the script via WideCast's built-in teleprompter after scenes " +
+            "prepare. Pass the user's literal choice here. Do NOT default to one, do " +
+            "NOT infer from a previous video — ask each time."
           }],
           isError: true,
         };
@@ -459,8 +464,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       for (const k of ["source", "script_text", "idea_text", "blog_text", "video_url", "audio_url", "language", "video_length", "output_type", "media_pool", "callback_url", "metadata"]) {
         if (args[k] !== undefined) body[k] = args[k];
       }
-      // Map production_mode → faceless boolean for the REST API (which keeps
-      // its existing field name for SDK / HTTP backward compatibility).
+      // Map production_mode → REST's existing `faceless` boolean. Both
+      // `face_clone` and `teleprompter` produce a "narrator on screen" video
+      // (faceless=false) — the distinction lives only in downstream UX
+      // (which path the user takes to supply the narrator). The REST API +
+      // SDK callers keep using the single `faceless` boolean.
       if (needsMode) body.faceless = (mode === "faceless");
       // MCP never produces the final MP4 — it stops at reviewable scenes and
       // the user renders from the WideCast UI. The enum already excludes

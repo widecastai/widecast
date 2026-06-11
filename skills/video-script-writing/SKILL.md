@@ -340,13 +340,28 @@ production answer (which implicitly approves the script) → then call
 `create_video`. Don't ask about faceless before the user has seen the script.
 
 ### A · Hand off the script + ask the production question, in one message
-Show the finished script (with inline image URLs), then ask one production
-question (in the user's language):
+Show the finished script (with inline image URLs), then ask ONE production
+question with **three options spelled out** (in the user's language). The
+three options exist so the user knows what to do AFTER the scenes prepare —
+each has a different downstream UX:
 
-*"A normal video (with a narrator), or a **faceless** one (B-roll only, no narrator)?"*
+> "Three ways I can produce this:
+>
+> 1. **Faceless** — B-roll only, no narrator on screen. Nothing else for you to do.
+> 2. **Face clone** — your trained Face clone + Voice clone speaks the script
+>    (you can set this up at https://widecast.ai/#setup if you haven't yet).
+> 3. **Teleprompter** — you record yourself reading the script via the
+>    built-in teleprompter, once the scenes are ready.
+>
+> Which one?"
 
-Close with a short invite to edit, e.g. *"Want to tweak anything, or shall
+Close with a short invite to edit, e.g. *"Want to tweak the script first, or shall
 I produce it?"*
+
+If the user picks **face clone** and you have a hint they haven't set up the
+clone yet (e.g. it's their first video in the conversation), include a soft
+reminder: *"You'll want your Face + Voice clones trained at
+https://widecast.ai/#setup before the scenes finish — takes ~3 min."*
 
 WideCast always returns scenes ready for review first; the user opens
 `review_url` to tweak visuals and render the final MP4 themselves. No
@@ -357,8 +372,8 @@ WideCast always returns scenes ready for review first; the user opens
   image", "shorter intro", etc.) → iterate the script on their feedback, then
   go back to Step A (re-hand the new version + the same question). Do NOT
   call `create_video` yet.
-- **If the user answers the faceless question** → that IS implicit approval
-  of the script. Move to Step C.
+- **If the user picks one of the three production options** → that IS implicit
+  approval of the script. Move to Step C.
 
 ### C · Call `create_video`
 
@@ -371,14 +386,15 @@ WideCast always returns scenes ready for review first; the user opens
 > - `script_approved: true` — set ONLY after you've completed Step A above
 >   (showed the user the full hand-off: Research / Visual assets / Script
 >   with inline `![](url)` markdown / Backup pool / Production sections)
->   AND the user has either edited or answered the production question.
->   If you're tempted to set this true because the user said something
->   generic like "make a video about X" — STOP, that's not approval.
->   Go run Step A first.
-> - `production_mode: "faceless" | "normal"` — must match the user's
->   EXPLICIT answer in this conversation round. Do NOT infer from a
->   prior video earlier in the same chat. Ask each time, even when it
->   feels redundant — users change their mind.
+>   AND the user has either edited or picked one of the three production
+>   options. If you're tempted to set this true because the user said
+>   something generic like "make a video about X" — STOP, that's not
+>   approval. Go run Step A first.
+> - `production_mode: "faceless" | "face_clone" | "teleprompter"` — must
+>   match the user's EXPLICIT pick of one of the three options. Do NOT
+>   infer from a prior video earlier in the same chat. Ask each time,
+>   even when it feels redundant — users change their mind, and each
+>   option has a different next step you need to communicate.
 >
 > The tool will reject with a clear error if either is missing or false.
 > Don't try to bypass with placeholder values — go fix the dialog flow.
@@ -386,9 +402,11 @@ WideCast always returns scenes ready for review first; the user opens
 - **Finished script →** `source="text"`, `script_text=<the script, inline
   URLs VERBATIM>`, plus the confirmed setting:
   - `script_approved=true` (after Step A — see warning above).
-  - `production_mode="faceless"` OR `"normal"` (user's explicit answer).
+  - `production_mode="faceless"` OR `"face_clone"` OR `"teleprompter"`
+    (user's explicit pick).
   - (Legacy SDK / HTTP callers: keep using `faceless=true|false` — the
-    MCP wrapper maps `production_mode` to the same underlying field.)
+    MCP wrapper maps both `face_clone` and `teleprompter` to
+    `faceless=false` and `faceless` to `faceless=true`.)
 - **Only a topic (no script yet) →** `source="idea"`, `idea_text=<a tight 1–3
   sentence brief>`, plus `language`, `video_length` ("short"/"normal"). Same
   hand-off / handle-reply order applies if the engine surfaces a script for

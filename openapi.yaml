@@ -1219,14 +1219,28 @@ components:
             from the user is the REQUEST, not the approval.
         production_mode:
           type: string
-          enum: [faceless, normal]
+          enum: [faceless, face_clone, teleprompter]
           description: |
-            User's explicit answer to the "faceless or normal?" production
-            question. Applies to source=text/idea/blog (ignored for media
-            sources). **MCP / Action callers**: pass the user's answer here
-            and the MCP wrapper maps it to the legacy `faceless` boolean
-            below before forwarding. **SDK callers**: skip this field, set
-            `faceless` directly as before.
+            User's explicit answer to the three-way production question.
+            Applies to source=text/idea/blog (ignored for media sources).
+            Three valid values, each with a different downstream UX:
+              * `faceless` — B-roll only, no narrator on screen. The video
+                is fully automated; user just reviews and renders.
+              * `face_clone` — the user's pre-trained Face clone + Voice
+                clone speaks the script. The user **must have set both up
+                at https://widecast.ai/#setup** before the render runs —
+                if they haven't, the AI agent should point them there
+                during the dialog.
+              * `teleprompter` — the user records themselves reading the
+                script via WideCast's built-in teleprompter (after the
+                scenes prepare). No clone needed; user physically records.
+            Both `face_clone` and `teleprompter` produce a "normal" video
+            (narrator on screen) and map to the legacy `faceless=false`
+            on the REST endpoint — the distinction is purely so the AI
+            agent tells the user the right next step.
+            **MCP / Action callers**: pass the user's answer here; the MCP
+            wrapper performs the mapping. **SDK / curl callers**: skip this
+            field, set `faceless` directly as before.
         source:
           type: string
           enum: [text, idea, blog, video_url, video_file, audio_url, audio_file]

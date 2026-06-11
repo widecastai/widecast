@@ -2128,9 +2128,10 @@
             "type": "string",
             "enum": [
               "faceless",
-              "normal"
+              "face_clone",
+              "teleprompter"
             ],
-            "description": "User's explicit answer to the \"faceless or normal?\" production\nquestion. Applies to source=text/idea/blog (ignored for media\nsources). **MCP / Action callers**: pass the user's answer here\nand the MCP wrapper maps it to the legacy `faceless` boolean\nbelow before forwarding. **SDK callers**: skip this field, set\n`faceless` directly as before.\n"
+            "description": "User's explicit answer to the three-way production question.\nApplies to source=text/idea/blog (ignored for media sources).\nThree valid values, each with a different downstream UX:\n  * `faceless` — B-roll only, no narrator on screen. The video\n    is fully automated; user just reviews and renders.\n  * `face_clone` — the user's pre-trained Face clone + Voice\n    clone speaks the script. The user **must have set both up\n    at https://widecast.ai/#setup** before the render runs —\n    if they haven't, the AI agent should point them there\n    during the dialog.\n  * `teleprompter` — the user records themselves reading the\n    script via WideCast's built-in teleprompter (after the\n    scenes prepare). No clone needed; user physically records.\nBoth `face_clone` and `teleprompter` produce a \"normal\" video\n(narrator on screen) and map to the legacy `faceless=false`\non the REST endpoint — the distinction is purely so the AI\nagent tells the user the right next step.\n**MCP / Action callers**: pass the user's answer here; the MCP\nwrapper performs the mapping. **SDK / curl callers**: skip this\nfield, set `faceless` directly as before.\n"
           },
           "source": {
             "type": "string",
