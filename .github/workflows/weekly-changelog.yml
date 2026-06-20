@@ -35,7 +35,7 @@ jobs:
           OUTPUT: CHANGELOG.md
 
       - name: Open PR if changed
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "docs(changelog): weekly regeneration"
           title: "docs(changelog): weekly regeneration"
