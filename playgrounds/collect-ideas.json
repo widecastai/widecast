@@ -15,6 +15,14 @@
       "placeholder": "A budgeting app for freelancers with tax estimates"
     },
     {
+      "name": "target_location",
+      "type": "text",
+      "label": "Target audience market (city/state/country)",
+      "required": false,
+      "placeholder": "California, United States",
+      "help": "Audience market the videos should target — e.g. 'California, United States', 'Texas, US', 'Vietnam'. If omitted AND no cached one on the account, the API returns a clarification response (no credit charged) asking for it."
+    },
+    {
       "name": "sub_industry",
       "type": "text",
       "label": "Sub-industry (optional)",
@@ -23,8 +31,9 @@
     {
       "name": "user_location",
       "type": "text",
-      "label": "Location hint (optional)",
-      "required": false
+      "label": "User location hint (optional)",
+      "required": false,
+      "help": "Where the user is based. Can differ from the target audience market."
     }
   ],
   "poll_after_create": {
@@ -34,12 +43,13 @@
     {
       "id": "collect",
       "title": "🧩 Ideas from a product",
-      "description": "Describe a product/service, then Run. Ideas come back in the response.",
+      "description": "Describe a product/service + audience market, then Run. Ideas come back in the response.",
       "request": {
-        "product_service_input": "A budgeting app for freelancers with automatic tax estimates"
+        "product_service_input": "A budgeting app for freelancers with automatic tax estimates",
+        "target_location": "California, United States"
       }
     }
   ],
   "_key": "collect-ideas",
-  "_api_base_url": "https://widecast.ai/app/dashboard2"
+  "_api_base_url": "https://widecast.ai/app/dashboard"
 }

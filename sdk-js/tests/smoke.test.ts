@@ -82,7 +82,10 @@ describe("widecast SDK", () => {
   });
 
   it("faceless scope is locked (A38 parity)", () => {
-    expect(FACELESS_SOURCES).toEqual(["text", "idea", "blog"]);
+    // A52 (2026-06-15): audio sources joined the faceless-allowed list —
+    // their scripts come from transcribing the user's audio but the visuals
+    // must still be generated, so the same 3-way production mode applies.
+    expect(FACELESS_SOURCES).toEqual(["text", "idea", "blog", "audio_url"]);
   });
 
   it("content_type + intervention_level enums are locked (A38 parity)", () => {
@@ -149,7 +152,7 @@ describe("widecast SDK", () => {
   it("read/library methods exist on the client", () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
     for (const name of ["list_videos", "search", "account", "analytics", "roadmap",
-      "production_plan", "foundation_videos", "recommendations"]) {
+      "production_plan", "recommendations"]) {
       expect(typeof (c as any)[name]).toBe("function");
     }
   });
@@ -202,7 +205,7 @@ describe("widecast SDK", () => {
   });
 
   it("media caps are locked (A49 parity)", () => {
-    expect(MEDIA_MAX_DURATION_SECONDS).toBe(120);
+    expect(MEDIA_MAX_DURATION_SECONDS).toBe(300);
     expect(MEDIA_MAX_FILE_BYTES).toBe(100 * 1024 * 1024);
   });
 

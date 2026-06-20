@@ -11,11 +11,16 @@ teaches the model to write a great script; this server turns it into a real vide
 Tools exposed:
 
 - `widecast_create_video` — create a video from a script (`source=text`), an idea
-  (`source=idea`), an article (`source=blog`), or a YouTube/TikTok/Facebook link
-  (`source=video_url` / `audio_url`). Choose `output_type` = `scene` / `video` / `text`.
+  (`source=idea`), an article (`source=blog`), or a public media URL
+  (`source=video_url` / `audio_url` — direct file link OR a YouTube/TikTok/Facebook
+  page, ≤2 min). Choose `output_type` = `scene` / `video` / `text`.
 - `widecast_get_status` — poll a video until `completed`; returns `review_url` /
   `video_url`.
 - `widecast_export_video` — render the final MP4 for a `scene` video after review.
+- `widecast_modify_scene` — swap the background image/video on ONE scene (sync, no
+  credit). Pick the scene with `by="voice_file" | "id" | "text"` + `value`; pass
+  the new asset URL in `fields`. Roll-aware: B-roll → background; A-roll →
+  overlay (narrator untouched).
 
 ## Install
 
@@ -86,7 +91,7 @@ After restarting your host:
 | Var | Default | Purpose |
 |---|---|---|
 | `WIDECAST_API_KEY` | — | Your `wc_live_*` API key (create one in your WideCast dashboard) |
-| `WIDECAST_BASE_URL` | `https://widecast.ai/app/dashboard2` | Override for staging / self-hosted |
+| `WIDECAST_BASE_URL` | `https://widecast.ai/app/dashboard` | Override for staging / self-hosted |
 
 ## Build from source
 ```bash

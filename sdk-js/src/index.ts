@@ -14,7 +14,7 @@ export const VERSION = "0.1.0";
 
 const DEFAULT_BASE_URL =
   (typeof process !== "undefined" && process.env?.WIDECAST_BASE_URL) ||
-  "https://widecast.ai/app/dashboard2";
+  "https://widecast.ai/app/dashboard";
 
 const TERMINAL_STATUSES = ["completed", "failed"] as const;
 
@@ -38,11 +38,15 @@ export type OutputType = (typeof OUTPUT_TYPES)[number];
 // blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
 // the script already lives in the media; output_type="text" = Remake (A50).
 export const SOURCES = ["text", "idea", "blog",
-  "video_url", "video_file", "audio_url", "audio_file"] as const;
+  "video_url", "video_file",
+  "audio_url", "audio_file"] as const;
 export type Source = (typeof SOURCES)[number];
-// faceless=true forces every scene to B-roll (no narrator A-roll). Only valid
-// with output_type scene/video for these script-based sources.
-export const FACELESS_SOURCES = ["text", "idea", "blog"] as const;
+// faceless=true forces every scene to B-roll (no narrator A-roll). Valid for
+// the script-based sources (text/idea/blog) AND for audio sources
+// (audio_url) — the script lives in the user's audio but the
+// visuals must still be generated, so the same toggle applies. Video sources
+// are excluded (the footage IS the visuals — faceless would be meaningless).
+export const FACELESS_SOURCES = ["text", "idea", "blog", "audio_url"] as const;
 // Written content (/v1/create_content): friendly types → legacy content_type 3/4/5/6.
 export const CONTENT_TYPES = ["blog", "facebook", "x", "linkedin"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
@@ -82,23 +86,23 @@ export interface EnhanceScriptOptions {
   idempotency_key?: string;
 }
 
-/** Options for client.suggest_ideas(). */
-export interface SuggestIdeasOptions {
-  /** Industry name (e.g. "Real Estate"). Falls back to your account industry if omitted. */
-  industry_id?: string;
-  /** How many ideas (1–20, default 5). */
-  num_topics?: number;
-  sub_industry?: string;
-  user_location?: string;
-  idempotency_key?: string;
-}
-
 /** Options for client.collect_ideas(). */
 export interface CollectIdeasOptions {
   /** Product/service description (≥10 chars) to brainstorm ideas from. */
   product_service_input: string;
   sub_industry?: string;
+  /** Where the user is based (city/state/country). Used as a hint; can
+   *  differ from `target_location`. */
   user_location?: string;
+  /** **Audience market** the videos should target (city/state/country) —
+   *  e.g. `"California, United States"`, `"Vietnam"`. Drives which local
+   *  trends, sources, and language are used; CAN differ from where the user
+   *  is based (an agency in Vietnam may target a US audience). If omitted
+   *  AND the account has no cached one, the API returns 200 with
+   *  `{object: "clarification", needs_input: "target_location", message: ...}`
+   *  instead of ideas (no credit charged) — relay the message to the user
+   *  and call again. */
+  target_location?: string;
   idempotency_key?: string;
 }
 
@@ -149,27 +153,159 @@ export interface Idea {
   level?: string;
 }
 
-/** Synchronous response of suggest_ideas / collect_ideas. */
+/** Synchronous response of collect_ideas. */
 export interface IdeasResponse {
   object: string;
-  industry?: string;
   ideas: Idea[];
 }
-// Media-ingest sources (A49): audio/video by URL (YouTube/TikTok/FB) or by an
-// uploaded file (multipart). field = the request key. output_type scene/video
+
+/** Success body for POST /v1/telegram/send (Round 27). */
+export interface TelegramMessageResponse {
+  object: "telegram_message";
+  status: "sent";
+  /** Which Telegram primitive was used. Determined by which optional url
+   *  was set on the request — text by default, photo if `photo_url`,
+   *  video if `video_url`. */
+  media_kind: "text" | "photo" | "video";
+  /** Last 4 digits of the user's chat_id, prefixed with `…`. The server
+   *  never returns the unmasked id — the caller already has access in
+   *  Telegram itself. */
+  chat_id_masked: string;
+  /** Telegram's own message_id for later edit/delete (when surfaced). */
+  telegram_message_id?: number | null;
+  request_id: string;
+}
+
+/** Success body for POST /v1/upload_asset — the `url` is publicly reachable
+ *  for 24 hours before the S3 lifecycle rule on the `assets/` prefix deletes
+ *  the object. */
+export interface AssetResponse {
+  object: "asset";
+  /** Public S3 URL — pass into create_video as audio_url/video_url, or use
+   *  inline in script_text as `![alt](url)`. */
+  url: string;
+  content_type: string;
+  size_bytes: number;
+  filename?: string;
+  /** ISO 8601 UTC timestamp when the bucket lifecycle rule will delete the object. */
+  expires_at: string;
+  ttl_hours: number;
+}
+
+/** Success body for POST /v1/upload_asset (mode='presign') — a pair of S3
+ *  URLs the caller uses to upload bytes directly to S3 without the API
+ *  proxying them. `put_url` is the pre-signed PUT (valid 1 hour); `get_url`
+ *  is the eventual public URL (valid 24 hours after the PUT lands). */
+export interface AssetPresignResponse {
+  object: "asset_presign";
+  /** Pre-signed S3 PUT URL — `PUT` your bytes here with the headers in
+   *  `headers_required`. Valid for ~1 hour. */
+  put_url: string;
+  /** Eventual public S3 URL — pass into create_video as audio_url/video_url,
+   *  or use inline in script_text as `![alt](url)`. Valid for 24 hours after
+   *  the PUT lands (bucket lifecycle). */
+  get_url: string;
+  /** Alias for `get_url` (parity with AssetResponse.url). */
+  url: string;
+  /** S3 object key (assets/{company_id}/...). */
+  key: string;
+  content_type: string;
+  filename?: string;
+  /** Headers the caller MUST send with the PUT (S3 binds Content-Type into
+   *  the signature when we presign with a ContentType). */
+  headers_required: Record<string, string>;
+  max_bytes: number;
+  /** ISO 8601 UTC timestamp when `put_url` stops being accepted. */
+  put_expires_at: string;
+  /** ISO 8601 UTC timestamp when the bucket lifecycle rule will delete the object. */
+  expires_at: string;
+  ttl_hours: number;
+}
+
+/** One edit to apply in client.modify_scene(). Today only field_name='mediaUrl'
+ *  + optional 'mediaType' are honoured. */
+export interface SceneFieldEdit {
+  field_name: string;
+  value: unknown;
+}
+
+/** Options for client.modify_scene(). */
+export interface ModifySceneOptions {
+  /** topic_id returned by /v1/create_video. */
+  id: string;
+  /** How to pick the scene. `voice_file` is the per-scene uid (most reliable). */
+  by: "id" | "voice_file" | "text";
+  /** The id / voice_file / narration snippet to match. */
+  value: string | number;
+  /** Edits to apply. Today honoured:
+   *  `{ field_name: "mediaUrl", value: "<http(s) URL>" }` + optional
+   *  `{ field_name: "mediaType", value: "image" | "video" }`. */
+  fields: SceneFieldEdit[];
+  /** Reserved. Defaults to "set". Ignored for media edits. */
+  op?: string;
+  /** Only when `by="text"`. Fuzzy-match acceptance threshold, 0..1
+   *  (default 0.5). Lower cautiously for paraphrases. */
+  min_score?: number;
+}
+
+/** Ambiguous-match candidate returned when `by="text"` is too close to call. */
+export interface SceneCandidate {
+  segment_id?: number;
+  voice_file?: string;
+  score?: number;
+  /** First ~80 chars of the scene's narration (preview). */
+  text?: string;
+}
+
+/** Response of client.modify_scene(). Inspect `object`:
+ *   - `"scene_modified"` → success (the edit was applied).
+ *   - `"clarification"` → ambiguous text match; `candidates` lists the
+ *     plausible scenes. No edit applied. Ask the user to pick one, then
+ *     call again with `by: "voice_file"` and the chosen scene's
+ *     `voice_file`. */
+export type SceneModifiedOrClarification =
+  | {
+      object: "scene_modified";
+      id: string;
+      scene_id?: number;
+      voice_file?: string;
+      score?: number;
+      applied: "media";
+      media_type?: "image" | "video";
+    }
+  | {
+      object: "clarification";
+      needs_input: "value";
+      message: string;
+      candidates: SceneCandidate[];
+    };
+
+// Media-ingest sources (A49): audio/video by URL (any public http(s) URL —
+// direct file links + YouTube/TikTok/Facebook all work) or by an uploaded file
+// (multipart). field = the request key. output_type scene/video
 // = full build; text = Remake (transcript only, A50). language/video_length/
 // research_enabled do NOT apply.
 export const MEDIA_SOURCES = {
-  video_url:  { media_type: "video", input_kind: "url",  field: "video_url" },
-  video_file: { media_type: "video", input_kind: "file", field: "video_file" },
-  audio_url:  { media_type: "audio", input_kind: "url",  field: "audio_url" },
-  audio_file: { media_type: "audio", input_kind: "file", field: "audio_file" },
+  video_url:    { media_type: "video", input_kind: "url",   field: "video_url" },
+  video_file:   { media_type: "video", input_kind: "file",  field: "video_file" },
+  audio_url:    { media_type: "audio", input_kind: "url",   field: "audio_url" },
+  audio_file:   { media_type: "audio", input_kind: "file",  field: "audio_file" },
 } as const;
 // Media caps (A49). Duration applies to ALL media and is enforced SERVER-SIDE
 // (a thin SDK can't probe duration). File size applies to UPLOADS only and IS
 // pre-validated client-side below. Mirror the dashboard2.py server constants.
-export const MEDIA_MAX_DURATION_SECONDS = 120;            // 2 min (media_too_long)
+export const MEDIA_MAX_DURATION_SECONDS = 300;            // 5 min (media_too_long)
 export const MEDIA_MAX_FILE_BYTES = 100 * 1024 * 1024;    // 100 MB (file_too_large)
+
+// Free-tier (paid=0) cap. Paid accounts hit the 80-500 / 5-1000 / 30-3000
+// word bounds + 5-min media duration above; free accounts hit a stricter
+// ~60s narration cap at 4 words/second = 240 effective spoken words for
+// text/idea/blog, and 60s media duration for audio_*/video_*. Server
+// rejects with 402 `free_tier_limit_exceeded` + `details.pricing_url`.
+export const FREE_TIER_MAX_SECONDS = 60;
+export const FREE_TIER_WORDS_PER_SECOND = 4;
+export const FREE_TIER_MAX_WORDS = FREE_TIER_MAX_SECONDS * FREE_TIER_WORDS_PER_SECOND; // 240
+export const PRICING_URL = "https://widecast.ai/#pricing_plans";
 export const VIDEO_LENGTHS = ["short", "normal"] as const;
 export type VideoLength = (typeof VIDEO_LENGTHS)[number];
 export const LANGUAGES = ["English", "Vietnamese"] as const;
@@ -287,8 +423,11 @@ export interface CreateVideoOptions {
    *  `BLOG_MIN_WORDS` (30) min, `BLOG_MAX_WORDS` (3000) max — over-max
    *  auto-truncated, surfaced in `details.input_truncated_from`. */
   blog_text?: string;
-  /** Media URL (YouTube/TikTok/Facebook) — required when source="video_url" /
-   *  "audio_url" (A49). The media's own audio becomes the narration / footage
+  /** Media URL — required when source="video_url" / "audio_url" (A49). Any
+   *  **public http(s) URL** is accepted: a direct file link (S3 / R2 /
+   *  transfer.sh / file.io / your CDN) OR a YouTube / TikTok / Facebook page
+   *  URL. Loopback / private / link-local hosts are rejected
+   *  (`unsupported_media_url`). The media's own audio becomes the narration / footage
    *  becomes b-roll. */
   video_url?: string;
   audio_url?: string;
@@ -644,7 +783,7 @@ export class Widecast {
       body.language = language;
       body.video_length = videoLength;
       body.research_enabled = researchEnabled;
-    } else { // media-ingest source (audio/video, url/file) — A49/A50
+    } else { // media-ingest source (audio/video, url/file/bytes) — A49/A50
       const media = MEDIA_SOURCES[source as keyof typeof MEDIA_SOURCES];
       if (media.input_kind === "url") {
         const value = source === "video_url" ? opts.video_url : opts.audio_url;
@@ -710,6 +849,157 @@ export class Widecast {
     return new Video(data, this);
   }
 
+  /** POST /v1/upload_asset — SYNCHRONOUS, **no credit charged**. Push an
+   *  audio / video / image file to WideCast's S3 bucket and receive a public
+   *  URL valid for **24 hours** (the bucket has a lifecycle rule on the
+   *  `assets/` prefix). Use the returned `url` as `audio_url` / `video_url`
+   *  on a subsequent `create_video` call, or paste it into `script_text` as
+   *  an inline `![alt](url)`.
+   *
+   *  Pass either a Blob/File (browsers, modern Node via `Blob`) or a
+   *  Uint8Array (`new Blob([bytes])` is wrapped internally). `filename` is
+   *  used to pick the on-disk extension on the server; required when passing
+   *  raw bytes, optional otherwise. `content_type` falls back to the Blob's
+   *  `type` and then to extension-based detection on the server. Server cap
+   *  500 MB — the SDK fast-fails locally on oversized uploads. */
+  async upload_asset(
+    file: Blob | Uint8Array,
+    opts: { filename?: string; content_type?: string } = {},
+  ): Promise<AssetResponse> {
+    let blob: Blob;
+    let filename = opts.filename ?? "";
+    const MAX_BYTES = 500 * 1024 * 1024;
+    if (file instanceof Blob) {
+      if (file.size > MAX_BYTES) {
+        throw new InvalidRequestError(
+          `asset is ${(file.size / 1024 / 1024).toFixed(1)} MB; maximum is ` +
+          `${Math.floor(MAX_BYTES / (1024 * 1024))} MB.`,
+          { code: "asset_too_large", param: "file" },
+        );
+      }
+      blob = file;
+      if (!filename && typeof (file as File).name === "string") {
+        filename = (file as File).name;
+      }
+    } else if (file instanceof Uint8Array) {
+      if (file.byteLength > MAX_BYTES) {
+        throw new InvalidRequestError(
+          `asset is ${(file.byteLength / 1024 / 1024).toFixed(1)} MB; maximum is ` +
+          `${Math.floor(MAX_BYTES / (1024 * 1024))} MB.`,
+          { code: "asset_too_large", param: "file" },
+        );
+      }
+      if (!filename) {
+        throw new InvalidRequestError(
+          "filename is required when uploading raw bytes (Uint8Array).",
+          { code: "missing_field", param: "filename" },
+        );
+      }
+      blob = new Blob([file as BlobPart], opts.content_type ? { type: opts.content_type } : {});
+    } else {
+      throw new InvalidRequestError(
+        "file must be a Blob / File or Uint8Array.",
+        { code: "invalid_request", param: "file" },
+      );
+    }
+    if (!filename) filename = "upload.bin";
+    const form = new FormData();
+    form.set("file", blob, filename);
+    return await this.#requestMultipart<AssetResponse>(
+      "/v1/upload_asset", form,
+    );
+  }
+
+  /** POST /v1/upload_asset (mode='presign') — SYNCHRONOUS, **no credit**.
+   *
+   *  Mint a pre-signed S3 PUT URL the caller uses to upload bytes directly
+   *  to S3 (no proxying through WideCast). Useful for serverless / edge
+   *  environments where the SDK process shouldn't hold the file bytes, and
+   *  the canonical path for AI-agent MCP callers.
+   *
+   *  Three-step flow:
+   *  ```
+   *  const a = await client.presign_asset("voice.mp3", { content_type: "audio/mpeg" });
+   *  await fetch(a.put_url, { method: "PUT", headers: a.headers_required, body: blob });
+   *  await client.create_video({ source: "audio_url", audio_url: a.get_url, ... });
+   *  ```
+   *
+   *  The `put_url` is valid for 1 hour to actually upload; the `get_url`
+   *  resolves for 24 hours (bucket lifecycle).
+   */
+  async presign_asset(
+    filename: string,
+    opts: { content_type?: string } = {},
+  ): Promise<AssetPresignResponse> {
+    if (!filename || typeof filename !== "string") {
+      throw new InvalidRequestError(
+        "filename is required.",
+        { code: "missing_field", param: "filename" },
+      );
+    }
+    const body: Record<string, unknown> = { mode: "presign", filename };
+    if (opts.content_type) body.content_type = opts.content_type;
+    return await this.#request<AssetPresignResponse>("POST", "/v1/upload_asset", body);
+  }
+
+  /** POST /v1/modify_scene — SYNCHRONOUS, **no credit charged**. Swap the
+   *  background image/video on ONE scene of an existing video.
+   *
+   *  Resolution: `by="id"` / `by="voice_file"` are exact; `by="text"` is
+   *  fuzzy and may return an ambiguity clarification (no edit applied).
+   *
+   *  Inspect `result.object` on the return value:
+   *    - `"scene_modified"` → success; `applied: "media"` and `media_type`.
+   *    - `"clarification"` → two scenes matched the text too closely; show
+   *      the user `result.candidates` and call again with `by: "voice_file"`.
+   *
+   *  Edits are roll-aware automatically: B-roll scenes swap the background
+   *  and sync `brollUrl`; A-roll scenes keep narrator + grid intact and
+   *  register the asset as the overlay for the next spec gen. The change is
+   *  visible in the editor immediately; call `export_video` again only when
+   *  the user wants a fresh final MP4 to reflect it.
+   *
+   *  CURRENT LIMIT: only `field_name: "mediaUrl"` (+ optional `"mediaType"`)
+   *  is honoured. Other field names return 400 `unsupported_field`. */
+  async modify_scene(opts: ModifySceneOptions): Promise<SceneModifiedOrClarification> {
+    if (!opts || typeof opts.id !== "string" || !opts.id) {
+      throw new InvalidRequestError("id (video topic_id) must be a non-empty string.",
+        { code: "invalid_id", param: "id" });
+    }
+    if (opts.by !== "id" && opts.by !== "voice_file" && opts.by !== "text") {
+      throw new InvalidRequestError("by must be one of: 'id', 'voice_file', 'text'.",
+        { code: "invalid_by", param: "by" });
+    }
+    if (opts.value === undefined || opts.value === null
+        || (typeof opts.value === "string" && opts.value.trim() === "")) {
+      throw new InvalidRequestError(
+        "value is required (the id / voice_file / narration text to match).",
+        { code: "missing_field", param: "value" });
+    }
+    if (!Array.isArray(opts.fields) || opts.fields.length === 0) {
+      throw new InvalidRequestError(
+        "fields must be a non-empty array of { field_name, value } edits.",
+        { code: "missing_field", param: "fields" });
+    }
+    for (let i = 0; i < opts.fields.length; i++) {
+      const f = opts.fields[i];
+      if (!f || typeof f !== "object"
+          || typeof (f as SceneFieldEdit).field_name !== "string"
+          || !("value" in (f as object))) {
+        throw new InvalidRequestError(
+          `fields[${i}] must be an object with 'field_name' and 'value'.`,
+          { code: "invalid_field_entry", param: "fields" });
+      }
+    }
+    const body: Record<string, unknown> = {
+      id: opts.id, by: opts.by, value: opts.value, fields: opts.fields,
+    };
+    if (opts.op) body.op = opts.op;
+    if (opts.min_score !== undefined) body.min_score = opts.min_score;
+    return await this.#request<SceneModifiedOrClarification>(
+      "POST", "/v1/modify_scene", body);
+  }
+
   async get_status(videoId: string): Promise<Video> {
     if (!videoId || typeof videoId !== "string") {
       throw new InvalidRequestError("video_id must be a non-empty string.", { code: "invalid_id", param: "video_id" });
@@ -773,19 +1063,15 @@ export class Widecast {
     return new Video(data, this);
   }
 
-  /** POST /v1/suggest_ideas — SYNCHRONOUS. Returns video topic ideas for an
-   *  industry immediately (no polling). `industry_id` falls back to your
-   *  account industry if omitted. Consumes credits. */
-  async suggest_ideas(opts: SuggestIdeasOptions = {}): Promise<IdeasResponse> {
-    const body: Record<string, unknown> = { num_topics: opts.num_topics ?? 5 };
-    if (opts.industry_id) body.industry_id = opts.industry_id;
-    if (opts.sub_industry) body.sub_industry = opts.sub_industry;
-    if (opts.user_location) body.user_location = opts.user_location;
-    return await this.#request<IdeasResponse>("POST", "/v1/suggest_ideas", body);
-  }
-
   /** POST /v1/collect_ideas — SYNCHRONOUS. Returns video ideas derived from a
-   *  product/service description (≥10 chars) immediately. Consumes credits. */
+   *  product/service description (≥10 chars) immediately. Consumes credits on
+   *  success.
+   *
+   *  If `target_location` is omitted AND the account has no cached one, the
+   *  server returns 200 with `{object: "clarification", needs_input:
+   *  "target_location", message: ...}` instead of ideas — no credit charged.
+   *  Inspect `result.object` on the return value to distinguish ideas vs.
+   *  clarification. */
   async collect_ideas(opts: CollectIdeasOptions): Promise<IdeasResponse> {
     if (!opts || typeof opts.product_service_input !== "string"
         || opts.product_service_input.trim().length < 10) {
@@ -795,6 +1081,7 @@ export class Widecast {
     const body: Record<string, unknown> = { product_service_input: opts.product_service_input.trim() };
     if (opts.sub_industry) body.sub_industry = opts.sub_industry;
     if (opts.user_location) body.user_location = opts.user_location;
+    if (opts.target_location) body.target_location = opts.target_location;
     return await this.#request<IdeasResponse>("POST", "/v1/collect_ideas", body);
   }
 
@@ -892,14 +1179,9 @@ export class Widecast {
     });
   }
 
-  /** GET /v1/foundation_videos — curated foundation-video templates. Free. */
-  async foundation_videos(opts: { industry?: string; sub_industry?: string; page?: number } = {}): Promise<any> {
-    return await this.#get("/v1/foundation_videos", {
-      industry: opts.industry,
-      sub_industry: opts.sub_industry,
-      page: opts.page ?? 0,
-    });
-  }
+  // NOTE: foundation_videos() was withdrawn from the SDK 2026-06-19 (Round 27).
+  // The REST endpoint /v1/foundation_videos still serves the dashboard UI;
+  // SDK callers shouldn't have needed it (it's an in-product navigation aid).
 
   /** GET /v1/recommendations — recommended video ideas for an industry. Free. */
   async recommendations(opts: { industry?: string; page?: number } = {}): Promise<IdeasResponse> {
@@ -946,6 +1228,45 @@ export class Widecast {
         { code: "missing_field", param: "settings" });
     }
     return await this.#request<any>("POST", "/v1/platform_settings", { platform, settings });
+  }
+
+  /** POST /v1/telegram/send — push a notification to the USER'S OWN connected
+   *  Telegram chat. SYNC, FREE. Self-notify only — the recipient is the user
+   *  who owns this API key (chat_id is resolved server-side from their
+   *  account, never accepted as input).
+   *
+   *  The user must have completed 'Connect Telegram' at
+   *  https://widecast.ai/#setup; if not, throws with
+   *  `code="telegram_not_connected"` + `details.setup_url`.
+   *
+   *  `message` is the text body in plain-text mode, or the caption when
+   *  `photo_url` / `video_url` is set. Capped at 4000 bytes plain text /
+   *  1024 bytes as caption. Pass at most one of `photo_url` / `video_url`
+   *  (Telegram cannot attach both).
+   */
+  async send_telegram_message(
+    message: string,
+    opts: {
+      parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+      photo_url?: string;
+      video_url?: string;
+    } = {},
+  ): Promise<TelegramMessageResponse> {
+    if (typeof message !== "string" || message.trim() === "") {
+      throw new InvalidRequestError(
+        "message (non-empty string) is required.",
+        { code: "missing_field", param: "message" });
+    }
+    if (opts.photo_url && opts.video_url) {
+      throw new InvalidRequestError(
+        "Provide AT MOST one of photo_url / video_url.",
+        { code: "conflicting_media", param: "photo_url" });
+    }
+    const body: Record<string, unknown> = { message };
+    if (opts.parse_mode !== undefined) body.parse_mode = opts.parse_mode;
+    if (opts.photo_url) body.photo_url = opts.photo_url;
+    if (opts.video_url) body.video_url = opts.video_url;
+    return await this.#request<TelegramMessageResponse>("POST", "/v1/telegram/send", body);
   }
 
   // ── HTTP plumbing ───────────────────────────────────────────────────────

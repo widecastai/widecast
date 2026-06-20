@@ -54,6 +54,7 @@ Other sources:
 | `"blog"` | Repurpose an existing 30–3000-word article into a video. | `blog_text` |
 | `"video_url"` / `"audio_url"` | Remake from an existing media URL. | `video_url` / `audio_url` |
 | `"video_file"` / `"audio_file"` | Same, from a local file (multipart upload — use the SDK helper). | `video_file` / `audio_file` |
+| `"audio_base64"` | Audio attached inline as base64 (≤10 MB decoded). The AI-agent path for "user attached a voice memo to the chat" — no URL or multipart. | `audio_data` (+ optional `audio_filename`) — or use the `create_video_from_audio_bytes(audioBytes, …)` helper |
 
 The full writing method (research → harvest images → 3-Layer Hook → inline media → hand-off) is a vendor-neutral skill at `https://widecast.ai/skills/video-script-writing.zip` — fetch it from any LLM before drafting a `source="text"` script.
 
@@ -64,7 +65,7 @@ import Widecast from "@widecast/sdk";
 
 const client = new Widecast({
   apiKey: "wc_live_...",                                 // or WIDECAST_API_KEY env var
-  baseUrl: "https://widecast.ai/app/dashboard2",         // default for v0.1.0 pilot
+  baseUrl: "https://widecast.ai/app/dashboard",          // default
   timeoutMs: 60_000,
   maxRetries: 3,
 });
@@ -75,17 +76,32 @@ const client = new Widecast({
 ```typescript
 client.create_video({ source, script_text?, idea_text?, blog_text?,
                       video_url?, audio_url?,
+                      audio_data?,                        // base64 — required when source="audio_base64"
+                      audio_filename?,                    // used to pick extension (audio_base64 only)
                       output_type?, language?, faceless?,
                       callback_url?, metadata?, idempotency_key? }): Promise<Video>;
 
+// Ergonomic helper for "user attached a voice memo" — Uint8Array → base64,
+// 10 MB cap enforced client-side, fast-fail before any network call.
+client.create_video_from_audio_bytes(
+  audioBytes: Uint8Array,
+  opts?: Omit<CreateVideoOptions, "source" | "audio_data"> & { filename?: string },
+): Promise<Video>;
+
 client.get_status(videoId: string): Promise<Video>;       // single check
 client.export_video(videoId: string): Promise<Video>;     // render final MP4 (scene → video)
+client.modify_scene({                                     // SYNC, no credit. Swap bg media on ONE scene
+  id, by: "voice_file"|"id"|"text", value,
+  fields: [
+    { field_name: "mediaUrl",  value: "<URL>" },          // required
+    { field_name: "mediaType", value: "image"|"video" },  // optional, auto-detected
+  ], op?, min_score?,
+}): Promise<SceneModifiedOrClarification>;                // {object:"scene_modified" | "clarification"}
 
 client.create_content({ content, content_type?, language? }): Promise<Video>;   // blog / social post
 client.enhance_script({ script_text, language?, intervention_level? }): Promise<Video>;
 
-client.suggest_ideas({ industry_id?, num_topics?, sub_industry?, user_location? }): Promise<IdeasResponse>;
-client.collect_ideas({ product_service_input, sub_industry?, user_location? }): Promise<IdeasResponse>;
+client.collect_ideas({ product_service_input, sub_industry?, user_location?, target_location? }): Promise<IdeasResponse>;
 
 client.publish({ topic_id?, text?, video_url?, photo_urls?, platforms?, title? }): Promise<PublishResponse>;
 client.list_videos({ from_record? }): Promise<unknown>;

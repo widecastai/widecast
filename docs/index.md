@@ -52,18 +52,19 @@ console.log(v.status, v.review_url);
 |---|---|---|
 | [`/v1/create_video`](endpoints/create-video.html) | POST | Submit a finished script (`source=text`), an idea brief (`source=idea`), a blog/article (`source=blog`), or an existing video/audio by URL or upload (`source=video_url`/`video_file`/`audio_url`/`audio_file`) for AI sourcing |
 | [`/v1/export_video`](endpoints/export-video.html) | POST | For `output_type=scene` videos, kick the final-MP4 renderer after review |
+| [`/v1/modify_scene`](endpoints/modify-scene.html) | POST | (sync, free) Swap the background image/video on ONE scene of an existing video |
+| [`/v1/upload_asset`](endpoints/upload-asset.html) | POST | (sync, free) Upload an audio / video / image to WideCast's S3 bucket and get back a 24-hour public URL — use as `audio_url` / `video_url` on `/v1/create_video` |
 | [`/v1/create_content`](endpoints/create-content.html) | POST | Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text |
 | [`/v1/enhance_script`](endpoints/enhance-script.html) | POST | Improve a draft video script with AI (grammar, examples, hook) |
-| [`/v1/suggest_ideas`](endpoints/suggest-ideas.html) | POST | (sync) Video topic ideas for an industry |
 | [`/v1/collect_ideas`](endpoints/collect-ideas.html) | POST | (sync) Video ideas from a product/service description |
 | [`/v1/publish`](endpoints/publish.html) | POST | Publish a video / blog / text to connected social platforms (returns request_ids → poll status) |
+| [`/v1/telegram/send`](endpoints/telegram-send.html) | POST | (sync, free) Push a notification to the user's own connected Telegram chat (self-notify only — text + optional photo/video URL) |
 | [`/v1/videos`](endpoints/library.html) | GET | (read, free) List the account's recent videos |
 | [`/v1/search`](endpoints/library.html) | GET | (read, free) Search the account's content by keywords |
 | [`/v1/account`](endpoints/library.html) | GET | (read, free) Account profile + remaining credits |
 | [`/v1/analytics`](endpoints/library.html) | GET | (read, free) Social analytics dashboard |
 | [`/v1/roadmap`](endpoints/library.html) | GET | (read, free) Content roadmap |
 | [`/v1/production_plan`](endpoints/library.html) | GET | (read, free) Weekly production plan |
-| [`/v1/foundation_videos`](endpoints/library.html) | GET | (read, free) Curated foundation-video templates |
 | [`/v1/recommendations`](endpoints/library.html) | GET | (read, free) Recommended video ideas |
 | [`/v1/connect`](endpoints/connections.html) | POST | (free) Get an OAuth link to connect a social platform |
 | [`/v1/accounts`](endpoints/connections.html) | GET | (free) List connected social platforms |
@@ -80,7 +81,7 @@ console.log(v.status, v.review_url);
 - **OpenAPI 3.1 spec:** [`openapi.yaml`](openapi.yaml) (also at `https://widecast.ai/app/dashboard2/openapi.yaml`)
 - **Python SDK:** [`widecast` on PyPI](https://pypi.org/project/widecast/)
 - **JS/TS SDK:** [`@widecast/sdk` on npm](https://www.npmjs.com/package/@widecast/sdk)
-- **MCP server (Claude / Cursor / Windsurf):** [`@widecast/mcp-server`](https://github.com/widecast) — tools `create_video` / `get_status` / `export_video`.
+- **MCP server (Claude / Cursor / Windsurf):** [`@widecast/mcp-server`](https://github.com/widecast) — tools `create_video` / `get_status` / `export_video` / `modify_scene`.
 - **Authoring Skills:** `widecast/skills/` — `video-script-writing`, `blog-writing`, `social-post-writing` (best-practice guides the AI loads on demand).
 - **LLM-friendly docs index:** [`llms.txt`](llms.txt)
 
@@ -91,8 +92,8 @@ console.log(v.status, v.review_url);
 - **Authentication**: send your key as `Authorization: Bearer wc_live_...`. When key enforcement is on, a missing/malformed/revoked key → **HTTP 401** with `error.type = "authentication_error"` and `error.code` = `missing_api_key` or `invalid_api_key`. (Enforcement is server-toggled; while it's off, the pilot accepts unauthenticated calls.)
 - Object marker on every resource: `"object": "status"`, `"object": "list"`, etc.
 - Status enum (locked): `pending | processing | completed | failed`
-- Error codes (locked, v0.1.0): `account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled`
-- Input bounds (locked): `script_text` (source=text) is **80–500 words** (~20s–2 min, used verbatim). `idea_text` (source=idea) is **5–1000 words** and `blog_text` (source=blog) is **30–3000 words** (both interpretive — over-max auto-truncated, not rejected). Media sources (`video_*`/`audio_*`) have a **2-minute duration cap** (`media_too_long`, all media) and uploads a **100 MB size cap** (`file_too_large`). SDKs export `SCRIPT_MIN_WORDS` / `SCRIPT_MAX_WORDS` / `IDEA_MIN_WORDS` / `IDEA_MAX_WORDS` / `BLOG_MIN_WORDS` / `BLOG_MAX_WORDS` / `MEDIA_MAX_DURATION_SECONDS` / `MEDIA_MAX_FILE_BYTES` constants.
+- Error codes (locked, v0.1.0): `account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long`
+- Input bounds (locked): `script_text` (source=text) is **80–500 words** (~20s–2 min, used verbatim). `idea_text` (source=idea) is **5–1000 words** and `blog_text` (source=blog) is **30–3000 words** (both interpretive — over-max auto-truncated, not rejected). Media sources (`video_*`/`audio_*`) have a **5-minute duration cap** (`media_too_long`, all media) and uploads a **100 MB size cap** (`file_too_large`). SDKs export `SCRIPT_MIN_WORDS` / `SCRIPT_MAX_WORDS` / `IDEA_MIN_WORDS` / `IDEA_MAX_WORDS` / `BLOG_MIN_WORDS` / `BLOG_MAX_WORDS` / `MEDIA_MAX_DURATION_SECONDS` / `MEDIA_MAX_FILE_BYTES` constants.
 - **Inline media in `script_text`** (source=text): embed a direct image/video file URL (`.png/.jpg/…` or `.mp4/.mov/…`) next to the line it should illustrate — WideCast strips it from the narration and uses it as that scene's visual instead of auto-sourced B-roll. Page links (YouTube/TikTok watch URLs) aren't inlined — use `source=video_url` for a whole clip. See [Create-video → Inline images & video](endpoints/create-video.html).
 - Enums (locked v0.1.0): `SOURCES` (`text`, `idea`, `blog`, `video_url`, `video_file`, `audio_url`, `audio_file`), `OUTPUT_TYPES` (`text`, `scene`, `video`), `LANGUAGES` (`English`, `Vietnamese`), `VIDEO_LENGTHS` (`short`, `normal`). For media sources `output_type="text"` = Remake (transcript only).
 - **Field-requirement parity (A38)**: every field constraint surfaces in 5 places — OpenAPI spec, SDK constants/types, this docs site's endpoint page, the playground UI (YAML + JS), and server enforcement (with a locked `error.code`). Adding an endpoint without all five = drift. `build.py` validates the YAML↔JS half automatically.

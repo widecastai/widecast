@@ -86,26 +86,26 @@ fields:
     inline_images: true
   - name: video_url
     type: text
-    label: "Video URL (YouTube / TikTok / Facebook, ≤2 min)"
+    label: "Video URL — any public http(s) (direct file link or YouTube/TikTok/Facebook, ≤5 min)"
     required: true
-    placeholder: "https://www.youtube.com/watch?v=..."
+    placeholder: "https://www.youtube.com/watch?v=...  or  https://cdn.example.com/clip.mp4"
   - name: audio_url
     type: text
-    label: "Audio/Video URL (YouTube / TikTok / Facebook, ≤2 min)"
+    label: "Audio/Video URL — any public http(s) (direct file link or YouTube/TikTok/Facebook, ≤5 min)"
     required: true
-    placeholder: "https://www.youtube.com/watch?v=..."
+    placeholder: "https://www.youtube.com/watch?v=...  or  https://transfer.sh/abc/voice.mp3"
   - name: video_file
     type: file
-    label: "Video file (≤2 min, ≤100 MB)"
+    label: "Video file (≤5 min, ≤100 MB)"
     required: true
     accept: "video/*"
-    placeholder: "Choose a video file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+    placeholder: "Choose a video file — uploaded as multipart/form-data (≤100 MB, ≤5 min)."
   - name: audio_file
     type: file
-    label: "Audio file (≤2 min, ≤100 MB)"
+    label: "Audio file (≤5 min, ≤100 MB)"
     required: true
     accept: "audio/*"
-    placeholder: "Choose an audio file — uploaded as multipart/form-data (≤100 MB, ≤2 min)."
+    placeholder: "Choose an audio file — uploaded as multipart/form-data (≤100 MB, ≤5 min)."
   - name: language
     type: select
     label: "Language"
@@ -140,7 +140,7 @@ fields:
         label: "video — auto-render final MP4"
   - name: faceless
     type: boolean
-    label: "Faceless — every scene B-roll, no narrator (scene/video · text/idea/blog only)"
+    label: "Faceless — every scene B-roll, no narrator (scene/video · text/idea/blog + audio_url)"
     required: false
     default: false
   - name: callback_url
@@ -291,7 +291,7 @@ use_cases:
 
   - id: video_url_en
     title: "🎬 Video URL → Auto-Edit · English"
-    description: "Paste a **video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)"
+    description: "Paste **any public video URL** (≤5 min) — a direct file link (S3 / R2 / transfer.sh / your CDN) OR a YouTube / TikTok / Facebook page URL. The server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)"
     request_template:
       source: video_url
       output_type: scene
@@ -309,7 +309,7 @@ use_cases:
 
   - id: audio_url_en
     title: "🎧 Audio URL → Audio-to-Video · English"
-    description: "Paste an **audio/video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server extracts the audio and uses it as the narration, generating matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)"
+    description: "Paste **any public audio/video URL** (≤5 min) — a direct file link (transfer.sh / file.io / S3 / R2 / your CDN) OR a YouTube / TikTok / Facebook page URL. The server extracts the audio and uses it as the narration, generating matching scenes. **This is the right path for an AI agent forwarding a chat-attached voice memo** — drop the file on a public host, pass the URL. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)"
     request_template:
       source: audio_url
       output_type: scene
@@ -330,7 +330,7 @@ use_cases:
   # the Copy buttons emit the file-aware snippet. No `cases:`/industries.
   - id: video_file_en
     title: "🎬 Video file → Auto-Edit · English"
-    description: "**Upload a video file** (≤2 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
+    description: "**Upload a video file** (≤5 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
     request:
       source: video_file
       output_type: scene
@@ -344,7 +344,7 @@ use_cases:
 
   - id: audio_file_en
     title: "🎧 Audio file → Audio-to-Video · English"
-    description: "**Upload an audio file** (≤2 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
+    description: "**Upload an audio file** (≤5 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data."
     request:
       source: audio_file
       output_type: scene
@@ -355,3 +355,4 @@ use_cases:
       eventual_status: completed
       has_review_url: true
       max_wait_seconds: 1500
+

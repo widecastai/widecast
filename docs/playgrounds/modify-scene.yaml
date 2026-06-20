@@ -1,0 +1,80 @@
+# Playground manifest — POST /v1/modify_scene (SYNCHRONOUS, no credit).
+# Returns success / clarification inline (no polling).
+
+endpoint:
+  method: POST
+  path: /v1/modify_scene
+
+title: Swap background media on one scene
+description: |
+  Synchronous, no credit charged. Pick ONE scene of an existing video by
+  `voice_file` (most reliable), `id`, or `text` (fuzzy), then pass a new
+  background image/video URL in `fields`. Roll-aware — server applies the
+  asset as the background (B-roll) or as the overlay (A-roll) without
+  disturbing the narrator.
+
+fields:
+  - name: id
+    type: text
+    label: "Video id (topic_id from /v1/create_video)"
+    required: true
+    placeholder: "widecast7c0d4f8a9b1e2d3f"
+  - name: by
+    type: select
+    label: "How to pick the scene"
+    required: true
+    options:
+      - { value: "voice_file", label: "voice_file (per-scene uid — most reliable)" }
+      - { value: "id",         label: "id (segment.id)" }
+      - { value: "text",       label: "text (fuzzy narration match)" }
+    default: "voice_file"
+  - name: value
+    type: text
+    label: "Value matching `by`"
+    required: true
+    placeholder: "XcR0k"
+    help: "When by='voice_file' use the scene uid; by='id' the segment.id; by='text' a narration snippet."
+  - name: fields
+    type: json
+    label: "fields[] — edits to apply"
+    required: true
+    rows: 5
+    placeholder: |
+      [
+        { "field_name": "mediaUrl",  "value": "https://cdn.example.com/coast-sunset.jpg" },
+        { "field_name": "mediaType", "value": "image" }
+      ]
+    help: "Today only mediaUrl + optional mediaType are honoured; other field names return 400 unsupported_field."
+  - name: min_score
+    type: text
+    label: "min_score (only when by='text')"
+    required: false
+    placeholder: "0.5"
+    help: "Fuzzy-match threshold 0..1. Default 0.5. Lower cautiously for paraphrases; do NOT raise past 0.9."
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: by-voice-file
+    title: "📎 Swap image on scene XcR0k"
+    description: "Most reliable — paste the scene's voice_file from /v1/status and the new image URL."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "mediaUrl"
+          value: "https://cdn.example.com/coast-sunset.jpg"
+  - id: by-text
+    title: "📝 Swap by what's said in the scene"
+    description: "Fuzzy match on the narration. May return a clarification with candidates if two scenes match too closely."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "text"
+      value: "Meta đã chi 14.3 tỷ đô để mua Scale AI"
+      fields:
+        - field_name: "mediaUrl"
+          value: "https://cdn.example.com/scale-ai-news.mp4"
+        - field_name: "mediaType"
+          value: "video"

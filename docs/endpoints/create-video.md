@@ -2,7 +2,7 @@
 
 Turn a **plain-text script**, a **short idea**, a **blog/article**, or an **existing video/audio** (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:
 
-1. **`POST /v1/create_video`** — submit `script_text` (source=text, default), `idea_text` (source=idea), `blog_text` (source=blog), **or** a media URL / file (`source=video_url|video_file|audio_url|audio_file`). Returns a `widecast*` id and initial `status: "processing"`.
+1. **`POST /v1/create_video`** — submit `script_text` (source=text, default), `idea_text` (source=idea), `blog_text` (source=blog), **or** a media URL / file (`source=video_url|video_file|audio_url|audio_file`). Returns a `widecast*` id and initial `status: "processing"`. For files attached in chat by AI agents, upload them first via [`POST /v1/upload_asset`](upload-asset.md) and pass the returned URL here.
 2. **`GET /v1/status/{id}`** — poll until `status` is `completed` (or `failed`).
 3. **`POST /v1/export_video`** — for `output_type=scene` videos, kick the final-MP4 renderer after review. See [export-video.md](export-video.md).
 
@@ -13,10 +13,12 @@ Turn a **plain-text script**, a **short idea**, a **blog/article**, or an **exis
 | `text` (default — backward-compat) | `script_text` (80-500 words, used **verbatim** by the narrator) | You've already written the script |
 | `idea` | `idea_text` (5-1000 words, longer auto-truncated) + optional `language` / `video_length` / `research_enabled` | You want the AI to write the script from a brief |
 | `blog` | `blog_text` (30-3000 words, longer auto-truncated) + optional `language` / `video_length` / `research_enabled` | You have a blog post / article and want it turned into a video script |
-| `video_url` | `video_url` (YouTube / TikTok / Facebook, ≤2 min) | **Auto-Edit** — the footage itself becomes the B-roll |
+| `video_url` | `video_url` — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min | **Auto-Edit** — the footage itself becomes the B-roll |
 | `video_file` | a video file (multipart upload) | Auto-Edit, but you upload the file instead of linking it |
-| `audio_url` | `audio_url` (YouTube / TikTok / Facebook, ≤2 min) | **Audio-to-Video** — the audio becomes the narration, the AI builds matching scenes |
+| `audio_url` | `audio_url` — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min | **Audio-to-Video** — the audio becomes the narration, the AI builds matching scenes. **The natural path for an AI agent forwarding a chat-attached voice memo:** drop it on a public host (transfer.sh, file.io, S3 / R2, your CDN, …) and pass that URL. |
 | `audio_file` | an audio file (multipart upload) | Audio-to-Video, but you upload the file |
+
+For files the AI agent received in chat (audio voice memos / short video clips / reference images), upload via [`POST /v1/upload_asset`](upload-asset.md) (or the MCP `widecast_upload_asset` tool) first — the response carries a 24-hour S3 URL. Pass that URL here as `audio_url` / `video_url`, or use it as an inline `![](url)` in `script_text`.
 
 `idea` and `blog` are **generative** sources: the server runs `ai_enhance_script` (input → narration) and then continues into the same scene-sourcing pipeline as `source=text`.
 
@@ -40,7 +42,7 @@ When `status == "completed"`:
 
 ### `faceless` — all-B-roll (no narrator)
 
-By default scenes mix **A-roll** (narrator) and **B-roll** (stock video / AI image). Set **`faceless: true`** to make **every scene B-roll with no narrator anywhere** — a "faceless" video. It's orthogonal to `output_type` (controls A/B-roll, not pipeline depth) and only valid with `output_type` `scene`/`video` for sources `text`/`idea`/`blog`. Combining it with `output_type=text` (no scenes) or a media source returns `invalid_faceless` (400). Default `false` leaves the normal A/B mix unchanged.
+By default scenes mix **A-roll** (narrator) and **B-roll** (stock video / AI image). Set **`faceless: true`** to make **every scene B-roll with no narrator anywhere** — a "faceless" video. It's orthogonal to `output_type` (controls A/B-roll, not pipeline depth) and valid with `output_type` `scene`/`video` for the script-based sources (`text`/`idea`/`blog`) AND for `source=audio_url` — the script lives in the user's audio but the visuals must still be generated, so the same toggle applies. Combining it with `output_type=text` (no scenes) or a video source (`video_url`/`video_file` — the footage IS the visuals) returns `invalid_faceless` (400). Default `false` leaves the normal A/B mix unchanged.
 
 ### Field bounds (LOCKED — A38 parity)
 
@@ -51,9 +53,9 @@ Used VERBATIM by the narrator (source=text) or interpreted by the AI (source=ide
 | `script_text` | `source=text` | 80 words (~20s) | 500 words (~2 min) | Reject `script_too_long` | `SCRIPT_MIN_WORDS` / `SCRIPT_MAX_WORDS` |
 | `idea_text` | `source=idea` | 5 words | 1000 words | **Auto-truncate** at whitespace, surfaced in `details.input_truncated_from` | `IDEA_MIN_WORDS` / `IDEA_MAX_WORDS` |
 | `blog_text` | `source=blog` | 30 words | 3000 words | **Auto-truncate** at whitespace, surfaced in `details.input_truncated_from` | `BLOG_MIN_WORDS` / `BLOG_MAX_WORDS` |
-| `video_url` / `audio_url` / `video_file` / `audio_file` | the matching media source | — | **2 minutes** (all media) + **100 MB** (uploads only) | Reject `media_too_long` / `file_too_large` | `MEDIA_MAX_DURATION_SECONDS` / `MEDIA_MAX_FILE_BYTES` |
+| `video_url` / `audio_url` / `video_file` / `audio_file` | the matching media source | — | **5 minutes** (all media) + **100 MB** (uploads only) | Reject `media_too_long` / `file_too_large` | `MEDIA_MAX_DURATION_SECONDS` / `MEDIA_MAX_FILE_BYTES` |
 
-Word count = whitespace split (`len(text.split())`) — works for English + Vietnamese. Media sources have no word bound — instead a **2-minute duration cap** (`media_too_long`, all media incl. URLs) and, for **uploaded files only**, a **100 MB size cap** (`file_too_large`). SDKs export `MEDIA_MAX_DURATION_SECONDS` (120) / `MEDIA_MAX_FILE_BYTES` (100 MB); file size is pre-validated client-side, duration is server-enforced.
+Word count = whitespace split (`len(text.split())`) — works for English + Vietnamese. Media sources have no word bound — instead a **5-minute duration cap** (`media_too_long`, all media incl. URLs) and, for **uploaded files only**, a **100 MB size cap** (`file_too_large`). SDKs export `MEDIA_MAX_DURATION_SECONDS` (300) / `MEDIA_MAX_FILE_BYTES` (100 MB); file size is pre-validated client-side, duration is server-enforced.
 
 ### Inline images & video in your script (`source=text`)
 
@@ -83,7 +85,7 @@ Want a specific shot to appear at a specific moment? Drop a **direct image or vi
 You can mix forms freely in the same script.
 
 - **Supported** — *direct file links* ending in an image extension (`.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.avif` `.svg`) or a video extension (`.mp4` `.webm` `.mov` `.m4v` `.avi`), optionally with a `?query` string.
-- **Not supported as inline assets** — page links such as `https://youtube.com/watch?v=…` or a TikTok URL (they have no media extension). To turn a *whole* clip into a video, use `source=video_url` / `audio_url` instead.
+- **Not supported as inline assets** — page links such as `https://youtube.com/watch?v=…` or a TikTok URL (they have no media extension). To turn a *whole* clip into a video, use `source=video_url` / `audio_url` instead. For files the AI agent received in chat, upload them via [`POST /v1/upload_asset`](upload-asset.md) and reuse the returned URL.
 - **Matching** — for markdown form, the alt text IS the anchor (model-provided scene description). For raw URLs, WideCast uses the ~6 words on either side. Type (image vs video) is auto-detected from the extension.
 - Multiple URLs are fine; scenes without a URL still get automatic B-roll.
 
@@ -181,6 +183,8 @@ curl -X POST ".../v1/create_video" \
 
 The SDKs wrap this: `client.create_video(source="video_file", video_file=open("clip.mp4","rb"))` (Python) / `client.create_video({ source: "video_file", video_file: blob })` (TS).
 
+**AI agents — uploading a file attached in chat:** call [`POST /v1/upload_asset`](upload-asset.md) (or the MCP `widecast_upload_asset` tool) first. The response carries a public S3 URL (24-hour TTL); pass that URL here as `audio_url` / `video_url`, or use it as an inline `![](url)` in `script_text`. The widecast-assets bucket is the canonical upload path — no need to base64 anything or shop for a third-party host.
+
 ### Field reference
 
 | Field | Type | Required | Description |
@@ -189,13 +193,13 @@ The SDKs wrap this: `client.create_video(source="video_file", video_file=open("c
 | `script_text` | string | when `source=text` | Plain narration — used **verbatim**. Must be **80–500 words** (~20s–2 min). SDK constants: `SCRIPT_MIN_WORDS` / `SCRIPT_MAX_WORDS`. May include **inline image/video URLs** (direct file links) to override B-roll for a scene — see [Inline images & video in your script](#inline-images--video-in-your-script-sourcetext). |
 | `idea_text` | string | when `source=idea` | Short brief — AI writes the narration. **5–1000 words**; over-max is auto-truncated at whitespace, NOT rejected. Original word count surfaces in `details.input_truncated_from`. SDK constants: `IDEA_MIN_WORDS` / `IDEA_MAX_WORDS`. |
 | `blog_text` | string | when `source=blog` | Blog post / article — AI condenses it into the narration. **30–3000 words**; over-max is auto-truncated at whitespace, NOT rejected. Original word count surfaces in `details.input_truncated_from`. SDK constants: `BLOG_MIN_WORDS` / `BLOG_MAX_WORDS`. |
-| `video_url` / `audio_url` | string (url) | when `source=video_url` / `audio_url` | A YouTube / TikTok / Facebook URL (≤2 min). `video_url` → footage becomes B-roll (Auto-Edit); `audio_url` → audio becomes narration (Audio-to-Video). Over the cap → `media_too_long`; non-allowed host → `unsupported_media_url`. |
+| `video_url` / `audio_url` | string (url) | when `source=video_url` / `audio_url` | **Any public http(s) URL** (≤2 min): a direct file link (S3, Cloudflare R2, transfer.sh, file.io, your CDN, …) OR a YouTube / TikTok / Facebook page URL. `video_url` → footage becomes B-roll (Auto-Edit); `audio_url` → audio becomes narration (Audio-to-Video). Over the cap → `media_too_long`. Loopback / private-network / link-local hosts (`localhost`, `10.x`, `192.168.x`, `169.254.x`, `.local`, …) are rejected as `unsupported_media_url`. |
 | `video_file` / `audio_file` | file | when `source=video_file` / `audio_file` | The media file, sent as **multipart/form-data** (the request must be multipart). Caps: **≤100 MB** (`file_too_large`, pre-validated client-side) and **≤2 min** (`media_too_long`). |
 | `language` | string | no (idea / blog) | Narration language. Default `"English"`. v0.1.0 enum: `English`, `Vietnamese`. SDK constant `LANGUAGES`. Ignored when `source=text`. |
 | `video_length` | string | no (idea / blog) | `"short"` (~90s, content_type 9, default) or `"normal"` (~3 min cap, content_type 10). SDK constant `VIDEO_LENGTHS`. Ignored when `source=text`. |
 | `research_enabled` | bool | no (idea / blog) | Default `true`. Disable only if your input is self-contained and doesn't need AI fact-checking. Ignored when `source=text`. |
 | `output_type` | string | no | Pipeline depth. `"text"` stops after the source→script phase (any source except `text` — review_url opens Script Editor; for media = Remake/transcript). `"scene"` (default) stops at scenes-ready-for-review. `"video"` auto-chains into the renderer so the final MP4 is produced — no manual `/v1/export_video` call needed. |
-| `faceless` | bool | no | Default `false`. When `true`, **every scene is B-roll** (stock video / AI image) with **no narrator A-roll** anywhere — a "faceless" video. Orthogonal to `output_type`. Only valid with `output_type` `scene`/`video` for sources `text`/`idea`/`blog`; otherwise → 400 `invalid_faceless`. SDK constant `FACELESS_SOURCES`. |
+| `faceless` | bool | no | Default `false`. When `true`, **every scene is B-roll** (stock video / AI image) with **no narrator A-roll** anywhere — a "faceless" video. Orthogonal to `output_type`. Valid with `output_type` `scene`/`video` for `text`/`idea`/`blog` AND for `source=audio_url` — same A/B-roll toggle since the audio is the narration but the visuals are generated. Rejected with 400 `invalid_faceless` when `output_type=text` (no scenes) or for video sources (footage IS the visuals). SDK constant `FACELESS_SOURCES`. |
 | `media_pool` | array[string] | no | Direct image/video file URLs **not** placed inline. WideCast downloads each (+thumbnail) and adds them to the **first scene's** media library, so the scene editor lists them and the user can drop any into any scene. Use for images you can't confidently match to a beat (inline the ones you can). Best-effort: applies on the scene-producing path (`text`/`idea`/`blog`, `output_type` `scene`/`video`); ignored for `output_type=text` / media sources. Direct file links only. |
 | `wait_for_render` | bool | no | If `true`, block up to **60s** waiting for completion. If exceeded, return in-flight state and poll. |
 | `callback_url` | string (url) | no | HTTPS URL for completion webhook (HMAC-SHA256 signed). Fires `video.processing` immediately and one terminal event (`video.completed` or `video.failed`). For `output_type=video`, `video.completed` fires only when the final MP4 is ready. |
@@ -362,15 +366,15 @@ The server mirrors the legacy `/checkProgress` logic — it queries **both** `vi
 | `missing_video_url` | 400 | `source=video_url` but `video_url` is missing/empty. |
 | `missing_audio_url` | 400 | `source=audio_url` but `audio_url` is missing/empty. |
 | `missing_media_file` | 400 | `source=video_file`/`audio_file` but no file part was sent (must be multipart/form-data). |
-| `unsupported_media_url` | 400 | The media URL is not an http(s) URL or not a YouTube / TikTok / Facebook host (or the download failed). |
-| `media_too_long` | 400 | The media exceeds the 2-minute duration cap (all media — URL or upload). |
+| `unsupported_media_url` | 400 | The media URL isn't an http(s) URL, OR the host is loopback / private / link-local (`localhost`, `10.x`, `172.16-31.x`, `192.168.x`, `169.254.x`, `.local`, `.internal`, IPv6 link-local, …), OR the underlying downloader failed to fetch it. Upload to a public location and pass that URL. |
+| `media_too_long` | 400 | The media exceeds the 2-minute duration cap (all media — URL, upload, or base64). |
 | `file_too_large` | 400 | An uploaded `video_file` / `audio_file` exceeds 100 MB (uploads only; pre-validated client-side by the SDKs too). |
 | `invalid_source` | 400 | `source` is not one of `text`, `idea`, `blog`, `video_url`, `video_file`, `audio_url`, `audio_file`. |
 | `invalid_output_type` | 400 | `output_type` not in `text`/`scene`/`video`, OR `output_type=text` combined with `source=text` (text output needs a generative source). |
 | `invalid_language` | 400 | `language` not in `LANGUAGES` (source=idea). |
 | `invalid_video_length` | 400 | `video_length` not in `VIDEO_LENGTHS` (source=idea). |
 | `invalid_research_enabled` | 400 | `research_enabled` is not a boolean (source=idea). |
-| `invalid_faceless` | 400 | `faceless` is not a boolean, OR `faceless=true` combined with `output_type=text` (no scenes) or a media source (`video_*`/`audio_*`). |
+| `invalid_faceless` | 400 | `faceless` is not a boolean, OR `faceless=true` combined with `output_type=text` (no scenes) or a video source (`video_url`/`video_file` — the footage already supplies the visuals). `source=audio_url` accepts `faceless` — the script comes from the user's audio but the visuals are generated. |
 | `missing_api_key` | 401 | API-key enforcement is on but no `Authorization: Bearer wc_live_...` header was sent. `error.type = authentication_error`. |
 | `invalid_api_key` | 401 | The API key is malformed, unknown, or revoked. `error.type = authentication_error`. |
 | `scenes_not_ready` | 409 | `/v1/export_video` called before scenes are ready. |

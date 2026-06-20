@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -17,8 +17,8 @@
   },
   "servers": [
     {
-      "url": "https://widecast.ai/app/dashboard2",
-      "description": "Dev server — Bearer wc_live_* API key"
+      "url": "https://widecast.ai/app/dashboard",
+      "description": "Production — Bearer wc_live_* API key"
     }
   ],
   "tags": [
@@ -33,6 +33,10 @@
     {
       "name": "Distribution",
       "description": "Publish finished videos / blogs / text to connected social platforms."
+    },
+    {
+      "name": "Notifications",
+      "description": "Push a notification to the user's own connected Telegram chat. Self-notify only — no recipient field."
     },
     {
       "name": "Library",
@@ -348,6 +352,111 @@
         }
       }
     },
+    "/v1/modify_scene": {
+      "post": {
+        "tags": [
+          "Videos"
+        ],
+        "operationId": "modifyScene",
+        "summary": "Edit ONE scene of an existing video (synchronous, free).",
+        "description": "Edit ONE scene of an existing video (synchronous, free).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifySceneRequest"
+              },
+              "examples": {
+                "by_voice_file": {
+                  "summary": "Swap the background image of one scene by its uid",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "mediaUrl",
+                        "value": "https://cdn.example.com/coast-sunset.jpg"
+                      }
+                    ]
+                  }
+                },
+                "by_text_with_type": {
+                  "summary": "Match by narration; declare type explicitly",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "text",
+                    "value": "Meta đã chi 14.3 tỷ đô để mua Scale AI",
+                    "fields": [
+                      {
+                        "field_name": "mediaUrl",
+                        "value": "https://cdn.example.com/scale-ai-news.mp4"
+                      },
+                      {
+                        "field_name": "mediaType",
+                        "value": "video"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "On success → `SceneModifiedResponse`. On ambiguous text match →\n`ClarificationResponse` with `candidates` (no edit applied, ask\nthe user to pick a `voice_file` and call again).\n",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SceneModifiedResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ClarificationResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/v1/create_content": {
       "post": {
         "tags": [
@@ -546,73 +655,6 @@
         }
       }
     },
-    "/v1/suggest_ideas": {
-      "post": {
-        "tags": [
-          "Content"
-        ],
-        "operationId": "suggestIdeas",
-        "summary": "Suggest video topic ideas for an industry (synchronous).",
-        "description": "Suggest video topic ideas for an industry (synchronous).",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SuggestIdeasRequest"
-              },
-              "examples": {
-                "real_estate": {
-                  "summary": "5 ideas for Real Estate",
-                  "value": {
-                    "industry_id": "Real Estate",
-                    "num_topics": 5
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The generated ideas.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              },
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/XRateLimitLimit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/XRateLimitRemaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/XRateLimitReset"
-              },
-              "X-WideCast-Version": {
-                "$ref": "#/components/headers/XWideCastVersion"
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdeasResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        }
-      }
-    },
     "/v1/collect_ideas": {
       "post": {
         "tags": [
@@ -632,7 +674,8 @@
                 "saas": {
                   "summary": "Ideas from a product description",
                   "value": {
-                    "product_service_input": "A budgeting app for freelancers with tax estimates"
+                    "product_service_input": "A budgeting app for freelancers with tax estimates",
+                    "target_location": "California, United States"
                   }
                 }
               }
@@ -641,7 +684,7 @@
         },
         "responses": {
           "200": {
-            "description": "The generated ideas.",
+            "description": "Either the generated ideas OR a clarification asking for missing\ninput (currently only `target_location`). Distinguish by `object`:\n  * `object: \"ideas\"` → IdeasResponse with the ideas array.\n  * `object: \"clarification\"` → `needs_input` names the missing\n    field; `message` is the prompt to relay to the user. No credit\n    was charged — call again with the missing field set.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -662,7 +705,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IdeasResponse"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/IdeasResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ClarificationResponse"
+                    }
+                  ]
                 }
               }
             }
@@ -675,6 +725,158 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/upload_asset": {
+      "post": {
+        "tags": [
+          "Videos"
+        ],
+        "operationId": "uploadAsset",
+        "summary": "Upload an audio / video / image (or mint a pre-signed S3 PUT URL).",
+        "description": "Upload an audio / video / image (or mint a pre-signed S3 PUT URL).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The audio / video / image file to upload."
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AssetPresignRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AssetUploadJSONRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload succeeded (multipart / base64 → `AssetResponse`) OR\npre-signed URL minted (presign → `AssetPresignResponse`).\n",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AssetResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AssetPresignResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/telegram/send": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "sendTelegramMessage",
+        "summary": "Push a notification to the user's own connected Telegram chat.",
+        "description": "Push a notification to the user's own connected Telegram chat.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramSendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message delivered.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "Telegram API rejected the message.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1317,110 +1519,6 @@
         }
       }
     },
-    "/v1/foundation_videos": {
-      "get": {
-        "tags": [
-          "Library"
-        ],
-        "operationId": "listFoundationVideos",
-        "summary": "The curated foundation-video template library.",
-        "description": "The curated foundation-video template library.",
-        "parameters": [
-          {
-            "name": "industry",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sub_industry",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Foundation templates.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              },
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/XRateLimitLimit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/XRateLimitRemaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/XRateLimitReset"
-              },
-              "X-WideCast-Version": {
-                "$ref": "#/components/headers/XWideCastVersion"
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "object": {
-                      "type": "string",
-                      "example": "list"
-                    },
-                    "total": {
-                      "type": "integer"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "thumbnail_url": {
-                            "type": "string"
-                          },
-                          "industry": {
-                            "type": "string"
-                          },
-                          "group": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
     "/v1/recommendations": {
       "get": {
         "tags": [
@@ -1841,7 +1939,7 @@
                     "url": {
                       "type": "string",
                       "format": "uri",
-                      "example": "https://origin.widecast.ai/app/dashboard2/mcp/wc_mcp_…"
+                      "example": "https://origin.widecast.ai/app/dashboard/mcp/wc_mcp_…"
                     },
                     "note": {
                       "type": "string"
@@ -2131,7 +2229,7 @@
               "face_clone",
               "teleprompter"
             ],
-            "description": "User's explicit answer to the three-way production question.\nApplies to source=text/idea/blog (ignored for media sources).\nThree valid values, each with a different downstream UX:\n  * `faceless` — B-roll only, no narrator on screen. The video\n    is fully automated; user just reviews and renders.\n  * `face_clone` — the user's pre-trained Face clone + Voice\n    clone speaks the script. The user **must have set both up\n    at https://widecast.ai/#setup** before the render runs —\n    if they haven't, the AI agent should point them there\n    during the dialog.\n  * `teleprompter` — the user records themselves reading the\n    script via WideCast's built-in teleprompter (after the\n    scenes prepare). No clone needed; user physically records.\nBoth `face_clone` and `teleprompter` produce a \"normal\" video\n(narrator on screen) and map to the legacy `faceless=false`\non the REST endpoint — the distinction is purely so the AI\nagent tells the user the right next step.\n**MCP / Action callers**: pass the user's answer here; the MCP\nwrapper performs the mapping. **SDK / curl callers**: skip this\nfield, set `faceless` directly as before.\n"
+            "description": "User's explicit answer to the three-way production question.\nApplies to source=text/idea/blog AND source=audio_url\n(ignored for video sources — the footage IS the visuals).\nThree valid values, each with a different downstream UX:\n  * `faceless` — B-roll only, no narrator on screen. The video\n    is fully automated; user just reviews and renders.\n  * `face_clone` — the user's pre-trained Face clone + Voice\n    clone speaks the script. The user **must have set both up\n    at https://widecast.ai/#setup** before the render runs —\n    if they haven't, the AI agent should point them there\n    during the dialog.\n  * `teleprompter` — the user records themselves reading the\n    script via WideCast's built-in teleprompter (after the\n    scenes prepare). No clone needed; user physically records.\nBoth `face_clone` and `teleprompter` produce a \"normal\" video\n(narrator on screen) and map to the legacy `faceless=false`\non the REST endpoint — the distinction is purely so the AI\nagent tells the user the right next step.\n**Audio-source nuance** (source=audio_url): the user's original\nvoice in the recording IS the narration in every mode — it is\nnever re-synthesized via TTS. `face_clone` here means the clone's\nface is on screen lip-synced to the user's original audio (not\nto a clone-voice resynthesis); the clone contributes only the\nvisual face, the voice stays the user's.\n**MCP / Action callers**: pass the user's answer here; the MCP\nwrapper performs the mapping. **SDK / curl callers**: skip this\nfield, set `faceless` directly as before.\n"
           },
           "source": {
             "type": "string",
@@ -2145,7 +2243,7 @@
               "audio_file"
             ],
             "default": "text",
-            "description": "Discriminates the input flow:\n  * `text` (default — backward-compat): provide `script_text`\n    used VERBATIM by the narrator.\n  * `idea`: provide `idea_text`; server writes a narration from\n    the idea (AI) then continues into the same scene-sourcing\n    pipeline as `text`.\n  * `blog`: provide `blog_text` (an article to repurpose);\n    identical pipeline to `idea`, just a longer input.\n  * `video_url` / `audio_url`: provide `video_url` / `audio_url`\n    (a YouTube / TikTok / Facebook URL). Media-ingest (A49) — the\n    script already lives in the media. The footage becomes the\n    B-roll (video) / the audio becomes the narration (audio).\n  * `video_file` / `audio_file`: upload the media file. Send the\n    request as **multipart/form-data** with the file in the\n    `video_file` / `audio_file` part (mirrors the UI upload).\n`idea` and `blog` are generative sources — they support\n`output_type: \"text\"` (stop at the editable script). Media sources\nsupport `output_type: \"text\"` too = Remake (A50): extract the\ntranscript only, no footage/scene build.\n",
+            "description": "Discriminates the input flow:\n  * `text` (default — backward-compat): provide `script_text`\n    used VERBATIM by the narrator.\n  * `idea`: provide `idea_text`; server writes a narration from\n    the idea (AI) then continues into the same scene-sourcing\n    pipeline as `text`.\n  * `blog`: provide `blog_text` (an article to repurpose);\n    identical pipeline to `idea`, just a longer input.\n  * `video_url` / `audio_url`: provide `video_url` / `audio_url`\n    — **any public http(s) URL**. Direct file links (S3, R2,\n    transfer.sh, file.io, your own CDN — anywhere an AI agent or\n    user can drop the file and copy back a URL) AND platform pages\n    (YouTube / TikTok / Facebook) both work. Loopback / private /\n    link-local hosts are rejected (`unsupported_media_url`).\n    Media-ingest (A49) — the script already lives in the media.\n    The footage becomes the B-roll (video) / the audio becomes\n    the narration (audio).\n  * `video_file` / `audio_file`: upload the media file. Send the\n    request as **multipart/form-data** with the file in the\n    `video_file` / `audio_file` part (mirrors the UI upload).\n**AI agent path for \"user attached a file in chat\":** call\n`POST /v1/upload_asset` first (or the MCP `widecast_upload_asset`\ntool), get back a public S3 URL with a 24-hour TTL, then pass\nthat URL here as `audio_url` / `video_url`. Do NOT inline-base64.\n`idea` and `blog` are generative sources — they support\n`output_type: \"text\"` (stop at the editable script). Media sources\nsupport `output_type: \"text\"` too = Remake (A50): extract the\ntranscript only, no footage/scene build.\n",
             "x-widecast-enum-locked": true
           },
           "script_text": {
@@ -2177,34 +2275,34 @@
           "video_url": {
             "type": "string",
             "format": "uri",
-            "description": "**Required when `source=\"video_url\"`.** A YouTube / TikTok /\nFacebook video URL. The server downloads it, then the footage\nbecomes the B-roll (Auto-Edit). Non-allowed hosts → HTTP 400\n`unsupported_media_url`; media over 2 minutes → `media_too_long`.\n",
+            "description": "**Required when `source=\"video_url\"`.** A YouTube / TikTok /\nFacebook video URL. The server downloads it, then the footage\nbecomes the B-roll (Auto-Edit). Non-allowed hosts → HTTP 400\n`unsupported_media_url`; media over 5 minutes → `media_too_long`.\n",
             "x-widecast-required-when": "source == \"video_url\"",
-            "x-widecast-max-duration-seconds": 120,
+            "x-widecast-max-duration-seconds": 300,
             "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
           },
           "audio_url": {
             "type": "string",
             "format": "uri",
-            "description": "**Required when `source=\"audio_url\"`.** A YouTube / TikTok /\nFacebook URL whose audio becomes the narration (Audio-to-Video).\nSame host allow-list + 2-minute cap as `video_url`.\n",
+            "description": "**Required when `source=\"audio_url\"`.** A YouTube / TikTok /\nFacebook URL whose audio becomes the narration (Audio-to-Video).\nSame host allow-list + 5-minute cap as `video_url`.\n**Voice handling**: the user's original voice in the audio is kept\nverbatim as the narration in every production_mode (it is never\nre-synthesized via TTS). If they pick `production_mode=\"face_clone\"`,\nthe clone's face is lip-synced TO the user's original audio —\nvoice stays the user's, only the on-screen face is the clone.\n",
             "x-widecast-required-when": "source == \"audio_url\"",
-            "x-widecast-max-duration-seconds": 120,
+            "x-widecast-max-duration-seconds": 300,
             "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
           },
           "video_file": {
             "type": "string",
             "format": "binary",
-            "description": "**Required when `source=\"video_file\"`.** The video file, sent as\nmultipart/form-data. Caps: **≤ 100 MB** (`file_too_large`) and\n**≤ 2 minutes** (`media_too_long`). Only present in the multipart\nrequest variant.\n",
+            "description": "**Required when `source=\"video_file\"`.** The video file, sent as\nmultipart/form-data. Caps: **≤ 100 MB** (`file_too_large`) and\n**≤ 5 minutes** (`media_too_long`). Only present in the multipart\nrequest variant.\n",
             "x-widecast-required-when": "source == \"video_file\"",
             "x-widecast-max-bytes": 104857600,
-            "x-widecast-max-duration-seconds": 120
+            "x-widecast-max-duration-seconds": 300
           },
           "audio_file": {
             "type": "string",
             "format": "binary",
-            "description": "**Required when `source=\"audio_file\"`.** The audio file, sent as\nmultipart/form-data. Caps: **≤ 100 MB** (`file_too_large`) and\n**≤ 2 minutes** (`media_too_long`). Only present in the multipart\nrequest variant.\n",
+            "description": "**Required when `source=\"audio_file\"`.** The audio file, sent as\nmultipart/form-data. Caps: **≤ 100 MB** (`file_too_large`) and\n**≤ 5 minutes** (`media_too_long`). Only present in the multipart\nrequest variant.\n",
             "x-widecast-required-when": "source == \"audio_file\"",
             "x-widecast-max-bytes": 104857600,
-            "x-widecast-max-duration-seconds": 120
+            "x-widecast-max-duration-seconds": 300
           },
           "language": {
             "type": "string",
@@ -2246,8 +2344,8 @@
           "faceless": {
             "type": "boolean",
             "default": false,
-            "description": "**Used when `output_type` is `scene` or `video`** (sources\ntext / idea / blog). When `true`, EVERY scene is rendered as\nB-roll (stock video / AI image) with NO narrator A-roll anywhere —\na \"faceless\" video. When `false` (default), scenes mix narrator\nA-roll + B-roll as usual. Rejected with HTTP 400 `invalid_faceless`\nwhen `output_type=\"text\"` (no scenes are produced) or for media\nsources (`video_*` / `audio_*` already supply their own visuals).\n",
-            "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\")"
+            "description": "**Used when `output_type` is `scene` or `video`** for sources\ntext / idea / blog AND for audio sources (`audio_url` /\n`audio_base64`) — the script comes from a text input OR from\ntranscribing the user's audio, but the visuals must still be\ngenerated, so the same A/B-roll toggle applies. When `true`,\nEVERY scene is rendered as B-roll (stock video / AI image) with\nNO narrator A-roll anywhere — a \"faceless\" video. When `false`\n(default), scenes mix narrator A-roll + B-roll as usual.\nRejected with HTTP 400 `invalid_faceless` when `output_type=\"text\"`\n(no scenes are produced) or for video sources (`video_url` /\n`video_file` — the footage IS the visuals).\n",
+            "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\",\"audio_url\",\"audio_base64\")"
           },
           "media_pool": {
             "type": "array",
@@ -2290,6 +2388,394 @@
           "user_confirmed_render": {
             "type": "boolean",
             "description": "Confirmation flag for AI agents calling via MCP or ChatGPT Action.\n**MCP callers**: REQUIRED (the MCP wrapper rejects calls where\nthis is missing or false). **ChatGPT Action callers**: should set\ntrue after asking the user \"Render the final video now, or do\nyou want to review the scenes first?\" and getting an explicit\nyes. **SDK / curl / Postman callers**: this field is ignored by\nthe REST endpoint. Each export is a new decision — never infer\nfrom earlier in the conversation; even if the user wanted the\nfinal video originally, ask again each time.\n"
+          }
+        }
+      },
+      "ModifySceneRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "by",
+          "value",
+          "fields"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^widecast[a-zA-Z0-9]{12,32}$",
+            "description": "`topic_id` from `/v1/create_video`. Same id used by `/v1/status`\nand `/v1/export_video`. The video must have reached\n`scenes_ready_for_review` (HTTP 409 otherwise).\n",
+            "example": "widecast7c0d4f8a9b1e2d3f"
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "voice_file",
+              "text"
+            ],
+            "description": "How to pick the scene.\n  * `id` — exact match on `segment.id` (most reliable when\n    /v1/status has given you one).\n  * `voice_file` — exact match on the per-scene uid (also the\n    mp3 narration filename).\n  * `text` — fuzzy match against `segment.text`. If two scenes\n    match too closely the response is a `ClarificationResponse`\n    — pass `candidates` to the user and call again with\n    `by=\"voice_file\"`.\n",
+            "example": "voice_file"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "The id / voice_file string / narration snippet to match.",
+            "example": "XcR0k"
+          },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Edits to apply. Today honoured:\n  * `{field_name: \"mediaUrl\", value: \"<http(s) URL>\"}` —\n    background image OR video for this scene.\n  * `{field_name: \"mediaType\", value: \"image\" | \"video\"}` —\n    optional; auto-detected from the URL extension if omitted.\nOther field names return `unsupported_field` (HTTP 400).\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "field_name",
+                "value"
+              ],
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "example": "mediaUrl"
+                },
+                "value": {
+                  "description": "Any JSON value; for media edits, a string URL."
+                }
+              }
+            }
+          },
+          "op": {
+            "type": "string",
+            "default": "set",
+            "description": "Reserved for future generic field ops. Defaults to `set`. Ignored\nfor the current media-only edit path.\n"
+          },
+          "min_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "Only when `by=\"text\"`. Acceptance threshold for fuzzy match.\nLower it cautiously when the user paraphrased; raising past 0.9\nusually causes false negatives because exact text rarely matches\nverbatim.\n"
+          }
+        },
+        "description": "Body for POST /v1/modify_scene. SYNCHRONOUS, no credit charged. On\nambiguous text match the response is a 200 `ClarificationResponse`\n(with `candidates`) — no edit applied, retry with `by=\"voice_file\"`.\n"
+      },
+      "SceneCandidate": {
+        "type": "object",
+        "description": "One ambiguous-match candidate returned when `by=\"text\"` could not\ndecide between two or more scenes. Use `voice_file` (preferred) or\n`segment_id` to call /v1/modify_scene again with `by=\"voice_file\"`.\n",
+        "properties": {
+          "segment_id": {
+            "type": "integer",
+            "description": "segment.id of the candidate."
+          },
+          "voice_file": {
+            "type": "string",
+            "description": "Stable per-scene uid."
+          },
+          "score": {
+            "type": "number",
+            "description": "Fuzzy-match score 0..1."
+          },
+          "text": {
+            "type": "string",
+            "description": "First ~80 chars of the scene's narration (preview)."
+          }
+        }
+      },
+      "SceneModifiedResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "scene_id",
+          "voice_file",
+          "applied"
+        ],
+        "description": "Success body for POST /v1/modify_scene.",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "scene_modified"
+          },
+          "id": {
+            "type": "string",
+            "description": "topic_id (same as the request)."
+          },
+          "scene_id": {
+            "type": "integer",
+            "description": "segment.id of the scene that was edited."
+          },
+          "voice_file": {
+            "type": "string",
+            "description": "voice_file uid of the edited scene."
+          },
+          "score": {
+            "type": "number",
+            "description": "Resolution confidence (1.0 for `by=\"id\"` and `by=\"voice_file\"`;\nthe fuzzy score for `by=\"text\"`).\n"
+          },
+          "applied": {
+            "type": "string",
+            "enum": [
+              "media"
+            ],
+            "description": "Which family of edits ran. Today only `media`."
+          },
+          "media_type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video"
+            ],
+            "description": "Set when `applied=\"media\"`. The resolved asset type."
+          }
+        }
+      },
+      "AssetResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "url",
+          "content_type",
+          "size_bytes",
+          "expires_at",
+          "ttl_hours"
+        ],
+        "description": "Success body for POST /v1/upload_asset (multipart or JSON+base64). The\n`url` is publicly reachable (S3 anonymous-read), valid for **24\nhours** before the bucket lifecycle rule on the `assets/` prefix\ndeletes the object.\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "asset"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public S3 URL — pass into /v1/create_video as audio_url / video_url, or use as an inline `![](url)` in script_text.",
+            "example": "https://widecast-assets.s3.us-west-1.amazonaws.com/assets/huubinhnguyen/4f1a3b9c…d2.mp3"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "The Content-Type the object was stored with (may differ from the request if defaulted from the extension).",
+            "example": "audio/mpeg"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "description": "Bytes stored."
+          },
+          "filename": {
+            "type": "string",
+            "description": "Original basename of the upload (≤128 chars). For tracking only; not part of the URL path.",
+            "example": "voice_memo.mp3"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the bucket lifecycle rule will delete the object.",
+            "example": "2026-06-16T12:36:39Z"
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "description": "TTL relative to upload time, in hours.",
+            "example": 24
+          }
+        }
+      },
+      "AssetPresignRequest": {
+        "type": "object",
+        "required": [
+          "mode",
+          "filename"
+        ],
+        "description": "Request body for POST /v1/upload_asset with `mode: \"presign\"` — the\npath AI agents take (MCP can't carry binary). Server mints an S3 PUT\nURL the caller uses directly. No bytes through this call.\n",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "presign"
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Original filename — used to pick the S3 extension (`.mp4`, `.mp3`, `.png`, …). Basename only; any path is stripped."
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Optional MIME type. Used by the downstream pipeline only (informational) — NOT bound to the S3 signature, so the caller does NOT need to echo it back on the PUT."
+          }
+        }
+      },
+      "AssetUploadJSONRequest": {
+        "type": "object",
+        "required": [
+          "file_data",
+          "filename"
+        ],
+        "description": "Legacy / small-file JSON body — bytes inline as base64. Server cap\n500 MB decoded; the MCP transport caps you to ~25 MB per call, so\nagents take the `AssetPresignRequest` path instead.\n",
+        "properties": {
+          "file_data": {
+            "type": "string",
+            "format": "byte",
+            "description": "Raw asset bytes, **base64-encoded**. No `data:...;base64,` prefix needed (silently stripped)."
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Original filename — used to pick the on-disk extension (`.mp4`, `.mp3`, `.png`, …)."
+          },
+          "content_type": {
+            "type": "string",
+            "description": "Optional MIME type (e.g. `audio/mpeg`, `video/mp4`, `image/jpeg`). Falls back to detection from the filename extension if omitted."
+          }
+        }
+      },
+      "AssetPresignResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "put_url",
+          "get_url",
+          "url",
+          "key",
+          "content_type",
+          "headers_required",
+          "max_bytes",
+          "put_expires_at",
+          "expires_at",
+          "ttl_hours"
+        ],
+        "description": "Success body for POST /v1/upload_asset with `mode: \"presign\"`. The\ncaller PUTs the asset bytes to `put_url` (must echo back the\n`headers_required` Content-Type), then uses `get_url` as their public\nURL. `put_url` is valid for 1 hour; `get_url` resolves for 24 hours\nafter the PUT lands (bucket lifecycle).\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "asset_presign"
+          },
+          "put_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Pre-signed S3 PUT URL. PUT your bytes here with the headers in `headers_required`. Valid for 1 hour."
+          },
+          "get_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public S3 URL — pass into /v1/create_video as audio_url / video_url, or use as an inline `![](url)` in script_text."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Alias for `get_url`."
+          },
+          "key": {
+            "type": "string",
+            "description": "S3 object key (`assets/{company_id}/...`)."
+          },
+          "content_type": {
+            "type": "string",
+            "example": "audio/mpeg"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "headers_required": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers the caller MUST add to the PUT. Empty by design — the\nsignature only binds `host`, so `curl -X PUT --upload-file <file>\n\"<put_url>\"` (no extra headers) works as-is across HTTP clients.\n"
+          },
+          "max_bytes": {
+            "type": "integer",
+            "description": "Hard server cap on the PUT body size, in bytes."
+          },
+          "put_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when `put_url` stops being accepted."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 UTC timestamp when the bucket lifecycle rule will delete the object."
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "description": "TTL relative to upload time, in hours.",
+            "example": 24
+          }
+        }
+      },
+      "TelegramSendRequest": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "description": "Body for `POST /v1/telegram/send`. The recipient chat is resolved\nserver-side from the API key's company doc — there is no\n`chat_id` / `to` field by design (prevents using WideCast as a\nTelegram spam relay).\n",
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "description": "Text body in plain-text mode, OR the caption when `photo_url` /\n`video_url` is set. Telegram caps captions at 1024 bytes — the\nserver pre-validates and returns `message_too_long` (400) if\nyou exceed that in caption mode.\n"
+          },
+          "parse_mode": {
+            "type": "string",
+            "enum": [
+              "Markdown",
+              "MarkdownV2",
+              "HTML"
+            ],
+            "description": "Optional Telegram formatting mode. Omit for plain text. `HTML`\nsupports a small tag subset (b, i, u, s, code, pre, a); the\nserver strips other tags.\n"
+          },
+          "photo_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional photo to attach. Public http(s) URL — Telegram\ndownloads it server-side. Mutually exclusive with `video_url`.\n"
+          },
+          "video_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional video to attach. Public http(s) URL — Telegram\ndownloads it server-side. Mutually exclusive with `photo_url`.\n"
+          }
+        }
+      },
+      "TelegramMessageResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "status",
+          "media_kind",
+          "chat_id_masked",
+          "request_id"
+        ],
+        "description": "Success body for POST /v1/telegram/send. Telegram returned 2xx and\nthe message was delivered. `chat_id_masked` is `…` + the last 4\ndigits of the user's chat_id (the unmasked id is never returned —\nthe caller already has access in Telegram itself).\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "telegram_message"
+          },
+          "status": {
+            "type": "string",
+            "const": "sent"
+          },
+          "media_kind": {
+            "type": "string",
+            "enum": [
+              "text",
+              "photo",
+              "video"
+            ]
+          },
+          "chat_id_masked": {
+            "type": "string",
+            "example": "…1234"
+          },
+          "telegram_message_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Upstream Telegram message_id when surfaced; useful for later edit/delete."
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },
@@ -2374,32 +2860,6 @@
         },
         "description": "Body for POST /v1/enhance_script. Async — returns a widecast* id +\n`result.review_url` (Script Editor) in the create response itself\n(share immediately; editor shows a spinner). Poll GET /v1/status/{id}\nuntil `completed` for the final enhanced script.\n"
       },
-      "SuggestIdeasRequest": {
-        "type": "object",
-        "properties": {
-          "industry_id": {
-            "type": "string",
-            "description": "Industry name (e.g. \"Real Estate\"). Required UNLESS your account\nalready has an industry set (then it falls back to that).\n",
-            "example": "Real Estate"
-          },
-          "num_topics": {
-            "type": "integer",
-            "default": 5,
-            "minimum": 1,
-            "maximum": 20,
-            "description": "How many ideas to return (1–20)."
-          },
-          "sub_industry": {
-            "type": "string",
-            "description": "Optional sub-industry refinement."
-          },
-          "user_location": {
-            "type": "string",
-            "description": "Optional location hint (e.g. \"US\")."
-          }
-        },
-        "description": "Body for POST /v1/suggest_ideas (synchronous → IdeasResponse)."
-      },
       "CollectIdeasRequest": {
         "type": "object",
         "required": [
@@ -2416,10 +2876,17 @@
             "type": "string"
           },
           "user_location": {
-            "type": "string"
+            "type": "string",
+            "description": "Where the user is based (city/state/country). Used as a hint; can\ndiffer from `target_location` (a Vietnam-based agency may target\na US audience).\n",
+            "example": "Vietnam"
+          },
+          "target_location": {
+            "type": "string",
+            "description": "**Required (semantically).** Audience market the videos should\ntarget (city/state/country). Drives which local trends, sources,\nand language are used. If you call without this AND the account\ndoesn't have one cached, the API returns **HTTP 200** with\n`{object: \"clarification\", needs_input: \"target_location\", message: …}`\nand DOES NOT charge a credit — relay the message to the user,\nget their answer, then retry. Do NOT infer from chat context —\nask explicitly; the target market can differ from where the user\nis based.\n",
+            "example": "California, United States"
           }
         },
-        "description": "Body for POST /v1/collect_ideas (synchronous → IdeasResponse)."
+        "description": "Body for POST /v1/collect_ideas (synchronous → IdeasResponse OR Clarification)."
       },
       "Idea": {
         "type": "object",
@@ -2448,20 +2915,48 @@
       },
       "IdeasResponse": {
         "type": "object",
-        "description": "Synchronous response for /v1/suggest_ideas + /v1/collect_ideas.",
+        "description": "Synchronous response for /v1/collect_ideas.",
         "properties": {
           "object": {
             "type": "string",
             "example": "ideas"
           },
-          "industry": {
-            "type": "string",
-            "description": "Resolved industry (suggest_ideas only)."
-          },
           "ideas": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Idea"
+            }
+          }
+        }
+      },
+      "ClarificationResponse": {
+        "type": "object",
+        "description": "Returned by endpoints that need an additional input from the user\nbefore they can produce a result. The server returns HTTP 200 (NOT\nan error) so AI agents can relay the prompt without surfacing it as\na failure. No credits are charged for this response. The endpoint\nis safe to retry as soon as the named field is provided.\n\nCurrently emitted by:\n  * POST /v1/collect_ideas — when `target_location` is missing AND\n    the account has no cached target market.\n  * POST /v1/modify_scene — when `by=\"text\"` matches two or more\n    scenes too closely; `candidates` carries the list to disambiguate\n    with the user.\n",
+        "required": [
+          "object",
+          "needs_input",
+          "message"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "clarification"
+          },
+          "needs_input": {
+            "type": "string",
+            "description": "Name of the missing input field — match it against the request\nschema. Set the value the user provides on this field and retry\nthe same endpoint.\n",
+            "example": "target_location"
+          },
+          "message": {
+            "type": "string",
+            "description": "Prompt to relay to the user (in their language if appropriate).\nAlready explains what the field is, why it matters, and what\nformat to expect.\n",
+            "example": "Which target market / audience location should these video ideas target? e.g. 'California, United States', 'Texas, US', or 'Vietnam'."
+          },
+          "candidates": {
+            "type": "array",
+            "description": "Only set by /v1/modify_scene when `by=\"text\"` is ambiguous. List\nof scenes that matched the supplied text closely enough to be\nplausible. Show the `text` previews to the user, then call\n/v1/modify_scene again with `by=\"voice_file\"` and the chosen\nscene's `voice_file`.\n",
+            "items": {
+              "$ref": "#/components/schemas/SceneCandidate"
             }
           }
         }

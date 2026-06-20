@@ -5,8 +5,9 @@ Auto-generated from widecast/docs/playgrounds/collect-ideas.yaml.
 """
 from widecast import Widecast
 
-client = Widecast(api_key="wc_live_REPLACE_ME", base_url="https://widecast.ai/app/dashboard2")
+client = Widecast(api_key="wc_live_REPLACE_ME", base_url="https://widecast.ai/app/dashboard")
 
 resp = client.v1_collect_ideas(**{ 'product_service_input': 'A budgeting app for freelancers with automatic tax '
-                           'estimates'})
+                           'estimates',
+  'target_location': 'California, United States'})
 print(resp)

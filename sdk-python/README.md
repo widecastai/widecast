@@ -55,6 +55,7 @@ Other sources:
 | `"blog"` | Repurpose an existing 30–3000-word article into a video. | `blog_text` |
 | `"video_url"` / `"audio_url"` | Remake from an existing media URL. | `video_url` / `audio_url` |
 | `"video_file"` / `"audio_file"` | Same, from a local file (multipart upload — use the SDK helper). | `video_file` / `audio_file` |
+| `"audio_base64"` | Audio attached inline as base64 (≤10 MB decoded). The AI-agent path for "user attached a voice memo to the chat" — no URL or multipart. | `audio_data` (+ optional `audio_filename`) — or use the `create_video_from_audio_bytes(audio_bytes, …)` helper |
 
 The full writing method (research → harvest images → 3-Layer Hook → inline media → hand-off) is a vendor-neutral skill at `https://widecast.ai/skills/video-script-writing.zip` — fetch it from any LLM before drafting a `source="text"` script.
 
@@ -66,7 +67,7 @@ from widecast import Widecast
 # API key from env (WIDECAST_API_KEY) or explicit
 client = Widecast(
     api_key="wc_live_...",
-    base_url="https://widecast.ai/app/dashboard2",   # default for v0.1.0 pilot
+    base_url="https://widecast.ai/app/dashboard",   # default
     timeout=60.0,
     max_retries=3,
 )
@@ -76,24 +77,40 @@ client = Widecast(
 
 ```python
 client.create_video(
-    source,                       # "text" | "idea" | "blog" | "video_url" | "audio_url" | ...
+    source,                       # "text" | "idea" | "blog" | "video_url" | "audio_url" | "audio_base64" | ...
     script_text=None,             # required when source="text"
     idea_text=None,               # required when source="idea"
     blog_text=None,               # required when source="blog"
     video_url=None, audio_url=None,
+    audio_data=None,              # base64-encoded, required when source="audio_base64"
+    audio_filename=None,          # used to pick extension (audio_base64 only)
     output_type=None,             # "text" | "scene" | "video"
     language=None, faceless=None,
     callback_url=None, metadata=None, idempotency_key=None,
 ) -> Video
 
+# Ergonomic helper for the "user attached a voice memo" path — bytes → base64,
+# 10 MB cap enforced client-side, fast-fail before any network call.
+client.create_video_from_audio_bytes(
+    audio_bytes,                  # raw bytes
+    filename=None,                # original filename (used for the file extension)
+    **create_video_kwargs,        # output_type, callback_url, metadata, idempotency_key, ...
+) -> Video
+
 client.get_status(video_id) -> Video       # single check
 client.export_video(video_id) -> Video     # render final MP4 (scene → video)
+client.modify_scene(                       # SYNC, no credit. Swap bg media on ONE scene
+    video_id, by="voice_file"|"id"|"text", value=..., fields=[
+        {"field_name": "mediaUrl", "value": "<URL>"},                 # required
+        {"field_name": "mediaType", "value": "image"|"video"},        # optional, auto-detected
+    ], op=None, min_score=None,
+) -> dict   # {object:"scene_modified", ...} or {object:"clarification", candidates:[...]}
 
 client.create_content(content, content_type="blog", language=None) -> Video
 client.enhance_script(script_text, language=None, intervention_level=None) -> Video
 
-client.suggest_ideas(industry_id=None, num_topics=None, sub_industry=None, user_location=None)
-client.collect_ideas(product_service_input, sub_industry=None, user_location=None)
+client.collect_ideas(product_service_input, sub_industry=None, user_location=None,
+                     target_location=None)
 
 client.publish(topic_id=None, text=None, video_url=None, photo_urls=None, platforms=None, title=None)
 client.list_videos(from_record=0)

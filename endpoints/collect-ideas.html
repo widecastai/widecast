@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Generate ideas from a product — `POST /v1/collect_ideas` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits.">
+  <meta name="description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits on success.">
   <link rel="canonical" href="https://widecast.ai/endpoints/collect-ideas.html">
 
   <meta property="og:title" content="Generate ideas from a product — `POST /v1/collect_ideas` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits.">
+  <meta property="og:description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits on success.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/collect-ideas.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Generate ideas from a product — `POST /v1/collect_ideas` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits.">
+  <meta name="twitter:description" content="**Synchronous.** Returns video ideas derived from a **product/service description** (≥10 chars) **immediately** — no polling. Consumes credits on success.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,8 +57,8 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="generate-ideas-from-a-product-post-v1collect_ideas">Generate ideas from a product — <code>POST /v1/collect_ideas</code></h1>
-<p><strong>Synchronous.</strong> Returns video ideas derived from a <strong>product/service description</strong> (≥10 chars) <strong>immediately</strong> — no polling. Consumes credits.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/collect_ideas</code></div><section class="wc-pg-example" data-cfg="playgrounds/collect-ideas.json" data-usecase-id="collect" id="ex-collect-ideas--collect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🧩 Ideas from a product</h3><p class="wc-pg-example-desc">Describe a product/service, then Run. Ideas come back in the response.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<p><strong>Synchronous.</strong> Returns video ideas derived from a <strong>product/service description</strong> (≥10 chars) <strong>immediately</strong> — no polling. Consumes credits on success.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/collect_ideas</code></div><section class="wc-pg-example" data-cfg="playgrounds/collect-ideas.json" data-usecase-id="collect" id="ex-collect-ideas--collect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🧩 Ideas from a product</h3><p class="wc-pg-example-desc">Describe a product/service + audience market, then Run. Ideas come back in the response.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h3 id="request-fields">Request fields</h3>
 <table>
@@ -78,20 +78,26 @@
 <td>Describe the product/service to brainstorm ideas from (<strong>≥10 chars</strong>).</td>
 </tr>
 <tr>
-<td><code>sub_industry</code></td>
+<td><code>target_location</code></td>
 <td>string</td>
-<td>no</td>
-<td>Optional sub-industry.</td>
+<td>conditional</td>
+<td><strong>Audience market</strong> the videos should target (city/state/country) — e.g. <code>"California, United States"</code>, <code>"Texas, US"</code>, <code>"Vietnam"</code>. Drives which local trends/sources/language are used. Required if the account has no cached <code>target_location</code> yet; if you omit it AND no cached value exists, the API returns a <strong>clarification</strong> response (see below) and does <strong>not</strong> charge a credit. May differ from where the user is based (an agency in Vietnam may target a US audience).</td>
 </tr>
 <tr>
 <td><code>user_location</code></td>
 <td>string</td>
 <td>no</td>
-<td>Optional location hint.</td>
+<td>Optional: where the user is based (city/state/country). Used as a hint; can differ from <code>target_location</code>.</td>
+</tr>
+<tr>
+<td><code>sub_industry</code></td>
+<td>string</td>
+<td>no</td>
+<td>Optional sub-industry.</td>
 </tr>
 </tbody>
 </table>
-<h3 id="response-200-ok-synchronous">Response — <code>200 OK</code> (synchronous)</h3>
+<h3 id="response-200-ok-synchronous-success">Response — <code>200 OK</code> (synchronous, success)</h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ideas&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;ideas&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -100,11 +106,26 @@
 <span class="p">}</span>
 </code></pre></div>
 
-<h3 id="sdk">SDK</h3>
-<div class="highlight"><pre><span></span><code><span class="n">res</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">collect_ideas</span><span class="p">(</span><span class="n">product_service_input</span><span class="o">=</span><span class="s2">&quot;A budgeting app for freelancers with tax estimates&quot;</span><span class="p">)</span>
+<h3 id="response-200-ok-clarification-no-credit-charged">Response — <code>200 OK</code> (clarification, no credit charged)</h3>
+<p>Returned when <code>target_location</code> is missing AND the account has no cached one. Relay the message to the user, then call again with their answer:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;clarification&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;needs_input&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;target_location&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Which target market / audience location should these video ideas target? e.g. &#39;California, United States&#39;, &#39;Texas, US&#39;, or &#39;Vietnam&#39;.&quot;</span>
+<span class="p">}</span>
 </code></pre></div>
 
-<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">collect_ideas</span><span class="p">({</span><span class="w"> </span><span class="nx">product_service_input</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;A budgeting app for freelancers…&quot;</span><span class="w"> </span><span class="p">});</span>
+<h3 id="sdk">SDK</h3>
+<div class="highlight"><pre><span></span><code><span class="n">res</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">collect_ideas</span><span class="p">(</span>
+    <span class="n">product_service_input</span><span class="o">=</span><span class="s2">&quot;A budgeting app for freelancers with tax estimates&quot;</span><span class="p">,</span>
+    <span class="n">target_location</span><span class="o">=</span><span class="s2">&quot;California, United States&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">collect_ideas</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">product_service_input</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;A budgeting app for freelancers…&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">target_location</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;California, United States&quot;</span><span class="p">,</span>
+<span class="p">});</span>
 </code></pre></div>
 
 <h3 id="errors">Errors</h3>

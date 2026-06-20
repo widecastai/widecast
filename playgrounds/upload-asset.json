@@ -1,0 +1,31 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/upload_asset"
+  },
+  "title": "Upload an audio / video / image (24-hour S3 URL)",
+  "description": "Synchronous, no credit. Upload an audio / video / image file and get back\na public S3 URL valid for 24 hours. Use the URL as `audio_url` /\n`video_url` on /v1/create_video, or paste it into `script_text` as an\ninline `![alt](url)`. Server cap 500 MB.\n",
+  "fields": [
+    {
+      "name": "file",
+      "type": "file",
+      "label": "File (audio / video / image, ≤500 MB)",
+      "required": true,
+      "accept": "audio/*,video/*,image/*",
+      "placeholder": "Choose a file — uploaded as multipart/form-data."
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "upload-asset",
+      "title": "📎 Upload an asset (audio / video / image)",
+      "description": "Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), or image (jpg / png / webp) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, or paste into `script_text` as an inline `![alt](url)`.",
+      "request": {}
+    }
+  ],
+  "_key": "upload-asset",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

@@ -59,7 +59,7 @@
       <h1 id="create-a-video-post-v1create_video-get-v1statusid">Create a video — <code>POST /v1/create_video</code> + <code>GET /v1/status/{id}</code></h1>
 <p>Turn a <strong>plain-text script</strong>, a <strong>short idea</strong>, a <strong>blog/article</strong>, or an <strong>existing video/audio</strong> (by URL or upload) into AI-generated scenes + audio. The pilot exposes three endpoints that work together:</p>
 <ol>
-<li><strong><code>POST /v1/create_video</code></strong> — submit <code>script_text</code> (source=text, default), <code>idea_text</code> (source=idea), <code>blog_text</code> (source=blog), <strong>or</strong> a media URL / file (<code>source=video_url|video_file|audio_url|audio_file</code>). Returns a <code>widecast*</code> id and initial <code>status: "processing"</code>.</li>
+<li><strong><code>POST /v1/create_video</code></strong> — submit <code>script_text</code> (source=text, default), <code>idea_text</code> (source=idea), <code>blog_text</code> (source=blog), <strong>or</strong> a media URL / file (<code>source=video_url|video_file|audio_url|audio_file</code>). Returns a <code>widecast*</code> id and initial <code>status: "processing"</code>. For files attached in chat by AI agents, upload them first via <a href="upload-asset.md"><code>POST /v1/upload_asset</code></a> and pass the returned URL here.</li>
 <li><strong><code>GET /v1/status/{id}</code></strong> — poll until <code>status</code> is <code>completed</code> (or <code>failed</code>).</li>
 <li><strong><code>POST /v1/export_video</code></strong> — for <code>output_type=scene</code> videos, kick the final-MP4 renderer after review. See <a href="export-video.md">export-video.md</a>.</li>
 </ol>
@@ -90,7 +90,7 @@
 </tr>
 <tr>
 <td><code>video_url</code></td>
-<td><code>video_url</code> (YouTube / TikTok / Facebook, ≤2 min)</td>
+<td><code>video_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min</td>
 <td><strong>Auto-Edit</strong> — the footage itself becomes the B-roll</td>
 </tr>
 <tr>
@@ -100,8 +100,8 @@
 </tr>
 <tr>
 <td><code>audio_url</code></td>
-<td><code>audio_url</code> (YouTube / TikTok / Facebook, ≤2 min)</td>
-<td><strong>Audio-to-Video</strong> — the audio becomes the narration, the AI builds matching scenes</td>
+<td><code>audio_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min</td>
+<td><strong>Audio-to-Video</strong> — the audio becomes the narration, the AI builds matching scenes. <strong>The natural path for an AI agent forwarding a chat-attached voice memo:</strong> drop it on a public host (transfer.sh, file.io, S3 / R2, your CDN, …) and pass that URL.</td>
 </tr>
 <tr>
 <td><code>audio_file</code></td>
@@ -110,6 +110,7 @@
 </tr>
 </tbody>
 </table>
+<p>For files the AI agent received in chat (audio voice memos / short video clips / reference images), upload via <a href="upload-asset.md"><code>POST /v1/upload_asset</code></a> (or the MCP <code>widecast_upload_asset</code> tool) first — the response carries a 24-hour S3 URL. Pass that URL here as <code>audio_url</code> / <code>video_url</code>, or use it as an inline <code>![](url)</code> in <code>script_text</code>.</p>
 <p><code>idea</code> and <code>blog</code> are <strong>generative</strong> sources: the server runs <code>ai_enhance_script</code> (input → narration) and then continues into the same scene-sourcing pipeline as <code>source=text</code>.</p>
 <p><code>video_*</code> and <code>audio_*</code> are <strong>media-ingest</strong> sources (the script already lives inside the media): the server downloads (URL) or saves (upload) the file under <code>/mnt/efs/transcoder</code>, then runs the existing footage / audio pipeline. For these, <code>output_type="text"</code> = <strong>Remake</strong> (extract the spoken transcript only → editable script); <code>scene</code>/<code>video</code> build the full video. <code>language</code> / <code>video_length</code> / <code>research_enabled</code> do <strong>not</strong> apply (the media dictates the script).</p>
 <h3 id="pick-an-output_type-how-far-down-the-pipeline-pipeline-depth">Pick an <code>output_type</code> — how far down the pipeline (pipeline depth)</h3>
@@ -155,7 +156,7 @@
 <p><strong>Why <code>text</code> is invalid only for <code>source=text</code></strong>: <code>output_type</code> is pipeline depth. <code>text</code> means "stop after the source→script-text phase". That phase exists for every source EXCEPT <code>text</code> — generative sources (idea/blog) generate the script, media sources (video/audio) extract it. For <code>source=text</code> the caller already provided the script, so <code>text</code> output would just echo the input.</p>
 </blockquote>
 <h3 id="faceless-all-b-roll-no-narrator"><code>faceless</code> — all-B-roll (no narrator)</h3>
-<p>By default scenes mix <strong>A-roll</strong> (narrator) and <strong>B-roll</strong> (stock video / AI image). Set <strong><code>faceless: true</code></strong> to make <strong>every scene B-roll with no narrator anywhere</strong> — a "faceless" video. It's orthogonal to <code>output_type</code> (controls A/B-roll, not pipeline depth) and only valid with <code>output_type</code> <code>scene</code>/<code>video</code> for sources <code>text</code>/<code>idea</code>/<code>blog</code>. Combining it with <code>output_type=text</code> (no scenes) or a media source returns <code>invalid_faceless</code> (400). Default <code>false</code> leaves the normal A/B mix unchanged.</p>
+<p>By default scenes mix <strong>A-roll</strong> (narrator) and <strong>B-roll</strong> (stock video / AI image). Set <strong><code>faceless: true</code></strong> to make <strong>every scene B-roll with no narrator anywhere</strong> — a "faceless" video. It's orthogonal to <code>output_type</code> (controls A/B-roll, not pipeline depth) and valid with <code>output_type</code> <code>scene</code>/<code>video</code> for the script-based sources (<code>text</code>/<code>idea</code>/<code>blog</code>) AND for <code>source=audio_url</code> — the script lives in the user's audio but the visuals must still be generated, so the same toggle applies. Combining it with <code>output_type=text</code> (no scenes) or a video source (<code>video_url</code>/<code>video_file</code> — the footage IS the visuals) returns <code>invalid_faceless</code> (400). Default <code>false</code> leaves the normal A/B mix unchanged.</p>
 <h3 id="field-bounds-locked-a38-parity">Field bounds (LOCKED — A38 parity)</h3>
 <p>Used VERBATIM by the narrator (source=text) or interpreted by the AI (source=idea / blog). All bounds are LOCKED — the SDKs export them as named constants you should refer to programmatically.</p>
 <table>
@@ -198,13 +199,13 @@
 <td><code>video_url</code> / <code>audio_url</code> / <code>video_file</code> / <code>audio_file</code></td>
 <td>the matching media source</td>
 <td>—</td>
-<td><strong>2 minutes</strong> (all media) + <strong>100 MB</strong> (uploads only)</td>
+<td><strong>5 minutes</strong> (all media) + <strong>100 MB</strong> (uploads only)</td>
 <td>Reject <code>media_too_long</code> / <code>file_too_large</code></td>
 <td><code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code></td>
 </tr>
 </tbody>
 </table>
-<p>Word count = whitespace split (<code>len(text.split())</code>) — works for English + Vietnamese. Media sources have no word bound — instead a <strong>2-minute duration cap</strong> (<code>media_too_long</code>, all media incl. URLs) and, for <strong>uploaded files only</strong>, a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>MEDIA_MAX_DURATION_SECONDS</code> (120) / <code>MEDIA_MAX_FILE_BYTES</code> (100 MB); file size is pre-validated client-side, duration is server-enforced.</p>
+<p>Word count = whitespace split (<code>len(text.split())</code>) — works for English + Vietnamese. Media sources have no word bound — instead a <strong>5-minute duration cap</strong> (<code>media_too_long</code>, all media incl. URLs) and, for <strong>uploaded files only</strong>, a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>MEDIA_MAX_DURATION_SECONDS</code> (300) / <code>MEDIA_MAX_FILE_BYTES</code> (100 MB); file size is pre-validated client-side, duration is server-enforced.</p>
 <h3 id="inline-images-video-in-your-script-sourcetext">Inline images &amp; video in your script (<code>source=text</code>)</h3>
 <p>Want a specific shot to appear at a specific moment? Drop a <strong>direct image or video URL</strong> straight into <code>script_text</code>, right after (or before) the sentence it should illustrate, in either of two equivalent forms. WideCast:</p>
 <ol>
@@ -228,7 +229,7 @@
 <p>You can mix forms freely in the same script.</p>
 <ul>
 <li><strong>Supported</strong> — <em>direct file links</em> ending in an image extension (<code>.png</code> <code>.jpg</code> <code>.jpeg</code> <code>.gif</code> <code>.webp</code> <code>.bmp</code> <code>.avif</code> <code>.svg</code>) or a video extension (<code>.mp4</code> <code>.webm</code> <code>.mov</code> <code>.m4v</code> <code>.avi</code>), optionally with a <code>?query</code> string.</li>
-<li><strong>Not supported as inline assets</strong> — page links such as <code>https://youtube.com/watch?v=…</code> or a TikTok URL (they have no media extension). To turn a <em>whole</em> clip into a video, use <code>source=video_url</code> / <code>audio_url</code> instead.</li>
+<li><strong>Not supported as inline assets</strong> — page links such as <code>https://youtube.com/watch?v=…</code> or a TikTok URL (they have no media extension). To turn a <em>whole</em> clip into a video, use <code>source=video_url</code> / <code>audio_url</code> instead. For files the AI agent received in chat, upload them via <a href="upload-asset.md"><code>POST /v1/upload_asset</code></a> and reuse the returned URL.</li>
 <li><strong>Matching</strong> — for markdown form, the alt text IS the anchor (model-provided scene description). For raw URLs, WideCast uses the ~6 words on either side. Type (image vs video) is auto-detected from the extension.</li>
 <li>Multiple URLs are fine; scenes without a URL still get automatic B-roll.</li>
 </ul>
@@ -341,6 +342,7 @@
 </code></pre></div>
 
 <p>The SDKs wrap this: <code>client.create_video(source="video_file", video_file=open("clip.mp4","rb"))</code> (Python) / <code>client.create_video({ source: "video_file", video_file: blob })</code> (TS).</p>
+<p><strong>AI agents — uploading a file attached in chat:</strong> call <a href="upload-asset.md"><code>POST /v1/upload_asset</code></a> (or the MCP <code>widecast_upload_asset</code> tool) first. The response carries a public S3 URL (24-hour TTL); pass that URL here as <code>audio_url</code> / <code>video_url</code>, or use it as an inline <code>![](url)</code> in <code>script_text</code>. The widecast-assets bucket is the canonical upload path — no need to base64 anything or shop for a third-party host.</p>
 <h3 id="field-reference">Field reference</h3>
 <table>
 <thead>
@@ -380,7 +382,7 @@
 <td><code>video_url</code> / <code>audio_url</code></td>
 <td>string (url)</td>
 <td>when <code>source=video_url</code> / <code>audio_url</code></td>
-<td>A YouTube / TikTok / Facebook URL (≤2 min). <code>video_url</code> → footage becomes B-roll (Auto-Edit); <code>audio_url</code> → audio becomes narration (Audio-to-Video). Over the cap → <code>media_too_long</code>; non-allowed host → <code>unsupported_media_url</code>.</td>
+<td><strong>Any public http(s) URL</strong> (≤2 min): a direct file link (S3, Cloudflare R2, transfer.sh, file.io, your CDN, …) OR a YouTube / TikTok / Facebook page URL. <code>video_url</code> → footage becomes B-roll (Auto-Edit); <code>audio_url</code> → audio becomes narration (Audio-to-Video). Over the cap → <code>media_too_long</code>. Loopback / private-network / link-local hosts (<code>localhost</code>, <code>10.x</code>, <code>192.168.x</code>, <code>169.254.x</code>, <code>.local</code>, …) are rejected as <code>unsupported_media_url</code>.</td>
 </tr>
 <tr>
 <td><code>video_file</code> / <code>audio_file</code></td>
@@ -416,7 +418,7 @@
 <td><code>faceless</code></td>
 <td>bool</td>
 <td>no</td>
-<td>Default <code>false</code>. When <code>true</code>, <strong>every scene is B-roll</strong> (stock video / AI image) with <strong>no narrator A-roll</strong> anywhere — a "faceless" video. Orthogonal to <code>output_type</code>. Only valid with <code>output_type</code> <code>scene</code>/<code>video</code> for sources <code>text</code>/<code>idea</code>/<code>blog</code>; otherwise → 400 <code>invalid_faceless</code>. SDK constant <code>FACELESS_SOURCES</code>.</td>
+<td>Default <code>false</code>. When <code>true</code>, <strong>every scene is B-roll</strong> (stock video / AI image) with <strong>no narrator A-roll</strong> anywhere — a "faceless" video. Orthogonal to <code>output_type</code>. Valid with <code>output_type</code> <code>scene</code>/<code>video</code> for <code>text</code>/<code>idea</code>/<code>blog</code> AND for <code>source=audio_url</code> — same A/B-roll toggle since the audio is the narration but the visuals are generated. Rejected with 400 <code>invalid_faceless</code> when <code>output_type=text</code> (no scenes) or for video sources (footage IS the visuals). SDK constant <code>FACELESS_SOURCES</code>.</td>
 </tr>
 <tr>
 <td><code>media_pool</code></td>
@@ -730,12 +732,12 @@ terminal <code>video.completed</code> webhook fires only when the MP4 is ready.<
 <tr>
 <td><code>unsupported_media_url</code></td>
 <td>400</td>
-<td>The media URL is not an http(s) URL or not a YouTube / TikTok / Facebook host (or the download failed).</td>
+<td>The media URL isn't an http(s) URL, OR the host is loopback / private / link-local (<code>localhost</code>, <code>10.x</code>, <code>172.16-31.x</code>, <code>192.168.x</code>, <code>169.254.x</code>, <code>.local</code>, <code>.internal</code>, IPv6 link-local, …), OR the underlying downloader failed to fetch it. Upload to a public location and pass that URL.</td>
 </tr>
 <tr>
 <td><code>media_too_long</code></td>
 <td>400</td>
-<td>The media exceeds the 2-minute duration cap (all media — URL or upload).</td>
+<td>The media exceeds the 2-minute duration cap (all media — URL, upload, or base64).</td>
 </tr>
 <tr>
 <td><code>file_too_large</code></td>
@@ -770,7 +772,7 @@ terminal <code>video.completed</code> webhook fires only when the MP4 is ready.<
 <tr>
 <td><code>invalid_faceless</code></td>
 <td>400</td>
-<td><code>faceless</code> is not a boolean, OR <code>faceless=true</code> combined with <code>output_type=text</code> (no scenes) or a media source (<code>video_*</code>/<code>audio_*</code>).</td>
+<td><code>faceless</code> is not a boolean, OR <code>faceless=true</code> combined with <code>output_type=text</code> (no scenes) or a video source (<code>video_url</code>/<code>video_file</code> — the footage already supplies the visuals). <code>source=audio_url</code> accepts <code>faceless</code> — the script comes from the user's audio but the visuals are generated.</td>
 </tr>
 <tr>
 <td><code>missing_api_key</code></td>
@@ -799,7 +801,7 @@ terminal <code>video.completed</code> webhook fires only when the MP4 is ready.<
 <p><strong>Fixed 5 seconds.</strong> The SDKs' <code>video.wait()</code> defaults to a constant 5s interval (no exponential backoff). If you want backoff for very long polls, override <code>max_interval</code> / <code>backoff_multiplier</code> on <code>wait()</code>.</p>
 <hr />
 <h2 id="try-it">Try it</h2>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/create_video</code></div><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="script_en" id="ex-create-video--script_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Script · English</h3><p class="wc-pg-example-desc">You have a finished narration (~120 words). Pick how far to take it with the **output type** radio: `scene` stops at scenes-ready-for-review; `video` renders the final MP4 end-to-end. Pick an industry pill to load a domain script, edit it freely, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="idea_en" id="ex-create-video--idea_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💡 Idea · English</h3><p class="wc-pg-example-desc">Just a brief — the AI writes the script. Pick **output type**: `text` stops at the editable script (Script Editor); `scene` continues to scenes-ready; `video` renders the final MP4. **Video length** picks short (~90s) or normal (~3 min). Pick an industry pill to load a brief, edit it, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="blog_en" id="ex-create-video--blog_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📰 Blog / Article · English</h3><p class="wc-pg-example-desc">Paste a blog post or article — the AI condenses it into a video script. Default **output type** is `text` (stops at the editable script in the Script Editor, the UI default flow); switch to `scene`/`video` to go further. **Video length** picks short (~90s) or normal (~3 min). Only industries with a full article fixture appear here; pick a pill, edit the text, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_url_en" id="ex-create-video--video_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video URL → Auto-Edit · English</h3><p class="wc-pg-example-desc">Paste a **video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_url_en" id="ex-create-video--audio_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio URL → Audio-to-Video · English</h3><p class="wc-pg-example-desc">Paste an **audio/video URL** (YouTube / TikTok / Facebook, ≤2 min) — the server extracts the audio and uses it as the narration, generating matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_file_en" id="ex-create-video--video_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video file → Auto-Edit · English</h3><p class="wc-pg-example-desc">**Upload a video file** (≤2 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_file_en" id="ex-create-video--audio_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio file → Audio-to-Video · English</h3><p class="wc-pg-example-desc">**Upload an audio file** (≤2 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/create_video</code></div><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="script_en" id="ex-create-video--script_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Script · English</h3><p class="wc-pg-example-desc">You have a finished narration (~120 words). Pick how far to take it with the **output type** radio: `scene` stops at scenes-ready-for-review; `video` renders the final MP4 end-to-end. Pick an industry pill to load a domain script, edit it freely, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="idea_en" id="ex-create-video--idea_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💡 Idea · English</h3><p class="wc-pg-example-desc">Just a brief — the AI writes the script. Pick **output type**: `text` stops at the editable script (Script Editor); `scene` continues to scenes-ready; `video` renders the final MP4. **Video length** picks short (~90s) or normal (~3 min). Pick an industry pill to load a brief, edit it, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="blog_en" id="ex-create-video--blog_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📰 Blog / Article · English</h3><p class="wc-pg-example-desc">Paste a blog post or article — the AI condenses it into a video script. Default **output type** is `text` (stops at the editable script in the Script Editor, the UI default flow); switch to `scene`/`video` to go further. **Video length** picks short (~90s) or normal (~3 min). Only industries with a full article fixture appear here; pick a pill, edit the text, then Run.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_url_en" id="ex-create-video--video_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video URL → Auto-Edit · English</h3><p class="wc-pg-example-desc">Paste **any public video URL** (≤5 min) — a direct file link (S3 / R2 / transfer.sh / your CDN) OR a YouTube / TikTok / Facebook page URL. The server downloads it and turns the footage into a video (the footage becomes the B-roll). **Output type**: `text` = Remake (extract the transcript only → Script Editor); `scene` = scenes-ready; `video` = final MP4. The demo pills load Creative-Commons open movies — swap in your own URL. (Prefer uploading a file? See the **Video file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_url_en" id="ex-create-video--audio_url_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio URL → Audio-to-Video · English</h3><p class="wc-pg-example-desc">Paste **any public audio/video URL** (≤5 min) — a direct file link (transfer.sh / file.io / S3 / R2 / your CDN) OR a YouTube / TikTok / Facebook page URL. The server extracts the audio and uses it as the narration, generating matching scenes. **This is the right path for an AI agent forwarding a chat-attached voice memo** — drop the file on a public host, pass the URL. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. (Prefer uploading a file? See the **Audio file** card below.)</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="video_file_en" id="ex-create-video--video_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Video file → Auto-Edit · English</h3><p class="wc-pg-example-desc">**Upload a video file** (≤5 min) — the footage becomes the video (Auto-Edit). **Output type**: `text` = Remake (transcript only); `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/create-video.json" data-usecase-id="audio_file_en" id="ex-create-video--audio_file_en"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎧 Audio file → Audio-to-Video · English</h3><p class="wc-pg-example-desc">**Upload an audio file** (≤5 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <p>The playground submits your script text, then <strong>auto-polls</strong> <code>/v1/status/{id}</code> until the video is <code>completed</code> (or <code>failed</code>), then renders the review URL.</p>
 <hr />

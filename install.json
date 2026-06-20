@@ -186,7 +186,7 @@
   },
   "test_after_install": {
     "prompt": "Use WideCast to make a video about 5 things to do right after a car accident.",
-    "expected_behavior": "The host calls widecast_get_writing_skill(format=\"video\"), researches the topic, drafts a script with inline media URLs, fetches the user's credit balance via widecast_account, hands off with the script + cost estimate + faceless question. After the user picks normal or faceless, the host calls widecast_create_video and returns a review URL."
+    "expected_behavior": "The host calls widecast_get_writing_skill(format=\"video\"), researches the topic, drafts a script with inline media URLs, fetches the user's credit balance via widecast_account, hands off with the script + cost estimate + the three-way production question. After the user picks one of faceless / face_clone / teleprompter, the host calls widecast_create_video and returns a review URL."
   },
   "support": {
     "email": "hello@widecast.ai",

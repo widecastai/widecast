@@ -91,10 +91,6 @@
 <td>Weekly production plan</td>
 </tr>
 <tr>
-<td><code>GET /v1/foundation_videos</code></td>
-<td>Curated foundation-video templates</td>
-</tr>
-<tr>
 <td><code>GET /v1/recommendations</code></td>
 <td>Recommended video ideas</td>
 </tr>
@@ -124,10 +120,6 @@
 <h2 id="get-v1production_plan"><code>GET /v1/production_plan</code></h2>
 <p>The weekly production plan. Query: <code>page</code> (default 0), <code>week_start</code>, <code>week_end</code>. <strong>Note:</strong> passing both <code>week_start</code> and <code>week_end</code> may backfill missing plan rows upstream (a write); omit them for a pure read. Returns <code>{object:"production_plan", total, page, week_start, week_end, ideas:[…], topics:[…]}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/production_plan</code></div><section class="wc-pg-example" data-cfg="playgrounds/production-plan.json" data-usecase-id="plan" id="ex-production-plan--plan"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📅 Production plan</h3><p class="wc-pg-example-desc">Fetch the current plan (page 0). Add a week range to scope it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
-
-<h2 id="get-v1foundation_videos"><code>GET /v1/foundation_videos</code></h2>
-<p>The curated foundation-video template library. Query: <code>industry</code> (falls back to your account industry), <code>sub_industry</code>, <code>page</code> (default 0). Returns <code>{object:"list", data:[{id, title, description, thumbnail_url, industry, group}], total}</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/foundation_videos</code></div><section class="wc-pg-example" data-cfg="playgrounds/foundation-videos.json" data-usecase-id="foundation" id="ex-foundation-videos--foundation"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🏛️ Foundation templates</h3><p class="wc-pg-example-desc">Browse foundation templates for an industry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h2 id="get-v1recommendations"><code>GET /v1/recommendations</code></h2>
 <p>Recommended video ideas for an industry. Query: <code>industry</code> (falls back to your account industry), <code>page</code> (default 0). Returns <code>{object:"ideas", industry, ideas:[{title, description, …}]}</code>.</p>

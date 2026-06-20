@@ -10,7 +10,6 @@ A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsin
 | `GET /v1/analytics` | Social analytics dashboard (slow) |
 | `GET /v1/roadmap` | Content roadmap (weeks, slots, streak) |
 | `GET /v1/production_plan` | Weekly production plan |
-| `GET /v1/foundation_videos` | Curated foundation-video templates |
 | `GET /v1/recommendations` | Recommended video ideas |
 
 ---
@@ -50,12 +49,6 @@ The account's content roadmap. Query: `cycle` (default 1). Returns `{object:"roa
 The weekly production plan. Query: `page` (default 0), `week_start`, `week_end`. **Note:** passing both `week_start` and `week_end` may backfill missing plan rows upstream (a write); omit them for a pure read. Returns `{object:"production_plan", total, page, week_start, week_end, ideas:[…], topics:[…]}`.
 
 <!-- widecast-playground:production-plan -->
-
-## `GET /v1/foundation_videos`
-
-The curated foundation-video template library. Query: `industry` (falls back to your account industry), `sub_industry`, `page` (default 0). Returns `{object:"list", data:[{id, title, description, thumbnail_url, industry, group}], total}`.
-
-<!-- widecast-playground:foundation-videos -->
 
 ## `GET /v1/recommendations`
 

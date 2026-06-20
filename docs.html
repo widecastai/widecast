@@ -120,6 +120,16 @@
 <td>For <code>output_type=scene</code> videos, kick the final-MP4 renderer after review</td>
 </tr>
 <tr>
+<td><a href="endpoints/modify-scene.html"><code>/v1/modify_scene</code></a></td>
+<td>POST</td>
+<td>(sync, free) Swap the background image/video on ONE scene of an existing video</td>
+</tr>
+<tr>
+<td><a href="endpoints/upload-asset.html"><code>/v1/upload_asset</code></a></td>
+<td>POST</td>
+<td>(sync, free) Upload an audio / video / image to WideCast's S3 bucket and get back a 24-hour public URL — use as <code>audio_url</code> / <code>video_url</code> on <code>/v1/create_video</code></td>
+</tr>
+<tr>
 <td><a href="endpoints/create-content.html"><code>/v1/create_content</code></a></td>
 <td>POST</td>
 <td>Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text</td>
@@ -130,11 +140,6 @@
 <td>Improve a draft video script with AI (grammar, examples, hook)</td>
 </tr>
 <tr>
-<td><a href="endpoints/suggest-ideas.html"><code>/v1/suggest_ideas</code></a></td>
-<td>POST</td>
-<td>(sync) Video topic ideas for an industry</td>
-</tr>
-<tr>
 <td><a href="endpoints/collect-ideas.html"><code>/v1/collect_ideas</code></a></td>
 <td>POST</td>
 <td>(sync) Video ideas from a product/service description</td>
@@ -143,6 +148,11 @@
 <td><a href="endpoints/publish.html"><code>/v1/publish</code></a></td>
 <td>POST</td>
 <td>Publish a video / blog / text to connected social platforms (returns request_ids → poll status)</td>
+</tr>
+<tr>
+<td><a href="endpoints/telegram-send.html"><code>/v1/telegram/send</code></a></td>
+<td>POST</td>
+<td>(sync, free) Push a notification to the user's own connected Telegram chat (self-notify only — text + optional photo/video URL)</td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/videos</code></a></td>
@@ -173,11 +183,6 @@
 <td><a href="endpoints/library.html"><code>/v1/production_plan</code></a></td>
 <td>GET</td>
 <td>(read, free) Weekly production plan</td>
-</tr>
-<tr>
-<td><a href="endpoints/library.html"><code>/v1/foundation_videos</code></a></td>
-<td>GET</td>
-<td>(read, free) Curated foundation-video templates</td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/recommendations</code></a></td>
@@ -224,7 +229,7 @@
 <li><strong>OpenAPI 3.1 spec:</strong> <a href="openapi.yaml"><code>openapi.yaml</code></a> (also at <code>https://widecast.ai/app/dashboard2/openapi.yaml</code>)</li>
 <li><strong>Python SDK:</strong> <a href="https://pypi.org/project/widecast/"><code>widecast</code> on PyPI</a></li>
 <li><strong>JS/TS SDK:</strong> <a href="https://www.npmjs.com/package/@widecast/sdk"><code>@widecast/sdk</code> on npm</a></li>
-<li><strong>MCP server (Claude / Cursor / Windsurf):</strong> <a href="https://github.com/widecast"><code>@widecast/mcp-server</code></a> — tools <code>create_video</code> / <code>get_status</code> / <code>export_video</code>.</li>
+<li><strong>MCP server (Claude / Cursor / Windsurf):</strong> <a href="https://github.com/widecast"><code>@widecast/mcp-server</code></a> — tools <code>create_video</code> / <code>get_status</code> / <code>export_video</code> / <code>modify_scene</code>.</li>
 <li><strong>Authoring Skills:</strong> <code>widecast/skills/</code> — <code>video-script-writing</code>, <code>blog-writing</code>, <code>social-post-writing</code> (best-practice guides the AI loads on demand).</li>
 <li><strong>LLM-friendly docs index:</strong> <a href="llms.txt"><code>llms.txt</code></a></li>
 </ul>
@@ -235,8 +240,8 @@
 <li><strong>Authentication</strong>: send your key as <code>Authorization: Bearer wc_live_...</code>. When key enforcement is on, a missing/malformed/revoked key → <strong>HTTP 401</strong> with <code>error.type = "authentication_error"</code> and <code>error.code</code> = <code>missing_api_key</code> or <code>invalid_api_key</code>. (Enforcement is server-toggled; while it's off, the pilot accepts unauthenticated calls.)</li>
 <li>Object marker on every resource: <code>"object": "status"</code>, <code>"object": "list"</code>, etc.</li>
 <li>Status enum (locked): <code>pending | processing | completed | failed</code></li>
-<li>Error codes (locked, v0.1.0): <code>account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled</code></li>
-<li>Input bounds (locked): <code>script_text</code> (source=text) is <strong>80–500 words</strong> (~20s–2 min, used verbatim). <code>idea_text</code> (source=idea) is <strong>5–1000 words</strong> and <code>blog_text</code> (source=blog) is <strong>30–3000 words</strong> (both interpretive — over-max auto-truncated, not rejected). Media sources (<code>video_*</code>/<code>audio_*</code>) have a <strong>2-minute duration cap</strong> (<code>media_too_long</code>, all media) and uploads a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code> / <code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code> / <code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code> / <code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code> constants.</li>
+<li>Error codes (locked, v0.1.0): <code>account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long</code></li>
+<li>Input bounds (locked): <code>script_text</code> (source=text) is <strong>80–500 words</strong> (~20s–2 min, used verbatim). <code>idea_text</code> (source=idea) is <strong>5–1000 words</strong> and <code>blog_text</code> (source=blog) is <strong>30–3000 words</strong> (both interpretive — over-max auto-truncated, not rejected). Media sources (<code>video_*</code>/<code>audio_*</code>) have a <strong>5-minute duration cap</strong> (<code>media_too_long</code>, all media) and uploads a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code> / <code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code> / <code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code> / <code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code> constants.</li>
 <li><strong>Inline media in <code>script_text</code></strong> (source=text): embed a direct image/video file URL (<code>.png/.jpg/…</code> or <code>.mp4/.mov/…</code>) next to the line it should illustrate — WideCast strips it from the narration and uses it as that scene's visual instead of auto-sourced B-roll. Page links (YouTube/TikTok watch URLs) aren't inlined — use <code>source=video_url</code> for a whole clip. See <a href="endpoints/create-video.html">Create-video → Inline images &amp; video</a>.</li>
 <li>Enums (locked v0.1.0): <code>SOURCES</code> (<code>text</code>, <code>idea</code>, <code>blog</code>, <code>video_url</code>, <code>video_file</code>, <code>audio_url</code>, <code>audio_file</code>), <code>OUTPUT_TYPES</code> (<code>text</code>, <code>scene</code>, <code>video</code>), <code>LANGUAGES</code> (<code>English</code>, <code>Vietnamese</code>), <code>VIDEO_LENGTHS</code> (<code>short</code>, <code>normal</code>). For media sources <code>output_type="text"</code> = Remake (transcript only).</li>
 <li><strong>Field-requirement parity (A38)</strong>: every field constraint surfaces in 5 places — OpenAPI spec, SDK constants/types, this docs site's endpoint page, the playground UI (YAML + JS), and server enforcement (with a locked <code>error.code</code>). Adding an endpoint without all five = drift. <code>build.py</code> validates the YAML↔JS half automatically.</li>

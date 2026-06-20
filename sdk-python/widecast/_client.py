@@ -23,7 +23,7 @@ import json
 import os
 import time
 import uuid
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from urllib.parse import urlencode
 
 import requests
@@ -31,7 +31,7 @@ import requests
 
 __version__ = "0.1.0"
 
-_FALLBACK_BASE_URL = "https://widecast.ai/app/dashboard2"
+_FALLBACK_BASE_URL = "https://widecast.ai/app/dashboard"
 DEFAULT_TIMEOUT = 60.0
 TERMINAL_STATUSES = ("completed", "failed")
 
@@ -55,10 +55,14 @@ OUTPUT_TYPES = ("text", "scene", "video")  # pipeline depth (A46)
 # blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
 # the script already lives in the media; output_type="text" = Remake (A50).
 SOURCES = ("text", "idea", "blog",
-           "video_url", "video_file", "audio_url", "audio_file")
-# faceless=True forces every scene to B-roll (no narrator A-roll). Only valid
-# with output_type scene/video for these script-based sources.
-FACELESS_SOURCES = ("text", "idea", "blog")
+           "video_url", "video_file",
+           "audio_url", "audio_file")
+# faceless=True forces every scene to B-roll (no narrator A-roll). Valid for
+# the script-based sources (text/idea/blog) AND for audio sources
+# (audio_url/audio_base64) — the script lives in the user's audio but the
+# visuals must still be generated, so the same toggle applies. Video sources
+# are excluded (the footage IS the visuals — faceless would be meaningless).
+FACELESS_SOURCES = ("text", "idea", "blog", "audio_url")
 VIDEO_LENGTHS = ("short", "normal")    # generative sources — maps to content_type 9/10
 LANGUAGES = ("English", "Vietnamese")  # generative sources — locked enum v0.1.0
 # Written content (/v1/create_content): friendly types → legacy content_type 3/4/5/6.
@@ -78,23 +82,34 @@ _GENERATIVE_SOURCES = {
     "blog": {"field": "blog_text", "min": BLOG_MIN_WORDS, "max": BLOG_MAX_WORDS,
              "too_short_code": "blog_too_short", "missing_code": "missing_blog_text"},
 }
-# Media-ingest sources (A49): audio/video provided by URL (YouTube/TikTok/FB)
-# or by uploading a file (multipart). field = the request key (JSON for url,
+# Media-ingest sources (A49): audio/video provided by URL (any public http(s)
+# URL — direct file links + YouTube/TikTok/Facebook page URLs all work) or by
+# uploading a file (multipart). field = the request key (JSON for url,
 # multipart file part for file). output_type scene/video = full build;
 # text = Remake (transcript only, A50). language/video_length/research_enabled
 # do NOT apply.
 MEDIA_SOURCES = {
-    "video_url":  {"media_type": "video", "input_kind": "url",  "field": "video_url"},
-    "video_file": {"media_type": "video", "input_kind": "file", "field": "video_file"},
-    "audio_url":  {"media_type": "audio", "input_kind": "url",  "field": "audio_url"},
-    "audio_file": {"media_type": "audio", "input_kind": "file", "field": "audio_file"},
+    "video_url":    {"media_type": "video", "input_kind": "url",   "field": "video_url"},
+    "video_file":   {"media_type": "video", "input_kind": "file",  "field": "video_file"},
+    "audio_url":    {"media_type": "audio", "input_kind": "url",   "field": "audio_url"},
+    "audio_file":   {"media_type": "audio", "input_kind": "file",  "field": "audio_file"},
 }
 # Media caps (A49). Duration applies to ALL media (url + file) and is enforced
 # SERVER-SIDE (a thin SDK can't probe duration without heavy deps). File size
 # applies to UPLOADS only and IS pre-validated client-side below (fast fail,
 # no bytes sent). Both mirror the server constants in dashboard2.py.
-MEDIA_MAX_DURATION_SECONDS = 120                 # 2 min — server enforces (media_too_long)
+MEDIA_MAX_DURATION_SECONDS = 300                 # 5 min — server enforces (media_too_long)
 MEDIA_MAX_FILE_BYTES = 100 * 1024 * 1024         # 100 MB — uploads only (file_too_large)
+
+# Free-tier (paid=0) cap. Paid accounts hit the 80-500 / 5-1000 / 30-3000 word
+# bounds + 5-min media duration above; free accounts hit a stricter ~60s
+# narration cap at 4 words/second = 240 effective spoken words for text/idea/
+# blog, and 60s media duration for audio_*/video_*. Server rejects with
+# 402 free_tier_limit_exceeded + details.pricing_url.
+FREE_TIER_MAX_SECONDS = 60
+FREE_TIER_WORDS_PER_SECOND = 4
+FREE_TIER_MAX_WORDS = FREE_TIER_MAX_SECONDS * FREE_TIER_WORDS_PER_SECOND
+PRICING_URL = "https://widecast.ai/#pricing_plans"
 
 
 def _default_base_url() -> str:
@@ -348,11 +363,16 @@ class Widecast:
 
     def _post_multipart(self, path: str, *, form: Mapping[str, Any],
                         file_field: str, file_obj,
-                        idempotency_key: Optional[str] = None) -> dict:
+                        idempotency_key: Optional[str] = None,
+                        content_type: Optional[str] = None,
+                        filename_override: Optional[str] = None) -> dict:
         """POST multipart/form-data — for media file sources (video_file /
-        audio_file). `file_obj` is an open binary file or a path str. Single
-        attempt (uploads aren't safe to blindly retry; the Idempotency-Key
-        lets the server dedupe if you retry yourself)."""
+        audio_file) and asset uploads. `file_obj` is an open binary file or a
+        path str. Single attempt (uploads aren't safe to blindly retry; the
+        Idempotency-Key lets the server dedupe if you retry yourself).
+        `content_type` + `filename_override` are honoured when given so the
+        multipart `Content-Disposition` carries the right filename and the
+        upload-asset endpoint sees the right MIME header."""
         url = self.base_url + path
         opened = None
         try:
@@ -361,7 +381,12 @@ class Widecast:
                 fh = opened
             else:
                 fh = file_obj
-            files = {file_field: fh}
+            if filename_override or content_type:
+                _fn = filename_override or getattr(fh, "name", "upload.bin")
+                files = {file_field: (_fn, fh, content_type) if content_type
+                         else (_fn, fh)}
+            else:
+                files = {file_field: fh}
             data = {k: v for k, v in form.items() if v is not None}
             try:
                 resp = self._session.request(
@@ -419,7 +444,10 @@ class Widecast:
 
         Media-ingest sources (A49) — the script already lives in the media:
         - `source="video_url"` / `"audio_url"`: pass `video_url` / `audio_url`
-          (a YouTube / TikTok / Facebook URL). Pure JSON.
+          — **any public http(s) URL** (a direct file link on S3 / Cloudflare
+          R2 / transfer.sh / file.io / your CDN, OR a YouTube / TikTok /
+          Facebook page URL). Pure JSON. Loopback / private / link-local
+          hosts are rejected (`unsupported_media_url`).
         - `source="video_file"` / `"audio_file"`: pass `video_file` /
           `audio_file` (a path str or an open binary file). Sent as
           multipart/form-data.
@@ -589,7 +617,7 @@ class Widecast:
             body["video_length"] = video_length
             body["research_enabled"] = research_enabled
 
-        else:  # media-ingest source (audio/video, url/file) — A49/A50
+        else:  # media-ingest source (audio/video, url/file/bytes) — A49/A50
             media = MEDIA_SOURCES[source]
             field = media["field"]
             if media["input_kind"] == "url":
@@ -667,6 +695,173 @@ class Widecast:
         data = self._request("POST", "/v1/export_video",
                              json_body={"id": video_id})
         return self._wrap_video(data)
+
+    def upload_asset(self, file_obj: Any, *,
+                     filename: Optional[str] = None,
+                     content_type: Optional[str] = None) -> dict:
+        """POST /v1/upload_asset — SYNCHRONOUS, **no credit charged**.
+
+        Upload an audio / video / image file to WideCast's S3 bucket and
+        receive a public URL good for **24 hours** (the bucket has a
+        lifecycle rule on the `assets/` prefix). Use the returned `url` as
+        ``audio_url`` / ``video_url`` on a subsequent ``create_video`` call,
+        or paste it into ``script_text`` as an inline ``![alt](url)``.
+
+        Args:
+            file_obj:     A path string, an open binary file handle, or raw
+                          bytes/bytearray. SDK callers use multipart/form-data
+                          end-to-end (no base64 indirection — the per-call
+                          cap is the server's 500 MB).
+            filename:     Optional override for the basename sent to S3. If
+                          ``file_obj`` is a path string the basename is
+                          derived automatically.
+            content_type: Optional MIME type (e.g. ``"audio/mpeg"``,
+                          ``"video/mp4"``, ``"image/png"``). Defaults to the
+                          extension-derived guess on the server side.
+
+        Returns:
+            dict ``{"object": "asset", "url", "content_type", "size_bytes",
+                    "filename", "expires_at", "ttl_hours"}``.
+        """
+        # Resolve the upload into (filename, fileobj-for-streaming).
+        opened: Optional[Any] = None
+        try:
+            if isinstance(file_obj, (bytes, bytearray)):
+                import io as _io
+                if not filename:
+                    raise InvalidRequestError(
+                        "filename is required when uploading raw bytes.",
+                        code="missing_field", param="filename")
+                stream = _io.BytesIO(bytes(file_obj))
+                upload_name = os.path.basename(filename)
+                size = len(file_obj)
+            elif isinstance(file_obj, str):
+                opened = open(file_obj, "rb")
+                stream = opened
+                upload_name = filename or os.path.basename(file_obj)
+                try:
+                    size = os.path.getsize(file_obj)
+                except OSError:
+                    size = None
+            else:
+                stream = file_obj
+                upload_name = filename or os.path.basename(
+                    getattr(file_obj, "name", "") or "upload.bin")
+                try:
+                    _cur = file_obj.tell()
+                    file_obj.seek(0, os.SEEK_END)
+                    size = file_obj.tell()
+                    file_obj.seek(_cur)
+                except Exception:
+                    size = None
+            # Client-side size pre-validation — match the server cap so a
+            # 600 MB upload doesn't waste a network round-trip.
+            _max = 500 * 1024 * 1024
+            if size is not None and size > _max:
+                raise InvalidRequestError(
+                    f"asset is {size/1024/1024:.1f} MB; maximum is "
+                    f"{_max // (1024*1024)} MB.",
+                    code="asset_too_large", param="file")
+            return self._post_multipart(
+                "/v1/upload_asset", form={},
+                file_field="file", file_obj=stream,
+                idempotency_key=str(uuid.uuid4()),
+                content_type=content_type,
+                filename_override=upload_name,
+            )
+        finally:
+            if opened is not None:
+                opened.close()
+
+    def presign_asset(self, filename: str, *,
+                      content_type: Optional[str] = None) -> dict:
+        """POST /v1/upload_asset (mode=presign) — SYNCHRONOUS, **no credit**.
+
+        Mint a pre-signed S3 PUT URL the caller uses to upload bytes
+        directly to S3 (no proxying through WideCast). Useful for serverless
+        / edge environments where the SDK process shouldn't hold the file
+        bytes, and the canonical path for AI-agent MCP callers.
+
+        Two-step flow:
+
+          1. ``out = client.presign_asset("voice.mp3", content_type="audio/mpeg")``
+          2. ``requests.put(out["put_url"], data=open("voice.mp3", "rb"),
+                            headers=out["headers_required"])``
+          3. ``client.create_video(source="audio_url", audio_url=out["get_url"], ...)``
+
+        The ``put_url`` is valid for 1 hour to actually upload; the
+        ``get_url`` resolves for 24 hours (bucket lifecycle).
+
+        Returns dict ``{"object": "asset_presign", "put_url", "get_url",
+        "url", "key", "content_type", "filename", "headers_required",
+        "max_bytes", "put_expires_at", "expires_at", "ttl_hours"}``.
+        """
+        body: dict = {"mode": "presign", "filename": filename}
+        if content_type:
+            body["content_type"] = content_type
+        return self._request("POST", "/v1/upload_asset",
+                             json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
+
+    def modify_scene(self, video_id: str, *, by: str, value, fields: list,
+                     op: Optional[str] = None,
+                     min_score: Optional[float] = None) -> dict:
+        """POST /v1/modify_scene — SYNCHRONOUS, **no credit charged**. Swap the
+        background image/video on ONE scene of an existing video.
+
+        Resolve the scene with ``by`` + ``value``:
+          - ``by="id"`` — exact ``segment.id`` match.
+          - ``by="voice_file"`` — exact per-scene uid match (most reliable).
+          - ``by="text"`` — fuzzy match against the narration; on ambiguity
+            returns a clarification dict instead of editing.
+
+        ``fields`` is a list of ``{"field_name", "value"}`` edits. Today
+        honoured: ``{"field_name": "mediaUrl", "value": "<http(s) URL>"}``
+        (image OR video) and optional ``{"field_name": "mediaType", "value":
+        "image"|"video"}`` (auto-detected from URL extension if omitted).
+        Other field names return 400 ``unsupported_field``.
+
+        Return — the raw response dict. Two shapes:
+
+          * success → ``{"object": "scene_modified", "id", "scene_id",
+            "voice_file", "score", "applied": "media", "media_type"}``.
+
+          * ambiguous text match → ``{"object": "clarification",
+            "needs_input": "value", "message": "...", "candidates": [
+            {"segment_id", "voice_file", "score", "text"}]}``. The edit was
+            NOT applied. Show the candidates to the user, pick one, and call
+            again with ``by="voice_file"`` and the chosen ``voice_file``.
+
+        Edits are roll-aware: B-roll scenes swap the background and sync the
+        ``brollUrl`` invariant; A-roll scenes keep narrator + grid untouched
+        and register the asset as the overlay for the next spec gen.
+        """
+        if not video_id or not isinstance(video_id, str):
+            raise InvalidRequestError("video_id must be a non-empty string.",
+                                      code="invalid_id", param="video_id")
+        if by not in ("id", "voice_file", "text"):
+            raise InvalidRequestError(
+                "by must be one of: 'id', 'voice_file', 'text'.",
+                code="invalid_by", param="by")
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise InvalidRequestError(
+                "value is required (the id / voice_file / narration text to match).",
+                code="missing_field", param="value")
+        if not isinstance(fields, list) or not fields:
+            raise InvalidRequestError(
+                "fields must be a non-empty list of {field_name, value} edits.",
+                code="missing_field", param="fields")
+        for i, f in enumerate(fields):
+            if not isinstance(f, dict) or "field_name" not in f or "value" not in f:
+                raise InvalidRequestError(
+                    f"fields[{i}] must be an object with 'field_name' and 'value'.",
+                    code="invalid_field_entry", param="fields")
+        body: dict = {"id": video_id, "by": by, "value": value, "fields": fields}
+        if op:
+            body["op"] = op
+        if min_score is not None:
+            body["min_score"] = float(min_score)
+        return self._request("POST", "/v1/modify_scene", json_body=body)
 
     def get_status(self, video_id: str) -> Video:
         """GET /v1/status/<video_id> — fetch current state (universal poll endpoint).
@@ -774,38 +969,27 @@ class Widecast:
                              json_body=body, idempotency_key=idem)
         return self._wrap_video(data)
 
-    def suggest_ideas(self, industry_id: Optional[str] = None, *,
-                      num_topics: int = 5,
-                      sub_industry: Optional[str] = None,
-                      user_location: Optional[str] = None,
-                      idempotency_key: Optional[str] = None) -> dict:
-        """POST /v1/suggest_ideas — SYNCHRONOUS. Suggest video topic ideas for an
-        industry. Returns the ideas dict immediately (no polling):
-        `{"object": "ideas", "industry": "...", "ideas": [{"title", "description",
-        "industry", "audience", "professional", "level"}, ...]}`. Consumes credits.
-
-        Args:
-            industry_id: Industry name (e.g. "Real Estate"). Falls back to your
-                         account industry if omitted.
-            num_topics:  How many ideas (1–20, default 5).
-        """
-        body: dict = {"num_topics": int(num_topics)}
-        if industry_id:
-            body["industry_id"] = industry_id
-        if sub_industry:
-            body["sub_industry"] = sub_industry
-        if user_location:
-            body["user_location"] = user_location
-        return self._request("POST", "/v1/suggest_ideas", json_body=body,
-                             idempotency_key=idempotency_key or str(uuid.uuid4()))
-
     def collect_ideas(self, product_service_input: str, *,
                       sub_industry: Optional[str] = None,
                       user_location: Optional[str] = None,
+                      target_location: Optional[str] = None,
                       idempotency_key: Optional[str] = None) -> dict:
         """POST /v1/collect_ideas — SYNCHRONOUS. Generate video ideas from a
-        product/service description (≥10 chars). Returns the ideas dict
-        immediately (same shape as suggest_ideas, no `industry`). Consumes credits.
+        product/service description (≥10 chars).
+
+        ``target_location`` is the **audience market** the videos should target
+        (e.g. ``"California, United States"``, ``"Vietnam"``). It can differ
+        from where the user is based — drives which local trends, sources, and
+        language are used. If you call without ``target_location`` AND the
+        account has no cached one, the server returns
+        ``{"object": "clarification", "needs_input": "target_location",
+        "message": ...}`` instead of the ideas. **No credit is charged for the
+        clarification.** Show the message to the user, then call again with
+        the value they provide.
+
+        Returns ``{"object": "ideas", "ideas": [{"title", "description", ...}]}``
+        on success, or the clarification dict when input is missing. Consumes
+        credits only on success.
         """
         if not isinstance(product_service_input, str) or len(product_service_input.strip()) < 10:
             raise InvalidRequestError(
@@ -816,6 +1000,8 @@ class Widecast:
             body["sub_industry"] = sub_industry
         if user_location:
             body["user_location"] = user_location
+        if target_location:
+            body["target_location"] = target_location
         return self._request("POST", "/v1/collect_ideas", json_body=body,
                              idempotency_key=idempotency_key or str(uuid.uuid4()))
 
@@ -937,12 +1123,9 @@ class Widecast:
         return self._get("/v1/production_plan",
                          {"page": page, "week_start": week_start, "week_end": week_end})
 
-    def foundation_videos(self, *, industry: Optional[str] = None,
-                          sub_industry: Optional[str] = None, page: int = 0) -> dict:
-        """GET /v1/foundation_videos — curated foundation-video templates. Free.
-        `industry` falls back to your account industry."""
-        return self._get("/v1/foundation_videos",
-                         {"industry": industry, "sub_industry": sub_industry, "page": page})
+    # NOTE: foundation_videos() was withdrawn from the SDK 2026-06-19 (Round 27).
+    # The REST endpoint /v1/foundation_videos still serves the dashboard UI;
+    # SDK callers shouldn't have needed it (it's an in-product navigation aid).
 
     def recommendations(self, *, industry: Optional[str] = None, page: int = 0) -> dict:
         """GET /v1/recommendations — recommended video ideas for an industry. Free.
@@ -985,6 +1168,53 @@ class Widecast:
                                       code="missing_field", param="settings")
         return self._request("POST", "/v1/platform_settings",
                              json_body={"platform": platform, "settings": dict(settings)})
+
+    def send_telegram_message(self, message: str, *,
+                              parse_mode: Optional[str] = None,
+                              photo_url: Optional[str] = None,
+                              video_url: Optional[str] = None) -> dict:
+        """POST /v1/telegram/send — push a notification to the USER'S OWN
+        connected Telegram chat. SYNC, FREE. Self-notify only — the recipient
+        is the user who owns this API key (chat_id is resolved server-side
+        from their account, never accepted as input).
+
+        The user must have completed 'Connect Telegram' at
+        https://widecast.ai/#setup; if not, raises with
+        code=``telegram_not_connected`` + ``details.setup_url``.
+
+        Args:
+            message:      Text body (plain-text mode) OR the caption when
+                          ``photo_url`` / ``video_url`` is set. Capped at
+                          4000 bytes plain text / 1024 bytes as caption.
+            parse_mode:   Optional ``"Markdown"`` / ``"MarkdownV2"`` /
+                          ``"HTML"``. Omit for plain text.
+            photo_url:    Optional photo to attach. Mutually exclusive with
+                          ``video_url``.
+            video_url:    Optional video to attach. Mutually exclusive with
+                          ``photo_url``.
+
+        Returns a dict ``{"object": "telegram_message", "status": "sent",
+        "media_kind": "text"|"photo"|"video", "chat_id_masked": "…1234",
+        "telegram_message_id"?, "request_id"}``.
+        """
+        if not isinstance(message, str) or not message.strip():
+            raise InvalidRequestError(
+                "message (non-empty string) is required.",
+                code="missing_field", param="message")
+        if photo_url and video_url:
+            raise InvalidRequestError(
+                "Provide AT MOST one of photo_url / video_url.",
+                code="conflicting_media", param="photo_url")
+        body: Dict[str, Any] = {"message": message}
+        if parse_mode is not None:
+            body["parse_mode"] = parse_mode
+        if photo_url:
+            body["photo_url"] = photo_url
+        if video_url:
+            body["video_url"] = video_url
+        return self._request("POST", "/v1/telegram/send",
+                             json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
 
     # ── Helpers ───────────────────────────────────────────────────────────
     def _wrap_video(self, data: dict) -> Video:

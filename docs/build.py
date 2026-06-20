@@ -78,7 +78,7 @@ LEGACY_SITE = ROOT.parent / "docs-html"          # stale after refactor — warn
 TEST_CASES_JSON = ROOT.parent.parent / "test_cases.json"
 
 # Public API base URL (dev pilot). SDK + examples + playground default to this.
-API_BASE_URL = os.environ.get("WIDECAST_API_BASE_URL", "https://widecast.ai/app/dashboard2")
+API_BASE_URL = os.environ.get("WIDECAST_API_BASE_URL", "https://widecast.ai/app/dashboard")
 
 PLAYGROUND_MARKER_RE = re.compile(r"<!--\s*widecast-playground:([a-zA-Z0-9_-]+)\s*-->")
 
@@ -803,7 +803,7 @@ def _copy_assets() -> None:
 // Edit the URL here to redirect every page at once — no rebuild required.
 //
 // At build time, docs/build.py regenerates this file from the
-// WIDECAST_API_BASE_URL env var (defaults to https://widecast.ai/app/dashboard2).
+// WIDECAST_API_BASE_URL env var (defaults to https://widecast.ai/app/dashboard).
 window.WIDECAST_API_BASE_URL = {json.dumps(API_BASE_URL)};
 """,
         encoding="utf-8",

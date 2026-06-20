@@ -411,6 +411,27 @@ WideCast always returns scenes ready for review first; the user opens
   sentence brief>`, plus `language`, `video_length` ("short"/"normal"). Same
   hand-off / handle-reply order applies if the engine surfaces a script for
   review.
+- **User attached / linked an audio file (voice memo / podcast clip / draft
+  recording) →** if the user gave you a public URL, use it directly. If they
+  attached the bytes in chat, FIRST call `widecast_upload_asset` (uploads to
+  WideCast's S3 bucket with a 24-hour TTL) — the response carries an S3 URL.
+  Then call `create_video(source="audio_url", audio_url=<that URL>, …)`. Do
+  NOT base64 the audio inline — `widecast_upload_asset` is the canonical
+  upload path and removes the size / arg-length problems base64 has.
+  The audio IS the script source — WideCast transcribes it, so you SKIP the
+  7-step writing flow. BUT **you still owe the user the production question** —
+  `production_mode` is required here too because the visuals are generated
+  separately from the audio. Same three options (each has a different
+  downstream UX in the audio context):
+  - `faceless` — keep the user's original audio as narration + B-roll only.
+  - `face_clone` — their Face + Voice clone delivers the narration on screen
+    (must be set up at https://widecast.ai/#setup first).
+  - `teleprompter` — they re-record themselves reading the transcribed
+    script cleanly via the built-in teleprompter (useful when the source
+    audio is a rough draft / dictation).
+  Ask in one short message AFTER you confirm the audio reached you ("I have
+  your voice memo — three ways I can produce it: …"). Pass `script_approved=true`
+  in this flow as "user confirmed they want a video from this audio".
 
 `output_type` is left at the default — `create_video` always produces
 reviewable scenes; the user renders the final MP4 from the WideCast UI when

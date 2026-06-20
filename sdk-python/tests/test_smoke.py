@@ -32,6 +32,8 @@ def test_public_surface_exports():
         "IDEA_MIN_WORDS", "IDEA_MAX_WORDS",
         "BLOG_MIN_WORDS", "BLOG_MAX_WORDS",
         "MEDIA_MAX_DURATION_SECONDS", "MEDIA_MAX_FILE_BYTES",
+        "FREE_TIER_MAX_SECONDS", "FREE_TIER_MAX_WORDS",
+        "FREE_TIER_WORDS_PER_SECOND", "PRICING_URL",
         "OUTPUT_TYPES", "SOURCES", "FACELESS_SOURCES", "CONTENT_TYPES",
         "INTERVENTION_LEVELS", "PUBLISH_PLATFORMS", "VIDEO_LENGTHS", "LANGUAGES",
         "verify_webhook", "WebhookVerificationError",
@@ -58,7 +60,8 @@ def test_idea_bounds_and_enums_locked():
     assert IDEA_MIN_WORDS == 5
     assert IDEA_MAX_WORDS == 1000
     assert SOURCES == ("text", "idea", "blog",
-                       "video_url", "video_file", "audio_url", "audio_file")
+                       "video_url", "video_file",
+                       "audio_url", "audio_file")
     assert VIDEO_LENGTHS == ("short", "normal")
     assert LANGUAGES == ("English", "Vietnamese")
 
@@ -73,10 +76,10 @@ def test_blog_bounds_locked():
 
 def test_media_caps_locked():
     """A49 parity for media-ingest caps. Server mirrors these
-    (WIDECAST_MEDIA_MAX_DURATION_SECONDS / MAX_FILE_BYTES). Duration = 2 min
+    (WIDECAST_MEDIA_MAX_DURATION_SECONDS / MAX_FILE_BYTES). Duration = 5 min
     (all media, server-enforced); size = 100 MB (uploads only, also
     pre-validated client-side → file_too_large)."""
-    assert MEDIA_MAX_DURATION_SECONDS == 120
+    assert MEDIA_MAX_DURATION_SECONDS == 300
     assert MEDIA_MAX_FILE_BYTES == 100 * 1024 * 1024
 
 
@@ -273,8 +276,10 @@ def test_create_video_rejects_invalid_source():
 
 def test_faceless_sources_locked():
     """A38 canary: faceless scope must match the server's
-    _WIDECAST_FACELESS_SOURCES (text/idea/blog only)."""
-    assert FACELESS_SOURCES == ("text", "idea", "blog")
+    _WIDECAST_FACELESS_SOURCES — text/idea/blog AND audio sources
+    (audio_url; A52 2026-06-15). Video sources still excluded
+    (the footage IS the visuals)."""
+    assert FACELESS_SOURCES == ("text", "idea", "blog", "audio_url")
 
 
 def test_create_video_rejects_faceless_non_bool():
@@ -370,7 +375,7 @@ def test_enhance_script_accepts_valid():
     assert not isinstance(ei.value, InvalidRequestError)
 
 
-# ── /v1/suggest_ideas + /v1/collect_ideas (Batch A sync ideas) ──────────────
+# ── /v1/collect_ideas (Batch A sync ideas) ──────────────────────────────────
 
 def test_collect_ideas_rejects_short_input():
     c = Widecast(api_key="dummy")
@@ -380,19 +385,65 @@ def test_collect_ideas_rejects_short_input():
     assert ei.value.param == "product_service_input"
 
 
-def test_suggest_ideas_accepts_valid():
-    """Valid suggest_ideas passes validation → network failure (sync, not InvalidRequestError)."""
-    c = _offline_client()
-    with pytest.raises(WidecastError) as ei:
-        c.suggest_ideas(industry_id="Real Estate", num_topics=5)
-    assert not isinstance(ei.value, InvalidRequestError)
-
-
 def test_collect_ideas_accepts_valid():
     c = _offline_client()
     with pytest.raises(WidecastError) as ei:
         c.collect_ideas(product_service_input="A budgeting app for freelancers with tax estimates")
     assert not isinstance(ei.value, InvalidRequestError)
+
+
+# ── /v1/modify_scene (sync, no credit) ──────────────────────────────────────
+
+def test_modify_scene_rejects_empty_id():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.modify_scene("", by="voice_file", value="XcR0k",
+                       fields=[{"field_name": "mediaUrl",
+                                "value": "https://x.test/a.jpg"}])
+    assert ei.value.code == "invalid_id"
+
+
+def test_modify_scene_rejects_bad_by():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.modify_scene("widecastabc123def456", by="title", value="X",
+                       fields=[{"field_name": "mediaUrl",
+                                "value": "https://x.test/a.jpg"}])
+    assert ei.value.code == "invalid_by"
+
+
+def test_modify_scene_rejects_empty_fields():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.modify_scene("widecastabc123def456", by="voice_file", value="X",
+                       fields=[])
+    assert ei.value.code == "missing_field"
+    assert ei.value.param == "fields"
+
+
+def test_modify_scene_rejects_missing_value():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.modify_scene("widecastabc123def456", by="voice_file", value="  ",
+                       fields=[{"field_name": "mediaUrl",
+                                "value": "https://x.test/a.jpg"}])
+    assert ei.value.code == "missing_field"
+    assert ei.value.param == "value"
+
+
+def test_modify_scene_accepts_valid():
+    """Valid request reaches the network layer (not blocked by client-side validation)."""
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.modify_scene("widecastabc123def456", by="voice_file", value="XcR0k",
+                       fields=[{"field_name": "mediaUrl",
+                                "value": "https://x.test/a.jpg"}])
+    assert not isinstance(ei.value, InvalidRequestError)
+
+
+def test_client_exposes_modify_scene():
+    c = Widecast(api_key="dummy")
+    assert callable(getattr(c, "modify_scene", None))
 
 
 # ── /v1/publish (Batch B distribution) ──────────────────────────────────────
@@ -454,7 +505,7 @@ def test_read_methods_exist_and_are_callable():
     """The 8 read methods exist on the client (server reuse verified live)."""
     c = Widecast(api_key="dummy")
     for name in ("list_videos", "search", "account", "analytics", "roadmap",
-                 "production_plan", "foundation_videos", "recommendations"):
+                 "production_plan", "recommendations"):
         assert callable(getattr(c, name)), name
 
 
