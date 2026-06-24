@@ -9,18 +9,18 @@
        works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
   <base href="../">
 
-  <title>Connections — connect / accounts / configure · WideCast Docs</title>
-  <meta name="description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key. WideCast **never performs OAuth itself** — `connect` hands you a link that *you* open to authorize the platform.">
+  <title>Connections — accounts / configure · WideCast Docs</title>
+  <meta name="description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key.">
   <link rel="canonical" href="https://widecast.ai/endpoints/connections.html">
 
-  <meta property="og:title" content="Connections — connect / accounts / configure · WideCast Docs">
-  <meta property="og:description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key. WideCast **never performs OAuth itself** — `connect` hands you a link that *you* open to authorize the platform.">
+  <meta property="og:title" content="Connections — accounts / configure · WideCast Docs">
+  <meta property="og:description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/connections.html">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Connections — connect / accounts / configure · WideCast Docs">
-  <meta name="twitter:description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key. WideCast **never performs OAuth itself** — `connect` hands you a link that *you* open to authorize the platform.">
+  <meta name="twitter:title" content="Connections — accounts / configure · WideCast Docs">
+  <meta name="twitter:description" content="Manage the social platforms your account publishes to. All **free** (0-credit) and require your API key.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,8 +56,11 @@
 
   <main class="wc-main">
     <article class="wc-article">
-      <h1 id="connections-connect-accounts-configure">Connections — connect / accounts / configure</h1>
-<p>Manage the social platforms your account publishes to. All <strong>free</strong> (0-credit) and require your API key. WideCast <strong>never performs OAuth itself</strong> — <code>connect</code> hands you a link that <em>you</em> open to authorize the platform.</p>
+      <h1 id="connections-accounts-configure">Connections — accounts / configure</h1>
+<p>Manage the social platforms your account publishes to. All <strong>free</strong> (0-credit) and require your API key.</p>
+<blockquote>
+<p><strong>Connecting platforms</strong> (the OAuth step) moved out of the public API surface 2026-06-21 (Round 28). Direct users to <a href="https://widecast.ai/#setup"><code>https://widecast.ai/#setup</code></a> — they click 'Connect [platform]' there, complete the OAuth in their own browser, and the connection persists. The legacy REST endpoint <code>POST /v1/connect</code> still serves the dashboard UI flow but is no longer advertised on the public spec / SDK / MCP.</p>
+</blockquote>
 <table>
 <thead>
 <tr>
@@ -66,10 +69,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>POST /v1/connect</code></td>
-<td>Get an OAuth link to connect a platform</td>
-</tr>
 <tr>
 <td><code>GET /v1/accounts</code></td>
 <td>List connected platforms</td>
@@ -85,10 +84,6 @@
 </tbody>
 </table>
 <hr />
-<h2 id="post-v1connect"><code>POST /v1/connect</code></h2>
-<p>Returns a <code>url</code> that <strong>the user opens in a browser</strong> to authorize the platform — WideCast does not complete the OAuth for you. Body: <code>{platform?}</code> (one of the supported platforms; omit for a link covering all). Returns <code>{object:"connect", url, expires_in, platform, platforms, note}</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/connect</code></div><section class="wc-pg-example" data-cfg="playgrounds/connect.json" data-usecase-id="connect" id="ex-connect--connect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔗 Connect a platform</h3><p class="wc-pg-example-desc">Get an OAuth link. Open the returned `url` to authorize the platform yourself.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
-
 <h2 id="get-v1accounts"><code>GET /v1/accounts</code></h2>
 <p>List the account's connected social platforms. Returns <code>{object:"list", data:[{platform, username, status, connected_at}]}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/accounts</code></div><section class="wc-pg-example" data-cfg="playgrounds/accounts.json" data-usecase-id="accounts" id="ex-accounts--accounts"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔌 Connected accounts</h3><p class="wc-pg-example-desc">No params — returns each connected platform + username + status.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>

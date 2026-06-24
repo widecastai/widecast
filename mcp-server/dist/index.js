@@ -109,9 +109,10 @@ const TOOLS = [
         title: "WideCast: Create video",
         description: "REQUIRED CONFIRMATION GATES — the tool enforces these and will reject calls that skip them:\n" +
             "• `script_approved` MUST be true. Set ONLY after you've shown the user your full hand-off (Research / Visual assets / Script with inline ![alt](url) / Backup pool / Production sections) AND they edited it OR answered the production question. A bare 'make a video about X' from the user is NOT approval — that's the request, not the approval. Always show the script first, then mark approved.\n" +
+            "• Each inline image must be VETTED, not just sourced: 1–3 images total, never two on consecutive scenes, and — if your runtime can view a file at all — each one downloaded + viewed + its LOCAL file shown to the user BEFORE inlining (inlining a URL from its caption/source alone is the #1 quality failure and does not count as vetted). Other scenes use WideCast's auto-B-roll; do NOT call widecast_search_broll while authoring.\n" +
             "• `production_mode` MUST be ONE of THREE explicit values for source=text/idea/blog AND for source='audio_url' — same UI flow because the visuals must still be generated (the script comes from a text input or from transcribing the user's audio, but who/what appears on screen is a separate decision). Ask the user in their language and pass their literal answer: (1) `faceless` — B-roll only, no narrator on screen, no recording needed. (2) `face_clone` — narrator A-roll generated from the user's pre-trained face + voice clone (they must have it set up at https://widecast.ai/#setup BEFORE the video renders — if they pick this and haven't set it up yet, point them at that URL). (3) `teleprompter` — the user records themselves reading the script via WideCast's built-in teleprompter (no clone needed, but they need to physically record after the scenes are prepared). Both `face_clone` and `teleprompter` produce a 'normal' video (narrator on screen) — they're just the two ways the user can supply the narrator. Do NOT default to one of them; the choice and downstream UX are different. Ignored only for source=video_url (the footage IS the visuals). **AUDIO-source nuance**: when source='audio_url' (or an audio file uploaded via widecast_upload_asset), the user's ORIGINAL voice in the recording IS the narration in all three modes — it is never re-synthesized via TTS, the audio plays back verbatim. `face_clone` here means the cloned face appears on screen lip-synced TO the user's original audio (not to a clone-voice TTS); the clone only contributes the visual face, the voice stays the user's. Spell this out to the user when they pick face_clone for an audio source so they don't expect their cloned voice.\n" +
             "Setting these flags blindly to bypass the gate defeats the purpose. The skill explains the dialog flow; the flags enforce that it actually happened.\n" +
-            "REQUIRED PREREQUISITE for source='text': call widecast_get_writing_skill(format='video') FIRST and follow the returned 7-step method. The method is universal — it applies to Claude, GPT, Gemini, Grok, Hermes, Llama, or any other LLM, not just one host. Scripts written without it consistently produce weaker videos (missing inline media, weak hooks, no research grounding). Skip only if the user is providing a pre-written script verbatim.\n" +
+            "REQUIRED PREREQUISITE for source='text': call widecast_get_writing_skill(format='video') FIRST and follow the returned method (write the five formats VE/QA/POV/CS/MB for a pick, then vet visuals on the picked script). The method is universal — it applies to Claude, GPT, Gemini, Grok, Hermes, Llama, or any other LLM, not just one host. Scripts written without it consistently produce weaker videos (mismatched or wall-to-wall inline media, weak hooks, no research grounding). Skip only if the user is providing a pre-written script verbatim.\n" +
             "SOURCE ROUTING (IMPORTANT — pick honestly):\n" +
             "• If your runtime CAN do real research — web search, fetch live pages, harvest verifiable image URLs — use source='text' and follow the writing method.\n" +
             "• If your runtime CANNOT do real research — no web access, no image search, no fact-verification — DO NOT improvise a script from training data alone. Use source='idea' instead and pass the user's request as `idea_text`. WideCast's server-side worker will research and write the script for you (still ask the three-way production question: faceless / face_clone / teleprompter), then you wait for the result like any other render. This is the honest path; the user gets a real script grounded in current facts instead of your guess.\n" +
@@ -126,7 +127,8 @@ const TOOLS = [
             "Production question: ask the user — in their language — to pick ONE of THREE: (1) Faceless — B-roll only, no narrator on screen; (2) Face clone — their trained Face + Voice clone speaks the script (point them at https://widecast.ai/#setup if they haven't set up yet); (3) Teleprompter — they record themselves via WideCast's built-in teleprompter after scenes prepare. Pass their literal answer as `production_mode` (the wrapper maps face_clone OR teleprompter → faceless=false; faceless → faceless=true). Required for source=text/idea/blog AND for source='audio_url' — both flows generate visuals separately from the script. Skipped only for source=video_url (the footage IS the visuals) or output_type='text'. There's no other production question to ask; the user controls render-final from the UI.\n" +
             "Pre-call check (when source='text' from the widecast_get_writing_skill flow): before calling this tool, verify the previous assistant message included ALL of these (else don't call — go back and fill the gap): (a) a `### Research` section with 2–4 bullets, (b) a `### Visual assets` section listing verified URLs (or — for an abstract topic — an explicit 3+-item visual-direction list with the reason no real URL fits), (c) the script with inline `![alt](url)` markdown URLs at relevant beats, (d) the `### Backup image pool — unverified, your call` section (or a one-line 'No image search available' notice), (e) the `### Production` section with the three-way production question (faceless / face_clone / teleprompter, each with its downstream UX), AND (f) the user's reply with the production answer. If any item is missing, re-hand off with the missing section instead of calling this tool. URLs the user picked from the backup pool go in `media_pool`.\n" +
             "Inline media: if `script_text` contains any image/video URLs (either form: `![alt](url)` markdown or a raw URL), pass `script_text` VERBATIM including the URLs and brackets — don't strip, clean, or summarize them (this applies even if you wrote the script yourself). WideCast removes the construct from the narration and uses the URL as the matching scene's visual.\n" +
-            "Returns a `widecast*` id + status='processing' + `review_url` from the first response (the scene editor / script editor page handles early arrival itself — spinner + in-page polling — so you can share the link before completion). Then call widecast_wait_for_video (don't busy-loop) for the final state.",
+            "Returns a `widecast*` id + status='processing' + `review_url` from the first response (the scene editor / script editor page handles early arrival itself — spinner + in-page polling — so you can share the link before completion). Then call widecast_wait_for_video (don't busy-loop) for the final state. " +
+            "**POST-CALL — open `review_url` INLINE**: if your runtime has a built-in browser / in-chat web viewer (Codex view-url, ChatGPT browse, any host that can iframe an external URL), call it on `review_url` IMMEDIATELY after surfacing the link, so the user can review and edit scenes without leaving the chat session. If you have no such tool, just show the URL as a clickable link and tell the user to open it.",
         inputSchema: {
             type: "object",
             required: ["source", "script_approved"],
@@ -154,7 +156,8 @@ const TOOLS = [
         description: "Wait for a video to finish (or make progress). Polls status server-side for up to ~45s, then returns the latest state. " +
             "**Use this instead of calling widecast_get_status in a loop.** If the returned status isn't 'completed'/'failed', just call this tool again to keep waiting — the video is still rendering on WideCast's side. Returns id/status/progress, plus review_url/embed_url from the very first response (the review page handles early arrival itself); video_url appears when status='completed'. " +
             "While processing, the response includes `progress_hint.label` — a human-readable sub-stage with ETA (e.g. \"Generating scene visuals · ~7 min left\"). Relay this to the user each poll, translating to their language, so the 15-min wait feels alive rather than stuck. The label is pseudo-progress (time-based, not real worker state) — don't gate logic on it, only display. " +
-            "When status='completed', show the result INLINE for the user: put `embed_url` (a public, read-only player) into an HTML artifact `<iframe>` so they can watch without leaving the chat, and offer `review_url` as the 'Open / edit in WideCast' link. If the host won't render the iframe, show `review_url` as a clickable button instead. Before completion, you can also share `review_url` so the user can open the review page early and watch the spinner there.",
+            "When status='completed', show the result INLINE for the user: put `embed_url` (a public, read-only player) into an HTML artifact `<iframe>` so they can watch without leaving the chat, and offer `review_url` as the 'Open / edit in WideCast' link. If the host won't render the iframe, show `review_url` as a clickable button instead. Before completion, you can also share `review_url` so the user can open the review page early and watch the spinner there. " +
+            "**POST-CALL — open `review_url` in the built-in browser if you have one**: if your runtime exposes a built-in web viewer (Codex view-url, ChatGPT browse, any host that can iframe an external URL), call it on `review_url` IMMEDIATELY so the user can review and edit scenes inline in the chat session — they shouldn't have to copy-paste a link.",
         inputSchema: {
             type: "object",
             required: ["video_id"],
@@ -169,7 +172,8 @@ const TOOLS = [
         title: "WideCast: Get video status",
         description: "Get the current state of a WideCast video by id (a single check). Returns status " +
             "(pending|processing|completed|failed), `review_url` (present from the first response — the review page handles early arrival itself), and `video_url` once status='completed'. " +
-            "For waiting on a render, prefer widecast_wait_for_video — do NOT call this in a tight loop.",
+            "For waiting on a render, prefer widecast_wait_for_video — do NOT call this in a tight loop. " +
+            "When you surface `review_url` to the user, ALSO open it in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can review/edit inline without leaving the chat.",
         inputSchema: {
             type: "object",
             required: ["video_id"],
@@ -184,7 +188,8 @@ const TOOLS = [
         description: "Render the final MP4 for a 'scene' video after the user has reviewed it (the final render takes 10+ minutes and charges credit).\n" +
             "REQUIRED CONFIRMATION GATE — the tool enforces this and will reject calls that skip it:\n" +
             "• `user_confirmed_render` MUST be true. Set ONLY after asking the user EXPLICITLY in THIS message round: 'Render the final video now, or do you want to review the scenes first?' and getting an explicit yes. Do NOT infer from earlier in the conversation, do NOT assume 'the user wanted the final video originally', do NOT call this off your own guess. Each export is a new decision — ask each time.\n" +
-            "Idempotent on the REST side. Then call widecast_wait_for_video until status='completed' with video_url.",
+            "Idempotent on the REST side. Then call widecast_wait_for_video until status='completed' with video_url. " +
+            "When widecast_wait_for_video returns the final `review_url` / `video_url`, ALSO open `review_url` in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can watch the final MP4 inline without leaving the chat.",
         inputSchema: {
             type: "object",
             required: ["video_id", "user_confirmed_render"],
@@ -197,13 +202,13 @@ const TOOLS = [
     {
         name: "widecast_upload_asset",
         title: "WideCast: Mint a pre-signed S3 PUT URL",
-        description: "Mint a pre-signed S3 PUT URL the AI agent uses to upload an audio / video / image file the user attached in this chat. THIS tool returns a URL pair — `put_url` (where the agent PUTs the bytes via shell) and `get_url` (public, valid for 24 hours, feed it into widecast_create_video as `audio_url` / `video_url`, OR drop into `script_text` as an inline `![alt](url)` for images). THIS is the canonical upload path — do NOT shop for third-party file hosts (transfer.sh / catbox / file.io / S3 of your own), do NOT inline-base64 audio into widecast_create_video, do NOT ask the user to host the file themselves. Two-step flow: (1) call this tool with `filename` (and `content_type` if you know it) — NO bytes pass through MCP; (2) shell-out: `curl -X PUT --upload-file <local_path> \"<put_url>\"` — no extra headers needed (the signature only binds the host, so curl's default request works); (3) call widecast_create_video with the returned `get_url`. The `put_url` is valid for 1 hour to actually upload; the `get_url` keeps resolving for 24 hours (bucket lifecycle auto-deletes after that — so call widecast_create_video soon after the upload). Audio + video + image only (MIME audio/* | video/* | image/*); server cap 500 MB. SYNC, FREE (no credit). Returns `{object:'asset_presign', put_url, get_url, headers_required, content_type, key, put_expires_at, expires_at, ttl_hours, max_bytes}`. If the user already gave you a public URL, skip this tool and pass that URL straight into widecast_create_video.",
+        description: "Mint a pre-signed S3 PUT URL the AI agent uses to upload a file the user attached in this chat — audio / video / image, OR a document (HTML / PDF / Markdown — useful when the user pastes an article, blog draft, or research notes for widecast_create_video source='blog' or source='text'). THIS tool returns a URL pair — `put_url` (where the agent PUTs the bytes via shell) and `get_url` (public, valid for 24 hours, feed it into widecast_create_video as `audio_url` / `video_url`, drop into `script_text` as an inline `![alt](url)` for images, OR `curl <get_url>` to fetch the document text before passing it as `blog_text`/`script_text`). THIS is the canonical upload path — do NOT shop for third-party file hosts (transfer.sh / catbox / file.io / S3 of your own), do NOT inline-base64 audio into widecast_create_video, do NOT ask the user to host the file themselves. Two-step flow: (1) call this tool with `filename` (and `content_type` if you know it) — NO bytes pass through MCP; (2) shell-out: `curl -X PUT --upload-file <local_path> \"<put_url>\"` — no extra headers needed (the signature only binds the host, so curl's default request works); (3) consume the `get_url`: feed into widecast_create_video for media sources, OR `curl <get_url>` to read the document body before passing it as `blog_text`/`script_text`. The `put_url` is valid for 1 hour to actually upload; the `get_url` keeps resolving for 24 hours (bucket lifecycle auto-deletes after that — so call widecast_create_video soon after the upload). Allowed kinds: audio/* | video/* | image/* | text/html | application/pdf | text/markdown (extensions: .mp4 .mov .m4v .webm .mkv .avi / .mp3 .wav .m4a .aac .ogg .opus .flac / .jpg .jpeg .png .webp .gif .bmp .avif .svg / .html .htm .pdf .md .markdown); server cap 500 MB. SYNC, FREE (no credit). Returns `{object:'asset_presign', put_url, get_url, headers_required, content_type, key, put_expires_at, expires_at, ttl_hours, max_bytes}`. If the user already gave you a public URL, skip this tool and pass that URL straight into widecast_create_video.",
         inputSchema: {
             type: "object",
             required: ["filename"],
             properties: {
-                filename: { type: "string", maxLength: 256, description: "Original filename — used to pick the S3 extension (.mp4 / .mp3 / .wav / .m4a / .png / .jpg / …). Basename only; path stripped." },
-                content_type: { type: "string", description: "Optional MIME type (e.g. 'audio/mpeg', 'video/mp4', 'image/jpeg'). Used by the downstream pipeline only — NOT bound to the S3 signature, so you do NOT need to echo it back on the PUT. Falls back to detection from the filename extension if omitted." },
+                filename: { type: "string", maxLength: 256, description: "Original filename — used to pick the S3 extension (.mp4 / .mp3 / .wav / .m4a / .png / .jpg / .html / .pdf / .md / …). Basename only; path stripped." },
+                content_type: { type: "string", description: "Optional MIME type (e.g. 'audio/mpeg', 'video/mp4', 'image/jpeg', 'text/html', 'application/pdf', 'text/markdown'). Used by the downstream pipeline only — NOT bound to the S3 signature, so you do NOT need to echo it back on the PUT. Falls back to detection from the filename extension if omitted." },
             },
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
@@ -233,7 +238,8 @@ const TOOLS = [
             "• `by='voice_file'` or `by='id'` — preferred when you have the id from a previous widecast_get_status call.\n" +
             "• `by='text'` — fall back when the user names a scene by its narration. If two scenes match too closely the response is `{object: 'clarification', needs_input: 'value', candidates: [...]}` — show the candidates to the user, get a pick, then call again with `by='voice_file'` and the chosen scene's voice_file. Never silently guess.\n" +
             "Today only the background media is editable — pass `fields: [{field_name: 'mediaUrl', value: '<http(s) URL>'}]` (and optionally `{field_name: 'mediaType', value: 'image'|'video'}` to override auto-detection). Other field names return 400 `unsupported_field`.\n" +
-            "The edit is roll-aware automatically (B-roll → asset becomes the background; A-roll → asset becomes the overlay, narrator + grid untouched). The change is visible in the editor immediately. Call widecast_export_video again ONLY if the user wants a fresh final MP4 to reflect the edit.",
+            "The edit is roll-aware automatically (B-roll → asset becomes the background; A-roll → asset becomes the overlay, narrator + grid untouched). The change is visible in the editor immediately. Call widecast_export_video again ONLY if the user wants a fresh final MP4 to reflect the edit. " +
+            "After a successful edit, if you have a built-in web viewer, re-open the existing `review_url` (or refresh it inline) so the user sees the swapped asset land on the scene without manually reopening the editor tab.",
         inputSchema: {
             type: "object",
             required: ["video_id", "by", "value", "fields"],
@@ -281,20 +287,108 @@ const TOOLS = [
             },
         },
     },
+    // widecast_enhance_script withdrawn from MCP/SDK 2026-06-21 (Round 28).
+    // REST /v1/enhance_script still serves the dashboard UI.
     {
-        name: "widecast_enhance_script",
-        title: "WideCast: Enhance a script",
-        description: "Improve a DRAFT video script with AI (fix grammar, add examples, sharpen the hook). Async: returns a `widecast*` id + status='processing' + `review_url` (opens the Script Editor; works during enhancement — page shows a spinner). " +
-            "Then call widecast_wait_for_video until status='completed' for the final script.",
+        name: "widecast_create_image",
+        title: "WideCast: Generate AI images (numbered thumbnail set)",
+        description: "Generate 1-4 AI images from a text prompt. SYNC. **Charges 1 credit per image generated** (count=4 → 4 credits). Same engine as the dashboard's Gen-AI tab (broll.js). " +
+            "**SCOPE — two uses.** (1) The modify_scene EDIT flow: swap ONE scene's media on an EXISTING video (picked image → widecast_modify_scene `field_name='mediaUrl'`); natural sequence widecast_create_video → user reviews → user asks to swap scene N → widecast_create_image → user picks → widecast_modify_scene. (2) The writing-skill Stage-2 LAST RESORT: when authoring a NEW script and one of your ≤3 image beats genuinely needs a picture but no real photo can be sourced/vetted (you exhausted the image ladder) AND you cannot generate one yourself, call this to fill that ONE beat, then inline the returned url as `![alt](url)`. It is NOT a first-choice research tool — real photos beat AI art for credibility (critical for news / real events / real products), so exhaust the writing skill's image ladder + your own generation FIRST. Either way it is 1 credit per image — never spend casually. " +
+            "Use when the user asks: 'make/generate an image for scene N', 'design a new thumbnail for this video', 'I need a custom image to replace scene 3', etc. " +
+            "**PRE-CALL — ALWAYS tell the user the cost FIRST**: image generation is the only sync paid call in the toolset, and the user must know what they're about to spend. Before calling, surface a one-line cost notice in the user's language — e.g. `\"Heads up: this will use **1 credit** (each image = 1 credit).\"` for count=1, or `\"Heads up: this will use **N credits** — N images at 1 credit each.\"` for count>=2. Use the user's chat language; keep it short; don't require an explicit 'yes' for count=1 (the request itself is the consent for a single image) BUT do require an explicit confirmation for count>=2 ('Generate N variations for N credits — confirm?'). Do NOT silently spend credits. " +
+            "**POST-CALL — show the image(s) so the user can actually SEE them**. ⚠ Most AI-agent runtimes (Claude included) CANNOT render an external `https://…` URL inline in chat — pasting raw URLs ≠ showing pictures. Pick the path by **count**: " +
+            "**(A) count=1 → DOWNLOAD locally + attach inline**. Fetch the single `images[0].url` via your built-in download/save tool, then attach the saved file to your chat reply so it renders as an inline image (Claude image-attach, Codex view_image after save, etc.). 1 fetch = no rate-limit risk. " +
+            "**(B) count>=2 → BUILD AN HTML ARTIFACT GALLERY, DO NOT DOWNLOAD EACH THUMB**. ⚠ The artifact's `<img src='https://…'>` is loaded by the USER'S BROWSER once — no quota burn on the AI host or the image source. If you instead call view_image / download-and-attach on every thumbnail, you'll trigger N requests in seconds (Pexels / Pixabay / Google / our S3 all rate-limit aggressively) and the **account may be banned**. So: open an HTML artifact, splice URLs only, NO per-image fetch. Template (use verbatim, splice URLs in): " +
+            "`<style>body{font-family:system-ui;margin:0;padding:16px;background:#0f172a;color:#e2e8f0}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.c{background:#1e293b;border-radius:8px;overflow:hidden;padding-bottom:8px;text-align:center}.c img{width:100%;height:220px;object-fit:cover;display:block;background:#0b1220}.n{font-weight:700;font-size:18px;color:#a78bfa;padding:8px 0 2px}</style><div class='g'>` + one `<div class='c'><img src='THUMB_URL'><div class='n'>N</div></div>` per image + `</div>`. " +
+            "Then ask the user to pick by number ('Which one — 1, 2, 3, or 4?'). " +
+            "**(C) After the user picks ONE** → 1 fetch is safe: download `images[N-1].url` locally if you want to attach a high-res preview, OR feed it directly into widecast_modify_scene (`field_name='mediaUrl'`) to swap a scene's background, OR paste it as `![alt](url)` in a future widecast_create_video script_text. The pattern is: gallery shows N thumbs via artifact (0 fetches), user picks 1, you fetch 1 if needed. NEVER N results = N fetches. " +
+            "Body: `{prompt (REQUIRED, ≤2000 chars), ratio?: 'portrait'|'landscape'|'square' (default portrait), count?: 1-4 (default 1), topic_id?: link to an existing video's asset folder}`. Returns `{object:'image_set', status, count, ratio, prompt, images:[{number, url, thumbnail_url, ratio}], request_id}`.",
         inputSchema: {
             type: "object",
-            required: ["script_text"],
+            required: ["prompt"],
             properties: {
-                script_text: { type: "string", description: "The draft script to enhance." },
-                language: { type: "string", description: "Output language; omit to keep the draft's original language." },
-                intervention_level: { type: "number", enum: [0, 1, 2], default: 1, description: "0=segment only, 1=natural enhance (default), 2=maximum rewrite." },
-                callback_url: { type: "string", description: "Optional HTTPS webhook." },
-                metadata: { type: "object", description: "Optional key-value pairs echoed back on status." },
+                prompt: { type: "string", maxLength: 2000, description: "Image description (≤2000 chars). Concrete visual nouns work best — 'a wooden ladder against a red brick wall, morning light' beats abstract concepts." },
+                ratio: { type: "string", enum: ["portrait", "landscape", "square"], default: "portrait", description: "portrait=768×1344 (Reels/TikTok/Shorts), landscape=1344×768 (YouTube/blog hero), square=768×768 (IG feed). Match the video you'll use the image in." },
+                count: { type: "number", minimum: 1, maximum: 4, default: 1, description: "How many variations in one call (1-4, default 1). Each = 1 credit. Use 3-4 when the user wants options to pick from." },
+                topic_id: { type: "string", description: "Optional. Link to an existing video's asset folder. Omit for freeform/standalone generation." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true, idempotentHint: false },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "image_set" },
+                status: { type: "string", enum: ["completed", "partial"] },
+                count: { type: "number" },
+                ratio: { type: "string" },
+                prompt: { type: "string" },
+                images: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            number: { type: "number" },
+                            url: { type: "string", format: "uri" },
+                            thumbnail_url: { type: "string", format: "uri" },
+                            ratio: { type: "string" },
+                        },
+                    },
+                },
+                request_id: { type: "string" },
+            },
+        },
+    },
+    {
+        name: "widecast_search_broll",
+        title: "WideCast: Search stock B-roll (numbered thumbnail list)",
+        description: "Search stock B-roll for a keyword. SYNC, FREE. Two modes: **`kind='video'`** searches Pexels + Pixabay + Shutterstock for stock CLIPS (broll.js Stock tab). **`kind='image'`** searches Google for real PHOTOS (broll.js Photos tab). " +
+            "**SCOPE — modify_scene workflow ONLY, NOT for new-video creation**: this tool exists to find replacement media for ONE scene on an EXISTING video (the picked clip/photo → widecast_modify_scene `field_name='mediaUrl'`). It is NOT a research tool for writing a NEW script for widecast_create_video — when you author a fresh script, do the image sourcing + vetting inside the writing skill's Stage-2 workflow (download-and-look, then your own generation, then widecast_create_image as last resort) and embed vetted URLs inline as `![alt](url)`. DO NOT call search_broll for a brand-new video (it is edit-only; using it during authoring defeats the writing skill's media discipline). The natural sequence is: widecast_create_video → user reviews scenes → user asks to swap scene N's background → widecast_search_broll → user picks → widecast_modify_scene. " +
+            "Use when the user asks: 'find a different clip for scene 3', 'replace this background with a real photo of X', 'show me more footage options for scene 5', OR when the user wants to swap the asset on a SPECIFIC existing scene. Prefer this over widecast_create_image when the asset is something that ACTUALLY EXISTS — landmarks, products, people in the news — because real photos/footage beat AI generations for credibility. " +
+            "**POST-CALL — show the gallery so the user can actually SEE thumbnails**. ⚠ Most AI-agent runtimes (Claude included) CANNOT render an external `https://…` URL inline in chat — pasting raw URLs ≠ showing pictures. " +
+            "**MANDATORY RULE — BUILD AN HTML ARTIFACT GALLERY; DO NOT INDIVIDUALLY DOWNLOAD / VIEW EACH THUMBNAIL**. The artifact's `<img src='https://…'>` is loaded by the USER'S BROWSER once per session — no quota burn on the AI host or the image source. If you instead call view_image / download-and-attach on every thumbnail, you'll trigger N requests in seconds (Pexels / Pixabay / Google / Shutterstock all rate-limit aggressively) and **the account may be banned within a single search**. So: open an HTML artifact, splice URLs only, NO per-thumbnail fetch. Template (use verbatim, splice URLs/titles in): " +
+            "`<style>body{font-family:system-ui;margin:0;padding:16px;background:#0f172a;color:#e2e8f0}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.c{background:#1e293b;border-radius:8px;overflow:hidden;padding-bottom:8px;text-align:center}.c img{width:100%;height:220px;object-fit:cover;display:block;background:#0b1220}.n{font-weight:700;font-size:18px;color:#a78bfa;padding:8px 0 2px}.t{font-size:11px;color:#94a3b8;padding:0 6px;line-height:1.3;height:28px;overflow:hidden}</style><div class='g'>` + one `<div class='c'><img src='THUMB_URL'><div class='n'>N</div><div class='t'>TITLE</div></div>` per result + `</div>`. For videos, wrap the `<img>` in `<a href='VIDEO_URL' target='_blank'>` so click → opens the clip. " +
+            "After the gallery is up, ask the user to pick by number ('Pick one — 1 through N?'). " +
+            "**Once they pick ONE** → 1 fetch is safe: you may download `results[N-1].url` locally to attach a high-res preview before they confirm, OR feed it directly into widecast_modify_scene (`field_name='mediaUrl'`) to swap a scene's background, OR use as `![](url)` inline in a script for widecast_create_video. The pattern is: gallery shows N thumbs via artifact (0 fetches), user picks 1, you fetch 1 if needed. NEVER 1 search = N fetches. " +
+            "Body: `{keyword (REQUIRED), kind: 'video'|'image' (REQUIRED), ratio?: 'portrait'|'landscape'|'square' (default portrait, only meaningful for kind=video), limit?: 1-20 (default 10)}`.",
+        inputSchema: {
+            type: "object",
+            required: ["keyword", "kind"],
+            properties: {
+                keyword: { type: "string", description: "1-3 words work best (Pexels/Pixabay match poorly with sentence-long queries). 'umbrella rain', 'wooden ladder', 'Eiffel Tower morning'." },
+                kind: { type: "string", enum: ["video", "image"], description: "'video' = stock CLIPS (Pexels/Pixabay/Shutterstock). 'image' = real PHOTOS (Google). Pick based on what fits the scene — video for motion/atmosphere, image for a specific real-world object/person/place." },
+                ratio: { type: "string", enum: ["portrait", "landscape", "square"], default: "portrait", description: "Orientation hint. Only filters when kind='video'. Default 'portrait'." },
+                limit: { type: "number", minimum: 1, maximum: 20, default: 10, description: "Max results (default 10, max 20). Keep tight (6-10) for fast picks." },
+            },
+        },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true, idempotentHint: true },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "list" },
+                kind: { type: "string", enum: ["video", "image"] },
+                keyword: { type: "string" },
+                ratio: { type: "string" },
+                total: { type: "number" },
+                results: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            number: { type: "number" },
+                            type: { type: "string", enum: ["video", "image"] },
+                            url: { type: "string", format: "uri" },
+                            thumbnail_url: { type: "string", format: "uri" },
+                            title: { type: "string" },
+                            source: { type: "string" },
+                            duration: { type: "number" },
+                            width: { type: "number" },
+                            height: { type: "number" },
+                            author: { type: "string" },
+                            context_url: { type: "string" },
+                        },
+                    },
+                },
+                request_id: { type: "string" },
             },
         },
     },
@@ -348,17 +442,80 @@ const TOOLS = [
     {
         name: "widecast_list_videos",
         title: "WideCast: List recent videos",
-        description: "List the account's recent videos/scripts (20 per page). Read-only, free.",
-        inputSchema: { type: "object", properties: { from_record: { type: "number", default: 0 } } },
+        description: "List the account's recent videos/scripts (20 per page), each with a `published` map of per-platform post URLs/status. Read-only, free. For an audit, pass reconcile=true to fill in URLs for posts that just went live, or engagement=true to also pull fresh per-post metrics (slower — fans out to the provider).",
+        inputSchema: { type: "object", properties: {
+                from_record: { type: "number", default: 0 },
+                reconcile: { type: "boolean", description: "Fill in per-platform post URLs for any posts that have finished publishing (one batched provider call)." },
+                engagement: { type: "boolean", description: "Also refresh per-post engagement metrics (views/likes/comments…). Implies reconcile; slower." },
+            } },
     },
+    // widecast_search withdrawn from MCP/SDK 2026-06-21 (Round 29).
+    // REST /v1/search still serves the dashboard UI; agents that need to
+    // find a topic use widecast_list_videos + a local title filter instead.
     {
-        name: "widecast_search",
-        title: "WideCast: Search content",
-        description: "Search the account's content by keywords. Read-only, free.",
+        name: "widecast_video_data",
+        title: "WideCast: Read the full structured video script (segments + narrator + media)",
+        description: "Read the FULL structured video script for a topic_id. SYNC, FREE. " +
+            "Returns every scene's `text` (narration), `voice_file` (the per-scene UID " +
+            "widecast_modify_scene needs), `type` (A-roll / B-roll), `duration`, " +
+            "`mediaUrl` (currently-shown background or A-roll overlay), `mediaType`, " +
+            "`thumbnailUrl`, plus `narrator` (voice + face clone ids when set) and " +
+            "`global_settings` (aspect ratio, music, brand, language). " +
+            "Use this when the user asks: 'what scenes are in video X?', 'show me " +
+            "scene 3', 'what background is on the scene about Y?', 'how long is " +
+            "each scene?', or whenever YOU need to look up a scene's `voice_file` " +
+            "before calling widecast_modify_scene. " +
+            "Mirrors the same engine the dashboard's scene editor uses on open " +
+            "(rebalance A/B rolls + ensure music + persist if changed), so the data " +
+            "here matches what the user sees in https://widecast.ai/#scene_editor?topic_id=… exactly. " +
+            "Errors: 404 `video_not_found` (wrong id / wrong account), 409 " +
+            "`script_not_ready` (video still processing — poll widecast_wait_for_video " +
+            "first).",
         inputSchema: {
             type: "object",
-            required: ["query"],
-            properties: { query: { type: "string", description: "Search keywords." }, limit: { type: "number", default: 10 } },
+            required: ["video_id"],
+            properties: {
+                video_id: {
+                    type: "string",
+                    pattern: "^widecast[a-zA-Z0-9]{12,32}$",
+                    description: "Topic id from widecast_create_video (same id widecast_get_status, widecast_export_video, widecast_modify_scene use).",
+                },
+            },
+        },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "video_data" },
+                id: { type: "string" },
+                topic_id: { type: "string" },
+                aspect_ratio: { type: "string" },
+                title: { type: "string" },
+                language: { type: "string" },
+                total_segments: { type: "number" },
+                total_duration: { type: "number" },
+                segments: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            id: { type: ["string", "number"] },
+                            voice_file: { type: "string" },
+                            text: { type: "string" },
+                            type: { type: "string", enum: ["A-roll", "B-roll", ""] },
+                            duration: { type: "number" },
+                            mediaUrl: { type: "string" },
+                            mediaType: { type: "string" },
+                            brollUrl: { type: "string" },
+                            thumbnailUrl: { type: "string" },
+                            narrator: { type: "object" },
+                        },
+                    },
+                },
+                global_settings: { type: "object" },
+                review_url: { type: "string", format: "uri" },
+                request_id: { type: "string" },
+            },
         },
     },
     {
@@ -394,20 +551,24 @@ const TOOLS = [
     // no more.
     {
         name: "widecast_send_telegram_message",
-        title: "WideCast: Send a Telegram notification",
-        description: "Push a notification to the USER'S OWN connected Telegram chat. SYNC, FREE. " +
-            "Self-notify only — the recipient is the user who owns this API key " +
-            "(chat_id is read from their account, never accepted as input), so you " +
-            "cannot use this to message anyone else. Use this to signal completion / " +
-            "ask the user to come review / surface an error mid-conversation without " +
-            "forcing them to refresh the UI. The user must have completed 'Connect " +
-            "Telegram' at https://widecast.ai/#setup once; if not, the call returns " +
-            "400 `telegram_not_connected` and you should point them at that URL. " +
-            "Payload: `message` (text or caption, REQUIRED) + optionally ONE of " +
-            "`photo_url` / `video_url` (must be a public http(s) URL — Telegram " +
-            "fetches it server-side). `parse_mode` opt-in (Markdown / MarkdownV2 / " +
-            "HTML); omit for plain text. Caps: 4000 bytes text / 1024 bytes caption. " +
-            "Rate-limited to 60 messages/hour/account.",
+        title: "WideCast: Send a self-notify message (Telegram → email fallback)",
+        description: "Push a notification to the USER'S OWN account. SYNC, FREE. Self-notify " +
+            "only — the recipient is the user who owns this API key (delivery target " +
+            "is resolved server-side, never accepted as input), so you cannot use " +
+            "this to message anyone else. Use this to signal completion / ask the " +
+            "user to come review / surface an error mid-conversation without forcing " +
+            "them to refresh the UI. **Delivery channel auto-chosen**: (1) Telegram " +
+            "if the user has completed 'Connect Telegram' at https://widecast.ai/#setup " +
+            "— preferred path. (2) Email fallback if not — the same message is " +
+            "delivered to the account's email with an in-mail banner explaining " +
+            "WHY (Telegram not connected) + CTA to connect. Response carries " +
+            "`delivery: 'telegram' | 'email'` so the caller knows which channel was " +
+            "used. Only fails (400 `telegram_not_connected`) if the account has " +
+            "NEITHER Telegram NOR email on file. Payload: `message` (text or caption, " +
+            "REQUIRED) + optionally ONE of `photo_url` / `video_url` (public http(s) " +
+            "URL). `parse_mode` opt-in (Markdown / MarkdownV2 / HTML); omit for " +
+            "plain text. Caps: 4000 bytes text / 1024 bytes caption. Rate-limited " +
+            "to 60 messages/hour/account.",
         inputSchema: {
             type: "object",
             required: ["message"],
@@ -424,9 +585,14 @@ const TOOLS = [
             properties: {
                 object: { type: "string", const: "telegram_message" },
                 status: { type: "string" },
+                delivery: { type: "string", enum: ["telegram", "email"] },
                 media_kind: { type: "string", enum: ["text", "photo", "video"] },
-                chat_id_masked: { type: "string" },
-                telegram_message_id: { type: ["number", "null"] },
+                chat_id_masked: { type: "string", description: "Set only when delivery='telegram'." },
+                telegram_message_id: { type: ["number", "null"], description: "Set only when delivery='telegram'." },
+                recipient_email_masked: { type: "string", description: "Set only when delivery='email'." },
+                fallback_reason: { type: "string", description: "Set only when delivery='email' (e.g. 'telegram_not_connected')." },
+                setup_url: { type: "string", description: "Set only when delivery='email' — point the user here so future calls land in Telegram." },
+                note: { type: "string", description: "Human-readable explanation of the email-fallback path." },
                 request_id: { type: "string" },
             },
         },
@@ -440,17 +606,9 @@ const TOOLS = [
             properties: { industry: { type: "string" }, page: { type: "number", default: 0 } },
         },
     },
-    {
-        name: "widecast_connect",
-        title: "WideCast: Connect a platform",
-        description: "Get an OAuth link to connect a social platform. Free. Returns a `url` that THE USER must open in a browser to authorize the platform themselves — you (the assistant) must NOT attempt to complete the OAuth. Just present the link. Omit `platform` for a link covering all supported platforms.",
-        inputSchema: {
-            type: "object",
-            properties: {
-                platform: { type: "string", enum: ["youtube", "tiktok", "instagram", "facebook", "linkedin", "x", "threads", "pinterest", "reddit", "bluesky", "google_business"] },
-            },
-        },
-    },
+    // widecast_connect withdrawn from MCP/SDK 2026-06-21 (Round 28).
+    // Point the user to https://widecast.ai/#setup to connect social platforms;
+    // REST /v1/connect still serves the dashboard UI flow.
     {
         name: "widecast_accounts",
         title: "WideCast: List connected accounts",
@@ -596,14 +754,35 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const data = await wc("POST", "/v1/create_content", body);
             return { content: [{ type: "text", text: JSON.stringify(summarize(data), null, 2) }] };
         }
-        if (name === "widecast_enhance_script") {
-            const body = {};
-            for (const k of ["script_text", "language", "intervention_level", "callback_url", "metadata"]) {
-                if (args[k] !== undefined)
-                    body[k] = args[k];
-            }
-            const data = await wc("POST", "/v1/enhance_script", body);
-            return { content: [{ type: "text", text: JSON.stringify(summarize(data), null, 2) }] };
+        // widecast_enhance_script dispatcher removed 2026-06-21 (Round 28) —
+        // tool withdrawn from MCP. REST /v1/enhance_script still serves the UI.
+        if (name === "widecast_create_image") {
+            const body = { prompt: String(args.prompt ?? "") };
+            if (args.ratio !== undefined)
+                body.ratio = args.ratio;
+            if (args.count !== undefined)
+                body.count = args.count;
+            if (args.topic_id !== undefined)
+                body.topic_id = args.topic_id;
+            const data = await wc("POST", "/v1/create_image", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_search_broll") {
+            const body = {
+                keyword: String(args.keyword ?? ""),
+                kind: String(args.kind ?? ""),
+            };
+            if (args.ratio !== undefined)
+                body.ratio = args.ratio;
+            if (args.limit !== undefined)
+                body.limit = args.limit;
+            const data = await wc("POST", "/v1/search_broll", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_video_data") {
+            const body = { video_id: String(args.video_id ?? "") };
+            const data = await wc("POST", "/v1/video_data", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         if (name === "widecast_export_video") {
             // Confirmation gate at MCP layer — REST stays unchanged for SDK / HTTP.
@@ -661,13 +840,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const data = await wc("POST", "/v1/publish", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
-        if (name === "widecast_connect") {
-            const body = {};
-            if (args.platform !== undefined)
-                body.platform = args.platform;
-            const data = await wc("POST", "/v1/connect", body);
-            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-        }
+        // widecast_connect dispatcher removed 2026-06-21 (Round 28) — tool
+        // withdrawn from MCP. Agents should point users to
+        // https://widecast.ai/#setup; REST /v1/connect still serves the UI.
         if (name === "widecast_set_platform_settings") {
             const data = await wc("POST", "/v1/platform_settings", { platform: args.platform, settings: args.settings });
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -685,8 +860,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
         // ── Read / library + connections GET tools (free) ──
         const READ_ROUTES = {
-            widecast_list_videos: { path: "/v1/videos", params: ["from_record"] },
-            widecast_search: { path: "/v1/search", params: ["q", "limit"] },
+            widecast_list_videos: { path: "/v1/videos", params: ["from_record", "reconcile", "engagement"] },
             widecast_account: { path: "/v1/account", params: [] },
             widecast_analytics: { path: "/v1/analytics", params: ["period", "start_date", "end_date"] },
             widecast_production_plan: { path: "/v1/production_plan", params: ["page", "week_start", "week_end"] },
@@ -696,10 +870,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
         if (READ_ROUTES[name]) {
             const { path, params } = READ_ROUTES[name];
-            // widecast_search exposes `query` to the model but the endpoint wants `q`.
             const argv = { ...args };
-            if (name === "widecast_search" && argv.query !== undefined)
-                argv.q = argv.query;
             const qs = new URLSearchParams();
             for (const k of params) {
                 const v = argv[k];

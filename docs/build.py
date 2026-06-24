@@ -80,6 +80,10 @@ TEST_CASES_JSON = ROOT.parent.parent / "test_cases.json"
 # Public API base URL (dev pilot). SDK + examples + playground default to this.
 API_BASE_URL = os.environ.get("WIDECAST_API_BASE_URL", "https://widecast.ai/app/dashboard")
 
+# Canonical public origin (scheme + host, no trailing slash). Used to emit
+# absolute URLs in sitemap.xml / robots.txt. The site is served from this host.
+SITE_BASE = os.environ.get("WIDECAST_SITE_BASE", "https://widecast.ai").rstrip("/")
+
 PLAYGROUND_MARKER_RE = re.compile(r"<!--\s*widecast-playground:([a-zA-Z0-9_-]+)\s*-->")
 
 # Pulls the SUPPORTED_FIELD_TYPES literal out of `playground.js` — that file
@@ -815,7 +819,7 @@ def _zip_skills() -> None:
     """Bundle each Skill folder into a downloadable .zip so non-tech users can
     grab it with one click (Claude 'upload Skill'). Output: skills/<name>.zip
     (archive contains the <name>/ folder + its files), served at
-    https://widecast.ai/skills/<name>.zip. Regenerated every build so it tracks
+    https://origin.widecast.ai/skills/<name>.zip. Regenerated every build so it tracks
     SKILL.md edits."""
     import zipfile
     skills_dir = SITE_ROOT / "skills"
@@ -948,6 +952,81 @@ def _check_llms_parity() -> None:
         )
 
 
+def _write_sitemap_robots() -> None:
+    """Emit a sitemap.xml of canonical public pages + a robots.txt that points
+    to it. Self-maintaining: the page list is derived from files that actually
+    exist in SITE_ROOT after the build (curated roots + every endpoints/*.html),
+    so it can't drift from what we ship. Goal: agent/search discovery — see the
+    isitagentready.com audit (sitemap + robots).
+
+    Served as plain static files at https://widecast.ai/sitemap.xml and
+    /robots.txt (nginx serves .xml/.txt with correct content-type, like
+    llms.txt). Remember to add both to deploy_widecast.sh ROOT_FILES and to
+    PURGE Cloudflare after a content change (CF caches by extension)."""
+    from datetime import date, datetime, timezone
+
+    # Curated top-level pages (homepage + docs/playground + the per-AI guides).
+    # Internal/dev pages (webhook-test, palette-explorer, new_index1) are
+    # intentionally excluded. Homepage is widecast.html but its canonical URL
+    # is the bare origin "/" (webserver default document).
+    curated = [
+        ("", "widecast.html", "weekly", "1.0"),
+        ("docs.html", "docs.html", "weekly", "0.9"),
+        ("playground.html", "playground.html", "monthly", "0.7"),
+        ("claude.html", "claude.html", "monthly", "0.6"),
+        ("chatgpt.html", "chatgpt.html", "monthly", "0.6"),
+        ("gemini.html", "gemini.html", "monthly", "0.6"),
+        ("grok.html", "grok.html", "monthly", "0.6"),
+        ("antigravity.html", "antigravity.html", "monthly", "0.6"),
+    ]
+
+    def _lastmod(rel_file: str) -> str:
+        p = SITE_ROOT / rel_file
+        try:
+            return datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).date().isoformat()
+        except OSError:
+            return date.today().isoformat()
+
+    urls: list[tuple[str, str, str, str]] = []  # (loc_path, lastmod, changefreq, priority)
+    for loc_path, src_file, freq, prio in curated:
+        if (SITE_ROOT / src_file).exists():
+            urls.append((loc_path, _lastmod(src_file), freq, prio))
+
+    # Every built endpoint reference page.
+    endpoints_dir = SITE_ROOT / "endpoints"
+    if endpoints_dir.exists():
+        for html in sorted(endpoints_dir.glob("*.html")):
+            rel = f"endpoints/{html.name}"
+            urls.append((rel, _lastmod(rel), "monthly", "0.5"))
+
+    def _xml_escape(s: str) -> str:
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc_path, lastmod, freq, prio in urls:
+        loc = f"{SITE_BASE}/{loc_path}" if loc_path else f"{SITE_BASE}/"
+        lines += ["  <url>",
+                  f"    <loc>{_xml_escape(loc)}</loc>",
+                  f"    <lastmod>{lastmod}</lastmod>",
+                  f"    <changefreq>{freq}</changefreq>",
+                  f"    <priority>{prio}</priority>",
+                  "  </url>"]
+    lines.append("</urlset>")
+    (SITE_ROOT / "sitemap.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    robots = (
+        "# robots.txt — WideCast (https://widecast.ai)\n"
+        "# All crawlers and AI agents welcome.\n"
+        "User-agent: *\n"
+        "Allow: /\n"
+        "\n"
+        f"Sitemap: {SITE_BASE}/sitemap.xml\n"
+    )
+    (SITE_ROOT / "robots.txt").write_text(robots, encoding="utf-8")
+    print(f"  sitemap.xml ({len(urls)} urls) + robots.txt written")
+
+
 def main() -> int:
     print(f"[build] SITE_ROOT  = {SITE_ROOT}")
     print(f"[build] API_BASE_URL = {API_BASE_URL}")
@@ -1001,6 +1080,9 @@ def main() -> int:
             print("  openapi.{yaml,json} + openapi-actions.json written")
         except Exception as e:
             print(f"  openapi.json failed: {e}")
+
+    print("[build] sitemap.xml + robots.txt")
+    _write_sitemap_robots()
 
     print("[build] Playground aggregator (base_href='./')")
     _build_aggregator(items, template)

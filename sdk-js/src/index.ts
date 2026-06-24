@@ -86,6 +86,144 @@ export interface EnhanceScriptOptions {
   idempotency_key?: string;
 }
 
+/** Options for client.create_image() — Round 28. */
+export interface CreateImageOptions {
+  /** Image description (≤2000 chars). Concrete visual nouns work best. */
+  prompt: string;
+  /** Output ratio. `portrait`=768×1344 (Reels/TikTok/Shorts),
+   *  `landscape`=1344×768 (YouTube/blog hero), `square`=768×768 (IG feed).
+   *  Default `portrait`. */
+  ratio?: "portrait" | "landscape" | "square";
+  /** How many variations in one call (1-4, default 1). Each = 1 credit. */
+  count?: number;
+  /** Optional. Link to an existing video's asset folder. */
+  topic_id?: string;
+}
+
+/** One image in the create_image response. */
+export interface GeneratedImage {
+  /** 1-based index — agents render numbered thumbnail lists keyed off this. */
+  number: number;
+  /** Public URL to the full-resolution image asset. */
+  url: string;
+  /** URL to use as the thumbnail (currently same as `url`). */
+  thumbnail_url: string;
+  ratio: "portrait" | "landscape" | "square";
+}
+
+/** Response of client.create_image(). */
+export interface ImageSetResponse {
+  object: "image_set";
+  status: "completed" | "partial";
+  count: number;
+  ratio: "portrait" | "landscape" | "square";
+  prompt: string;
+  images: GeneratedImage[];
+  request_id: string;
+  /** Present only when `status === "partial"` (some variants failed). */
+  error?: { code: string; message: string; failed_at_number: number };
+}
+
+/** Options for client.search_broll() — Round 28. */
+export interface SearchBrollOptions {
+  /** Search keyword (1-3 words work best). */
+  keyword: string;
+  /** What to search: `video` = stock clips, `image` = real photos. */
+  kind: "video" | "image";
+  /** Output ratio hint. Only filters when `kind === "video"`. Default `portrait`. */
+  ratio?: "portrait" | "landscape" | "square";
+  /** Max results to return (1-20, default 10). */
+  limit?: number;
+}
+
+/** One result in the search_broll response. */
+export interface BrollResult {
+  /** 1-based index — agents render numbered thumbnail lists keyed off this. */
+  number: number;
+  type: "video" | "image";
+  /** Public URL to the full-resolution asset (video file or image). */
+  url: string;
+  /** Public URL to the thumbnail (always present). */
+  thumbnail_url: string;
+  title: string;
+  /** Origin (e.g. `pexels`, `pixabay`, `shutterstock`, `google_image`). */
+  source: string;
+  /** Seconds. 0 for images. */
+  duration: number;
+  width: number;
+  height: number;
+  /** Original creator/uploader (videos only). */
+  author?: string;
+  /** Web page the image was crawled from (image results only). */
+  context_url?: string;
+}
+
+/** Response of client.search_broll(). */
+export interface BrollSearchResponse {
+  object: "list";
+  kind: "video" | "image";
+  keyword: string;
+  ratio: "portrait" | "landscape" | "square";
+  total: number;
+  results: BrollResult[];
+  request_id: string;
+}
+
+/** Narrator block on a scene segment (face/voice clone or recorded media). */
+export interface VideoDataSegmentNarrator {
+  name?: string;
+  voice_id?: string;
+  face_id?: string;
+  audio_url?: string;
+  video_url?: string;
+}
+
+/** One scene/segment in the video_data response — Round 29. */
+export interface VideoDataSegment {
+  /** Integer-ish scene id (the ordering). */
+  id: string | number | null;
+  /** Per-scene UID — pass this as `value` with `by="voice_file"` to modify_scene. */
+  voice_file: string;
+  /** Narration (what the narrator says on this scene). */
+  text: string;
+  /** Roll-type: "A-roll" (narrator on screen) or "B-roll" (background only). */
+  type: "A-roll" | "B-roll" | "";
+  /** Length in seconds. */
+  duration?: number;
+  /** Currently-shown background or A-roll overlay asset URL. */
+  mediaUrl: string;
+  mediaType: string;
+  /** Pure B-roll URL (may differ from mediaUrl when an A-roll overlay was added). */
+  brollUrl: string;
+  thumbnailUrl: string;
+  narrator: VideoDataSegmentNarrator;
+}
+
+/** Compact `global_settings` block — only user-facing fields are surfaced. */
+export interface VideoDataGlobalSettings {
+  aspectRatio?: "portrait" | "landscape" | "square";
+  music?: Record<string, unknown>;
+  language?: string;
+  brand?: Record<string, unknown>;
+}
+
+/** Response of client.video_data(). */
+export interface VideoDataResponse {
+  object: "video_data";
+  id: string;
+  topic_id: string;
+  aspect_ratio: "portrait" | "landscape" | "square";
+  title: string;
+  language: string;
+  total_segments: number;
+  total_duration: number;
+  segments: VideoDataSegment[];
+  global_settings: VideoDataGlobalSettings;
+  /** Editor URL — opens the scene editor for this video. */
+  review_url: string;
+  request_id: string;
+}
+
 /** Options for client.collect_ideas(). */
 export interface CollectIdeasOptions {
   /** Product/service description (≥10 chars) to brainstorm ideas from. */
@@ -159,20 +297,40 @@ export interface IdeasResponse {
   ideas: Idea[];
 }
 
-/** Success body for POST /v1/telegram/send (Round 27). */
+/** Success body for POST /v1/telegram/send (Round 27 + 28).
+ *
+ *  `delivery` discriminates the channel actually used:
+ *    - `"telegram"` → `chat_id_masked` + `telegram_message_id` are set,
+ *      email-fallback fields are absent.
+ *    - `"email"` → `recipient_email_masked`, `fallback_reason`, `setup_url`,
+ *      and `note` are set; Telegram fields are absent. */
 export interface TelegramMessageResponse {
   object: "telegram_message";
   status: "sent";
-  /** Which Telegram primitive was used. Determined by which optional url
-   *  was set on the request — text by default, photo if `photo_url`,
-   *  video if `video_url`. */
+  /** Which channel delivered the message. Email fires when the account
+   *  has not completed Connect Telegram. */
+  delivery: "telegram" | "email";
+  /** Which Telegram primitive was used (or, on email fallback, the kind
+   *  of attachment included inline). */
   media_kind: "text" | "photo" | "video";
-  /** Last 4 digits of the user's chat_id, prefixed with `…`. The server
-   *  never returns the unmasked id — the caller already has access in
-   *  Telegram itself. */
-  chat_id_masked: string;
-  /** Telegram's own message_id for later edit/delete (when surfaced). */
+  /** Last 4 digits of the user's chat_id, prefixed with `…`. Set only
+   *  when `delivery === "telegram"`. */
+  chat_id_masked?: string;
+  /** Telegram's own message_id for later edit/delete (when surfaced).
+   *  Set only when `delivery === "telegram"`. */
   telegram_message_id?: number | null;
+  /** Masked email of the account that received the fallback. Set only
+   *  when `delivery === "email"`. */
+  recipient_email_masked?: string;
+  /** Why the email fallback fired (e.g. `"telegram_not_connected"`).
+   *  Set only when `delivery === "email"`. */
+  fallback_reason?: string;
+  /** URL to send the user to so future calls land in Telegram instead.
+   *  Set only when `delivery === "email"`. */
+  setup_url?: string;
+  /** Human-readable explanation the caller can relay to the user.
+   *  Set only when `delivery === "email"`. */
+  note?: string;
   request_id: string;
 }
 
@@ -1038,29 +1196,76 @@ export class Widecast {
     return new Video(data, this);
   }
 
-  /** POST /v1/enhance_script — improve a DRAFT script with AI. Async: returns
-   *  a Video with `review_url` (the Script Editor) already populated — safe
-   *  to share before completion; the editor shows a spinner while enhancing.
-   *  Poll with `.wait()` for the final enhanced script. */
-  async enhance_script(opts: EnhanceScriptOptions): Promise<Video> {
-    if (!opts || typeof opts.script_text !== "string" || !opts.script_text.trim()) {
-      throw new InvalidRequestError("script_text (the draft to enhance) is required.",
-        { code: "missing_field", param: "script_text" });
+  // NOTE: enhance_script() was withdrawn from the SDK 2026-06-21 (Round 28).
+  // The REST endpoint /v1/enhance_script still serves the dashboard UI.
+
+  /** POST /v1/create_image — generate 1-4 AI images from a text prompt.
+   *
+   *  **Synchronous.** Charges **1 credit per image** generated. Same engine
+   *  as the dashboard's Gen-AI tab.
+   *
+   *  AI-agent flow: render the returned `images` array as a NUMBERED
+   *  THUMBNAIL LIST and let the user pick by number — `result.images[N-1].url`
+   *  is the canonical asset URL to feed into `modify_scene` or use as
+   *  `![](url)` in a future script.
+   */
+  async create_image(opts: CreateImageOptions): Promise<ImageSetResponse> {
+    if (!opts || typeof opts.prompt !== "string" || !opts.prompt.trim()) {
+      throw new InvalidRequestError("prompt (image description) is required.",
+        { code: "missing_field", param: "prompt" });
     }
-    const level = opts.intervention_level ?? 1;
-    if (!(INTERVENTION_LEVELS as readonly number[]).includes(level)) {
+    const ratio = opts.ratio ?? "portrait";
+    if (!(["portrait", "landscape", "square"] as const).includes(ratio as any)) {
       throw new InvalidRequestError(
-        `intervention_level must be one of ${JSON.stringify(INTERVENTION_LEVELS)} (got ${JSON.stringify(opts.intervention_level)}).`,
-        { code: "invalid_intervention_level", param: "intervention_level" });
+        `ratio must be one of ["portrait","landscape","square"] (got ${JSON.stringify(opts.ratio)}).`,
+        { code: "invalid_ratio", param: "ratio" });
+    }
+    const count = opts.count ?? 1;
+    if (!Number.isInteger(count) || count < 1 || count > 4) {
+      throw new InvalidRequestError("count must be an integer 1-4.",
+        { code: "invalid_count", param: "count" });
     }
     const body: Record<string, unknown> = {
-      script_text: opts.script_text.trim(), intervention_level: level,
+      prompt: opts.prompt.trim(), ratio, count,
     };
-    if (typeof opts.language === "string" && opts.language.trim()) body.language = opts.language.trim();
-    if (opts.callback_url) body.callback_url = opts.callback_url;
-    if (opts.metadata) body.metadata = opts.metadata;
-    const data = await this.#request<VideoResource>("POST", "/v1/enhance_script", body);
-    return new Video(data, this);
+    if (opts.topic_id) body.topic_id = opts.topic_id;
+    return await this.#request<ImageSetResponse>("POST", "/v1/create_image", body);
+  }
+
+  /** POST /v1/search_broll — search stock B-roll. **SYNC, FREE.**
+   *
+   *  Two modes: `kind: "video"` → Pexels/Pixabay/Shutterstock clips;
+   *  `kind: "image"` → Google real photos. Same engines the broll.js
+   *  media picker uses (Stock tab vs Photos tab).
+   *
+   *  AI-agent flow: render the returned `results` as a NUMBERED
+   *  THUMBNAIL LIST and let the user pick by number — `result.results[N-1].url`
+   *  is the asset URL.
+   */
+  async search_broll(opts: SearchBrollOptions): Promise<BrollSearchResponse> {
+    if (!opts || typeof opts.keyword !== "string" || !opts.keyword.trim()) {
+      throw new InvalidRequestError("keyword is required.",
+        { code: "missing_field", param: "keyword" });
+    }
+    if (opts.kind !== "video" && opts.kind !== "image") {
+      throw new InvalidRequestError(
+        `kind must be one of ["video","image"] (got ${JSON.stringify(opts.kind)}).`,
+        { code: "invalid_kind", param: "kind" });
+    }
+    const ratio = opts.ratio ?? "portrait";
+    if (!(["portrait", "landscape", "square"] as const).includes(ratio as any)) {
+      throw new InvalidRequestError(
+        `ratio must be one of ["portrait","landscape","square"] (got ${JSON.stringify(opts.ratio)}).`,
+        { code: "invalid_ratio", param: "ratio" });
+    }
+    const limit = opts.limit ?? 10;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
+      throw new InvalidRequestError("limit must be an integer 1-20.",
+        { code: "invalid_limit", param: "limit" });
+    }
+    return await this.#request<BrollSearchResponse>("POST", "/v1/search_broll", {
+      keyword: opts.keyword.trim(), kind: opts.kind, ratio, limit,
+    });
   }
 
   /** POST /v1/collect_ideas — SYNCHRONOUS. Returns video ideas derived from a
@@ -1142,12 +1347,33 @@ export class Widecast {
     return await this.#get("/v1/videos", { from_record: opts.from_record ?? 0 });
   }
 
-  /** GET /v1/search — search the account's content by keywords. Free. */
-  async search(query: string, opts: { limit?: number } = {}): Promise<any> {
-    if (typeof query !== "string" || !query.trim()) {
-      throw new InvalidRequestError("query is required.", { code: "missing_field", param: "q" });
+  // NOTE: search() was withdrawn from the SDK 2026-06-21 (Round 29).
+  // The REST endpoint /v1/search still serves the dashboard UI; SDK
+  // callers that need to find a topic can use list_videos() + a local
+  // title filter instead.
+
+  /** POST /v1/video_data — read the FULL structured video script for a
+   *  topic_id. **SYNC, FREE.**
+   *
+   *  Returns every scene's text/narration, `voice_file` (the per-scene
+   *  UID `modify_scene` needs), `type` ('A-roll' | 'B-roll'), `duration`,
+   *  `mediaUrl` (currently-shown background or A-roll overlay),
+   *  `mediaType`, `thumbnailUrl`, plus `narrator` (voice + face clone ids
+   *  when set) and `global_settings` (aspect ratio, music, brand,
+   *  language). Same engine the scene editor uses on open.
+   *
+   *  Throws `code="video_not_found"` (404) when the id doesn't exist on
+   *  the account, or `code="script_not_ready"` (409) when the video is
+   *  still processing — poll `wait_for_video()` first.
+   */
+  async video_data(videoId: string): Promise<VideoDataResponse> {
+    if (typeof videoId !== "string" || !videoId.trim()) {
+      throw new InvalidRequestError(
+        "video_id (the widecast<...> topic_id) is required.",
+        { code: "missing_field", param: "video_id" });
     }
-    return await this.#get("/v1/search", { q: query.trim(), limit: opts.limit ?? 10 });
+    return await this.#request<VideoDataResponse>(
+      "POST", "/v1/video_data", { video_id: videoId.trim() });
   }
 
   /** GET /v1/account — account profile + remaining credits. Free. */
@@ -1192,19 +1418,9 @@ export class Widecast {
   }
 
   // ── Connections (Batch E — connect / accounts / configure, free) ────────
-  /** POST /v1/connect — get an OAuth link to connect a social platform. Free.
-   *  Returns `{object:"connect", url, expires_in, ...}` — the USER opens `url`
-   *  to complete the connection on the web (WideCast never performs the OAuth). */
-  async connect(opts: { platform?: PublishPlatform } = {}): Promise<any> {
-    if (opts.platform && !(PUBLISH_PLATFORMS as readonly string[]).includes(opts.platform)) {
-      throw new InvalidRequestError(
-        `Unknown platform ${JSON.stringify(opts.platform)}. Valid: ${JSON.stringify(PUBLISH_PLATFORMS)}.`,
-        { code: "invalid_platforms", param: "platform" });
-    }
-    const body: Record<string, unknown> = {};
-    if (opts.platform) body.platform = opts.platform;
-    return await this.#request<any>("POST", "/v1/connect", body);
-  }
+  // NOTE: connect() was withdrawn from the SDK 2026-06-21 (Round 28).
+  // The REST endpoint /v1/connect still serves the dashboard UI; SDK
+  // callers should send users to https://widecast.ai/#setup.
 
   /** GET /v1/accounts — list the account's connected social platforms. Free. */
   async accounts(): Promise<any> {

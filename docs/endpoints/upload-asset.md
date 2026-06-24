@@ -1,6 +1,6 @@
 # Upload an asset — `POST /v1/upload_asset`
 
-**Synchronous, no credit charged.** Get an audio / video / image asset into WideCast's S3 bucket and back out as a **public URL** the AI agent feeds into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`) or paste into `script_text` as an inline `![alt](url)` (for images).
+**Synchronous, no credit charged.** Get an audio / video / image / document asset into WideCast's S3 bucket and back out as a **public URL** the AI agent can feed into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`), paste into `script_text` as inline `![alt](url)` (for images), OR `curl <get_url>` to fetch a document body before passing it as `blog_text` / `script_text` (for HTML / PDF / Markdown attachments).
 
 This is the **canonical upload path** for AI agents handling files the user attached in chat. It removes the need to shop for third-party file hosts (transfer.sh / catbox / S3 of your own) or to inline-base64 binary content into `create_video`.
 
@@ -64,7 +64,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/upload_asset" \
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `file` | file | yes | The audio / video / image file. Standard multipart `file=@...`. Server cap **500 MB**. |
+| `file` | file | yes | The audio / video / image / document (HTML / PDF / Markdown) file. Standard multipart `file=@...`. Server cap **500 MB**. |
 
 **JSON — `mode: "presign"`** (no bytes through API)
 
@@ -84,7 +84,14 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/upload_asset" \
 
 ### Allowed types
 
-`audio/*` + `video/*` + `image/*`. Common extensions: `.mp3` `.wav` `.m4a` `.aac` `.ogg` `.opus` `.flac` `.mp4` `.mov` `.m4v` `.webm` `.mkv` `.avi` `.jpg` `.jpeg` `.png` `.webp` `.gif` `.bmp` `.avif` `.svg`. Anything else returns `400 unsupported_asset_type`.
+Media (prefix-matched): `audio/*` + `video/*` + `image/*`. Document (explicit MIME): `text/html`, `application/xhtml+xml`, `application/pdf`, `text/markdown`, `text/x-markdown`. Common extensions:
+
+- **Audio**: `.mp3` `.wav` `.m4a` `.aac` `.ogg` `.opus` `.flac`
+- **Video**: `.mp4` `.mov` `.m4v` `.webm` `.mkv` `.avi`
+- **Image**: `.jpg` `.jpeg` `.png` `.webp` `.gif` `.bmp` `.avif` `.svg`
+- **Document**: `.html` `.htm` `.pdf` `.md` `.markdown`
+
+Anything else returns `400 unsupported_asset_type`.
 
 ---
 
@@ -153,7 +160,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/create_video" \
 | `invalid_content_type` | 400 | Request is neither `multipart/form-data` nor `application/json`. |
 | `invalid_file_data` | 400 | `file_data` isn't valid base64 OR decodes to 0 bytes. |
 | `asset_too_large` | 400 | File exceeds the **500 MB** server cap. |
-| `unsupported_asset_type` | 400 | Content-Type isn't `audio/*` / `video/*` / `image/*` AND the filename extension is unknown. |
+| `unsupported_asset_type` | 400 | Content-Type isn't in the allow-list (`audio/*` / `video/*` / `image/*` / `text/html` / `application/pdf` / `text/markdown`) AND the filename extension is unknown. |
 | `upload_failed` | 500 | The S3 upload (multipart / base64 path) failed. |
 | `presign_failed` | 500 | Pre-signing the PUT URL (presign path) failed. |
 | `missing_api_key` / `invalid_api_key` | 401 | Auth. |

@@ -9,18 +9,18 @@
        works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
   <base href="../">
 
-  <title>Send a Telegram notification — `POST /v1/telegram/send` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** connected Telegram chat. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band — the user gets the ping in Telegram even when they closed the dashboard.">
+  <title>Send a self-notify message — `POST /v1/telegram/send` · WideCast Docs</title>
+  <meta name="description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** account — preferring Telegram, falling back to email. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band so the user sees it even when they closed the dashboard.">
   <link rel="canonical" href="https://widecast.ai/endpoints/telegram-send.html">
 
-  <meta property="og:title" content="Send a Telegram notification — `POST /v1/telegram/send` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** connected Telegram chat. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band — the user gets the ping in Telegram even when they closed the dashboard.">
+  <meta property="og:title" content="Send a self-notify message — `POST /v1/telegram/send` · WideCast Docs">
+  <meta property="og:description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** account — preferring Telegram, falling back to email. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band so the user sees it even when they closed the dashboard.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/telegram-send.html">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Send a Telegram notification — `POST /v1/telegram/send` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** connected Telegram chat. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band — the user gets the ping in Telegram even when they closed the dashboard.">
+  <meta name="twitter:title" content="Send a self-notify message — `POST /v1/telegram/send` · WideCast Docs">
+  <meta name="twitter:description" content="**Synchronous, no credit charged.** Push a notification to the **user's own** account — preferring Telegram, falling back to email. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band so the user sees it even when they closed the dashboard.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,12 +56,39 @@
 
   <main class="wc-main">
     <article class="wc-article">
-      <h1 id="send-a-telegram-notification-post-v1telegramsend">Send a Telegram notification — <code>POST /v1/telegram/send</code></h1>
-<p><strong>Synchronous, no credit charged.</strong> Push a notification to the <strong>user's own</strong> connected Telegram chat. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band — the user gets the ping in Telegram even when they closed the dashboard.</p>
+      <h1 id="send-a-self-notify-message-post-v1telegramsend">Send a self-notify message — <code>POST /v1/telegram/send</code></h1>
+<p><strong>Synchronous, no credit charged.</strong> Push a notification to the <strong>user's own</strong> account — preferring Telegram, falling back to email. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band so the user sees it even when they closed the dashboard.</p>
 <blockquote>
-<p><strong>Self-notify only.</strong> There is no <code>chat_id</code> / <code>to</code> field by design. The recipient is the user who owns this API key (chat_id is resolved server-side from their company doc, never accepted as input). This prevents using WideCast as a Telegram spam relay.</p>
+<p><strong>Self-notify only.</strong> There is no <code>chat_id</code> / <code>to</code> / <code>email</code> field by design. The delivery target is resolved server-side from the API key's company doc, never accepted as input. This prevents using WideCast as a spam relay.</p>
 </blockquote>
-<p><strong>Prerequisite.</strong> The user must have connected Telegram once at <a href="https://widecast.ai/#setup"><code>https://widecast.ai/#setup</code></a>. If they haven't, the call returns <code>400 telegram_not_connected</code> + <code>details.setup_url</code> — point them there and they can complete the connect in under a minute.</p>
+<h2 id="delivery-channel-auto-chosen">Delivery channel — auto-chosen</h2>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th><code>delivery</code> returned</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User has completed <a href="https://widecast.ai/#setup"><code>Connect Telegram</code></a></td>
+<td><code>"telegram"</code></td>
+<td>Message lands in their Telegram chat with the WideCast bot. Response carries <code>chat_id_masked</code> + <code>telegram_message_id</code>.</td>
+</tr>
+<tr>
+<td>Telegram NOT connected but account has email on file</td>
+<td><code>"email"</code></td>
+<td>The same message is delivered to the account's email <strong>with an in-mail banner explaining why</strong> (Telegram not connected) and a CTA to connect. Response carries <code>recipient_email_masked</code>, <code>fallback_reason: "telegram_not_connected"</code>, <code>setup_url</code>, and <code>note</code>.</td>
+</tr>
+<tr>
+<td>Telegram NOT connected AND no email on file</td>
+<td>— (400)</td>
+<td><code>400 telegram_not_connected</code> + <code>details.setup_url</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The endpoint <strong>only fails when there is literally no way to reach the user</strong> — for any account with email, the message is guaranteed to arrive.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/telegram/send</code></div><section class="wc-pg-example" data-cfg="playgrounds/telegram-send.json" data-usecase-id="text" id="ex-telegram-send--text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💬 Plain text notification</h3><p class="wc-pg-example-desc">Just push a text message to the user's own Telegram chat. The simplest mode — no formatting, no attachments.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/telegram-send.json" data-usecase-id="html" id="ex-telegram-send--html"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✨ HTML-formatted message</h3><p class="wc-pg-example-desc">Use a small subset of HTML tags (`b`, `i`, `u`, `s`, `code`, `pre`, `a`) for emphasis or links. Other tags are stripped server-side.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
@@ -135,9 +162,11 @@
 <p><strong>Rate limit</strong>: 60 messages/hour/account.</p>
 <hr />
 <h2 id="response-200-ok">Response — <code>200 OK</code></h2>
+<h3 id="telegram-path-delivery-telegram">Telegram path (<code>delivery: "telegram"</code>)</h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">              </span><span class="s2">&quot;telegram_message&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">              </span><span class="s2">&quot;sent&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w">            </span><span class="s2">&quot;telegram&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;media_kind&quot;</span><span class="p">:</span><span class="w">          </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;chat_id_masked&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;…1234&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;telegram_message_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">81023</span><span class="p">,</span>
@@ -145,7 +174,22 @@
 <span class="p">}</span>
 </code></pre></div>
 
-<p><code>chat_id_masked</code> is <code>…</code> plus the last 4 digits of the user's chat_id — the unmasked id is never returned (the caller already has access in Telegram itself). <code>telegram_message_id</code> is Telegram's own id for the delivered message, surfaced when present so the caller can later edit or delete via Telegram's API.</p>
+<p><code>chat_id_masked</code> is <code>…</code> plus the last 4 digits of the user's chat_id. <code>telegram_message_id</code> is Telegram's own id for the delivered message, surfaced so the caller can later edit/delete via Telegram's API.</p>
+<h3 id="email-fallback-path-delivery-email">Email fallback path (<code>delivery: "email"</code>)</h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">                 </span><span class="s2">&quot;telegram_message&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w">                 </span><span class="s2">&quot;sent&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w">               </span><span class="s2">&quot;email&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;media_kind&quot;</span><span class="p">:</span><span class="w">             </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;recipient_email_masked&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;u***n@example.com&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;fallback_reason&quot;</span><span class="p">:</span><span class="w">        </span><span class="s2">&quot;telegram_not_connected&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;setup_url&quot;</span><span class="p">:</span><span class="w">              </span><span class="s2">&quot;https://widecast.ai/#setup&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w">                   </span><span class="s2">&quot;Telegram was not connected for this account, so the notification was delivered to the account&#39;s email instead. The user can complete Connect Telegram at https://widecast.ai/#setup for future deliveries to land in Telegram.&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;request_id&quot;</span><span class="p">:</span><span class="w">             </span><span class="s2">&quot;req_abcd…&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The email body itself includes a yellow callout banner explaining the same thing to the user — so they're not confused why they're suddenly receiving emails from WideCast. The agent should <strong>relay <code>note</code> to the user</strong> so they know future notifications can move to Telegram with one Connect step.</p>
 <h3 id="error-responses">Error responses</h3>
 <table>
 <thead>
@@ -190,6 +234,11 @@
 <td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
 <td>401</td>
 <td>Auth.</td>
+</tr>
+<tr>
+<td><code>rate_limited</code></td>
+<td>429</td>
+<td>More than 60 sends in the last hour for this account. <code>error.details.{rate_limit_max, rate_limit_count, retry_after_seconds}</code> + standard <code>Retry-After</code> header.</td>
 </tr>
 <tr>
 <td><code>telegram_send_failed</code></td>

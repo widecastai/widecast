@@ -925,49 +925,111 @@ class Widecast:
                              json_body=body, idempotency_key=idem)
         return self._wrap_video(data)
 
-    def enhance_script(self, script_text: str, *,
-                       language: str = "",
-                       intervention_level: int = 1,
-                       callback_url: Optional[str] = None,
-                       metadata: Optional[Mapping[str, Any]] = None,
-                       idempotency_key: Optional[str] = None) -> "Video":
-        """POST /v1/enhance_script — improve a DRAFT script with AI (fix
-        grammar, add examples, sharpen the hook).
+    # NOTE: enhance_script() was withdrawn from the SDK 2026-06-21 (Round 28).
+    # The REST endpoint /v1/enhance_script still serves the dashboard UI;
+    # SDK callers should use create_video(source="text", script_text=...)
+    # or do the rewrite locally instead.
 
-        Async: returns a Video with status='processing' AND
-        `video.review_url` already populated (opens the Script Editor; safe to
-        share before completion — page shows a spinner while enhancing).
-        Poll with `.wait()` for the final enhanced script. Consumes credits.
+    def create_image(self, prompt: str, *,
+                     ratio: str = "portrait",
+                     count: int = 1,
+                     topic_id: Optional[str] = None) -> dict:
+        """POST /v1/create_image — generate 1-4 AI images from a text prompt.
+
+        **Synchronous.** Charges **1 credit per image** (count=4 → 4 credits).
+        Same engine the dashboard's Gen-AI tab uses (broll.js).
+
+        AI-agent flow (the canonical post-call behavior the MCP tool
+        description nudges agents toward): render the returned `images`
+        as a NUMBERED THUMBNAIL LIST and ask the user to pick by number
+        — `result["images"][N-1]["url"]` is then the canonical asset
+        URL to feed into modify_scene or paste as `![](url)` in a future
+        script.
 
         Args:
-            script_text:        Required. The draft script to enhance.
-            language:           Output language. "" (default) keeps the original.
-            intervention_level: 0=segment only, 1=natural enhance (default),
-                                2=maximum rewrite. See INTERVENTION_LEVELS.
+            prompt:    Required. Image description (≤2000 chars).
+            ratio:     "portrait" (default, 768×1344), "landscape"
+                       (1344×768), or "square" (768×768). Match the
+                       target video's aspect ratio.
+            count:     1-4 (default 1). Each variation = 1 credit.
+            topic_id:  Optional. Link to an existing video's asset
+                       folder; omit for freeform generation.
+
+        Returns dict ``{"object":"image_set", "status":"completed"|"partial",
+        "count", "ratio", "prompt", "images":[{"number","url",
+        "thumbnail_url","ratio"}], "request_id"}``.
         """
-        if not isinstance(script_text, str) or not script_text.strip():
+        if not isinstance(prompt, str) or not prompt.strip():
             raise InvalidRequestError(
-                "script_text (the draft to enhance) is required.",
-                code="missing_field", param="script_text")
-        if intervention_level not in INTERVENTION_LEVELS:
+                "prompt (image description) is required.",
+                code="missing_field", param="prompt")
+        if ratio not in ("portrait", "landscape", "square"):
             raise InvalidRequestError(
-                f"intervention_level must be one of {list(INTERVENTION_LEVELS)} "
-                f"(got {intervention_level!r}).",
-                code="invalid_intervention_level", param="intervention_level")
-        body: dict = {
-            "script_text": script_text.strip(),
-            "intervention_level": intervention_level,
-        }
-        if isinstance(language, str) and language.strip():
-            body["language"] = language.strip()
-        if callback_url:
-            body["callback_url"] = callback_url
-        if metadata:
-            body["metadata"] = dict(metadata)
-        idem = idempotency_key or str(uuid.uuid4())
-        data = self._request("POST", "/v1/enhance_script",
-                             json_body=body, idempotency_key=idem)
-        return self._wrap_video(data)
+                f"ratio must be one of ['portrait','landscape','square'] "
+                f"(got {ratio!r}).",
+                code="invalid_ratio", param="ratio")
+        if not isinstance(count, int) or count < 1 or count > 4:
+            raise InvalidRequestError(
+                "count must be an integer 1-4.",
+                code="invalid_count", param="count")
+        body: dict = {"prompt": prompt.strip(), "ratio": ratio, "count": count}
+        if topic_id:
+            body["topic_id"] = str(topic_id)
+        return self._request("POST", "/v1/create_image",
+                             json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
+
+    def search_broll(self, keyword: str, *,
+                     kind: str,
+                     ratio: str = "portrait",
+                     limit: int = 10) -> dict:
+        """POST /v1/search_broll — search stock B-roll. **SYNC, FREE.**
+
+        Two modes:
+          - ``kind="video"`` → searches Pexels + Pixabay + Shutterstock
+            for stock CLIPS (broll.js Stock tab engine).
+          - ``kind="image"`` → searches Google for real PHOTOS
+            (broll.js Photos tab engine).
+
+        AI-agent flow: render the returned `results` as a NUMBERED
+        THUMBNAIL LIST and let the user pick by number —
+        `result["results"][N-1]["url"]` is the asset URL to feed into
+        modify_scene or use inline in a script.
+
+        Args:
+            keyword:  Required. 1-3 words work best.
+            kind:     Required. ``"video"`` or ``"image"``.
+            ratio:    "portrait" (default), "landscape", or "square".
+                      Only filters when kind="video".
+            limit:    1-20 (default 10).
+
+        Returns dict ``{"object":"list", "kind", "keyword", "ratio",
+        "total", "results":[{"number","type","url","thumbnail_url",
+        "title","source","duration","width","height","author",
+        "context_url"}], "request_id"}``.
+        """
+        if not isinstance(keyword, str) or not keyword.strip():
+            raise InvalidRequestError(
+                "keyword is required.",
+                code="missing_field", param="keyword")
+        if kind not in ("video", "image"):
+            raise InvalidRequestError(
+                "kind must be one of ['video','image'].",
+                code="invalid_kind", param="kind")
+        if ratio not in ("portrait", "landscape", "square"):
+            raise InvalidRequestError(
+                f"ratio must be one of ['portrait','landscape','square'] "
+                f"(got {ratio!r}).",
+                code="invalid_ratio", param="ratio")
+        if not isinstance(limit, int) or limit < 1 or limit > 20:
+            raise InvalidRequestError(
+                "limit must be an integer 1-20.",
+                code="invalid_limit", param="limit")
+        body: dict = {"keyword": keyword.strip(), "kind": kind,
+                      "ratio": ratio, "limit": limit}
+        return self._request("POST", "/v1/search_broll",
+                             json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
 
     def collect_ideas(self, product_service_input: str, *,
                       sub_industry: Optional[str] = None,
@@ -1092,12 +1154,46 @@ class Widecast:
         Returns `{object:"list", data:[{id, title, language, created_at}], total_count, from_record}`."""
         return self._get("/v1/videos", {"from_record": from_record})
 
-    def search(self, query: str, *, limit: int = 10) -> dict:
-        """GET /v1/search — search the account's content by keywords. Free.
-        Returns `{object:"list", query, data:[{id, title, description, created_at}]}`."""
-        if not isinstance(query, str) or not query.strip():
-            raise InvalidRequestError("query is required.", code="missing_field", param="q")
-        return self._get("/v1/search", {"q": query.strip(), "limit": limit})
+    # NOTE: search() was withdrawn from the SDK 2026-06-21 (Round 29).
+    # The REST endpoint /v1/search still serves the dashboard UI; SDK
+    # callers that need to find a topic can use list_videos() + a local
+    # title filter instead.
+
+    def video_data(self, video_id: str) -> dict:
+        """POST /v1/video_data — read the FULL structured video script for a
+        topic_id. SYNC, FREE.
+
+        Returns every scene's text/narration, ``voice_file`` (the per-scene
+        UID :meth:`modify_scene` needs), ``type`` ('A-roll' or 'B-roll'),
+        ``duration``, ``mediaUrl`` (currently-shown background or A-roll
+        overlay), ``mediaType``, ``thumbnailUrl``, plus ``narrator`` (voice
+        + face clone ids when set) and ``global_settings`` (aspect ratio,
+        music, brand, language). Same engine the scene editor uses on
+        open, so the data matches what the user sees there exactly.
+
+        Args:
+            video_id: Topic id from :meth:`create_video` (same id used by
+                      :meth:`get_status`, :meth:`export_video`,
+                      :meth:`modify_scene`).
+
+        Returns dict ``{"object":"video_data", "id", "topic_id",
+        "aspect_ratio", "title", "language", "total_segments",
+        "total_duration", "segments":[{"id","voice_file","text","type",
+        "duration","mediaUrl","mediaType","brollUrl","thumbnailUrl",
+        "narrator":{...}}], "global_settings", "review_url", "request_id"}``.
+
+        Raises ``InvalidRequestError(code="video_not_found", 404)`` when
+        the id doesn't exist on the account, or
+        ``InvalidRequestError(code="script_not_ready", 409)`` when the
+        video is still processing — poll :meth:`wait_for_video` first.
+        """
+        if not isinstance(video_id, str) or not video_id.strip():
+            raise InvalidRequestError(
+                "video_id (the widecast<...> topic_id) is required.",
+                code="missing_field", param="video_id")
+        return self._request("POST", "/v1/video_data",
+                             json_body={"video_id": video_id.strip()},
+                             idempotency_key=str(uuid.uuid4()))
 
     def account(self) -> dict:
         """GET /v1/account — account profile + remaining credits. Free."""
@@ -1133,19 +1229,10 @@ class Widecast:
         return self._get("/v1/recommendations", {"industry": industry, "page": page})
 
     # ── Connections (Batch E — connect / accounts / configure, free) ────────
-    def connect(self, *, platform: Optional[str] = None) -> dict:
-        """POST /v1/connect — get an OAuth link to connect a social platform.
-        Free. Returns `{object:"connect", url, expires_in, ...}` — the USER opens
-        `url` to complete the connection on the web (WideCast never performs the
-        OAuth itself). Omit `platform` for a link covering all supported platforms."""
-        if platform is not None and platform not in PUBLISH_PLATFORMS:
-            raise InvalidRequestError(
-                f"Unknown platform {platform!r}. Valid: {list(PUBLISH_PLATFORMS)}.",
-                code="invalid_platforms", param="platform")
-        body: dict = {}
-        if platform:
-            body["platform"] = platform
-        return self._request("POST", "/v1/connect", json_body=body)
+    # NOTE: connect() was withdrawn from the SDK 2026-06-21 (Round 28).
+    # The REST endpoint /v1/connect still serves the dashboard UI; SDK
+    # callers should send users to https://widecast.ai/#setup to connect
+    # social platforms.
 
     def accounts(self) -> dict:
         """GET /v1/accounts — list the account's connected social platforms. Free.
@@ -1174,28 +1261,40 @@ class Widecast:
                               photo_url: Optional[str] = None,
                               video_url: Optional[str] = None) -> dict:
         """POST /v1/telegram/send — push a notification to the USER'S OWN
-        connected Telegram chat. SYNC, FREE. Self-notify only — the recipient
-        is the user who owns this API key (chat_id is resolved server-side
-        from their account, never accepted as input).
+        account. SYNC, FREE. Self-notify only — the recipient is the user
+        who owns this API key (delivery target is resolved server-side from
+        their account, never accepted as input).
 
-        The user must have completed 'Connect Telegram' at
-        https://widecast.ai/#setup; if not, raises with
-        code=``telegram_not_connected`` + ``details.setup_url``.
+        Delivery channel is auto-chosen:
+          * ``"telegram"`` — preferred when the user has completed
+            ``Connect Telegram`` at https://widecast.ai/#setup.
+          * ``"email"`` — fallback when Telegram is not connected. The
+            same message is delivered to the account's email with an
+            in-mail banner explaining why + CTA to connect.
+
+        Only raises ``code="telegram_not_connected"`` (400) if the account
+        has NEITHER Telegram NOR an email on file.
 
         Args:
             message:      Text body (plain-text mode) OR the caption when
                           ``photo_url`` / ``video_url`` is set. Capped at
                           4000 bytes plain text / 1024 bytes as caption.
             parse_mode:   Optional ``"Markdown"`` / ``"MarkdownV2"`` /
-                          ``"HTML"``. Omit for plain text.
+                          ``"HTML"``. Omit for plain text. (On email
+                          fallback, ``"HTML"`` is rendered inline; the
+                          others are HTML-escaped.)
             photo_url:    Optional photo to attach. Mutually exclusive with
                           ``video_url``.
             video_url:    Optional video to attach. Mutually exclusive with
                           ``photo_url``.
 
-        Returns a dict ``{"object": "telegram_message", "status": "sent",
-        "media_kind": "text"|"photo"|"video", "chat_id_masked": "…1234",
-        "telegram_message_id"?, "request_id"}``.
+        Returns dict
+        ``{object: "telegram_message", status: "sent", delivery:
+        "telegram"|"email", media_kind, chat_id_masked? |
+        recipient_email_masked?, fallback_reason?, setup_url?, note?,
+        telegram_message_id?, request_id}``. Inspect ``delivery`` to know
+        which channel the message went to and whether to nudge the user
+        toward Connect Telegram.
         """
         if not isinstance(message, str) or not message.strip():
             raise InvalidRequestError(

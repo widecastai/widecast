@@ -1,10 +1,18 @@
-# Send a Telegram notification — `POST /v1/telegram/send`
+# Send a self-notify message — `POST /v1/telegram/send`
 
-**Synchronous, no credit charged.** Push a notification to the **user's own** connected Telegram chat. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band — the user gets the ping in Telegram even when they closed the dashboard.
+**Synchronous, no credit charged.** Push a notification to the **user's own** account — preferring Telegram, falling back to email. Lets an AI agent surface "your video is ready", "scenes need review", "rendering finished" out-of-band so the user sees it even when they closed the dashboard.
 
-> **Self-notify only.** There is no `chat_id` / `to` field by design. The recipient is the user who owns this API key (chat_id is resolved server-side from their company doc, never accepted as input). This prevents using WideCast as a Telegram spam relay.
+> **Self-notify only.** There is no `chat_id` / `to` / `email` field by design. The delivery target is resolved server-side from the API key's company doc, never accepted as input. This prevents using WideCast as a spam relay.
 
-**Prerequisite.** The user must have connected Telegram once at [`https://widecast.ai/#setup`](https://widecast.ai/#setup). If they haven't, the call returns `400 telegram_not_connected` + `details.setup_url` — point them there and they can complete the connect in under a minute.
+## Delivery channel — auto-chosen
+
+| Condition | `delivery` returned | What happens |
+|---|---|---|
+| User has completed [`Connect Telegram`](https://widecast.ai/#setup) | `"telegram"` | Message lands in their Telegram chat with the WideCast bot. Response carries `chat_id_masked` + `telegram_message_id`. |
+| Telegram NOT connected but account has email on file | `"email"` | The same message is delivered to the account's email **with an in-mail banner explaining why** (Telegram not connected) and a CTA to connect. Response carries `recipient_email_masked`, `fallback_reason: "telegram_not_connected"`, `setup_url`, and `note`. |
+| Telegram NOT connected AND no email on file | — (400) | `400 telegram_not_connected` + `details.setup_url`. |
+
+The endpoint **only fails when there is literally no way to reach the user** — for any account with email, the message is guaranteed to arrive.
 
 <!-- widecast-playground:telegram-send -->
 
@@ -61,10 +69,13 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/telegram/send" \
 
 ## Response — `200 OK`
 
+### Telegram path (`delivery: "telegram"`)
+
 ```json
 {
   "object":              "telegram_message",
   "status":              "sent",
+  "delivery":            "telegram",
   "media_kind":          "text",
   "chat_id_masked":      "…1234",
   "telegram_message_id": 81023,
@@ -72,7 +83,25 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/telegram/send" \
 }
 ```
 
-`chat_id_masked` is `…` plus the last 4 digits of the user's chat_id — the unmasked id is never returned (the caller already has access in Telegram itself). `telegram_message_id` is Telegram's own id for the delivered message, surfaced when present so the caller can later edit or delete via Telegram's API.
+`chat_id_masked` is `…` plus the last 4 digits of the user's chat_id. `telegram_message_id` is Telegram's own id for the delivered message, surfaced so the caller can later edit/delete via Telegram's API.
+
+### Email fallback path (`delivery: "email"`)
+
+```json
+{
+  "object":                 "telegram_message",
+  "status":                 "sent",
+  "delivery":               "email",
+  "media_kind":             "text",
+  "recipient_email_masked": "u***n@example.com",
+  "fallback_reason":        "telegram_not_connected",
+  "setup_url":              "https://widecast.ai/#setup",
+  "note":                   "Telegram was not connected for this account, so the notification was delivered to the account's email instead. The user can complete Connect Telegram at https://widecast.ai/#setup for future deliveries to land in Telegram.",
+  "request_id":             "req_abcd…"
+}
+```
+
+The email body itself includes a yellow callout banner explaining the same thing to the user — so they're not confused why they're suddenly receiving emails from WideCast. The agent should **relay `note` to the user** so they know future notifications can move to Telegram with one Connect step.
 
 ### Error responses
 
@@ -85,6 +114,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/telegram/send" \
 | `invalid_photo_url` / `invalid_video_url` | 400 | The URL is not a public http(s) URL. |
 | `message_too_long` | 400 | Plain-text body > 4000 bytes, or caption (with media) > 1024 bytes. |
 | `missing_api_key` / `invalid_api_key` | 401 | Auth. |
+| `rate_limited` | 429 | More than 60 sends in the last hour for this account. `error.details.{rate_limit_max, rate_limit_count, retry_after_seconds}` + standard `Retry-After` header. |
 | `telegram_send_failed` | 502 | Telegram itself rejected the message (rare). `error.details.telegram_response` carries Telegram's body. |
 
 ---

@@ -5,7 +5,6 @@ A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsin
 | Endpoint | Returns |
 |---|---|
 | `GET /v1/videos` | Recent videos/scripts (20/page) |
-| `GET /v1/search` | Content matching keywords |
 | `GET /v1/account` | Account profile + remaining credits |
 | `GET /v1/analytics` | Social analytics dashboard (slow) |
 | `GET /v1/roadmap` | Content roadmap (weeks, slots, streak) |
@@ -19,12 +18,6 @@ A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsin
 List the account's recent videos/scripts (20 per page). Query: `from_record` (default 0). Returns `{object:"list", data:[{id, title, language, created_at}], total_count, from_record}`.
 
 <!-- widecast-playground:videos -->
-
-## `GET /v1/search`
-
-Search the account's content by keywords. Query: `q` (required), `limit` (1–50, default 10). Returns `{object:"list", query, data:[{id, title, description, created_at}]}`.
-
-<!-- widecast-playground:search -->
 
 ## `GET /v1/account`
 
@@ -60,6 +53,5 @@ Recommended video ideas for an industry. Query: `industry` (falls back to your a
 
 | `error.code` | HTTP | When |
 |---|---|---|
-| `missing_field` | 400 | `q` missing on `/v1/search`. |
 | `missing_api_key` / `invalid_api_key` | 401 | API-key auth. |
 | `read_failed` | 500/502 | The underlying read failed. |

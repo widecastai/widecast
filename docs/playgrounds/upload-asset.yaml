@@ -6,19 +6,21 @@ endpoint:
   method: POST
   path: /v1/upload_asset
 
-title: Upload an audio / video / image (24-hour S3 URL)
+title: Upload an audio / video / image / document (24-hour S3 URL)
 description: |
-  Synchronous, no credit. Upload an audio / video / image file and get back
-  a public S3 URL valid for 24 hours. Use the URL as `audio_url` /
-  `video_url` on /v1/create_video, or paste it into `script_text` as an
-  inline `![alt](url)`. Server cap 500 MB.
+  Synchronous, no credit. Upload an audio / video / image / document
+  (HTML / PDF / Markdown) file and get back a public S3 URL valid for 24
+  hours. Use the URL as `audio_url` / `video_url` on /v1/create_video,
+  paste into `script_text` as an inline `![alt](url)` for images, or
+  `curl <get_url>` to fetch a document body before passing it as
+  blog_text / script_text. Server cap 500 MB.
 
 fields:
   - name: file
     type: file
-    label: "File (audio / video / image, ≤500 MB)"
+    label: "File (audio / video / image / HTML / PDF / Markdown, ≤500 MB)"
     required: true
-    accept: "audio/*,video/*,image/*"
+    accept: "audio/*,video/*,image/*,.html,.htm,.pdf,.md,.markdown,text/html,application/pdf,text/markdown"
     placeholder: "Choose a file — uploaded as multipart/form-data."
 
 poll_after_create:
@@ -26,6 +28,6 @@ poll_after_create:
 
 use_cases:
   - id: upload-asset
-    title: "📎 Upload an asset (audio / video / image)"
-    description: "Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), or image (jpg / png / webp) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, or paste into `script_text` as an inline `![alt](url)`."
+    title: "📎 Upload an asset (audio / video / image / document)"
+    description: "Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), image (jpg / png / webp), or document (html / pdf / md) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, paste into `script_text` as an inline `![alt](url)` for images, or `curl` the URL to read a document body for blog_text / script_text."
     request: {}

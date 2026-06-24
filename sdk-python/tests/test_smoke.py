@@ -352,26 +352,70 @@ def test_create_content_accepts_valid():
     assert not isinstance(ei.value, InvalidRequestError)
 
 
-def test_enhance_script_rejects_missing_script():
+# enhance_script() was withdrawn from the SDK 2026-06-21 (Round 28) —
+# its smoke tests retired. REST /v1/enhance_script still serves the UI.
+
+# ── /v1/create_image + /v1/search_broll (Round 28 — AI-agent assets) ────────
+
+def test_create_image_rejects_missing_prompt():
     c = Widecast(api_key="dummy")
     with pytest.raises(InvalidRequestError) as ei:
-        c.enhance_script(script_text="")
+        c.create_image(prompt="")
     assert ei.value.code == "missing_field"
-    assert ei.value.param == "script_text"
+    assert ei.value.param == "prompt"
 
 
-def test_enhance_script_rejects_invalid_intervention_level():
+def test_create_image_rejects_invalid_ratio():
     c = Widecast(api_key="dummy")
     with pytest.raises(InvalidRequestError) as ei:
-        c.enhance_script(script_text="draft script here", intervention_level=5)
-    assert ei.value.code == "invalid_intervention_level"
-    assert ei.value.param == "intervention_level"
+        c.create_image(prompt="a sunset over mountains", ratio="ultrawide")
+    assert ei.value.code == "invalid_ratio"
+    assert ei.value.param == "ratio"
 
 
-def test_enhance_script_accepts_valid():
+def test_create_image_rejects_invalid_count():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_image(prompt="a sunset over mountains", count=10)
+    assert ei.value.code == "invalid_count"
+    assert ei.value.param == "count"
+
+
+def test_create_image_accepts_valid():
     c = _offline_client()
     with pytest.raises(WidecastError) as ei:
-        c.enhance_script(script_text="Want more views? Post consistently.", intervention_level=1)
+        c.create_image(prompt="a sunset over mountains", ratio="portrait", count=2)
+    assert not isinstance(ei.value, InvalidRequestError)
+
+
+def test_search_broll_rejects_missing_keyword():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.search_broll(keyword="", kind="video")
+    assert ei.value.code == "missing_field"
+    assert ei.value.param == "keyword"
+
+
+def test_search_broll_rejects_invalid_kind():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.search_broll(keyword="ocean waves", kind="gif")
+    assert ei.value.code == "invalid_kind"
+    assert ei.value.param == "kind"
+
+
+def test_search_broll_rejects_invalid_limit():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.search_broll(keyword="ocean waves", kind="video", limit=999)
+    assert ei.value.code == "invalid_limit"
+    assert ei.value.param == "limit"
+
+
+def test_search_broll_accepts_valid():
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.search_broll(keyword="ocean waves", kind="image", limit=5)
     assert not isinstance(ei.value, InvalidRequestError)
 
 
@@ -493,19 +537,31 @@ def test_publish_accepts_valid():
 
 # ── Batch C read/library (GET, free) ────────────────────────────────────────
 
-def test_search_requires_query():
+# search() was withdrawn from the SDK 2026-06-21 (Round 29) — REST /v1/search
+# still serves the UI. Its smoke tests retired in the same round.
+
+
+def test_video_data_requires_id():
     c = Widecast(api_key="dummy")
     with pytest.raises(InvalidRequestError) as ei:
-        c.search("")
+        c.video_data("")
     assert ei.value.code == "missing_field"
-    assert ei.value.param == "q"
+    assert ei.value.param == "video_id"
+
+
+def test_video_data_accepts_valid():
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.video_data("widecastABCDEFGHIJKL")
+    assert not isinstance(ei.value, InvalidRequestError)
 
 
 def test_read_methods_exist_and_are_callable():
-    """The 8 read methods exist on the client (server reuse verified live)."""
+    """The read methods exist on the client (server reuse verified live).
+    search() was withdrawn 2026-06-21; video_data() added the same round."""
     c = Widecast(api_key="dummy")
-    for name in ("list_videos", "search", "account", "analytics", "roadmap",
-                 "production_plan", "recommendations"):
+    for name in ("list_videos", "account", "analytics", "roadmap",
+                 "production_plan", "recommendations", "video_data"):
         assert callable(getattr(c, name)), name
 
 
@@ -517,15 +573,9 @@ def test_account_passes_validation():
     assert not isinstance(ei.value, InvalidRequestError)
 
 
-# ── Batch E connections (connect / accounts / configure, free) ──────────────
-
-def test_connect_rejects_unknown_platform():
-    c = Widecast(api_key="dummy")
-    with pytest.raises(InvalidRequestError) as ei:
-        c.connect(platform="myspace")
-    assert ei.value.code == "invalid_platforms"
-    assert ei.value.param == "platform"
-
+# ── Batch E connections (accounts / configure, free) — connect() was
+#    withdrawn from the SDK 2026-06-21 (Round 28); REST /v1/connect still
+#    serves the UI but agents are pointed at https://widecast.ai/#setup. ────
 
 def test_set_platform_settings_validates():
     c = Widecast(api_key="dummy")
@@ -536,7 +586,7 @@ def test_set_platform_settings_validates():
 
 def test_connection_methods_exist():
     c = Widecast(api_key="dummy")
-    for name in ("connect", "accounts", "platform_settings", "set_platform_settings"):
+    for name in ("accounts", "platform_settings", "set_platform_settings"):
         assert callable(getattr(c, name)), name
 
 

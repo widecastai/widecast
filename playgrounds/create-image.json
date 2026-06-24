@@ -1,0 +1,66 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/create_image"
+  },
+  "title": "Generate AI images (1-4 variations, numbered)",
+  "description": "Synchronous. Charges **1 credit per image generated** (count=4 → 4\ncredits). Returns an `image_set` with each image labeled by `number` so\nan AI agent can render a numbered thumbnail list for the user to pick\nby number.\n",
+  "fields": [
+    {
+      "name": "prompt",
+      "type": "textarea",
+      "label": "Image prompt (≤ 2000 chars — concrete visual nouns work best)",
+      "required": true,
+      "placeholder": "a wooden ladder leaning against a red brick wall, morning light"
+    },
+    {
+      "name": "ratio",
+      "type": "select",
+      "label": "Ratio",
+      "options": [
+        "portrait",
+        "landscape",
+        "square"
+      ]
+    },
+    {
+      "name": "count",
+      "type": "text",
+      "label": "How many variations (1-4 — each = 1 credit)",
+      "placeholder": "1"
+    },
+    {
+      "name": "topic_id",
+      "type": "text",
+      "label": "topic_id (optional — link to an existing video's asset folder)",
+      "placeholder": "widecast..."
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "single-portrait",
+      "title": "🖼️ Single portrait image",
+      "description": "One 768×1344 portrait image (Reels/TikTok/Shorts ratio). The default — costs 1 credit.",
+      "request": {
+        "prompt": "a wooden ladder leaning against a red brick wall, morning light",
+        "ratio": "portrait",
+        "count": 1
+      }
+    },
+    {
+      "id": "four-variations",
+      "title": "🎴 4 square variations to pick from",
+      "description": "Generate 4 square variations (4 credits) so the user can pick one. Square ratio is the IG-feed default.",
+      "request": {
+        "prompt": "minimalist desk setup with a single houseplant",
+        "ratio": "square",
+        "count": 4
+      }
+    }
+  ],
+  "_key": "create-image",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

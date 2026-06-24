@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Upload an asset — `POST /v1/upload_asset` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, no credit charged.** Get an audio / video / image asset into WideCast's S3 bucket and back out as a **public URL** the AI agent feeds into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`) or paste into `script_text` as an inline `![alt](url)` (for images).">
+  <meta name="description" content="**Synchronous, no credit charged.** Get an audio / video / image / document asset into WideCast's S3 bucket and back out as a **public URL** the AI agent can feed into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`), paste into `script_text` as inline `![alt](url)` (for images), OR `curl <get_url>` to fetch a document body before passing it as `blog_text` / `script_text` (for HTML / PDF / Markdown attachments).">
   <link rel="canonical" href="https://widecast.ai/endpoints/upload-asset.html">
 
   <meta property="og:title" content="Upload an asset — `POST /v1/upload_asset` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, no credit charged.** Get an audio / video / image asset into WideCast's S3 bucket and back out as a **public URL** the AI agent feeds into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`) or paste into `script_text` as an inline `![alt](url)` (for images).">
+  <meta property="og:description" content="**Synchronous, no credit charged.** Get an audio / video / image / document asset into WideCast's S3 bucket and back out as a **public URL** the AI agent can feed into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`), paste into `script_text` as inline `![alt](url)` (for images), OR `curl <get_url>` to fetch a document body before passing it as `blog_text` / `script_text` (for HTML / PDF / Markdown attachments).">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/upload-asset.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Upload an asset — `POST /v1/upload_asset` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, no credit charged.** Get an audio / video / image asset into WideCast's S3 bucket and back out as a **public URL** the AI agent feeds into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`) or paste into `script_text` as an inline `![alt](url)` (for images).">
+  <meta name="twitter:description" content="**Synchronous, no credit charged.** Get an audio / video / image / document asset into WideCast's S3 bucket and back out as a **public URL** the AI agent can feed into [`/v1/create_video`](create-video.md) (as `audio_url` / `video_url`), paste into `script_text` as inline `![alt](url)` (for images), OR `curl <get_url>` to fetch a document body before passing it as `blog_text` / `script_text` (for HTML / PDF / Markdown attachments).">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,12 +57,12 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="upload-an-asset-post-v1upload_asset">Upload an asset — <code>POST /v1/upload_asset</code></h1>
-<p><strong>Synchronous, no credit charged.</strong> Get an audio / video / image asset into WideCast's S3 bucket and back out as a <strong>public URL</strong> the AI agent feeds into <a href="create-video.md"><code>/v1/create_video</code></a> (as <code>audio_url</code> / <code>video_url</code>) or paste into <code>script_text</code> as an inline <code>![alt](url)</code> (for images).</p>
+<p><strong>Synchronous, no credit charged.</strong> Get an audio / video / image / document asset into WideCast's S3 bucket and back out as a <strong>public URL</strong> the AI agent can feed into <a href="create-video.md"><code>/v1/create_video</code></a> (as <code>audio_url</code> / <code>video_url</code>), paste into <code>script_text</code> as inline <code>![alt](url)</code> (for images), OR <code>curl &lt;get_url&gt;</code> to fetch a document body before passing it as <code>blog_text</code> / <code>script_text</code> (for HTML / PDF / Markdown attachments).</p>
 <p>This is the <strong>canonical upload path</strong> for AI agents handling files the user attached in chat. It removes the need to shop for third-party file hosts (transfer.sh / catbox / S3 of your own) or to inline-base64 binary content into <code>create_video</code>.</p>
 <blockquote>
 <p><strong>Lifecycle: the bucket prefix <code>assets/</code> auto-deletes after 24 hours.</strong> Call <code>/v1/create_video</code> with the returned URL within that window — after expiry the S3 object is gone and the URL returns <code>NoSuchKey</code>.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/upload_asset</code></div><section class="wc-pg-example" data-cfg="playgrounds/upload-asset.json" data-usecase-id="upload-asset" id="ex-upload-asset--upload-asset"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📎 Upload an asset (audio / video / image)</h3><p class="wc-pg-example-desc">Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), or image (jpg / png / webp) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, or paste into `script_text` as an inline `![alt](url)`.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/upload_asset</code></div><section class="wc-pg-example" data-cfg="playgrounds/upload-asset.json" data-usecase-id="upload-asset" id="ex-upload-asset--upload-asset"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📎 Upload an asset (audio / video / image / document)</h3><p class="wc-pg-example-desc">Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), image (jpg / png / webp), or document (html / pdf / md) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, paste into `script_text` as an inline `![alt](url)` for images, or `curl` the URL to read a document body for blog_text / script_text.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="three-supported-request-shapes">Three supported request shapes</h2>
@@ -144,7 +144,7 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span
 <td><code>file</code></td>
 <td>file</td>
 <td>yes</td>
-<td>The audio / video / image file. Standard multipart <code>file=@...</code>. Server cap <strong>500 MB</strong>.</td>
+<td>The audio / video / image / document (HTML / PDF / Markdown) file. Standard multipart <code>file=@...</code>. Server cap <strong>500 MB</strong>.</td>
 </tr>
 </tbody>
 </table>
@@ -211,7 +211,14 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span
 </tbody>
 </table>
 <h3 id="allowed-types">Allowed types</h3>
-<p><code>audio/*</code> + <code>video/*</code> + <code>image/*</code>. Common extensions: <code>.mp3</code> <code>.wav</code> <code>.m4a</code> <code>.aac</code> <code>.ogg</code> <code>.opus</code> <code>.flac</code> <code>.mp4</code> <code>.mov</code> <code>.m4v</code> <code>.webm</code> <code>.mkv</code> <code>.avi</code> <code>.jpg</code> <code>.jpeg</code> <code>.png</code> <code>.webp</code> <code>.gif</code> <code>.bmp</code> <code>.avif</code> <code>.svg</code>. Anything else returns <code>400 unsupported_asset_type</code>.</p>
+<p>Media (prefix-matched): <code>audio/*</code> + <code>video/*</code> + <code>image/*</code>. Document (explicit MIME): <code>text/html</code>, <code>application/xhtml+xml</code>, <code>application/pdf</code>, <code>text/markdown</code>, <code>text/x-markdown</code>. Common extensions:</p>
+<ul>
+<li><strong>Audio</strong>: <code>.mp3</code> <code>.wav</code> <code>.m4a</code> <code>.aac</code> <code>.ogg</code> <code>.opus</code> <code>.flac</code></li>
+<li><strong>Video</strong>: <code>.mp4</code> <code>.mov</code> <code>.m4v</code> <code>.webm</code> <code>.mkv</code> <code>.avi</code></li>
+<li><strong>Image</strong>: <code>.jpg</code> <code>.jpeg</code> <code>.png</code> <code>.webp</code> <code>.gif</code> <code>.bmp</code> <code>.avif</code> <code>.svg</code></li>
+<li><strong>Document</strong>: <code>.html</code> <code>.htm</code> <code>.pdf</code> <code>.md</code> <code>.markdown</code></li>
+</ul>
+<p>Anything else returns <code>400 unsupported_asset_type</code>.</p>
 <hr />
 <h2 id="response-200-ok">Response — <code>200 OK</code></h2>
 <h3 id="multipart-base64-assetresponse">Multipart / base64 → <code>AssetResponse</code></h3>
@@ -294,7 +301,7 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span
 <tr>
 <td><code>unsupported_asset_type</code></td>
 <td>400</td>
-<td>Content-Type isn't <code>audio/*</code> / <code>video/*</code> / <code>image/*</code> AND the filename extension is unknown.</td>
+<td>Content-Type isn't in the allow-list (<code>audio/*</code> / <code>video/*</code> / <code>image/*</code> / <code>text/html</code> / <code>application/pdf</code> / <code>text/markdown</code>) AND the filename extension is unknown.</td>
 </tr>
 <tr>
 <td><code>upload_failed</code></td>

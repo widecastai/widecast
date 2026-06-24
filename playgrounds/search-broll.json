@@ -1,0 +1,71 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/search_broll"
+  },
+  "title": "Search stock B-roll (video clips or real photos)",
+  "description": "Synchronous, free. Search stock B-roll for a keyword. Use **kind=video**\nfor stock clips (Pexels/Pixabay/Shutterstock — same engine as the\nbroll.js Stock tab) or **kind=image** for real photos (Google — broll.js\nPhotos tab). Returns a list with each result labeled by `number` so an\nAI agent can render a numbered thumbnail list for the user to pick by\nnumber.\n",
+  "fields": [
+    {
+      "name": "keyword",
+      "type": "text",
+      "label": "Keyword (1-3 words work best)",
+      "required": true,
+      "placeholder": "umbrella rain"
+    },
+    {
+      "name": "kind",
+      "type": "select",
+      "label": "kind — video (stock clips) or image (real photos)",
+      "required": true,
+      "options": [
+        "video",
+        "image"
+      ]
+    },
+    {
+      "name": "ratio",
+      "type": "select",
+      "label": "Ratio (only meaningful for kind=video)",
+      "options": [
+        "portrait",
+        "landscape",
+        "square"
+      ]
+    },
+    {
+      "name": "limit",
+      "type": "text",
+      "label": "Max results (1-20)",
+      "placeholder": "10"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "video-portrait",
+      "title": "🎬 Stock video clips (portrait)",
+      "description": "Search Pexels + Pixabay + Shutterstock for portrait-ratio video clips matching a keyword. Returns up to `limit` results, each pre-numbered for an agent to render as a thumbnail picker.",
+      "request": {
+        "keyword": "umbrella rain",
+        "kind": "video",
+        "ratio": "portrait",
+        "limit": 10
+      }
+    },
+    {
+      "id": "real-photos",
+      "title": "🖼️ Real photos (Google search)",
+      "description": "Search Google image search for real photos matching a keyword — best when the user wants a SPECIFIC real-world asset (landmark, product, person in the news).",
+      "request": {
+        "keyword": "Eiffel Tower morning",
+        "kind": "image",
+        "limit": 8
+      }
+    }
+  ],
+  "_key": "search-broll",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

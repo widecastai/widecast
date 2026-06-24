@@ -1,0 +1,14 @@
+<section>
+<h2>Reconcile từ /history (batch) + MCP param (2026-06-20, vòng 3)</h2>
+<p><b>Tối ưu rate-limit:</b> audit reconcile giờ ưu tiên 1 call <code>/uploadposts/history</code> (page1,limit100)
+cho cả company thay vì /status per-request_id. <code>_wc_fetch_publish_history</code> trả map
+<code>{request_id: [HistoryItem]}</code> (HistoryItem có post_url+platform_post_id+request_id, cùng shape
+_wc_publish_post_url đọc). <code>_wc_reconcile_topic_posts(..., hist_map=)</code>: rid có trong hist_map → dùng luôn
+(0 call); rid thiếu → fallback /status throttled. <code>/v1/videos?reconcile=1</code> fetch history 1 lần/trang rồi
+sweep từng topic từ map đó. Engagement vẫn pull per-post (history KHÔNG có metrics).</p>
+<p><b>MCP:</b> <code>widecast_list_videos</code> thêm 2 param <code>reconcile</code>/<code>engagement</code> (bool),
+forward vào query /v1/videos. Đã build lại dist/index.js (tsc OK).</p>
+<p><b>⚠ Deploy:</b> (1) restart Flask (dashboard2.py). (2) MCP: dist/index.js mới → restart MCP client để forward param.
+(3) Verify scope <code>/uploadposts/history</code> trong white-label: hiện truyền <code>user=company_id</code> (giống /media);
+nếu sai scope phải đổi sang profile_username. Sẽ test live qua MCP sau deploy. Backup: dashboard2.py.bak.20260620_164215, mcp_index.ts.bak.*</p>
+</section>

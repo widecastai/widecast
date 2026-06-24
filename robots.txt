@@ -1,0 +1,6 @@
+# robots.txt — WideCast (https://widecast.ai)
+# All crawlers and AI agents welcome.
+User-agent: *
+Allow: /
+
+Sitemap: https://widecast.ai/sitemap.xml

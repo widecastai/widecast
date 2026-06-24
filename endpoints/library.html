@@ -71,10 +71,6 @@
 <td>Recent videos/scripts (20/page)</td>
 </tr>
 <tr>
-<td><code>GET /v1/search</code></td>
-<td>Content matching keywords</td>
-</tr>
-<tr>
 <td><code>GET /v1/account</code></td>
 <td>Account profile + remaining credits</td>
 </tr>
@@ -100,10 +96,6 @@
 <h2 id="get-v1videos"><code>GET /v1/videos</code></h2>
 <p>List the account's recent videos/scripts (20 per page). Query: <code>from_record</code> (default 0). Returns <code>{object:"list", data:[{id, title, language, created_at}], total_count, from_record}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/videos</code></div><section class="wc-pg-example" data-cfg="playgrounds/videos.json" data-usecase-id="recent" id="ex-videos--recent"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Recent videos</h3><p class="wc-pg-example-desc">List the most recent videos. Increase `from_record` to page.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
-
-<h2 id="get-v1search"><code>GET /v1/search</code></h2>
-<p>Search the account's content by keywords. Query: <code>q</code> (required), <code>limit</code> (1–50, default 10). Returns <code>{object:"list", query, data:[{id, title, description, created_at}]}</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/search</code></div><section class="wc-pg-example" data-cfg="playgrounds/search.json" data-usecase-id="search" id="ex-search--search"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔎 Search by keyword</h3><p class="wc-pg-example-desc">Find content whose body matches the keywords.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h2 id="get-v1account"><code>GET /v1/account</code></h2>
 <p>Account profile + remaining credits. Returns <code>{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, connected_platforms}</code>.</p>
@@ -135,11 +127,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>missing_field</code></td>
-<td>400</td>
-<td><code>q</code> missing on <code>/v1/search</code>.</td>
-</tr>
 <tr>
 <td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
 <td>401</td>

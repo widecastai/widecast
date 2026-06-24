@@ -1,0 +1,31 @@
+# Playground — POST /v1/video_data (SYNCHRONOUS, FREE).
+# Reads the full structured video script for a topic_id — same shape the
+# dashboard's scene editor sees on open.
+
+endpoint:
+  method: POST
+  path: /v1/video_data
+
+title: Read a video's full structured script (segments + narrator + media)
+description: |
+  Synchronous, free. Returns every scene's narration, the per-scene UID
+  modify_scene needs, the currently-shown media URL, narrator clone
+  config, and global settings (aspect ratio, music, brand, language).
+  Mirrors the engine the dashboard's scene editor uses on open.
+
+fields:
+  - name: video_id
+    type: text
+    label: "video_id (widecast<...> from /v1/create_video)"
+    required: true
+    placeholder: "widecastABCDEFGHIJKL"
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: read-video
+    title: "📜 Read a video's full script"
+    description: "Paste a `widecast<...>` topic_id (the id returned by /v1/create_video) to read every scene's narration + voice_file + media URL + narrator config. Same data the scene editor sees on open."
+    request:
+      video_id: "widecastABCDEFGHIJKL"

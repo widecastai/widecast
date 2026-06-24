@@ -56,7 +56,7 @@ Other sources:
 | `"video_file"` / `"audio_file"` | Same, from a local file (multipart upload — use the SDK helper). | `video_file` / `audio_file` |
 | `"audio_base64"` | Audio attached inline as base64 (≤10 MB decoded). The AI-agent path for "user attached a voice memo to the chat" — no URL or multipart. | `audio_data` (+ optional `audio_filename`) — or use the `create_video_from_audio_bytes(audioBytes, …)` helper |
 
-The full writing method (research → harvest images → 3-Layer Hook → inline media → hand-off) is a vendor-neutral skill at `https://widecast.ai/skills/video-script-writing.zip` — fetch it from any LLM before drafting a `source="text"` script.
+The full writing method (research → harvest images → 3-Layer Hook → inline media → hand-off) is available through the key-free endpoint `https://widecast.ai/app/dashboard2/v1/skills/writing?format=video` or the static fallback `https://origin.widecast.ai/skills/video-script-writing.zip` — fetch it from any LLM before drafting a `source="text"` script.
 
 ## Setup
 

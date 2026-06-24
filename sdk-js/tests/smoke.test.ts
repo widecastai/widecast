@@ -105,15 +105,44 @@ describe("widecast SDK", () => {
     ).rejects.toThrow(InvalidRequestError);
   });
 
-  it("enhance_script rejects missing script_text", async () => {
+  // enhance_script() was withdrawn from the SDK 2026-06-21 (Round 28) —
+  // its smoke tests retired. REST /v1/enhance_script still serves the UI.
+
+  it("create_image rejects missing prompt", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
-    await expect(c.enhance_script({ script_text: "" } as any)).rejects.toThrow(InvalidRequestError);
+    await expect(c.create_image({ prompt: "" } as any)).rejects.toThrow(InvalidRequestError);
   });
 
-  it("enhance_script rejects invalid intervention_level", async () => {
+  it("create_image rejects invalid ratio", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
     await expect(
-      c.enhance_script({ script_text: "draft", intervention_level: 5 } as any),
+      c.create_image({ prompt: "a sunset", ratio: "ultrawide" as any }),
+    ).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("create_image rejects out-of-range count", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.create_image({ prompt: "a sunset", count: 10 }),
+    ).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("search_broll rejects missing keyword", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(c.search_broll({ keyword: "", kind: "video" } as any)).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("search_broll rejects invalid kind", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.search_broll({ keyword: "ocean", kind: "gif" as any }),
+    ).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("search_broll rejects out-of-range limit", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.search_broll({ keyword: "ocean", kind: "video", limit: 999 }),
     ).rejects.toThrow(InvalidRequestError);
   });
 
@@ -151,28 +180,29 @@ describe("widecast SDK", () => {
 
   it("read/library methods exist on the client", () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
-    for (const name of ["list_videos", "search", "account", "analytics", "roadmap",
-      "production_plan", "recommendations"]) {
+    // search() withdrawn 2026-06-21 (Round 29); video_data() added the same round.
+    for (const name of ["list_videos", "account", "analytics", "roadmap",
+      "production_plan", "recommendations", "video_data"]) {
       expect(typeof (c as any)[name]).toBe("function");
     }
   });
 
-  it("search rejects an empty query", async () => {
+  it("video_data rejects an empty id", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
-    await expect(c.search("")).rejects.toThrow(InvalidRequestError);
+    await expect(c.video_data("")).rejects.toThrow(InvalidRequestError);
   });
 
   it("connection methods exist on the client", () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
-    for (const name of ["connect", "accounts", "platform_settings", "set_platform_settings"]) {
+    // connect() withdrawn 2026-06-21 (Round 28); accounts/platform_settings stay.
+    for (const name of ["accounts", "platform_settings", "set_platform_settings"]) {
       expect(typeof (c as any)[name]).toBe("function");
     }
   });
 
-  it("connect rejects an unknown platform", async () => {
-    const c = new Widecast({ apiKey: "wc_live_dummy" });
-    await expect(c.connect({ platform: "myspace" as any })).rejects.toThrow(InvalidRequestError);
-  });
+  // connect() withdrawn from the SDK 2026-06-21 (Round 28) — agent UX
+  // points users at https://widecast.ai/#setup instead; REST /v1/connect
+  // still serves the UI.
 
   it("set_platform_settings rejects an unknown platform", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });

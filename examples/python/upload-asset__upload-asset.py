@@ -1,5 +1,5 @@
 """
-📎 Upload an asset (audio / video / image)
+📎 Upload an asset (audio / video / image / document)
 
 Auto-generated from widecast/docs/playgrounds/upload-asset.yaml.
 """

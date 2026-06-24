@@ -55,18 +55,18 @@ console.log(v.status, v.review_url);
 | [`/v1/modify_scene`](endpoints/modify-scene.html) | POST | (sync, free) Swap the background image/video on ONE scene of an existing video |
 | [`/v1/upload_asset`](endpoints/upload-asset.html) | POST | (sync, free) Upload an audio / video / image to WideCast's S3 bucket and get back a 24-hour public URL — use as `audio_url` / `video_url` on `/v1/create_video` |
 | [`/v1/create_content`](endpoints/create-content.html) | POST | Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text |
-| [`/v1/enhance_script`](endpoints/enhance-script.html) | POST | Improve a draft video script with AI (grammar, examples, hook) |
+| [`/v1/create_image`](endpoints/create-image.html) | POST | Generate 1-4 AI images from a text prompt — returns a numbered thumbnail set for the user to pick (1 credit/image) |
+| [`/v1/search_broll`](endpoints/search-broll.html) | POST | (sync, free) Search stock B-roll — `kind=video` (Pexels/Pixabay/Shutterstock clips) or `kind=image` (Google real photos) — returns a numbered thumbnail list |
 | [`/v1/collect_ideas`](endpoints/collect-ideas.html) | POST | (sync) Video ideas from a product/service description |
 | [`/v1/publish`](endpoints/publish.html) | POST | Publish a video / blog / text to connected social platforms (returns request_ids → poll status) |
 | [`/v1/telegram/send`](endpoints/telegram-send.html) | POST | (sync, free) Push a notification to the user's own connected Telegram chat (self-notify only — text + optional photo/video URL) |
 | [`/v1/videos`](endpoints/library.html) | GET | (read, free) List the account's recent videos |
-| [`/v1/search`](endpoints/library.html) | GET | (read, free) Search the account's content by keywords |
+| [`/v1/video_data`](endpoints/video-data.html) | POST | (sync, free) Read the FULL structured video script for a topic_id — scenes, narrator, media URLs, global settings — same shape the scene editor sees |
 | [`/v1/account`](endpoints/library.html) | GET | (read, free) Account profile + remaining credits |
 | [`/v1/analytics`](endpoints/library.html) | GET | (read, free) Social analytics dashboard |
 | [`/v1/roadmap`](endpoints/library.html) | GET | (read, free) Content roadmap |
 | [`/v1/production_plan`](endpoints/library.html) | GET | (read, free) Weekly production plan |
 | [`/v1/recommendations`](endpoints/library.html) | GET | (read, free) Recommended video ideas |
-| [`/v1/connect`](endpoints/connections.html) | POST | (free) Get an OAuth link to connect a social platform |
 | [`/v1/accounts`](endpoints/connections.html) | GET | (free) List connected social platforms |
 | [`/v1/platform_settings`](endpoints/connections.html) | GET/POST | (free) Load / save per-platform publish settings |
 | [`/v1/status/{id}`](endpoints/create-video.html) | GET | Universal poll endpoint for any async task |
@@ -76,7 +76,7 @@ console.log(v.status, v.review_url);
 ## Reference
 
 - **Per-platform setup guides:** [Claude Web &amp; Desktop](claude.html) · [ChatGPT &amp; Codex](chatgpt.html) · [Gemini &amp; Antigravity](gemini.html) · [Grok](grok.html) — connect WideCast, then "make a video about [a real event]". The writing method (video / blog / social) ships as an MCP/Action tool (`getWritingSkill`) the model auto-fetches, so no file upload is required on platforms with tool support.
-- **Writing skills (single source of truth):** [`skills/video-script-writing.zip`](skills/video-script-writing.zip), [`skills/blog-writing.zip`](skills/blog-writing.zip), [`skills/social-post-writing.zip`](skills/social-post-writing.zip). MCP/Action surfaces fetch the same `SKILL.md` content on demand; download a zip only for tool-less surfaces (e.g. a Gemini Gem).
+- **Writing skills (single source of truth):** MCP/Action surfaces fetch the same `SKILL.md` content on demand; plain HTTP agents can call `https://widecast.ai/app/dashboard2/v1/skills/writing?format=video|blog|social`; file-only/tool-less surfaces can download [`skills/video-script-writing.zip`](https://origin.widecast.ai/skills/video-script-writing.zip), [`skills/blog-writing.zip`](https://origin.widecast.ai/skills/blog-writing.zip), or [`skills/social-post-writing.zip`](https://origin.widecast.ai/skills/social-post-writing.zip).
 - **Live playground:** [`playground.html`](playground.html) — submit + auto-poll + review-URL link in one click
 - **OpenAPI 3.1 spec:** [`openapi.yaml`](openapi.yaml) (also at `https://widecast.ai/app/dashboard2/openapi.yaml`)
 - **Python SDK:** [`widecast` on PyPI](https://pypi.org/project/widecast/)
@@ -92,7 +92,7 @@ console.log(v.status, v.review_url);
 - **Authentication**: send your key as `Authorization: Bearer wc_live_...`. When key enforcement is on, a missing/malformed/revoked key → **HTTP 401** with `error.type = "authentication_error"` and `error.code` = `missing_api_key` or `invalid_api_key`. (Enforcement is server-toggled; while it's off, the pilot accepts unauthenticated calls.)
 - Object marker on every resource: `"object": "status"`, `"object": "list"`, etc.
 - Status enum (locked): `pending | processing | completed | failed`
-- Error codes (locked, v0.1.0): `account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long`
+- Error codes (locked, v0.1.0): `account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long | rate_limited`
 - Input bounds (locked): `script_text` (source=text) is **80–500 words** (~20s–2 min, used verbatim). `idea_text` (source=idea) is **5–1000 words** and `blog_text` (source=blog) is **30–3000 words** (both interpretive — over-max auto-truncated, not rejected). Media sources (`video_*`/`audio_*`) have a **5-minute duration cap** (`media_too_long`, all media) and uploads a **100 MB size cap** (`file_too_large`). SDKs export `SCRIPT_MIN_WORDS` / `SCRIPT_MAX_WORDS` / `IDEA_MIN_WORDS` / `IDEA_MAX_WORDS` / `BLOG_MIN_WORDS` / `BLOG_MAX_WORDS` / `MEDIA_MAX_DURATION_SECONDS` / `MEDIA_MAX_FILE_BYTES` constants.
 - **Inline media in `script_text`** (source=text): embed a direct image/video file URL (`.png/.jpg/…` or `.mp4/.mov/…`) next to the line it should illustrate — WideCast strips it from the narration and uses it as that scene's visual instead of auto-sourced B-roll. Page links (YouTube/TikTok watch URLs) aren't inlined — use `source=video_url` for a whole clip. See [Create-video → Inline images & video](endpoints/create-video.html).
 - Enums (locked v0.1.0): `SOURCES` (`text`, `idea`, `blog`, `video_url`, `video_file`, `audio_url`, `audio_file`), `OUTPUT_TYPES` (`text`, `scene`, `video`), `LANGUAGES` (`English`, `Vietnamese`), `VIDEO_LENGTHS` (`short`, `normal`). For media sources `output_type="text"` = Remake (transcript only).

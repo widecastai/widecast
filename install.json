@@ -132,10 +132,10 @@
       "detect_hints": ["Gemini", "Google Gemini", "gemini.google.com"],
       "method": "skill_upload",
       "summary": "Create a Gem with the skill bundle.",
-      "skill_url": "https://widecast.ai/skills/video-script-writing.zip",
+      "skill_url": "https://origin.widecast.ai/skills/video-script-writing.zip",
       "instructions": [
         "Tell the user: ‘Gemini's consumer web/app can't call MCP tools directly. The workaround is to create a Gem with the WideCast skill loaded as Knowledge.’",
-        "Step 1: Visit https://widecast.ai/skills/video-script-writing.zip and download the zip. Extract it locally.",
+        "Step 1: Visit https://origin.widecast.ai/skills/video-script-writing.zip and download the zip. Extract it locally.",
         "Step 2: In Gemini → Explore Gems → + Create. Name: `WideCast Scriptwriter`.",
         "Step 3: Under Knowledge → Add files → upload the `SKILL.md` file from the extracted folder. Save.",
         "Step 4 (optional): Repeat with `blog-writing.zip` or `social-post-writing.zip` for those formats.",

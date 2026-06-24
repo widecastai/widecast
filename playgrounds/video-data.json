@@ -1,0 +1,32 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/video_data"
+  },
+  "title": "Read a video's full structured script (segments + narrator + media)",
+  "description": "Synchronous, free. Returns every scene's narration, the per-scene UID\nmodify_scene needs, the currently-shown media URL, narrator clone\nconfig, and global settings (aspect ratio, music, brand, language).\nMirrors the engine the dashboard's scene editor uses on open.\n",
+  "fields": [
+    {
+      "name": "video_id",
+      "type": "text",
+      "label": "video_id (widecast<...> from /v1/create_video)",
+      "required": true,
+      "placeholder": "widecastABCDEFGHIJKL"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "read-video",
+      "title": "📜 Read a video's full script",
+      "description": "Paste a `widecast<...>` topic_id (the id returned by /v1/create_video) to read every scene's narration + voice_file + media URL + narrator config. Same data the scene editor sees on open.",
+      "request": {
+        "video_id": "widecastABCDEFGHIJKL"
+      }
+    }
+  ],
+  "_key": "video-data",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

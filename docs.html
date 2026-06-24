@@ -135,9 +135,14 @@
 <td>Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text</td>
 </tr>
 <tr>
-<td><a href="endpoints/enhance-script.html"><code>/v1/enhance_script</code></a></td>
+<td><a href="endpoints/create-image.html"><code>/v1/create_image</code></a></td>
 <td>POST</td>
-<td>Improve a draft video script with AI (grammar, examples, hook)</td>
+<td>Generate 1-4 AI images from a text prompt — returns a numbered thumbnail set for the user to pick (1 credit/image)</td>
+</tr>
+<tr>
+<td><a href="endpoints/search-broll.html"><code>/v1/search_broll</code></a></td>
+<td>POST</td>
+<td>(sync, free) Search stock B-roll — <code>kind=video</code> (Pexels/Pixabay/Shutterstock clips) or <code>kind=image</code> (Google real photos) — returns a numbered thumbnail list</td>
 </tr>
 <tr>
 <td><a href="endpoints/collect-ideas.html"><code>/v1/collect_ideas</code></a></td>
@@ -160,9 +165,9 @@
 <td>(read, free) List the account's recent videos</td>
 </tr>
 <tr>
-<td><a href="endpoints/library.html"><code>/v1/search</code></a></td>
-<td>GET</td>
-<td>(read, free) Search the account's content by keywords</td>
+<td><a href="endpoints/video-data.html"><code>/v1/video_data</code></a></td>
+<td>POST</td>
+<td>(sync, free) Read the FULL structured video script for a topic_id — scenes, narrator, media URLs, global settings — same shape the scene editor sees</td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/account</code></a></td>
@@ -188,11 +193,6 @@
 <td><a href="endpoints/library.html"><code>/v1/recommendations</code></a></td>
 <td>GET</td>
 <td>(read, free) Recommended video ideas</td>
-</tr>
-<tr>
-<td><a href="endpoints/connections.html"><code>/v1/connect</code></a></td>
-<td>POST</td>
-<td>(free) Get an OAuth link to connect a social platform</td>
 </tr>
 <tr>
 <td><a href="endpoints/connections.html"><code>/v1/accounts</code></a></td>
@@ -224,7 +224,7 @@
 <h2 id="reference">Reference</h2>
 <ul>
 <li><strong>Per-platform setup guides:</strong> <a href="claude.html">Claude Web &amp; Desktop</a> · <a href="chatgpt.html">ChatGPT &amp; Codex</a> · <a href="gemini.html">Gemini &amp; Antigravity</a> · <a href="grok.html">Grok</a> — connect WideCast, then "make a video about [a real event]". The writing method (video / blog / social) ships as an MCP/Action tool (<code>getWritingSkill</code>) the model auto-fetches, so no file upload is required on platforms with tool support.</li>
-<li><strong>Writing skills (single source of truth):</strong> <a href="skills/video-script-writing.zip"><code>skills/video-script-writing.zip</code></a>, <a href="skills/blog-writing.zip"><code>skills/blog-writing.zip</code></a>, <a href="skills/social-post-writing.zip"><code>skills/social-post-writing.zip</code></a>. MCP/Action surfaces fetch the same <code>SKILL.md</code> content on demand; download a zip only for tool-less surfaces (e.g. a Gemini Gem).</li>
+<li><strong>Writing skills (single source of truth):</strong> MCP/Action surfaces fetch the same <code>SKILL.md</code> content on demand; plain HTTP agents can call <code>https://widecast.ai/app/dashboard2/v1/skills/writing?format=video|blog|social</code>; file-only/tool-less surfaces can download <a href="https://origin.widecast.ai/skills/video-script-writing.zip"><code>skills/video-script-writing.zip</code></a>, <a href="https://origin.widecast.ai/skills/blog-writing.zip"><code>skills/blog-writing.zip</code></a>, or <a href="https://origin.widecast.ai/skills/social-post-writing.zip"><code>skills/social-post-writing.zip</code></a>.</li>
 <li><strong>Live playground:</strong> <a href="playground.html"><code>playground.html</code></a> — submit + auto-poll + review-URL link in one click</li>
 <li><strong>OpenAPI 3.1 spec:</strong> <a href="openapi.yaml"><code>openapi.yaml</code></a> (also at <code>https://widecast.ai/app/dashboard2/openapi.yaml</code>)</li>
 <li><strong>Python SDK:</strong> <a href="https://pypi.org/project/widecast/"><code>widecast</code> on PyPI</a></li>
@@ -240,7 +240,7 @@
 <li><strong>Authentication</strong>: send your key as <code>Authorization: Bearer wc_live_...</code>. When key enforcement is on, a missing/malformed/revoked key → <strong>HTTP 401</strong> with <code>error.type = "authentication_error"</code> and <code>error.code</code> = <code>missing_api_key</code> or <code>invalid_api_key</code>. (Enforcement is server-toggled; while it's off, the pilot accepts unauthenticated calls.)</li>
 <li>Object marker on every resource: <code>"object": "status"</code>, <code>"object": "list"</code>, etc.</li>
 <li>Status enum (locked): <code>pending | processing | completed | failed</code></li>
-<li>Error codes (locked, v0.1.0): <code>account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long</code></li>
+<li>Error codes (locked, v0.1.0): <code>account_expired | credit_exhausted | render_failed | unknown_error | scenes_not_ready | export_failed | script_too_short | script_too_long | invalid_output_type | invalid_source | idea_too_short | missing_idea_text | blog_too_short | missing_blog_text | missing_video_url | missing_audio_url | missing_media_file | unsupported_media_url | media_too_long | file_too_large | missing_api_key | invalid_api_key | invalid_language | invalid_video_length | invalid_research_enabled | free_tier_limit_exceeded | telegram_not_connected | telegram_send_failed | invalid_parse_mode | conflicting_media | message_too_long | rate_limited</code></li>
 <li>Input bounds (locked): <code>script_text</code> (source=text) is <strong>80–500 words</strong> (~20s–2 min, used verbatim). <code>idea_text</code> (source=idea) is <strong>5–1000 words</strong> and <code>blog_text</code> (source=blog) is <strong>30–3000 words</strong> (both interpretive — over-max auto-truncated, not rejected). Media sources (<code>video_*</code>/<code>audio_*</code>) have a <strong>5-minute duration cap</strong> (<code>media_too_long</code>, all media) and uploads a <strong>100 MB size cap</strong> (<code>file_too_large</code>). SDKs export <code>SCRIPT_MIN_WORDS</code> / <code>SCRIPT_MAX_WORDS</code> / <code>IDEA_MIN_WORDS</code> / <code>IDEA_MAX_WORDS</code> / <code>BLOG_MIN_WORDS</code> / <code>BLOG_MAX_WORDS</code> / <code>MEDIA_MAX_DURATION_SECONDS</code> / <code>MEDIA_MAX_FILE_BYTES</code> constants.</li>
 <li><strong>Inline media in <code>script_text</code></strong> (source=text): embed a direct image/video file URL (<code>.png/.jpg/…</code> or <code>.mp4/.mov/…</code>) next to the line it should illustrate — WideCast strips it from the narration and uses it as that scene's visual instead of auto-sourced B-roll. Page links (YouTube/TikTok watch URLs) aren't inlined — use <code>source=video_url</code> for a whole clip. See <a href="endpoints/create-video.html">Create-video → Inline images &amp; video</a>.</li>
 <li>Enums (locked v0.1.0): <code>SOURCES</code> (<code>text</code>, <code>idea</code>, <code>blog</code>, <code>video_url</code>, <code>video_file</code>, <code>audio_url</code>, <code>audio_file</code>), <code>OUTPUT_TYPES</code> (<code>text</code>, <code>scene</code>, <code>video</code>), <code>LANGUAGES</code> (<code>English</code>, <code>Vietnamese</code>), <code>VIDEO_LENGTHS</code> (<code>short</code>, <code>normal</code>). For media sources <code>output_type="text"</code> = Remake (transcript only).</li>

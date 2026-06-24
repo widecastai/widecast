@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -33,6 +33,10 @@
     {
       "name": "Content",
       "description": "Generate written content + topic ideas."
+    },
+    {
+      "name": "Assets",
+      "description": "Generate AI images or search stock B-roll (video clips + real photos) — returns numbered thumbnail lists for an AI agent to relay so the user can pick by number."
     },
     {
       "name": "Distribution",
@@ -76,7 +80,7 @@
         ],
         "operationId": "createVideo",
         "summary": "⚠ LAST STEP. Requires getWritingSkill(format=video) 5-step checklist: research → write → inline URLs → hand script + ask the faceless question → user answered. Then create the video. Don't ask production questions here — they were answered at step 4/5.",
-        "description": "Create a video from either a plain-text script (`source: \"text\"`) or\na short idea description (`source: \"idea\"`). The server wraps the\nsame background workers that power the Script Editor + Idea-to-Video\nflows in the WideCast UI.\n\n- Returns immediately with `status: \"processing\"` (HTTP 202). Poll\n  `GET /v1/status/{id}` until terminal.\n- If `wait_for_render: true`, blocks up to **60 seconds**. If render\n  completes within the window, returns `status: \"completed\"` (HTTP 200).\n  Otherwise returns the in-flight state and the client polls.\n\n### source\n\n- `\"text\"` (default — backward-compat): provide `script_text`\n  (80-500 words, used VERBATIM by the narrator). Worker:\n  `request_video_script_from_script`.\n- `\"idea\"`: provide `idea_text` (5-1000 words; >1000 auto-truncated)\n  plus optional `language` / `video_length` / `research_enabled`.\n  Worker chain: `ai_enhance_script` (idea → narration) →\n  `request_video_script_from_script` (narration → scenes).\n\n### output_type\n\n- `\"scene\"` (default): pipeline stops at scenes-ready-for-review.\n  `result.review_url` is in the create response itself (safe to share\n  immediately — the page handles early arrival). You can then call\n  `POST /v1/export_video` to render the final MP4.\n- `\"video\"`: pipeline auto-chains into the renderer once scenes are\n  ready. `result.review_url` ships from the create response; the\n  `result.video_url` field appears on completion. No manual\n  `/v1/export_video` call needed.\n\n### Bounds (LOCKED — see SDK constants)\n\n| Field | When required | Min words | Max words | Over-max behavior |\n|---|---|---|---|---|\n| `script_text` | source=text | 80 (`SCRIPT_MIN_WORDS`) | 500 (`SCRIPT_MAX_WORDS`) | reject `script_too_long` |\n| `idea_text` | source=idea | 5 (`IDEA_MIN_WORDS`) | 1000 (`IDEA_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n| `blog_text` | source=blog | 30 (`BLOG_MIN_WORDS`) | 3000 (`BLOG_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n\nSDKs export these as named constants — refer to those instead of\nhard-coding the numbers. Word count = whitespace split, works for\nEnglish + Vietnamese.\n",
+        "description": "Create a video from either a plain-text script (`source: \"text\"`) or\na short idea description (`source: \"idea\"`). The server wraps the\nsame background workers that power the Script Editor + Idea-to-Video\nflows in the WideCast UI.\n\n- Returns immediately with `status: \"processing\"` (HTTP 202). Poll\n  `GET /v1/status/{id}` until terminal.\n- If `wait_for_render: true`, blocks up to **60 seconds**. If render\n  completes within the window, returns `status: \"completed\"` (HTTP 200).\n  Otherwise returns the in-flight state and the client polls.\n\n### source\n\n- `\"text\"` (default — backward-compat): provide `script_text`\n  (80-500 words, used VERBATIM by the narrator). Worker:\n  `request_video_script_from_script`.\n- `\"idea\"`: provide `idea_text` (5-1000 words; >1000 auto-truncated)\n  plus optional `language` / `video_length` / `research_enabled`.\n  Worker chain: `ai_enhance_script` (idea → narration) →\n  `request_video_script_from_script` (narration → scenes).\n\n### output_type\n\n- `\"scene\"` (default): pipeline stops at scenes-ready-for-review.\n  `result.review_url` is in the create response itself (safe to share\n  immediately — the page handles early arrival). You can then call\n  `POST /v1/export_video` to render the final MP4.\n- `\"video\"`: pipeline auto-chains into the renderer once scenes are\n  ready. `result.review_url` ships from the create response; the\n  `result.video_url` field appears on completion. No manual\n  `/v1/export_video` call needed.\n\n### Agent guidance — open `review_url` inline if you can\n\nWhen you surface `result.review_url` to the user, **also open it in\nyour built-in web viewer if your runtime exposes one** (Codex\nview-url, ChatGPT browse tool, any host that can iframe an external\nURL, future inline browsers). The review page is a full scene\neditor — letting the user inspect / swap / approve scenes inside\nthe same chat is dramatically better UX than asking them to\ncopy-paste a link into another tab. If you have no such tool, just\nshow the URL as a clickable link.\n\n### Bounds (LOCKED — see SDK constants)\n\n| Field | When required | Min words | Max words | Over-max behavior |\n|---|---|---|---|---|\n| `script_text` | source=text | 80 (`SCRIPT_MIN_WORDS`) | 500 (`SCRIPT_MAX_WORDS`) | reject `script_too_long` |\n| `idea_text` | source=idea | 5 (`IDEA_MIN_WORDS`) | 1000 (`IDEA_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n| `blog_text` | source=blog | 30 (`BLOG_MIN_WORDS`) | 3000 (`BLOG_MAX_WORDS`) | auto-truncate, surfaced in `details.input_truncated_from` |\n\nSDKs export these as named constants — refer to those instead of\nhard-coding the numbers. Word count = whitespace split, works for\nEnglish + Vietnamese.\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -556,28 +560,34 @@
         }
       }
     },
-    "/v1/enhance_script": {
+    "/v1/create_image": {
       "post": {
         "tags": [
-          "Content"
+          "Assets"
         ],
-        "operationId": "enhanceScript",
-        "summary": "Improve a draft video script with AI.",
-        "description": "Enhance a DRAFT script (fix grammar, add examples, sharpen the hook).\nAsync: returns a `widecast*` id + `status: \"processing\"` +\n`result.review_url` (opens the Script Editor) from the very first\nresponse — safe to share immediately; the editor shows a spinner\nwhile enhancing. Poll `GET /v1/status/{id}` until `completed` for\nthe final enhanced script. Consumes credits.\n",
+        "operationId": "createImage",
+        "summary": "Generate 1-4 AI images from a text prompt (numbered thumbnail set).",
+        "description": "Synchronous. **Charges 1 credit per image** generated (`count=4` →\n4 credits). Same engine the dashboard's Gen-AI tab uses (broll.js).\n\nThe response is shaped for the AI-agent flow: each image carries a\n1-based `number` so the agent can render a NUMBERED THUMBNAIL LIST\nand let the user pick by number. The chosen `images[N-1].url` is\nthen a canonical asset URL — feed into `/v1/modify_scene`\n(`field_name=\"mediaUrl\"`) to swap a scene's background, or use as\ninline `![alt](url)` in a future `/v1/create_video` script_text.\n",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EnhanceScriptRequest"
+                "$ref": "#/components/schemas/CreateImageRequest"
               },
               "examples": {
-                "natural": {
-                  "summary": "Natural enhance (default)",
+                "single": {
+                  "summary": "One portrait image (default)",
                   "value": {
-                    "script_text": "Want more views? Post consistently. The end.",
-                    "language": "English",
-                    "intervention_level": 1
+                    "prompt": "a wooden ladder leaning against a red brick wall, morning light"
+                  }
+                },
+                "variations": {
+                  "summary": "4 variations to pick from",
+                  "value": {
+                    "prompt": "minimalist desk setup with a single houseplant",
+                    "ratio": "square",
+                    "count": 4
                   }
                 }
               }
@@ -586,7 +596,7 @@
         },
         "responses": {
           "200": {
-            "description": "Completed within the wait window. `status == \"completed\"`.",
+            "description": "Completed. `status == \"completed\"` and `images` carries `count` entries.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -607,34 +617,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Status"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Queued. `result.review_url` (Script Editor) is in this response — share with the user now. Poll `/v1/status/{id}` until `completed` for the final enhanced script.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              },
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/XRateLimitLimit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/XRateLimitRemaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/XRateLimitReset"
-              },
-              "X-WideCast-Version": {
-                "$ref": "#/components/headers/XWideCastVersion"
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Status"
+                  "$ref": "#/components/schemas/ImageSetResponse"
                 }
               }
             }
@@ -645,8 +628,109 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
+          "402": {
+            "description": "Out of credits. See CreditErrorDetails for upgrade/wait fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Image generation failed at some variant. `status == \"partial\"`;\n`images` carries the variants that did succeed; `error` carries\nthe failure marker.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageSetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search_broll": {
+      "post": {
+        "tags": [
+          "Assets"
+        ],
+        "operationId": "searchBroll",
+        "summary": "Search stock B-roll — video clips or real photos (numbered thumbnail list).",
+        "description": "Synchronous, **free**. Two modes:\n  * `kind: \"video\"` → Pexels + Pixabay + Shutterstock stock CLIPS\n    (same engine as the broll.js Stock tab).\n  * `kind: \"image\"` → Google real PHOTOS (same engine as the\n    broll.js Photos tab).\n\nThe response is shaped for the AI-agent flow: each result carries a\n1-based `number` so the agent can render a NUMBERED THUMBNAIL LIST\nand let the user pick by number. The chosen `results[N-1].url` is\nthe asset URL — feed into `/v1/modify_scene` to swap a scene, or\nuse inline as `![](url)` in a future `/v1/create_video` script.\n\nPrefer this over `/v1/create_image` when the user is asking for a\nREAL-WORLD asset (landmarks, products, people in the news) — real\nphotos/footage beat AI generations for credibility.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchBrollRequest"
+              },
+              "examples": {
+                "video": {
+                  "summary": "Search stock video clips",
+                  "value": {
+                    "keyword": "umbrella rain",
+                    "kind": "video",
+                    "ratio": "portrait",
+                    "limit": 10
+                  }
+                },
+                "image": {
+                  "summary": "Search real photos",
+                  "value": {
+                    "keyword": "Eiffel Tower morning",
+                    "kind": "image",
+                    "limit": 8
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of stock B-roll results, pre-numbered for an AI agent to relay as a numbered picker.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrollSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "Upstream stock provider failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -731,8 +815,8 @@
           "Videos"
         ],
         "operationId": "uploadAsset",
-        "summary": "Upload an audio / video / image (or mint a pre-signed S3 PUT URL).",
-        "description": "Get an audio / video / image asset into WideCast's `widecast-assets`\nS3 bucket and back out as a **public URL** the AI agent can feed into\n`/v1/create_video` (as `audio_url` or `video_url`) or paste into\n`script_text` as an inline `![alt](url)`. This is the **canonical\nupload path** for AI agents handling user-attached files — it removes\nthe need to shop for third-party hosts (transfer.sh / catbox / S3 of\nyour own) or inline-base64 binary content into create_video.\n\n**Lifecycle: the bucket prefix `assets/` auto-deletes after 24\nhours.** Call `/v1/create_video` with the returned URL within that\nwindow. Free (no credits). Audio + video + image only — Content-Type\nmust be `audio/*` / `video/*` / `image/*` (or a known extension).\n\n**Three request shapes**:\n  * `multipart/form-data` with `file=@/path/to/asset` — the standard\n    multipart form upload. Best for SDKs / curl / Postman / ChatGPT\n    Custom GPT Action. Server cap 500 MB. Returns\n    `AssetResponse { object:\"asset\", url, ... }` — bytes are already\n    on S3 and the URL resolves immediately.\n  * `application/json` with `{ mode: \"presign\", filename,\n    content_type }` — **the path the MCP tool dispatches through**\n    (the MCP transport can't carry binary). Server mints a\n    1-hour-lived pre-signed S3 PUT URL; the caller then `PUT`s the\n    bytes straight to S3. Returns\n    `AssetPresignResponse { object:\"asset_presign\", put_url, get_url, ... }`.\n    The `get_url` resolves for 24 hours after the PUT lands. The\n    signature binds **only the host** — the caller does NOT need to\n    echo back any Content-Type / metadata header. `headers_required`\n    is empty by design so `curl -X PUT --upload-file <file>\n    \"<put_url>\"` works as-is across HTTP clients.\n  * `application/json` with `{ file_data: <base64>, filename,\n    content_type }` — legacy / small-file convenience for callers\n    that already have the bytes inline and don't want a second\n    request. Server cap 500 MB decoded; in practice the MCP\n    transport caps tool args to ~25 MB, so MCP agents use the\n    `mode:\"presign\"` shape instead.\n",
+        "summary": "Upload an audio / video / image / document (or mint a pre-signed S3 PUT URL).",
+        "description": "Get an asset into WideCast's `widecast-assets` S3 bucket and back\nout as a **public URL** the AI agent can feed into `/v1/create_video`\n(as `audio_url` or `video_url`), paste into `script_text` as an\ninline `![alt](url)` for images, OR `curl <get_url>` to fetch a\ndocument body before passing it as `blog_text` / `script_text`.\nThis is the **canonical upload path** for AI agents handling\nuser-attached files — it removes the need to shop for third-party\nhosts (transfer.sh / catbox / S3 of your own) or inline-base64\nbinary content into create_video.\n\n**Lifecycle: the bucket prefix `assets/` auto-deletes after 24\nhours.** Call `/v1/create_video` with the returned URL within that\nwindow. Free (no credits).\n\n**Allowed kinds**:\n  * Media: `audio/*` / `video/*` / `image/*`\n  * Document: `text/html` / `application/pdf` / `text/markdown`\n    (HTML / PDF / Markdown — for blog drafts, research notes,\n    articles the user attached to feed `source=blog`)\nAnything else returns `400 unsupported_asset_type`.\n\n**Three request shapes**:\n  * `multipart/form-data` with `file=@/path/to/asset` — the standard\n    multipart form upload. Best for SDKs / curl / Postman / ChatGPT\n    Custom GPT Action. Server cap 500 MB. Returns\n    `AssetResponse { object:\"asset\", url, ... }` — bytes are already\n    on S3 and the URL resolves immediately.\n  * `application/json` with `{ mode: \"presign\", filename,\n    content_type }` — **the path the MCP tool dispatches through**\n    (the MCP transport can't carry binary). Server mints a\n    1-hour-lived pre-signed S3 PUT URL; the caller then `PUT`s the\n    bytes straight to S3. Returns\n    `AssetPresignResponse { object:\"asset_presign\", put_url, get_url, ... }`.\n    The `get_url` resolves for 24 hours after the PUT lands. The\n    signature binds **only the host** — the caller does NOT need to\n    echo back any Content-Type / metadata header. `headers_required`\n    is empty by design so `curl -X PUT --upload-file <file>\n    \"<put_url>\"` works as-is across HTTP clients.\n  * `application/json` with `{ file_data: <base64>, filename,\n    content_type }` — legacy / small-file convenience for callers\n    that already have the bytes inline and don't want a second\n    request. Server cap 500 MB decoded; in practice the MCP\n    transport caps tool args to ~25 MB, so MCP agents use the\n    `mode:\"presign\"` shape instead.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -746,7 +830,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "The audio / video / image file to upload."
+                    "description": "The audio / video / image / document (HTML / PDF / Markdown) file to upload."
                   }
                 }
               }
@@ -818,8 +902,8 @@
           "Notifications"
         ],
         "operationId": "sendTelegramMessage",
-        "summary": "Push a notification to the user's own connected Telegram chat.",
-        "description": "Synchronous, free. Self-notify only — the recipient is the user who\nowns this API key (chat_id is resolved server-side from their\naccount, never accepted as input), so this cannot be used to message\nanyone else.\n\nThe user must have completed 'Connect Telegram' at\nhttps://widecast.ai/#setup once; if not, returns 400\n`telegram_not_connected` + `details.setup_url`. Rate-limited to 60\nmessages/hour/account.\n\nPayload modes:\n  * **text** — `message` only.\n  * **photo** — `message` is the caption, `photo_url` is a public\n    http(s) URL Telegram downloads.\n  * **video** — `message` is the caption, `video_url` is a public\n    http(s) URL Telegram downloads.\n\n`photo_url` and `video_url` are mutually exclusive (Telegram can't\nattach both to one message). `parse_mode` is opt-in (`Markdown` /\n`MarkdownV2` / `HTML`); omit for plain text.\n",
+        "summary": "Push a self-notify message — Telegram preferred, email fallback.",
+        "description": "Synchronous, free. Self-notify only — the recipient is the user who\nowns this API key (delivery target is resolved server-side from\ntheir account, never accepted as input), so this cannot be used to\nmessage anyone else.\n\n**Delivery channel is auto-chosen**:\n  * `telegram` — preferred when the user has completed `Connect\n    Telegram` at https://widecast.ai/#setup. The message lands in\n    their Telegram chat with the WideCast bot.\n  * `email` — fallback when Telegram is not connected. The same\n    message is delivered to the account's email address with an\n    in-mail banner explaining WHY (Telegram not connected) and a\n    CTA to connect. Response carries `delivery: \"email\"`,\n    `fallback_reason: \"telegram_not_connected\"`, and `setup_url`.\n\nOnly returns 400 `telegram_not_connected` if the account has\nNEITHER Telegram NOR an email on file. Rate-limited to 60\nmessages/hour/account.\n\nPayload modes:\n  * **text** — `message` only.\n  * **photo** — `message` is the caption, `photo_url` is a public\n    http(s) URL Telegram downloads.\n  * **video** — `message` is the caption, `video_url` is a public\n    http(s) URL Telegram downloads.\n\n`photo_url` and `video_url` are mutually exclusive (Telegram can't\nattach both to one message). `parse_mode` is opt-in (`Markdown` /\n`MarkdownV2` / `HTML`); omit for plain text.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -1055,38 +1139,40 @@
         }
       }
     },
-    "/v1/search": {
-      "get": {
+    "/v1/video_data": {
+      "post": {
         "tags": [
           "Library"
         ],
-        "operationId": "searchContent",
-        "summary": "Search the account's content by keywords.",
-        "description": "Synchronous, read-only, free.",
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Search keywords."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "maximum": 50
+        "operationId": "getVideoData",
+        "summary": "Read the full structured video script for a topic_id.",
+        "description": "Synchronous, free. Returns every scene's `text` (narration),\n`voice_file` (the per-scene UID `/v1/modify_scene` needs), `type`\n(A-roll / B-roll), `duration`, `mediaUrl` (currently-shown\nbackground or A-roll overlay), `mediaType`, `thumbnailUrl`, plus\n`narrator` (voice + face clone ids when set) and `global_settings`\n(aspect ratio, music, brand, language).\n\nMirrors the same engine the dashboard's scene editor uses on open\n(rebalance A/B rolls + ensure background music + persist if\nchanged), so the data here matches what the user sees in\n`#scene_editor?topic_id=…` exactly.\n\nUseful for agents that need to (a) tell the user what's in a video\nscene-by-scene, (b) look up a `voice_file` before calling\n`/v1/modify_scene`, or (c) inspect what asset is currently on a\nscene before swapping it.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "video_id"
+                ],
+                "properties": {
+                  "video_id": {
+                    "type": "string",
+                    "pattern": "^widecast[a-zA-Z0-9]{12,32}$",
+                    "description": "Topic id from /v1/create_video (same id used by /v1/status, /v1/export_video, /v1/modify_scene)."
+                  }
+                },
+                "example": {
+                  "video_id": "widecastABCDEFGHIJKL"
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Matching content.",
+            "description": "Video data.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1107,37 +1193,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "object": {
-                      "type": "string",
-                      "example": "list"
-                    },
-                    "query": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "created_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/VideoDataResponse"
                 }
               }
             }
@@ -1147,6 +1203,36 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`video_not_found` — no video with this id on the account. Check\nthe id is the `widecast<...>` returned by /v1/create_video and\nthat it belongs to the API key's account.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`script_not_ready` — video is still processing or never had a\nscript generated. Poll /v1/status until `status==\"completed\"`,\nthen retry.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`script_parse_failed` — stored video_script is malformed.\nContact support with the request_id.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1572,110 +1658,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      }
-    },
-    "/v1/connect": {
-      "post": {
-        "tags": [
-          "Connections"
-        ],
-        "operationId": "connect",
-        "summary": "Get an OAuth link to connect a social platform.",
-        "description": "Free. Returns a `url` that **the user opens** to complete the OAuth\nconnection on the web — WideCast never performs the OAuth itself.\nProvide `platform` to scope the link to one platform, or omit it for a\nlink covering all supported platforms.\n",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "platform": {
-                    "type": "string",
-                    "enum": [
-                      "youtube",
-                      "tiktok",
-                      "instagram",
-                      "facebook",
-                      "linkedin",
-                      "x",
-                      "threads",
-                      "pinterest",
-                      "reddit",
-                      "bluesky",
-                      "google_business"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "A connection link.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              },
-              "X-RateLimit-Limit": {
-                "$ref": "#/components/headers/XRateLimitLimit"
-              },
-              "X-RateLimit-Remaining": {
-                "$ref": "#/components/headers/XRateLimitRemaining"
-              },
-              "X-RateLimit-Reset": {
-                "$ref": "#/components/headers/XRateLimitReset"
-              },
-              "X-WideCast-Version": {
-                "$ref": "#/components/headers/XWideCastVersion"
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "object": {
-                      "type": "string",
-                      "example": "connect"
-                    },
-                    "url": {
-                      "type": "string",
-                      "format": "uri",
-                      "description": "The user opens this to authorize the platform."
-                    },
-                    "expires_in": {
-                      "type": "string",
-                      "example": "48h"
-                    },
-                    "platform": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "platforms": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "note": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
           }
         }
       }
@@ -2677,7 +2659,7 @@
           },
           "content_type": {
             "type": "string",
-            "description": "Optional MIME type (e.g. `audio/mpeg`, `video/mp4`, `image/jpeg`). Falls back to detection from the filename extension if omitted."
+            "description": "Optional MIME type (e.g. `audio/mpeg`, `video/mp4`, `image/jpeg`, `text/html`, `application/pdf`, `text/markdown`). Falls back to detection from the filename extension if omitted."
           }
         }
       },
@@ -2794,11 +2776,11 @@
         "required": [
           "object",
           "status",
+          "delivery",
           "media_kind",
-          "chat_id_masked",
           "request_id"
         ],
-        "description": "Success body for POST /v1/telegram/send. Telegram returned 2xx and\nthe message was delivered. `chat_id_masked` is `…` + the last 4\ndigits of the user's chat_id (the unmasked id is never returned —\nthe caller already has access in Telegram itself).\n",
+        "description": "Success body for POST /v1/telegram/send. `delivery` discriminates\nwhich channel was used:\n  * `telegram` → `chat_id_masked` + `telegram_message_id` are set,\n    email-fallback fields are absent.\n  * `email` → `recipient_email_masked`, `fallback_reason`, `setup_url`,\n    and `note` are set; Telegram fields are absent.\n",
         "properties": {
           "object": {
             "type": "string",
@@ -2807,6 +2789,14 @@
           "status": {
             "type": "string",
             "const": "sent"
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "email"
+            ],
+            "description": "Which channel actually delivered the message. `telegram` when\nthe user has connected; `email` when they haven't (fallback).\n"
           },
           "media_kind": {
             "type": "string",
@@ -2818,12 +2808,33 @@
           },
           "chat_id_masked": {
             "type": "string",
-            "example": "…1234"
+            "example": "…1234",
+            "description": "Set only when `delivery=\"telegram\"`. `…` + last 4 digits of the user's chat_id."
           },
           "telegram_message_id": {
             "type": "integer",
             "nullable": true,
-            "description": "Upstream Telegram message_id when surfaced; useful for later edit/delete."
+            "description": "Set only when `delivery=\"telegram\"`. Upstream Telegram message_id for later edit/delete."
+          },
+          "recipient_email_masked": {
+            "type": "string",
+            "example": "u***n@example.com",
+            "description": "Set only when `delivery=\"email\"`. Email of the account that received the fallback."
+          },
+          "fallback_reason": {
+            "type": "string",
+            "example": "telegram_not_connected",
+            "description": "Set only when `delivery=\"email\"`. Why the fallback fired."
+          },
+          "setup_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://widecast.ai/#setup",
+            "description": "Set only when `delivery=\"email\"`. Send the user here to connect Telegram so future calls land in Telegram instead."
+          },
+          "note": {
+            "type": "string",
+            "description": "Set only when `delivery=\"email\"`. Human-readable explanation the caller can relay to the user."
           },
           "request_id": {
             "type": "string"
@@ -2872,44 +2883,452 @@
         },
         "description": "Body for POST /v1/create_content. Async — returns a widecast* id +\n`result.review_url` (the content viewer) in the create response itself\n(share immediately; viewer shows a spinner). Poll GET /v1/status/{id}\nuntil `completed` for the final state.\n"
       },
-      "EnhanceScriptRequest": {
+      "CreateImageRequest": {
         "type": "object",
         "required": [
-          "script_text"
+          "prompt"
+        ],
+        "description": "Body for POST /v1/create_image. Charges 1 credit per image\ngenerated (count=4 → 4 credits).\n",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Image description. Concrete visual nouns work better than\nabstract concepts — \"a wooden ladder against a red brick wall,\nmorning light\" beats \"climbing the corporate ladder\".\n"
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ],
+            "default": "portrait",
+            "description": "Output aspect ratio. `portrait`=768×1344 (Reels/TikTok/Shorts),\n`landscape`=1344×768 (YouTube/blog hero), `square`=768×768 (IG feed).\n"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4,
+            "default": 1,
+            "description": "How many variations to generate in one call. Each = 1 credit.\nUse `count=3..4` when the user wants options to pick from.\n"
+          },
+          "topic_id": {
+            "type": "string",
+            "description": "Optional. Link the generated image to an existing video's asset\nfolder so the scene editor can reuse it. Omit for freeform.\n"
+          }
+        }
+      },
+      "GeneratedImage": {
+        "type": "object",
+        "required": [
+          "number",
+          "url",
+          "thumbnail_url",
+          "ratio"
         ],
         "properties": {
-          "script_text": {
-            "type": "string",
-            "description": "The DRAFT script to enhance (fix grammar, add examples, sharpen the hook).",
-            "example": "Want more views? Post consistently. The end."
-          },
-          "language": {
-            "type": "string",
-            "default": "",
-            "description": "Output language. Omit / \"\" to keep the draft's original language."
-          },
-          "intervention_level": {
+          "number": {
             "type": "integer",
-            "enum": [
-              0,
-              1,
-              2
-            ],
-            "default": 1,
-            "description": "How aggressively to rewrite: 0=segment only, 1=natural enhance\n(default), 2=maximum rewrite.\n",
-            "x-widecast-enum-locked": true
+            "description": "1-based index — agents render a numbered thumbnail list keyed off this."
           },
-          "callback_url": {
+          "url": {
             "type": "string",
             "format": "uri",
-            "description": "Optional HTTPS webhook."
+            "description": "Public URL to the full-resolution image asset."
           },
-          "metadata": {
-            "type": "object",
-            "description": "Optional key-value pairs echoed back on /v1/status."
+          "thumbnail_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to use as the thumbnail (currently same as `url`)."
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ]
           }
-        },
-        "description": "Body for POST /v1/enhance_script. Async — returns a widecast* id +\n`result.review_url` (Script Editor) in the create response itself\n(share immediately; editor shows a spinner). Poll GET /v1/status/{id}\nuntil `completed` for the final enhanced script.\n"
+        }
+      },
+      "ImageSetResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "status",
+          "count",
+          "ratio",
+          "prompt",
+          "images",
+          "request_id"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "image_set"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "partial"
+            ],
+            "description": "`completed` if every requested variant succeeded; `partial` if\nsome variants failed (see `error` + the surviving `images`).\n"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedImage"
+            }
+          },
+          "error": {
+            "type": "object",
+            "description": "Present only when `status == \"partial\"`.",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "failed_at_number": {
+                "type": "integer"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SearchBrollRequest": {
+        "type": "object",
+        "required": [
+          "keyword",
+          "kind"
+        ],
+        "description": "Body for POST /v1/search_broll. Free.\n",
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "Search keyword (1-3 words work best). Pexels/Pixabay token-match\npoorly with sentence-long queries — keep it tight.\n",
+            "example": "umbrella rain"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "video",
+              "image"
+            ],
+            "description": "What to search: `video` = stock CLIPS (Pexels/Pixabay/Shutterstock,\nbroll.js Stock tab); `image` = real PHOTOS (Google, broll.js\nPhotos tab).\n"
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ],
+            "default": "portrait",
+            "description": "Orientation hint. Only filters when `kind == \"video\"`. Image\nsearch ignores it (crop client-side if needed).\n"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 10,
+            "description": "Max results to return."
+          }
+        }
+      },
+      "BrollResult": {
+        "type": "object",
+        "required": [
+          "number",
+          "type",
+          "url",
+          "thumbnail_url"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "description": "1-based index — agents render a numbered thumbnail list keyed off this."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "video",
+              "image"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public URL to the full-resolution asset."
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "Origin (e.g. `pexels`, `pixabay`, `shutterstock`, `google_image`)."
+          },
+          "duration": {
+            "type": "number",
+            "description": "Seconds. 0 for images."
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "author": {
+            "type": "string",
+            "description": "Original creator/uploader (videos only)."
+          },
+          "context_url": {
+            "type": "string",
+            "description": "Web page the image was crawled from (image results only)."
+          }
+        }
+      },
+      "BrollSearchResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "kind",
+          "keyword",
+          "total",
+          "results",
+          "request_id"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "list"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "video",
+              "image"
+            ]
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ]
+          },
+          "total": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrollResult"
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "VideoDataSegmentNarrator": {
+        "type": "object",
+        "description": "Narrator block on a scene segment (face/voice clone or recorded\nmedia). All fields optional — populated only when the scene has a\nnarrator configured (A-roll, or B-roll that opted-in to voiceover).\n",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "voice_id": {
+            "type": "string",
+            "description": "Voice clone id."
+          },
+          "face_id": {
+            "type": "string",
+            "description": "Face clone id."
+          },
+          "audio_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "video_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "VideoDataSegment": {
+        "type": "object",
+        "required": [
+          "voice_file",
+          "text",
+          "type"
+        ],
+        "description": "One scene/segment in the video_data response.",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "nullable": true,
+            "description": "Integer-ish scene id (the ordering)."
+          },
+          "voice_file": {
+            "type": "string",
+            "description": "Per-scene UID — pass as `value` with `by=\"voice_file\"` to /v1/modify_scene."
+          },
+          "text": {
+            "type": "string",
+            "description": "Narration (what the narrator says on this scene)."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "A-roll",
+              "B-roll",
+              ""
+            ],
+            "description": "\"A-roll\" (narrator on screen) or \"B-roll\" (background only)."
+          },
+          "duration": {
+            "type": "number",
+            "description": "Length in seconds."
+          },
+          "mediaUrl": {
+            "type": "string",
+            "description": "Currently-shown background or A-roll overlay asset URL."
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "brollUrl": {
+            "type": "string",
+            "description": "Pure B-roll URL (may differ from mediaUrl when an A-roll overlay was added)."
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "narrator": {
+            "$ref": "#/components/schemas/VideoDataSegmentNarrator"
+          }
+        }
+      },
+      "VideoDataGlobalSettings": {
+        "type": "object",
+        "description": "Compact global_settings block — only user-facing fields. Deeply\nnested render-only knobs are NOT surfaced (use the dashboard if you\nneed them).\n",
+        "properties": {
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ]
+          },
+          "music": {
+            "type": "object"
+          },
+          "language": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "object"
+          }
+        }
+      },
+      "VideoDataResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "topic_id",
+          "aspect_ratio",
+          "total_segments",
+          "segments",
+          "review_url",
+          "request_id"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "video_data"
+          },
+          "id": {
+            "type": "string"
+          },
+          "topic_id": {
+            "type": "string"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "portrait",
+              "landscape",
+              "square"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "total_segments": {
+            "type": "integer"
+          },
+          "total_duration": {
+            "type": "number",
+            "description": "Sum of `duration` across segments (seconds)."
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VideoDataSegment"
+            }
+          },
+          "global_settings": {
+            "$ref": "#/components/schemas/VideoDataGlobalSettings"
+          },
+          "review_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Scene-editor URL — opens this video in the dashboard's editor for review/edit."
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
       },
       "CollectIdeasRequest": {
         "type": "object",
