@@ -86,6 +86,8 @@ function summarize(v) {
     };
 }
 const TOOLS = [
+    // Tool order is canonical — see dashboard2.py `_WC_MCP_TOOLS` for parity.
+    // widecast_foundation_videos withdrawn 2026-06-19 (Round 27) — REST stays.
     {
         name: "widecast_get_writing_skill",
         title: "WideCast: Get writing skill",
@@ -151,153 +153,6 @@ const TOOLS = [
         },
     },
     {
-        name: "widecast_wait_for_video",
-        title: "WideCast: Wait for a video",
-        description: "Wait for a video to finish (or make progress). Polls status server-side for up to ~45s, then returns the latest state. " +
-            "**Use this instead of calling widecast_get_status in a loop.** If the returned status isn't 'completed'/'failed', just call this tool again to keep waiting — the video is still rendering on WideCast's side. Returns id/status/progress, plus review_url/embed_url from the very first response (the review page handles early arrival itself); video_url appears when status='completed'. " +
-            "While processing, the response includes `progress_hint.label` — a human-readable sub-stage with ETA (e.g. \"Generating scene visuals · ~7 min left\"). Relay this to the user each poll, translating to their language, so the 15-min wait feels alive rather than stuck. The label is pseudo-progress (time-based, not real worker state) — don't gate logic on it, only display. " +
-            "When status='completed', show the result INLINE for the user: put `embed_url` (a public, read-only player) into an HTML artifact `<iframe>` so they can watch without leaving the chat, and offer `review_url` as the 'Open / edit in WideCast' link. If the host won't render the iframe, show `review_url` as a clickable button instead. Before completion, you can also share `review_url` so the user can open the review page early and watch the spinner there. " +
-            "**POST-CALL — open `review_url` in the built-in browser if you have one**: if your runtime exposes a built-in web viewer (Codex view-url, ChatGPT browse, any host that can iframe an external URL), call it on `review_url` IMMEDIATELY so the user can review and edit scenes inline in the chat session — they shouldn't have to copy-paste a link.",
-        inputSchema: {
-            type: "object",
-            required: ["video_id"],
-            properties: {
-                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
-                max_wait_seconds: { type: "number", description: "How long to wait this call (capped ~45s to stay under the host timeout).", default: 45 },
-            },
-        },
-    },
-    {
-        name: "widecast_get_status",
-        title: "WideCast: Get video status",
-        description: "Get the current state of a WideCast video by id (a single check). Returns status " +
-            "(pending|processing|completed|failed), `review_url` (present from the first response — the review page handles early arrival itself), and `video_url` once status='completed'. " +
-            "For waiting on a render, prefer widecast_wait_for_video — do NOT call this in a tight loop. " +
-            "When you surface `review_url` to the user, ALSO open it in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can review/edit inline without leaving the chat.",
-        inputSchema: {
-            type: "object",
-            required: ["video_id"],
-            properties: {
-                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
-            },
-        },
-    },
-    {
-        name: "widecast_export_video",
-        title: "WideCast: Render final MP4",
-        description: "Render the final MP4 for a 'scene' video after the user has reviewed it (the final render takes 10+ minutes and charges credit).\n" +
-            "REQUIRED CONFIRMATION GATE — the tool enforces this and will reject calls that skip it:\n" +
-            "• `user_confirmed_render` MUST be true. Set ONLY after asking the user EXPLICITLY in THIS message round: 'Render the final video now, or do you want to review the scenes first?' and getting an explicit yes. Do NOT infer from earlier in the conversation, do NOT assume 'the user wanted the final video originally', do NOT call this off your own guess. Each export is a new decision — ask each time.\n" +
-            "Idempotent on the REST side. Then call widecast_wait_for_video until status='completed' with video_url. " +
-            "When widecast_wait_for_video returns the final `review_url` / `video_url`, ALSO open `review_url` in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can watch the final MP4 inline without leaving the chat.",
-        inputSchema: {
-            type: "object",
-            required: ["video_id", "user_confirmed_render"],
-            properties: {
-                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id to render." },
-                user_confirmed_render: { type: "boolean", description: "REQUIRED. Must be true. Set ONLY after the user EXPLICITLY confirmed they want the final MP4 rendered (~10+ min, charges credit) in THIS message round. The tool rejects user_confirmed_render=false or missing." },
-            },
-        },
-    },
-    {
-        name: "widecast_upload_asset",
-        title: "WideCast: Mint a pre-signed S3 PUT URL",
-        description: "Mint a pre-signed S3 PUT URL the AI agent uses to upload a file the user attached in this chat — audio / video / image, OR a document (HTML / PDF / Markdown — useful when the user pastes an article, blog draft, or research notes for widecast_create_video source='blog' or source='text'). THIS tool returns a URL pair — `put_url` (where the agent PUTs the bytes via shell) and `get_url` (public, valid for 24 hours, feed it into widecast_create_video as `audio_url` / `video_url`, drop into `script_text` as an inline `![alt](url)` for images, OR `curl <get_url>` to fetch the document text before passing it as `blog_text`/`script_text`). THIS is the canonical upload path — do NOT shop for third-party file hosts (transfer.sh / catbox / file.io / S3 of your own), do NOT inline-base64 audio into widecast_create_video, do NOT ask the user to host the file themselves. Two-step flow: (1) call this tool with `filename` (and `content_type` if you know it) — NO bytes pass through MCP; (2) shell-out: `curl -X PUT --upload-file <local_path> \"<put_url>\"` — no extra headers needed (the signature only binds the host, so curl's default request works); (3) consume the `get_url`: feed into widecast_create_video for media sources, OR `curl <get_url>` to read the document body before passing it as `blog_text`/`script_text`. The `put_url` is valid for 1 hour to actually upload; the `get_url` keeps resolving for 24 hours (bucket lifecycle auto-deletes after that — so call widecast_create_video soon after the upload). Allowed kinds: audio/* | video/* | image/* | text/html | application/pdf | text/markdown (extensions: .mp4 .mov .m4v .webm .mkv .avi / .mp3 .wav .m4a .aac .ogg .opus .flac / .jpg .jpeg .png .webp .gif .bmp .avif .svg / .html .htm .pdf .md .markdown); server cap 500 MB. SYNC, FREE (no credit). Returns `{object:'asset_presign', put_url, get_url, headers_required, content_type, key, put_expires_at, expires_at, ttl_hours, max_bytes}`. If the user already gave you a public URL, skip this tool and pass that URL straight into widecast_create_video.",
-        inputSchema: {
-            type: "object",
-            required: ["filename"],
-            properties: {
-                filename: { type: "string", maxLength: 256, description: "Original filename — used to pick the S3 extension (.mp4 / .mp3 / .wav / .m4a / .png / .jpg / .html / .pdf / .md / …). Basename only; path stripped." },
-                content_type: { type: "string", description: "Optional MIME type (e.g. 'audio/mpeg', 'video/mp4', 'image/jpeg', 'text/html', 'application/pdf', 'text/markdown'). Used by the downstream pipeline only — NOT bound to the S3 signature, so you do NOT need to echo it back on the PUT. Falls back to detection from the filename extension if omitted." },
-            },
-        },
-        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-        outputSchema: {
-            type: "object",
-            properties: {
-                object: { type: "string", const: "asset_presign" },
-                put_url: { type: "string", format: "uri" },
-                get_url: { type: "string", format: "uri" },
-                url: { type: "string", format: "uri" },
-                key: { type: "string" },
-                content_type: { type: "string" },
-                filename: { type: "string" },
-                headers_required: { type: "object" },
-                max_bytes: { type: "number" },
-                put_expires_at: { type: "string" },
-                expires_at: { type: "string" },
-                ttl_hours: { type: "number" },
-            },
-        },
-    },
-    {
-        name: "widecast_modify_scene",
-        title: "WideCast: Edit one scene (media swap / overlay upload / group layout)",
-        description: "Edit ONE scene of an existing video in place. SYNCHRONOUS, **NO credit charged** until widecast_export_video re-renders the final MP4. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.\n" +
-            "**Agent rule — data-first**: call widecast_video_data FIRST and use `voice_file` (the stable per-scene UID, also the base of `{voice_file}_spec.json`) for `by`/`value`. `segment.id` is only display/order metadata and may change after reorder/add/delete; use `by='id'` only as a fallback.\n" +
-            "Resolve the scene with `by` + `value`. Prefer `by='voice_file'`; use `by='text'` only when the user names a scene by narration — multi-match returns `{object:'clarification', needs_input:'value', candidates:[…]}` (ask the user, then re-call with `by='voice_file'`). Never silently guess.\n" +
-            "**3 supported edit branches — do NOT mix field families in one call**:\n" +
-            "**(A) Background media swap.** `fields:[{field_name:'mediaUrl', value:'https://...'} (, {field_name:'mediaType', value:'image'|'video'})]`. Roll-aware: B-roll scenes update `mediaUrl`/`brollUrl` directly; A-roll scenes keep narrator media intact and register the asset as `brollUrl`/`user_asset_url` so the editor/render shows it behind the narrator. Use for replacing background clip/image.\n" +
-            "**(B) Upload Overlay (FREE; agent-supplied image → Remotion spec).** Send exactly ONE field `{field_name:'remotion.upload_overlay', value:'https://.../image.jpg'}` or `{value:{url:'https://...'}}`. This is NOT Regenerate Overlay — Regenerate (manual-only) is paid because WideCast calls image generation; Upload Overlay is free because YOU supplied the image. The pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. If the agent creates the image first, it MUST be grounded in scene context (`text`, `talking_point`, `visual`, `quote`, `keyword`, `type`) — don't invent unrelated visuals. For best object decomposition, upload a portrait 9:16 transparent PNG (720×1280 preferred) or a flat-background graphic with large separated foreground objects/text, strong contrast, readable typography; avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text (those get classified realistic → kept as one full-frame image, not decomposed). Upload Overlay is an explicit opt-in to recreate an overlay even if the scene had `remotion_spec='none'`. Response includes cache-busted `remotion_spec_url`.\n" +
-            "**(C) Remotion Storyboard group rect (FREE layout edit).** Send exactly ONE field `{field_name:'remotion.group.rect', value:{element_id:'main', x?, y?, w?, h?, coordinate_space:'canvas'|'preview', resize_mode:'scale_children'|'wrapper_only'}}`. `element_id` may be omitted when the spec has one Storyboard group or a group id='main'. **Move-only (x/y)**: updates the group wrapper position; child objects untouched. Group x/y are wrapper top-left in Remotion canvas coords and are NOT clamped — `y:-120` legitimately translates a full-canvas group upward. **Resize (w/h)** defaults to `scale_children` (wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout); `wrapper_only` is advanced. `remotion.object.rect` is **disabled for agents** (child-object edits break the computed group layout — returns 400 `object_level_edit_disabled`; use group rect instead). Remotion canvas = 720×1280; `coordinate_space:'preview'` accepts 280×498 editor coords and converts them.\n" +
-            "**`remotion_spec='none'`**: user intentionally disabled the overlay for that scene. Layout edits return `remotion_spec_disabled`. Do NOT auto-enable — only re-enable via Upload Overlay if the user explicitly asks.\n" +
-            "**Planned**: `overlay.narrator` + `overlay.caption` rect/config in legacy 280×498 editor coords.\n" +
-            "After success, if your runtime has a built-in web viewer, re-open or refresh `review_url` so the user sees the change land on the scene without reopening the editor.",
-        inputSchema: {
-            type: "object",
-            required: ["video_id", "by", "value", "fields"],
-            properties: {
-                video_id: { type: "string", description: "topic_id from widecast_create_video / widecast_video_data. Accepts widecast..., gubo..., or current topic ids. Same id widecast_get_status / widecast_export_video use." },
-                by: { type: "string", enum: ["id", "voice_file", "text"], description: "How to pick the scene. **Prefer 'voice_file'** — the stable per-scene UID and base of {voice_file}_spec.json. 'id' is only the current scene order and may change after reorder/add/delete. 'text' fuzzy-matches narration and may return a clarification." },
-                value: {
-                    oneOf: [{ type: "string" }, { type: "number" }],
-                    description: "The voice_file string / id / narration snippet to match.",
-                },
-                fields: {
-                    type: "array",
-                    minItems: 1,
-                    description: "Edits to apply. Pick exactly ONE family per call — do not mix.\n" +
-                        "(A) Background media: `[{field_name:'mediaUrl', value:'<URL>'}, {field_name:'mediaType', value:'image'|'video'}?]` — roll-aware.\n" +
-                        "(B) Upload overlay: `[{field_name:'remotion.upload_overlay', value:'<image URL>'}]` or `value:{url}` — free, agent-supplied image → spec (NOT Regenerate). Ground the image in scene context (text/talking_point/visual/quote/keyword/type). Prefer 720×1280 transparent PNG / flat-bg graphic.\n" +
-                        "(C) Group rect (Remotion layout): `[{field_name:'remotion.group.rect', value:{element_id?, x?, y?, w?, h?, coordinate_space:'canvas'|'preview', resize_mode?:'scale_children'|'wrapper_only'}}]`. Canvas = 720×1280; preview = 280×498 (converted). `remotion.object.rect` is disabled.",
-                    items: {
-                        type: "object",
-                        required: ["field_name", "value"],
-                        properties: {
-                            field_name: { type: "string", enum: ["mediaUrl", "mediaType", "remotion.upload_overlay", "remotion.group.rect"] },
-                            value: { description: "Family-dependent. URL string for mediaUrl / upload_overlay; 'image'|'video' for mediaType; {element_id?, x?, y?, w?, h?, coordinate_space, resize_mode?} object for remotion.group.rect." },
-                        },
-                    },
-                },
-                op: { type: "string", description: "Reserved; defaults to 'set'." },
-                min_score: { type: "number", minimum: 0, maximum: 1, description: "Only when by='text'. Fuzzy-match threshold (default 0.5). Lower cautiously; do NOT raise past 0.9 — exact text rarely matches verbatim." },
-            },
-        },
-        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-        outputSchema: {
-            type: "object",
-            properties: {
-                object: { type: "string", enum: ["scene_modified", "clarification"] },
-                id: { type: "string" },
-                scene_id: { type: ["string", "number", "null"] },
-                voice_file: { type: "string" },
-                score: { type: "number" },
-                applied: { type: "object" },
-                segment: { type: "object" },
-                remotion_spec_updated: { type: "boolean" },
-                remotion_spec_file: { type: "string" },
-                remotion_spec_url: { type: "string" },
-                remotion_spec_version: { type: "string" },
-                remotion_spec_state: { type: "string", enum: ["ready", "missing", "disabled"] },
-                remotion_spec_exists: { type: "boolean" },
-                media_type: { type: "string" },
-                media_url: { type: "string" },
-                candidates: { type: "array", items: { type: "object" } },
-                needs_input: { type: "string" },
-            },
-        },
-    },
-    {
         name: "widecast_create_content",
         title: "WideCast: Create written content",
         description: "Create WRITTEN content — a blog post or a social post (Facebook / X / LinkedIn) — from a URL, an idea/topic, or pasted text. " +
@@ -315,8 +170,6 @@ const TOOLS = [
             },
         },
     },
-    // widecast_enhance_script withdrawn from MCP/SDK 2026-06-21 (Round 28).
-    // REST /v1/enhance_script still serves the dashboard UI.
     {
         name: "widecast_create_image",
         title: "WideCast: Generate AI images (numbered thumbnail set)",
@@ -468,6 +321,153 @@ const TOOLS = [
         },
     },
     {
+        name: "widecast_export_video",
+        title: "WideCast: Render final MP4",
+        description: "Render the final MP4 for a 'scene' video after the user has reviewed it (the final render takes 10+ minutes and charges credit).\n" +
+            "REQUIRED CONFIRMATION GATE — the tool enforces this and will reject calls that skip it:\n" +
+            "• `user_confirmed_render` MUST be true. Set ONLY after asking the user EXPLICITLY in THIS message round: 'Render the final video now, or do you want to review the scenes first?' and getting an explicit yes. Do NOT infer from earlier in the conversation, do NOT assume 'the user wanted the final video originally', do NOT call this off your own guess. Each export is a new decision — ask each time.\n" +
+            "Idempotent on the REST side. Then call widecast_wait_for_video until status='completed' with video_url. " +
+            "When widecast_wait_for_video returns the final `review_url` / `video_url`, ALSO open `review_url` in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can watch the final MP4 inline without leaving the chat.",
+        inputSchema: {
+            type: "object",
+            required: ["video_id", "user_confirmed_render"],
+            properties: {
+                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id to render." },
+                user_confirmed_render: { type: "boolean", description: "REQUIRED. Must be true. Set ONLY after the user EXPLICITLY confirmed they want the final MP4 rendered (~10+ min, charges credit) in THIS message round. The tool rejects user_confirmed_render=false or missing." },
+            },
+        },
+    },
+    {
+        name: "widecast_upload_asset",
+        title: "WideCast: Mint a pre-signed S3 PUT URL",
+        description: "Mint a pre-signed S3 PUT URL the AI agent uses to upload a file the user attached in this chat — audio / video / image, OR a document (HTML / PDF / Markdown — useful when the user pastes an article, blog draft, or research notes for widecast_create_video source='blog' or source='text'). THIS tool returns a URL pair — `put_url` (where the agent PUTs the bytes via shell) and `get_url` (public, valid for 24 hours, feed it into widecast_create_video as `audio_url` / `video_url`, drop into `script_text` as an inline `![alt](url)` for images, OR `curl <get_url>` to fetch the document text before passing it as `blog_text`/`script_text`). THIS is the canonical upload path — do NOT shop for third-party file hosts (transfer.sh / catbox / file.io / S3 of your own), do NOT inline-base64 audio into widecast_create_video, do NOT ask the user to host the file themselves. Two-step flow: (1) call this tool with `filename` (and `content_type` if you know it) — NO bytes pass through MCP; (2) shell-out: `curl -X PUT --upload-file <local_path> \"<put_url>\"` — no extra headers needed (the signature only binds the host, so curl's default request works); (3) consume the `get_url`: feed into widecast_create_video for media sources, OR `curl <get_url>` to read the document body before passing it as `blog_text`/`script_text`. The `put_url` is valid for 1 hour to actually upload; the `get_url` keeps resolving for 24 hours (bucket lifecycle auto-deletes after that — so call widecast_create_video soon after the upload). Allowed kinds: audio/* | video/* | image/* | text/html | application/pdf | text/markdown (extensions: .mp4 .mov .m4v .webm .mkv .avi / .mp3 .wav .m4a .aac .ogg .opus .flac / .jpg .jpeg .png .webp .gif .bmp .avif .svg / .html .htm .pdf .md .markdown); server cap 500 MB. SYNC, FREE (no credit). Returns `{object:'asset_presign', put_url, get_url, headers_required, content_type, key, put_expires_at, expires_at, ttl_hours, max_bytes}`. If the user already gave you a public URL, skip this tool and pass that URL straight into widecast_create_video.",
+        inputSchema: {
+            type: "object",
+            required: ["filename"],
+            properties: {
+                filename: { type: "string", maxLength: 256, description: "Original filename — used to pick the S3 extension (.mp4 / .mp3 / .wav / .m4a / .png / .jpg / .html / .pdf / .md / …). Basename only; path stripped." },
+                content_type: { type: "string", description: "Optional MIME type (e.g. 'audio/mpeg', 'video/mp4', 'image/jpeg', 'text/html', 'application/pdf', 'text/markdown'). Used by the downstream pipeline only — NOT bound to the S3 signature, so you do NOT need to echo it back on the PUT. Falls back to detection from the filename extension if omitted." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "asset_presign" },
+                put_url: { type: "string", format: "uri" },
+                get_url: { type: "string", format: "uri" },
+                url: { type: "string", format: "uri" },
+                key: { type: "string" },
+                content_type: { type: "string" },
+                filename: { type: "string" },
+                headers_required: { type: "object" },
+                max_bytes: { type: "number" },
+                put_expires_at: { type: "string" },
+                expires_at: { type: "string" },
+                ttl_hours: { type: "number" },
+            },
+        },
+    },
+    {
+        name: "widecast_modify_scene",
+        title: "WideCast: Edit one scene (media swap / overlay upload / group layout)",
+        description: "Edit ONE scene of an existing video in place. SYNCHRONOUS, **NO credit charged** until widecast_export_video re-renders the final MP4. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.\n" +
+            "**Agent rule — data-first**: call widecast_video_data FIRST and use `voice_file` (the stable per-scene UID, also the base of `{voice_file}_spec.json`) for `by`/`value`. `segment.id` is only display/order metadata and may change after reorder/add/delete; use `by='id'` only as a fallback.\n" +
+            "Resolve the scene with `by` + `value`. Prefer `by='voice_file'`; use `by='text'` only when the user names a scene by narration — multi-match returns `{object:'clarification', needs_input:'value', candidates:[…]}` (ask the user, then re-call with `by='voice_file'`). Never silently guess.\n" +
+            "**3 supported edit branches — do NOT mix field families in one call**:\n" +
+            "**(A) Background media swap.** `fields:[{field_name:'mediaUrl', value:'https://...'} (, {field_name:'mediaType', value:'image'|'video'})]`. Roll-aware: B-roll scenes update `mediaUrl`/`brollUrl` directly; A-roll scenes keep narrator media intact and register the asset as `brollUrl`/`user_asset_url` so the editor/render shows it behind the narrator. Use for replacing background clip/image.\n" +
+            "**(B) Upload Overlay (FREE; agent-supplied image → Remotion spec).** Send exactly ONE field `{field_name:'remotion.upload_overlay', value:'https://.../image.jpg'}` or `{value:{url:'https://...'}}`. This is NOT Regenerate Overlay — Regenerate (manual-only) is paid because WideCast calls image generation; Upload Overlay is free because YOU supplied the image. The pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. If the agent creates the image first, it MUST be grounded in scene context (`text`, `talking_point`, `visual`, `quote`, `keyword`, `type`) — don't invent unrelated visuals. For best object decomposition, upload a portrait 9:16 transparent PNG (720×1280 preferred) or a flat-background graphic with large separated foreground objects/text, strong contrast, readable typography; avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text (those get classified realistic → kept as one full-frame image, not decomposed). Upload Overlay is an explicit opt-in to recreate an overlay even if the scene had `remotion_spec='none'`. Response includes cache-busted `remotion_spec_url`.\n" +
+            "**(C) Remotion Storyboard group rect (FREE layout edit).** Send exactly ONE field `{field_name:'remotion.group.rect', value:{element_id:'main', x?, y?, w?, h?, coordinate_space:'canvas'|'preview', resize_mode:'scale_children'|'wrapper_only'}}`. `element_id` may be omitted when the spec has one Storyboard group or a group id='main'. **Move-only (x/y)**: updates the group wrapper position; child objects untouched. Group x/y are wrapper top-left in Remotion canvas coords and are NOT clamped — `y:-120` legitimately translates a full-canvas group upward. **Resize (w/h)** defaults to `scale_children` (wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout); `wrapper_only` is advanced. `remotion.object.rect` is **disabled for agents** (child-object edits break the computed group layout — returns 400 `object_level_edit_disabled`; use group rect instead). Remotion canvas = 720×1280; `coordinate_space:'preview'` accepts 280×498 editor coords and converts them.\n" +
+            "**`remotion_spec='none'`**: user intentionally disabled the overlay for that scene. Layout edits return `remotion_spec_disabled`. Do NOT auto-enable — only re-enable via Upload Overlay if the user explicitly asks.\n" +
+            "**Planned**: `overlay.narrator` + `overlay.caption` rect/config in legacy 280×498 editor coords.\n" +
+            "After success, if your runtime has a built-in web viewer, re-open or refresh `review_url` so the user sees the change land on the scene without reopening the editor.",
+        inputSchema: {
+            type: "object",
+            required: ["video_id", "by", "value", "fields"],
+            properties: {
+                video_id: { type: "string", description: "topic_id from widecast_create_video / widecast_video_data. Accepts widecast..., gubo..., or current topic ids. Same id widecast_get_status / widecast_export_video use." },
+                by: { type: "string", enum: ["id", "voice_file", "text"], description: "How to pick the scene. **Prefer 'voice_file'** — the stable per-scene UID and base of {voice_file}_spec.json. 'id' is only the current scene order and may change after reorder/add/delete. 'text' fuzzy-matches narration and may return a clarification." },
+                value: {
+                    oneOf: [{ type: "string" }, { type: "number" }],
+                    description: "The voice_file string / id / narration snippet to match.",
+                },
+                fields: {
+                    type: "array",
+                    minItems: 1,
+                    description: "Edits to apply. Pick exactly ONE family per call — do not mix.\n" +
+                        "(A) Background media: `[{field_name:'mediaUrl', value:'<URL>'}, {field_name:'mediaType', value:'image'|'video'}?]` — roll-aware.\n" +
+                        "(B) Upload overlay: `[{field_name:'remotion.upload_overlay', value:'<image URL>'}]` or `value:{url}` — free, agent-supplied image → spec (NOT Regenerate). Ground the image in scene context (text/talking_point/visual/quote/keyword/type). Prefer 720×1280 transparent PNG / flat-bg graphic.\n" +
+                        "(C) Group rect (Remotion layout): `[{field_name:'remotion.group.rect', value:{element_id?, x?, y?, w?, h?, coordinate_space:'canvas'|'preview', resize_mode?:'scale_children'|'wrapper_only'}}]`. Canvas = 720×1280; preview = 280×498 (converted). `remotion.object.rect` is disabled.",
+                    items: {
+                        type: "object",
+                        required: ["field_name", "value"],
+                        properties: {
+                            field_name: { type: "string", enum: ["mediaUrl", "mediaType", "remotion.upload_overlay", "remotion.group.rect"] },
+                            value: { description: "Family-dependent. URL string for mediaUrl / upload_overlay; 'image'|'video' for mediaType; {element_id?, x?, y?, w?, h?, coordinate_space, resize_mode?} object for remotion.group.rect." },
+                        },
+                    },
+                },
+                op: { type: "string", description: "Reserved; defaults to 'set'." },
+                min_score: { type: "number", minimum: 0, maximum: 1, description: "Only when by='text'. Fuzzy-match threshold (default 0.5). Lower cautiously; do NOT raise past 0.9 — exact text rarely matches verbatim." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", enum: ["scene_modified", "clarification"] },
+                id: { type: "string" },
+                scene_id: { type: ["string", "number", "null"] },
+                voice_file: { type: "string" },
+                score: { type: "number" },
+                applied: { type: "object" },
+                segment: { type: "object" },
+                remotion_spec_updated: { type: "boolean" },
+                remotion_spec_file: { type: "string" },
+                remotion_spec_url: { type: "string" },
+                remotion_spec_version: { type: "string" },
+                remotion_spec_state: { type: "string", enum: ["ready", "missing", "disabled"] },
+                remotion_spec_exists: { type: "boolean" },
+                media_type: { type: "string" },
+                media_url: { type: "string" },
+                candidates: { type: "array", items: { type: "object" } },
+                needs_input: { type: "string" },
+            },
+        },
+    },
+    {
+        name: "widecast_get_status",
+        title: "WideCast: Get video status",
+        description: "Get the current state of a WideCast video by id (a single check). Returns status " +
+            "(pending|processing|completed|failed), `review_url` (present from the first response — the review page handles early arrival itself), and `video_url` once status='completed'. " +
+            "For waiting on a render, prefer widecast_wait_for_video — do NOT call this in a tight loop. " +
+            "When you surface `review_url` to the user, ALSO open it in your built-in web viewer if you have one (Codex view-url, ChatGPT browse, etc.) so the user can review/edit inline without leaving the chat.",
+        inputSchema: {
+            type: "object",
+            required: ["video_id"],
+            properties: {
+                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
+            },
+        },
+    },
+    {
+        name: "widecast_wait_for_video",
+        title: "WideCast: Wait for a video",
+        description: "Wait for a video to finish (or make progress). Polls status server-side for up to ~45s, then returns the latest state. " +
+            "**Use this instead of calling widecast_get_status in a loop.** If the returned status isn't 'completed'/'failed', just call this tool again to keep waiting — the video is still rendering on WideCast's side. Returns id/status/progress, plus review_url/embed_url from the very first response (the review page handles early arrival itself); video_url appears when status='completed'. " +
+            "While processing, the response includes `progress_hint.label` — a human-readable sub-stage with ETA (e.g. \"Generating scene visuals · ~7 min left\"). Relay this to the user each poll, translating to their language, so the 15-min wait feels alive rather than stuck. The label is pseudo-progress (time-based, not real worker state) — don't gate logic on it, only display. " +
+            "When status='completed', show the result INLINE for the user: put `embed_url` (a public, read-only player) into an HTML artifact `<iframe>` so they can watch without leaving the chat, and offer `review_url` as the 'Open / edit in WideCast' link. If the host won't render the iframe, show `review_url` as a clickable button instead. Before completion, you can also share `review_url` so the user can open the review page early and watch the spinner there. " +
+            "**POST-CALL — open `review_url` in the built-in browser if you have one**: if your runtime exposes a built-in web viewer (Codex view-url, ChatGPT browse, any host that can iframe an external URL), call it on `review_url` IMMEDIATELY so the user can review and edit scenes inline in the chat session — they shouldn't have to copy-paste a link.",
+        inputSchema: {
+            type: "object",
+            required: ["video_id"],
+            properties: {
+                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
+                max_wait_seconds: { type: "number", description: "How long to wait this call (capped ~45s to stay under the host timeout).", default: 45 },
+            },
+        },
+    },
+    {
         name: "widecast_list_videos",
         title: "WideCast: List recent videos",
         description: "List the account's recent videos/scripts (20 per page), each with a `published` map of per-platform post URLs/status. Read-only, free. For an audit, pass reconcile=true to fill in URLs for posts that just went live, or engagement=true to also pull fresh per-post metrics (slower — fans out to the provider).",
@@ -477,9 +477,6 @@ const TOOLS = [
                 engagement: { type: "boolean", description: "Also refresh per-post engagement metrics (views/likes/comments…). Implies reconcile; slower." },
             } },
     },
-    // widecast_search withdrawn from MCP/SDK 2026-06-21 (Round 29).
-    // REST /v1/search still serves the dashboard UI; agents that need to
-    // find a topic use widecast_list_videos + a local title filter instead.
     {
         name: "widecast_video_data",
         title: "WideCast: Read structured scene data (data-first audit/edit entry point)",
@@ -649,18 +646,6 @@ const TOOLS = [
         },
     },
     {
-        name: "widecast_production_plan",
-        title: "WideCast: Weekly plan",
-        description: "The weekly production plan (ideas + topics). Read-only, free. (Passing week_start+week_end may backfill rows.)",
-        inputSchema: {
-            type: "object",
-            properties: { page: { type: "number", default: 0 }, week_start: { type: "string" }, week_end: { type: "string" } },
-        },
-    },
-    // widecast_foundation_videos withdrawn 2026-06-19 (Round 27) — REST endpoint
-    // still serves the dashboard UI / legacy callers; MCP + SDK + docs surface it
-    // no more.
-    {
         name: "widecast_send_telegram_message",
         title: "WideCast: Send a self-notify message (Telegram → email fallback)",
         description: "Push a notification to the USER'S OWN account. SYNC, FREE. Self-notify " +
@@ -709,18 +694,6 @@ const TOOLS = [
         },
     },
     {
-        name: "widecast_recommendations",
-        title: "WideCast: Recommended ideas",
-        description: "Recommended video ideas for an industry. Read-only, free. `industry` falls back to the account industry.",
-        inputSchema: {
-            type: "object",
-            properties: { industry: { type: "string" }, page: { type: "number", default: 0 } },
-        },
-    },
-    // widecast_connect withdrawn from MCP/SDK 2026-06-21 (Round 28).
-    // Point the user to https://widecast.ai/#setup to connect social platforms;
-    // REST /v1/connect still serves the dashboard UI flow.
-    {
         name: "widecast_accounts",
         title: "WideCast: List connected accounts",
         description: "List the account's connected social platforms. Read-only, free.",
@@ -731,6 +704,24 @@ const TOOLS = [
         title: "WideCast: Load publish settings",
         description: "Load the saved per-platform publish settings (privacy / page / subreddit). Read-only, free.",
         inputSchema: { type: "object", properties: {} },
+    },
+    {
+        name: "widecast_production_plan",
+        title: "WideCast: Weekly plan",
+        description: "The weekly production plan (ideas + topics). Read-only, free. (Passing week_start+week_end may backfill rows.)",
+        inputSchema: {
+            type: "object",
+            properties: { page: { type: "number", default: 0 }, week_start: { type: "string" }, week_end: { type: "string" } },
+        },
+    },
+    {
+        name: "widecast_recommendations",
+        title: "WideCast: Recommended ideas",
+        description: "Recommended video ideas for an industry. Read-only, free. `industry` falls back to the account industry.",
+        inputSchema: {
+            type: "object",
+            properties: { industry: { type: "string" }, page: { type: "number", default: 0 } },
+        },
     },
     {
         name: "widecast_set_platform_settings",
