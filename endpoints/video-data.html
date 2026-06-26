@@ -9,18 +9,18 @@
        works at https://widecast.ai/widecast/  (test) AND https://widecast.ai/  (prod). -->
   <base href="../">
 
-  <title>Read a video's full structured script — `POST /v1/video_data` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, free.** Returns the FULL structured `video_script` for a `topic_id`: every scene's text/narration, the per-scene UID needed by [`/v1/modify_scene`](modify-scene.md), the currently-shown media URL, narrator (face / voice clone) config, and `global_settings` (aspect ratio, music, brand, language).">
+  <title>Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs</title>
+  <meta name="description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/modify_scene`](modify-scene.md) or [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
   <link rel="canonical" href="https://widecast.ai/endpoints/video-data.html">
 
-  <meta property="og:title" content="Read a video's full structured script — `POST /v1/video_data` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, free.** Returns the FULL structured `video_script` for a `topic_id`: every scene's text/narration, the per-scene UID needed by [`/v1/modify_scene`](modify-scene.md), the currently-shown media URL, narrator (face / voice clone) config, and `global_settings` (aspect ratio, music, brand, language).">
+  <meta property="og:title" content="Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs">
+  <meta property="og:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/modify_scene`](modify-scene.md) or [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/video-data.html">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Read a video's full structured script — `POST /v1/video_data` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, free.** Returns the FULL structured `video_script` for a `topic_id`: every scene's text/narration, the per-scene UID needed by [`/v1/modify_scene`](modify-scene.md), the currently-shown media URL, narrator (face / voice clone) config, and `global_settings` (aspect ratio, music, brand, language).">
+  <meta name="twitter:title" content="Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs">
+  <meta name="twitter:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/modify_scene`](modify-scene.md) or [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,21 +56,72 @@
 
   <main class="wc-main">
     <article class="wc-article">
-      <h1 id="read-a-videos-full-structured-script-post-v1video_data">Read a video's full structured script — <code>POST /v1/video_data</code></h1>
-<p><strong>Synchronous, free.</strong> Returns the FULL structured <code>video_script</code> for a <code>topic_id</code>: every scene's text/narration, the per-scene UID needed by <a href="modify-scene.md"><code>/v1/modify_scene</code></a>, the currently-shown media URL, narrator (face / voice clone) config, and <code>global_settings</code> (aspect ratio, music, brand, language).</p>
-<p>Mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data here matches what the user sees in <code>https://widecast.ai/#scene_editor?topic_id=…</code> exactly.</p>
-<p>Use this when:
-- The user asks "what scenes are in video X?", "show me scene 3", "what background is on the scene about Y?", "how long is each scene?".
-- You need to look up a scene's <code>voice_file</code> before calling <a href="modify-scene.md"><code>/v1/modify_scene</code></a> (it's the most reliable <code>by</code> mode).
-- You want to inspect what asset is currently on a scene before swapping it.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/video_data</code></div><section class="wc-pg-example" data-cfg="playgrounds/video-data.json" data-usecase-id="read-video" id="ex-video-data--read-video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Read a video's full script</h3><p class="wc-pg-example-desc">Paste a `widecast<...>` topic_id (the id returned by /v1/create_video) to read every scene's narration + voice_file + media URL + narrator config. Same data the scene editor sees on open.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+      <h1 id="read-a-videos-structured-scene-data-post-v1video_data">Read a video's structured scene data — <code>POST /v1/video_data</code></h1>
+<p><strong>Synchronous, free. First step for data-first scene audit/edit</strong> — call this <strong>before</strong> <a href="modify-scene.md"><code>/v1/modify_scene</code></a> or <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>. Returns full annotated segment dicts (current <code>mediaUrl</code>, narrator config, Remotion spec metadata) for a <code>topic_id</code>.</p>
+<p>The endpoint mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data matches what the user sees in <code>https://widecast.ai/#scene_editor?topic_id=…</code> exactly.</p>
+<p>To keep MCP payloads usable, the API trims per-segment <code>words</code> timing arrays, top-level <code>captions</code>, plus internal preview-cache fields (<code>savedVideos</code>, <code>savedImages</code>, <code>_previewInstanceId</code>, <code>_remotionSpecFetching</code>, <code>_forceNarratorRefit</code>). UI routes still get full data; this is the agent-safe slim view.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/video_data</code></div><section class="wc-pg-example" data-cfg="playgrounds/video-data.json" data-usecase-id="read-video" id="ex-video-data--read-video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Audit a video — list every scene + Remotion spec status</h3><p class="wc-pg-example-desc">Paste a topic_id (the id returned by /v1/create_video) to see scene_identity, every scene's voice_file (stable UID), current mediaUrl/mediaType, narrator config, and remotion_spec_url (cache-busted) + remotion_spec_state (ready/missing/disabled). Spec content is NOT inlined — fetch remotion_spec_url only when state is ready and you need object boxes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
+<h2 id="scene-identity-rule">Scene identity rule</h2>
+<p>The response includes a machine-readable <code>scene_identity</code> block. Agents must follow it:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Stable?</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>voice_file</code> (<code>scene_uid</code>)</td>
+<td><strong>Yes</strong></td>
+<td>Selecting a scene in <code>/v1/modify_scene</code> and <code>/v1/scene_inspector</code>. Also the base of the Remotion spec filename <code>{voice_file}_spec.json</code>.</td>
+</tr>
+<tr>
+<td><code>id</code> / <code>order_id</code> / <code>scene_index</code></td>
+<td><strong>No</strong></td>
+<td>Display / current ordering only. May change after reorder/add/delete.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>When in doubt, use <code>voice_file</code>. Don't persist <code>segment.id</code> between calls.</p>
+</blockquote>
+<hr />
+<h2 id="coordinate-spaces">Coordinate spaces</h2>
+<p>Two coordinate spaces appear in segment data — they are <strong>not</strong> interchangeable:</p>
+<table>
+<thead>
+<tr>
+<th>Space</th>
+<th>Width × Height</th>
+<th>Where it appears</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Remotion canvas</td>
+<td><strong>720 × 1280</strong></td>
+<td>All <code>remotion_spec</code> content + <code>remotion.*</code> modify_scene fields</td>
+</tr>
+<tr>
+<td>Legacy editor preview</td>
+<td><strong>280 × 498</strong></td>
+<td><code>overlay.caption.rect</code>, <code>overlay.narrator.rect</code>, legacy overlay layout</td>
+</tr>
+</tbody>
+</table>
+<p>Pass <code>coordinate_space: "canvas"</code> or <code>"preview"</code> to <code>/v1/modify_scene</code> when sending <code>remotion.group.rect</code>.</p>
+<p>The same map is bundled into <code>agent_meta.coordinate_spaces</code> on every segment for quick consumption.</p>
+<hr />
 <h2 id="request">Request</h2>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;https://widecast.ai/app/dashboard/v1/video_data&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;video_id&quot;: &quot;widecastABCDEFGHIJKL&quot;}&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/video_data</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{ &quot;video_id&quot;: &quot;widecastABCDEFGHIJKL&quot; }</span>
 </code></pre></div>
 
 <h3 id="field-reference">Field reference</h3>
@@ -88,58 +139,188 @@
 <td><code>video_id</code></td>
 <td>string</td>
 <td>yes</td>
-<td>Topic id from <a href="create-video.md"><code>/v1/create_video</code></a>. Same id used by <a href="create-video.md"><code>/v1/status</code></a>, <a href="export-video.md"><code>/v1/export_video</code></a>, <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Pattern: <code>widecast&lt;alphanumeric&gt;</code> (~20 chars).</td>
+<td>Topic id from <a href="create-video.md"><code>/v1/create_video</code></a> / scene editor. Accepts <code>widecast...</code>, <code>gubo...</code>, or current ids. Same id used by <code>/v1/status</code>, <code>/v1/export_video</code>, <code>/v1/modify_scene</code>, <code>/v1/scene_inspector</code>.</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="response-200-ok">Response — <code>200 OK</code></h2>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;video_data&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">             </span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;topic_id&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;aspect_ratio&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;portrait&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w">          </span><span class="s2">&quot;Why your teen should get a driver&#39;s license at 16&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;language&quot;</span><span class="p">:</span><span class="w">       </span><span class="s2">&quot;English&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;total_segments&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;total_duration&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">92.4</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;segments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">           </span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;voice_file&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;widecast_seg_01&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;You should let your teen get a driver&#39;s license at 16.&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;A-roll&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="w">     </span><span class="mf">8.2</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;mediaUrl&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;https://widecast-assets.s3.us-west-1.amazonaws.com/.../scene01.jpg&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;mediaType&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;image&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;brollUrl&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;thumbnailUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://widecast.ai/downloads/.../thumb_01.jpg&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;narrator&quot;</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sarah&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;voice_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;v_clone_42&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;face_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;f_clone_42&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;audio_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;video_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">}</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">           </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;voice_file&quot;</span><span class="p">:</span><span class="w">   </span><span class="s2">&quot;widecast_seg_02&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;Here&#39;s why responsibility starts behind the wheel.&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;B-roll&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;duration&quot;</span><span class="p">:</span><span class="w">     </span><span class="mf">12.7</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;mediaUrl&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;https://pexels.com/.../teen_driving.mp4&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;mediaType&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;brollUrl&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;https://pexels.com/.../teen_driving.mp4&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;thumbnailUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://pexels.com/.../teen_driving_thumb.jpg&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;narrator&quot;</span><span class="p">:</span><span class="w">     </span><span class="p">{}</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;global_settings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;aspectRatio&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;portrait&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;music&quot;</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="nt">&quot;track&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;default_calm&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.18</span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;language&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;English&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;brand&quot;</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="nt">&quot;logo_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;review_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://widecast.ai/#scene_editor?topic_id=widecastABCDEFGHIJKL&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;request_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;req_abcd…&quot;</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:         &quot;video_data&quot;,
+  &quot;id&quot;:             &quot;widecastABCDEFGHIJKL&quot;,
+  &quot;topic_id&quot;:       &quot;widecastABCDEFGHIJKL&quot;,
+  &quot;aspect_ratio&quot;:   &quot;portrait&quot;,
+  &quot;title&quot;:          &quot;Why your teen should get a driver&#39;s license at 16&quot;,
+  &quot;language&quot;:       &quot;English&quot;,
+  &quot;total_segments&quot;: 6,
+  &quot;total_duration&quot;: 92.4,
+  &quot;scene_identity&quot;: {
+    &quot;stable_scene_id_field&quot;: &quot;voice_file&quot;,
+    &quot;order_field&quot;:           &quot;id&quot;,
+    &quot;notes&quot;: [
+      &quot;voice_file is the stable per-scene UID.&quot;,
+      &quot;segment.id is current display/order and may change after reorder/add/delete.&quot;,
+      &quot;The Remotion spec for a scene is {voice_file}_spec.json.&quot;
+    ]
+  },
+  &quot;segments&quot;: [
+    {
+      &quot;id&quot;:                       &quot;0&quot;,
+      &quot;order_id&quot;:                 &quot;0&quot;,
+      &quot;scene_index&quot;:              0,
+      &quot;voice_file&quot;:               &quot;XcR0k&quot;,
+      &quot;scene_uid&quot;:                &quot;XcR0k&quot;,
+      &quot;type&quot;:                     &quot;A-roll&quot;,
+      &quot;text&quot;:                     &quot;You should let your teen get a driver&#39;s license at 16.&quot;,
+      &quot;talking_point&quot;:            &quot;Independence is a foundation skill.&quot;,
+      &quot;visual&quot;:                   &quot;Teen holding car keys, soft daylight.&quot;,
+      &quot;quote&quot;:                    &quot;&quot;,
+      &quot;keyword&quot;:                  &quot;license&quot;,
+      &quot;duration&quot;:                 8.2,
+      &quot;mediaUrl&quot;:                 &quot;https://widecast-assets.s3.us-west-1.amazonaws.com/.../scene01.jpg&quot;,
+      &quot;mediaType&quot;:                &quot;image&quot;,
+      &quot;thumbnailUrl&quot;:             &quot;https://widecast.ai/downloads/.../thumb_01.jpg&quot;,
+      &quot;videoTrim&quot;:                {},
+      &quot;overlay&quot;: {
+        &quot;caption&quot;:  { &quot;rect&quot;: { &quot;x&quot;: 20, &quot;y&quot;: 360, &quot;w&quot;: 240, &quot;h&quot;: 96 } },
+        &quot;narrator&quot;: { &quot;rect&quot;: { &quot;x&quot;: 80, &quot;y&quot;: 300, &quot;w&quot;: 120, &quot;h&quot;: 180 } }
+      },
+      &quot;narrator&quot;: {
+        &quot;name&quot;: &quot;Sarah&quot;, &quot;voice_id&quot;: &quot;v_clone_42&quot;, &quot;face_id&quot;: &quot;f_clone_42&quot;,
+        &quot;audio_url&quot;: &quot;...&quot;, &quot;video_url&quot;: &quot;&quot;
+      },
+      &quot;remotion_spec&quot;:           &quot;XcR0k_spec.json&quot;,
+      &quot;remotion_spec_file&quot;:      &quot;XcR0k_spec.json&quot;,
+      &quot;remotion_spec_url&quot;:       &quot;https://widecast.ai/downloads/&lt;company_id&gt;/widecastABCDEFGHIJKL/XcR0k_spec.json?v=1748293012&quot;,
+      &quot;remotion_spec_version&quot;:   &quot;1748293012&quot;,
+      &quot;remotion_spec_exists&quot;:    true,
+      &quot;remotion_spec_state&quot;:     &quot;ready&quot;,
+      &quot;agent_meta&quot;: {
+        &quot;stable_scene_id_field&quot;: &quot;voice_file&quot;,
+        &quot;stable_scene_id&quot;:       &quot;XcR0k&quot;,
+        &quot;order_field&quot;:           &quot;id&quot;,
+        &quot;order_value&quot;:           &quot;0&quot;,
+        &quot;scene_index&quot;:           0,
+        &quot;remotion_spec&quot;: {
+          &quot;file&quot;:     &quot;XcR0k_spec.json&quot;,
+          &quot;url&quot;:      &quot;https://widecast.ai/downloads/&lt;company_id&gt;/widecastABCDEFGHIJKL/XcR0k_spec.json?v=1748293012&quot;,
+          &quot;state&quot;:    &quot;ready&quot;,
+          &quot;exists&quot;:   true,
+          &quot;version&quot;:  &quot;1748293012&quot;
+        },
+        &quot;coordinate_spaces&quot;: {
+          &quot;canvas&quot;:  { &quot;width&quot;: 720, &quot;height&quot;: 1280, &quot;used_by&quot;: &quot;remotion_spec.*, modify_scene remotion.* fields&quot; },
+          &quot;preview&quot;: { &quot;width&quot;: 280, &quot;height&quot;: 498,  &quot;used_by&quot;: &quot;overlay.caption, overlay.narrator (legacy)&quot; }
+        }
+      }
+    },
+    {
+      &quot;id&quot;:                       &quot;1&quot;,
+      &quot;order_id&quot;:                 &quot;1&quot;,
+      &quot;scene_index&quot;:              1,
+      &quot;voice_file&quot;:               &quot;Z9p2m&quot;,
+      &quot;scene_uid&quot;:                &quot;Z9p2m&quot;,
+      &quot;type&quot;:                     &quot;B-roll&quot;,
+      &quot;text&quot;:                     &quot;Here&#39;s why responsibility starts behind the wheel.&quot;,
+      &quot;duration&quot;:                 12.7,
+      &quot;mediaUrl&quot;:                 &quot;https://pexels.com/.../teen_driving.mp4&quot;,
+      &quot;mediaType&quot;:                &quot;video&quot;,
+      &quot;brollUrl&quot;:                 &quot;https://pexels.com/.../teen_driving.mp4&quot;,
+      &quot;thumbnailUrl&quot;:             &quot;https://pexels.com/.../teen_driving_thumb.jpg&quot;,
+      &quot;remotion_spec&quot;:            &quot;none&quot;,
+      &quot;remotion_spec_file&quot;:       &quot;Z9p2m_spec.json&quot;,
+      &quot;remotion_spec_url&quot;:        &quot;&quot;,
+      &quot;remotion_spec_exists&quot;:     false,
+      &quot;remotion_spec_state&quot;:      &quot;disabled&quot;,
+      &quot;narrator&quot;: {}
+    }
+  ],
+  &quot;global_settings&quot;: {
+    &quot;aspectRatio&quot;:       &quot;portrait&quot;,
+    &quot;voice_type&quot;:        &quot;clone&quot;,
+    &quot;avatar_type&quot;:       &quot;clone&quot;,
+    &quot;last_voice_type&quot;:   &quot;clone&quot;,
+    &quot;last_avatar_type&quot;:  &quot;clone&quot;
+  },
+  &quot;review_url&quot;: &quot;https://widecast.ai/#scene_editor?topic_id=widecastABCDEFGHIJKL&quot;,
+  &quot;request_id&quot;: &quot;req_abcd…&quot;
+}
 </code></pre></div>
 
+<h3 id="per-segment-field-reference">Per-segment field reference</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>voice_file</code> / <code>scene_uid</code></td>
+<td>Stable per-scene UID. Pass to <code>/v1/modify_scene</code> and <code>/v1/scene_inspector</code>. Base of <code>{voice_file}_spec.json</code>.</td>
+</tr>
+<tr>
+<td><code>id</code> / <code>order_id</code> / <code>scene_index</code></td>
+<td>Current display/order only — UNSTABLE.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>A-roll</code> (narrator on screen), <code>B-roll</code> (background only), <code>thumbnail</code>, or empty.</td>
+</tr>
+<tr>
+<td><code>text</code>, <code>talking_point</code>, <code>visual</code>, <code>quote</code>, <code>keyword</code></td>
+<td>Narration + creative direction signals — useful to ground a generated overlay image.</td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>Seconds.</td>
+</tr>
+<tr>
+<td><code>mediaUrl</code>, <code>mediaType</code>, <code>thumbnailUrl</code>, <code>videoTrim</code></td>
+<td>Currently-shown asset on the scene.</td>
+</tr>
+<tr>
+<td><code>overlay.caption</code>, <code>overlay.narrator</code></td>
+<td>Legacy 280×498 editor preview coords.</td>
+</tr>
+<tr>
+<td><code>narrator</code></td>
+<td><code>{name, voice_id, face_id, audio_url, video_url}</code> when set.</td>
+</tr>
+<tr>
+<td><code>remotion_spec</code></td>
+<td>Per-scene Remotion spec token. <code>"none"</code> means <strong>the user intentionally disabled the overlay</strong> — agents must NOT auto-edit or re-enable unless asked.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_file</code></td>
+<td>Canonical <code>{voice_file}_spec.json</code>.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_url</code></td>
+<td>Cache-busted <code>https://widecast.ai/downloads/{company_id}/{topic_id}/{voice_file}_spec.json?v={mtime}</code>. Empty when state is <code>missing</code> or <code>disabled</code>.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_version</code></td>
+<td>mtime token used for cache-busting (matches <code>?v=</code>).</td>
+</tr>
+<tr>
+<td><code>remotion_spec_exists</code></td>
+<td>Boolean — file present on disk.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_state</code></td>
+<td><code>ready</code> (file exists), <code>missing</code> (expected but not built), <code>disabled</code> (user turned the overlay off).</td>
+</tr>
+<tr>
+<td><code>agent_meta</code></td>
+<td>Same metadata bundled for quick consumption — <code>stable_scene_id</code>, <code>order_value</code>, <code>scene_index</code>, <code>remotion_spec</code> block, <code>coordinate_spaces</code>.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The Remotion spec content is NOT inlined in this response.</strong> It can carry large base64 images that blow MCP payload budgets. Fetch <code>remotion_spec_url</code> only when <code>remotion_spec_state == "ready"</code> and you actually need object-level overlay boxes.</p>
+</blockquote>
 <h3 id="error-responses">Error responses</h3>
 <table>
 <thead>
@@ -158,12 +339,12 @@
 <tr>
 <td><code>video_not_found</code></td>
 <td>404</td>
-<td>No video with this id on the account. Check it's the <code>widecast&lt;...&gt;</code> from <code>/v1/create_video</code> and that it belongs to your API key's account.</td>
+<td>No video with this id on the account.</td>
 </tr>
 <tr>
 <td><code>script_not_ready</code></td>
 <td>409</td>
-<td>Video is still processing or never had a script generated. Poll <a href="create-video.md"><code>/v1/status</code></a> until <code>status=="completed"</code>, then retry.</td>
+<td>Video is still processing or never had a script generated. Poll <a href="create-video.md"><code>/v1/status</code></a> until <code>status=="completed"</code>.</td>
 </tr>
 <tr>
 <td><code>script_parse_failed</code></td>
@@ -179,23 +360,23 @@
 </table>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
-<h3 id="python">Python</h3>
+<h3 id="python-data-first-audit-then-edit">Python — data-first audit then edit</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scene </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scene </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;scene_index&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  voice_file: </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;voice_file&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  spec state: </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;remotion_spec_state&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  text:       </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">][:</span><span class="mi">80</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  media:      </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;mediaUrl&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="c1"># Use voice_file with modify_scene to swap the background:</span>
+<span class="n">target</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;license&quot;</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keyword&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
 <span class="n">client</span><span class="o">.</span><span class="n">modify_scene</span><span class="p">(</span>
-    <span class="n">video_id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
     <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
-    <span class="n">value</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span>
+    <span class="n">value</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span>
     <span class="n">fields</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;mediaUrl&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;https://example.com/new.jpg&quot;</span><span class="p">}],</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -205,21 +386,14 @@
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
 <span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">);</span>
-
 <span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">seg</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Scene </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb"> (</span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="kr">type</span><span class="si">}</span><span class="sb">, </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">duration</span><span class="o">?</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">1</span><span class="p">)</span><span class="si">}</span><span class="sb">s)`</span><span class="p">);</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`  voice_file: </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">voice_file</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`  media:      </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">mediaUrl</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Scene </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">scene_index</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="kr">type</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">duration</span><span class="o">?</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">1</span><span class="p">)</span><span class="si">}</span><span class="sb">s voice_file=</span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">voice_file</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
 <h3 id="mcp">MCP</h3>
-<div class="highlight"><pre><span></span><code>{
-  &quot;name&quot;: &quot;widecast_video_data&quot;,
-  &quot;arguments&quot;: { &quot;video_id&quot;: &quot;widecastABCDEFGHIJKL&quot; }
-}
-// → inspect segments; pick the right voice_file; then call
-//   widecast_modify_scene with by=&quot;voice_file&quot; + value=&lt;that voice_file&gt;.
+<div class="highlight"><pre><span></span><code>{ &quot;name&quot;: &quot;widecast_video_data&quot;, &quot;arguments&quot;: { &quot;video_id&quot;: &quot;widecastABCDEFGHIJKL&quot; } }
+// → inspect segments; pick voice_file; then call widecast_modify_scene with by=&quot;voice_file&quot;.
 </code></pre></div>
     </article>
   </main>

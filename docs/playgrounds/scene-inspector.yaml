@@ -1,0 +1,109 @@
+# Playground manifest — POST /v1/scene_inspector (SYNCHRONOUS, FREE).
+# Live browser inspector. Returns inline; no polling.
+
+endpoint:
+  method: POST
+  path: /v1/scene_inspector
+
+title: Live browser inspector for an open scene editor
+description: |
+  Synchronous, free. Use ONLY after data-first audit with
+  /v1/video_data, when you specifically need BROWSER TRUTH (mounted
+  DOM, computed boxes, preview play state, a small 280×498 screenshot)
+  — not what's stored in ES. Server publishes a tiny MQTT probe to
+  every open editor tab for this video, elects ONE healthy
+  foreground/active browser within ~800ms, then sends the command
+  there. If no editor is open the response is `status="unavailable"`
+  with `code="no_live_editor"` (no presence) or `"no_active_editor"`
+  (presence but unresponsive) — fall back to /v1/video_data +
+  fetching `remotion_spec_url`.
+
+fields:
+  - name: id
+    type: text
+    label: "Video id (topic_id from /v1/video_data)"
+    required: true
+    placeholder: "widecast7c0d4f8a9b1e2d3f"
+  - name: action
+    type: select
+    label: "Inspector action"
+    required: true
+    options:
+      - { value: "list_live_editors",         label: "list_live_editors — presence list" }
+      - { value: "list_instances",            label: "list_instances — preview instances mounted" }
+      - { value: "get_preview_state",         label: "get_preview_state — current play state" }
+      - { value: "get_scene_dom_snapshot",    label: "get_scene_dom_snapshot — DOM subtree" }
+      - { value: "get_computed_boxes",        label: "get_computed_boxes — bounding rects (preferred)" }
+      - { value: "screenshot_scene_280x498",  label: "screenshot_scene_280x498 — small visual capture" }
+      - { value: "activate_scene",            label: "activate_scene — switch scenes in elected tab" }
+      - { value: "reload_preview",            label: "reload_preview" }
+      - { value: "pause_preview",             label: "pause_preview" }
+      - { value: "play_preview",              label: "play_preview" }
+      - { value: "seek_preview",              label: "seek_preview" }
+    default: "get_computed_boxes"
+  - name: voice_file
+    type: text
+    label: "voice_file (stable per-scene UID — preferred)"
+    required: false
+    placeholder: "XcR0k"
+  - name: scene_id
+    type: text
+    label: "scene_id (display/order — fallback)"
+    required: false
+    placeholder: "3"
+  - name: selector
+    type: text
+    label: "selector (DOM scope for get_scene_dom_snapshot / get_computed_boxes)"
+    required: false
+    placeholder: "[data-scene-id='XcR0k']"
+  - name: activate
+    type: select
+    label: "activate (allow elected browser to switch scenes)"
+    required: false
+    options:
+      - { value: "false", label: "false (don't switch)" }
+      - { value: "true",  label: "true (may visibly switch scene)" }
+    default: "false"
+  - name: seek_seconds
+    type: text
+    label: "seek_seconds (for seek_preview / screenshot)"
+    required: false
+    placeholder: "1.2"
+  - name: timeout_ms
+    type: text
+    label: "timeout_ms (default ~7000, capped 15000)"
+    required: false
+    placeholder: "7000"
+  - name: probe_timeout_ms
+    type: text
+    label: "probe_timeout_ms (default ~800, capped 2000)"
+    required: false
+    placeholder: "800"
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: list-editors
+    title: "🌐 Who has the editor open right now?"
+    description: "Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "list_live_editors"
+  - id: computed-boxes
+    title: "📐 Computed boxes for scene XcR0k (preferred structural audit)"
+    description: "Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "get_computed_boxes"
+      voice_file: "XcR0k"
+      activate: true
+      timeout_ms: 7000
+  - id: screenshot
+    title: "📸 Small 280×498 screenshot (visual gut-check)"
+    description: "Best-effort browser-side capture. Use for aesthetic judgment only; use a renderer/headless fallback for pixel-perfect verification."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "screenshot_scene_280x498"
+      voice_file: "XcR0k"
+      activate: true

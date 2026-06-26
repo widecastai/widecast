@@ -1,5 +1,5 @@
 """
-📜 Read a video's full script
+📜 Audit a video — list every scene + Remotion spec status
 
 Auto-generated from widecast/docs/playgrounds/video-data.yaml.
 """

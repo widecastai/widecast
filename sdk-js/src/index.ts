@@ -217,11 +217,75 @@ export interface VideoDataResponse {
   language: string;
   total_segments: number;
   total_duration: number;
+  /** Machine-readable explanation of voice_file vs id stability. */
+  scene_identity?: {
+    stable_scene_id_field: "voice_file";
+    order_field: "id";
+    notes?: string[];
+  };
   segments: VideoDataSegment[];
   global_settings: VideoDataGlobalSettings;
   /** Editor URL — opens the scene editor for this video. */
   review_url: string;
   request_id: string;
+}
+
+/** Allowed actions for client.scene_inspector(). */
+export type SceneInspectorAction =
+  | "list_live_editors"
+  | "list_instances"
+  | "get_preview_state"
+  | "get_scene_dom_snapshot"
+  | "get_computed_boxes"
+  | "screenshot_scene_280x498"
+  | "activate_scene"
+  | "reload_preview"
+  | "pause_preview"
+  | "play_preview"
+  | "seek_preview";
+
+/** Optional fields for client.scene_inspector(). */
+export interface SceneInspectorOptions {
+  /** Current display/order scene id. Prefer `voice_file` when available. */
+  scene_id?: string | number;
+  /** Stable per-scene UID from `video_data`; preferred selector. */
+  voice_file?: string;
+  /** Optional DOM selector scoped to the target preview root. */
+  selector?: string;
+  /** Allow the elected browser to switch scenes before inspecting. */
+  activate?: boolean;
+  /** Optional seek time for seek_preview or screenshot. */
+  seek_seconds?: number;
+  /** Command timeout in ms. Default ~7000ms (server clamps 1000-15000ms). */
+  timeout_ms?: number;
+  /** Foreground election window in ms. Default ~800ms (clamps 150-2000ms). */
+  probe_timeout_ms?: number;
+  /** Advanced action-specific options. */
+  options?: Record<string, unknown>;
+}
+
+/** Outcome of a live inspector call. */
+export interface SceneInspectorResponse {
+  object: "scene_inspector_result";
+  /** `"completed"` (browser returned a result), `"unavailable"` (no editor
+   *  open / unresponsive — see `fallback`), or `"error"` (browser-side
+   *  failure). */
+  status: "completed" | "unavailable" | "error";
+  /** `ok` | `no_live_editor` | `no_active_editor` | `unsupported_action`
+   *  | `publisher_missing` | `mqtt_publish_failed` | `browser_error`. */
+  code: string;
+  request_id: string;
+  action: SceneInspectorAction;
+  topic_id: string;
+  company_id?: string;
+  /** Tab metadata for the elected browser (set only when status="completed"). */
+  selected_browser?: Record<string, unknown>;
+  /** Action-specific result payload. */
+  result?: Record<string, unknown>;
+  /** Set only when action="list_live_editors". */
+  editors?: Record<string, unknown>[];
+  /** Set when status="unavailable" — describes the data-first fallback. */
+  fallback?: { available?: boolean; suggested?: string };
 }
 
 /** Options for client.collect_ideas(). */
@@ -1100,25 +1164,47 @@ export class Widecast {
     return await this.#request<AssetPresignResponse>("POST", "/v1/upload_asset", body);
   }
 
-  /** POST /v1/modify_scene — SYNCHRONOUS, **no credit charged**. Swap the
-   *  background image/video on ONE scene of an existing video.
+  /** POST /v1/modify_scene — SYNCHRONOUS, **no credit charged** until
+   *  `export_video()` re-renders the final MP4. Edit ONE scene of an
+   *  existing video. Successful edits publish MQTT realtime so every
+   *  open scene editor for this video hot-updates.
    *
-   *  Resolution: `by="id"` / `by="voice_file"` are exact; `by="text"` is
-   *  fuzzy and may return an ambiguity clarification (no edit applied).
+   *  **Agent rule — data-first**: call `video_data()` first and use
+   *  `voice_file` (the stable per-scene UID, also the base of
+   *  `{voice_file}_spec.json`) for `by`/`value`. `segment.id` is only
+   *  display/order metadata and may change after reorder/add/delete.
    *
-   *  Inspect `result.object` on the return value:
-   *    - `"scene_modified"` → success; `applied: "media"` and `media_type`.
-   *    - `"clarification"` → two scenes matched the text too closely; show
-   *      the user `result.candidates` and call again with `by: "voice_file"`.
+   *  Resolution: `by="voice_file"` (preferred) / `by="id"` are exact;
+   *  `by="text"` is fuzzy and may return an ambiguity clarification (no
+   *  edit applied — show `result.candidates`, ask the user, then retry
+   *  with `by: "voice_file"`).
    *
-   *  Edits are roll-aware automatically: B-roll scenes swap the background
-   *  and sync `brollUrl`; A-roll scenes keep narrator + grid intact and
-   *  register the asset as the overlay for the next spec gen. The change is
-   *  visible in the editor immediately; call `export_video` again only when
-   *  the user wants a fresh final MP4 to reflect it.
+   *  **Three supported edit branches — do NOT mix field families**:
+   *    (A) Background media: `[{field_name: "mediaUrl", value: "<URL>"},
+   *        {field_name: "mediaType", value: "image"|"video"}?]`.
+   *        Roll-aware: B-roll updates `mediaUrl`/`brollUrl`; A-roll
+   *        registers as `brollUrl`/`user_asset_url` without disturbing the
+   *        narrator.
+   *    (B) Upload Overlay: `[{field_name: "remotion.upload_overlay",
+   *        value: "<image URL>"}]` (or `value: {url}`). Free,
+   *        agent-supplied image → Remotion spec. NOT Regenerate Overlay
+   *        (which is paid). Ground the image in scene context. Prefer
+   *        720×1280 transparent PNG.
+   *    (C) Group rect (Remotion layout): `[{field_name:
+   *        "remotion.group.rect", value: {element_id?, x?, y?, w?, h?,
+   *        coordinate_space: "canvas"|"preview",
+   *        resize_mode?: "scale_children"|"wrapper_only"}}]`. Canvas =
+   *        720×1280; preview = 280×498 (converted). `remotion.object.rect`
+   *        is disabled.
    *
-   *  CURRENT LIMIT: only `field_name: "mediaUrl"` (+ optional `"mediaType"`)
-   *  is honoured. Other field names return 400 `unsupported_field`. */
+   *  `segment.remotion_spec == "none"` means the user intentionally
+   *  disabled the overlay — agents must NOT auto-edit/re-enable.
+   *
+   *  Inspect `result.object`:
+   *    - `"scene_modified"` → success; family-dependent fields
+   *      (`media_type`/`media_url` for media; `remotion_spec_*` +
+   *      `uploaded_overlay_url` for upload_overlay/group_rect).
+   *    - `"clarification"` → ambiguous text match; show `candidates`. */
   async modify_scene(opts: ModifySceneOptions): Promise<SceneModifiedOrClarification> {
     if (!opts || typeof opts.id !== "string" || !opts.id) {
       throw new InvalidRequestError("id (video topic_id) must be a non-empty string.",
@@ -1352,15 +1438,35 @@ export class Widecast {
   // callers that need to find a topic can use list_videos() + a local
   // title filter instead.
 
-  /** POST /v1/video_data — read the FULL structured video script for a
-   *  topic_id. **SYNC, FREE.**
+  /** POST /v1/video_data — read structured scene data for a topic_id.
+   *  **SYNC, FREE. First step for data-first scene audit/edit** — call
+   *  this before `modify_scene()` or `scene_inspector()`.
    *
-   *  Returns every scene's text/narration, `voice_file` (the per-scene
-   *  UID `modify_scene` needs), `type` ('A-roll' | 'B-roll'), `duration`,
-   *  `mediaUrl` (currently-shown background or A-roll overlay),
-   *  `mediaType`, `thumbnailUrl`, plus `narrator` (voice + face clone ids
-   *  when set) and `global_settings` (aspect ratio, music, brand,
-   *  language). Same engine the scene editor uses on open.
+   *  Returns full annotated segment dicts. Per-segment `words`, top-level
+   *  `captions`, and internal preview-cache fields are trimmed to keep
+   *  the MCP payload usable.
+   *
+   *  **Scene identity rule** (also embedded as `scene_identity` in the
+   *  response): use `voice_file` as the stable per-scene UID.
+   *  `segment.id` is only display/order metadata and may change after
+   *  reorder/add/delete. Spec file is `{voice_file}_spec.json`.
+   *
+   *  Each segment includes `text`/`talking_point`/`visual`/`quote`/
+   *  `keyword`, current `mediaUrl`/`mediaType`/`thumbnailUrl`/
+   *  `videoTrim`, legacy `overlay.caption`/`overlay.narrator` (280×498
+   *  editor coords), plus Remotion spec metadata: `remotion_spec_file`,
+   *  cache-busted `remotion_spec_url`, `remotion_spec_version`,
+   *  `remotion_spec_exists`, `remotion_spec_state` (`ready` | `missing`
+   *  | `disabled`). `remotion_spec == "none"` means the user
+   *  intentionally disabled the overlay — agents must NOT auto-edit or
+   *  re-enable unless asked.
+   *
+   *  Coordinate warning: Remotion spec uses **720×1280 canvas**; legacy
+   *  overlay rects use **280×498 editor preview**.
+   *
+   *  The spec itself is NOT inlined (can contain large base64 images);
+   *  fetch `remotion_spec_url` only when state is `ready` and you
+   *  actually need object boxes.
    *
    *  Throws `code="video_not_found"` (404) when the id doesn't exist on
    *  the account, or `code="script_not_ready"` (409) when the video is
@@ -1369,11 +1475,67 @@ export class Widecast {
   async video_data(videoId: string): Promise<VideoDataResponse> {
     if (typeof videoId !== "string" || !videoId.trim()) {
       throw new InvalidRequestError(
-        "video_id (the widecast<...> topic_id) is required.",
+        "video_id (the topic_id) is required.",
         { code: "missing_field", param: "video_id" });
     }
     return await this.#request<VideoDataResponse>(
       "POST", "/v1/video_data", { video_id: videoId.trim() });
+  }
+
+  /** POST /v1/scene_inspector — live browser inspector for an open scene
+   *  editor of a video. Use **only after** data-first audit with
+   *  `video_data()`, when the agent needs BROWSER TRUTH (mounted DOM,
+   *  computed boxes, preview play state, a small 280×498 screenshot).
+   *
+   *  Server broadcasts a tiny MQTT probe to every open editor tab,
+   *  elects ONE healthy foreground/active browser within ~800ms, then
+   *  sends the inspector command only to that tab. If no editor is
+   *  open, the response is `{status: "unavailable", code:
+   *  "no_live_editor" | "no_active_editor", fallback: {...}}` —
+   *  expected, not a crash. Fall back to `video_data()` +
+   *  `remotion_spec_url`.
+   *
+   *  Allowed actions: `list_live_editors` | `list_instances` |
+   *  `get_preview_state` | `get_scene_dom_snapshot` |
+   *  `get_computed_boxes` | `screenshot_scene_280x498` |
+   *  `activate_scene` | `reload_preview` | `pause_preview` |
+   *  `play_preview` | `seek_preview`.
+   *
+   *  No arbitrary JavaScript eval is exposed. Use `voice_file` for
+   *  scene selection whenever possible.
+   */
+  async scene_inspector(
+    videoId: string,
+    action: SceneInspectorAction,
+    opts: SceneInspectorOptions = {},
+  ): Promise<SceneInspectorResponse> {
+    if (typeof videoId !== "string" || !videoId.trim()) {
+      throw new InvalidRequestError(
+        "video_id (the topic_id) is required.",
+        { code: "missing_field", param: "video_id" });
+    }
+    const allowed: readonly SceneInspectorAction[] = [
+      "list_live_editors", "list_instances", "get_preview_state",
+      "get_scene_dom_snapshot", "get_computed_boxes",
+      "screenshot_scene_280x498", "activate_scene", "reload_preview",
+      "pause_preview", "play_preview", "seek_preview",
+    ];
+    if (!allowed.includes(action)) {
+      throw new InvalidRequestError(
+        `action must be one of ${JSON.stringify(allowed)}.`,
+        { code: "unsupported_action", param: "action" });
+    }
+    const body: Record<string, unknown> = { id: videoId.trim(), action };
+    if (opts.scene_id !== undefined) body.scene_id = opts.scene_id;
+    if (opts.voice_file !== undefined) body.voice_file = opts.voice_file;
+    if (opts.selector !== undefined) body.selector = opts.selector;
+    if (opts.activate !== undefined) body.activate = opts.activate;
+    if (opts.seek_seconds !== undefined) body.seek_seconds = opts.seek_seconds;
+    if (opts.timeout_ms !== undefined) body.timeout_ms = opts.timeout_ms;
+    if (opts.probe_timeout_ms !== undefined) body.probe_timeout_ms = opts.probe_timeout_ms;
+    if (opts.options !== undefined) body.options = opts.options;
+    return await this.#request<SceneInspectorResponse>(
+      "POST", "/v1/scene_inspector", body);
   }
 
   /** GET /v1/account — account profile + remaining credits. Free. */

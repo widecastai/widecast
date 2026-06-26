@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 📜 Read a video's full script
+# 📜 Audit a video — list every scene + Remotion spec status
 # Auto-generated from widecast/docs/playgrounds/video-data.yaml.
 
 curl -X POST "https://widecast.ai/app/dashboard/v1/video_data" \

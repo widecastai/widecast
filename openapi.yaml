@@ -150,7 +150,13 @@ info:
       publish_failed | free_tier_limit_exceeded | telegram_not_connected |
       telegram_send_failed | invalid_parse_mode | conflicting_media |
       invalid_photo_url | invalid_video_url | message_too_long |
-      rate_limited`
+      rate_limited | scenes_not_ready | invalid_script | invalid_by |
+      invalid_field_entry | scene_not_found | unsupported_field |
+      object_level_edit_disabled | remotion_spec_disabled |
+      invalid_media_url | modify_failed | persist_failed |
+      script_not_ready | script_parse_failed | unsupported_action |
+      publisher_missing | mqtt_publish_failed | no_live_editor |
+      no_active_editor | browser_error`
     - Headers (every response): `X-Request-Id`, `X-RateLimit-*`,
       `X-WideCast-Version`
     - Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)
@@ -166,8 +172,6 @@ info:
 servers:
   - url: https://widecast.ai/app/dashboard
     description: Production — Bearer wc_live_* API key
-  - url: https://api.widecast.ai
-    description: Production (planned vanity host)
 
 tags:
   - name: Videos
@@ -422,43 +426,93 @@ paths:
     post:
       tags: [Videos]
       operationId: modifyScene
-      summary: Edit ONE scene of an existing video (synchronous, free).
+      summary: Edit ONE scene (media swap / overlay upload / group layout). Free.
       description: |
-        SYNCHRONOUS, **no credit charged**. Edit one scene of a video that has
-        already reached `scenes_ready_for_review`. Today only the **background
-        media** (image OR video) is editable; other fields are reserved.
+        SYNCHRONOUS, **no credit charged** until `/v1/export_video` re-renders
+        the final MP4. Edit one scene of a video that has already reached
+        `scenes_ready_for_review`. Successful edits publish MQTT realtime to
+        every open scene editor so the user sees the change live.
+
+        **Agent rule — data-first**: call `/v1/video_data` first and use
+        `voice_file` (the stable per-scene UID, also the base of
+        `{voice_file}_spec.json`) for `by`/`value`. `segment.id` is only
+        display/order metadata and may change after reorder/add/delete.
 
         Resolves the target scene with `by` + `value`:
-          - `by="id"` — exact match on `segment.id` (most reliable when you
-            already have it from `/v1/status`).
-          - `by="voice_file"` — exact match on the scene's `voice_file` (the
-            stable per-scene uid; also the filename of its narration mp3).
-          - `by="text"` — fuzzy match against `segment.text` (the narration).
-            If two scenes match too closely, this endpoint returns HTTP 200
-            with `{object: "clarification", needs_input: "value", candidates: [...]}`
-            so the caller can ask the user which one. Never silently picks one.
+          - `by="voice_file"` — exact match on the stable per-scene UID
+            (preferred).
+          - `by="id"` — exact match on the current `segment.id` order/display.
+          - `by="text"` — fuzzy match against `segment.text`. Multi-match →
+            HTTP 200 `{object: "clarification", needs_input: "value",
+            candidates: [...]}` (ask the user, then re-call with
+            `by="voice_file"`).
 
-        The edit is **roll-aware**:
+        **Three supported edit branches — do NOT mix field families in one
+        call**:
+
+        **(A) Background media swap (`mediaUrl` / `mediaType`).** Roll-aware:
           - B-roll scene → the asset IS the background. `mediaUrl`,
-            `thumbnailUrl`, `brollUrl`, and `brollThumbnailUrl` are all synced
+            `thumbnailUrl`, `brollUrl`, and `brollThumbnailUrl` are synced
             (B-roll invariant `brollUrl === mediaUrl`); appended to
             `savedImages`/`savedVideos` so the editor lists it.
           - A-roll scene → narrator + grid stay untouched. The asset is
-            registered as a saved option and stamped as `user_asset_url`; the
-            next scene-spec gen turns it into the overlay (image → chest-card;
-            video → brollUrl backdrop). The structure is never mutated here.
+            registered as `user_asset_url`/`brollUrl`; the next scene-spec
+            gen turns it into the overlay (image → chest-card; video →
+            brollUrl backdrop).
 
-        After the edit lands, the change is visible in the editor immediately;
-        call `/v1/export_video` again only when the user wants a fresh final
-        MP4 to reflect it.
+        **(B) Upload Overlay (`remotion.upload_overlay`).** Free, agent-
+        supplied image → Remotion spec. NOT Regenerate Overlay (which is
+        paid because WideCast calls image generation). The pipeline
+        classifies graphic vs realistic, decomposes into objects, with
+        strict no-AI fallback. If the agent creates the image first, it
+        MUST be grounded in scene context (`text`, `talking_point`,
+        `visual`, `quote`, `keyword`, `type`) — do not invent unrelated
+        visuals. Prefer a portrait 9:16 transparent PNG (720×1280) or a
+        flat-background graphic with large separated foreground
+        objects/text, strong contrast, readable typography; avoid
+        photo-realistic backgrounds, heavy gradients, vignettes, and tiny
+        dense text (those get classified realistic and kept as one
+        full-frame image). Upload Overlay is an explicit opt-in to
+        recreate an overlay even if the scene had `remotion_spec="none"`.
+        Response includes a cache-busted `remotion_spec_url`.
+
+        **(C) Remotion Storyboard group rect (`remotion.group.rect`).**
+        Free layout edit. `value = {element_id?, x?, y?, w?, h?,
+        coordinate_space: "canvas"|"preview", resize_mode?:
+        "scale_children"|"wrapper_only"}`. `element_id` may be omitted when
+        the spec has one Storyboard group or a group `id="main"`.
+          - **Move-only (x/y)** updates the group wrapper position; child
+            objects untouched. Group x/y are wrapper top-left in Remotion
+            **canvas (720×1280)** coordinates and are NOT clamped —
+            `y:-120` legitimately translates a full-canvas group upward.
+          - **Resize (w/h)** defaults to `scale_children`: wrapper + every
+            child object + root `background.bbox` scale together,
+            preserving WideCast's computed group layout. `wrapper_only` is
+            advanced and usually not what agents want.
+          - `coordinate_space: "preview"` accepts legacy 280×498 editor
+            coordinates and converts them.
+          - `remotion.object.rect` is **disabled for agents** — returns
+            400 `object_level_edit_disabled`. Child-object edits break the
+            computed group layout; use group rect instead.
+
+        **`remotion_spec="none"`**: user intentionally disabled the overlay
+        on that scene. Layout edits return `remotion_spec_disabled`; do
+        NOT auto-enable. Use Upload Overlay only if the user asks to
+        restore the overlay.
+
+        **Planned**: `overlay.narrator` + `overlay.caption` rect/config in
+        legacy 280×498 editor coords.
+
+        Successful edits publish MQTT realtime so open editors hot-update.
+        Final render cost lands when `/v1/export_video` is called again.
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/ModifySceneRequest' }
             examples:
-              by_voice_file:
-                summary: Swap the background image of one scene by its uid
+              media_by_voice_file:
+                summary: (A) Background swap — replace one scene's media by voice_file
                 value:
                   id: widecast7c0d4f8a9b1e2d3f
                   by: voice_file
@@ -466,8 +520,10 @@ paths:
                   fields:
                     - field_name: mediaUrl
                       value: "https://cdn.example.com/coast-sunset.jpg"
-              by_text_with_type:
-                summary: Match by narration; declare type explicitly
+                    - field_name: mediaType
+                      value: image
+              media_by_text:
+                summary: (A) Background swap — match by narration, declare video type
                 value:
                   id: widecast7c0d4f8a9b1e2d3f
                   by: text
@@ -477,6 +533,43 @@ paths:
                       value: "https://cdn.example.com/scale-ai-news.mp4"
                     - field_name: mediaType
                       value: video
+              upload_overlay:
+                summary: (B) Upload Overlay — agent-supplied PNG → Remotion spec
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.upload_overlay
+                      value: "https://cdn.example.com/overlay-720x1280.png"
+              group_rect_move:
+                summary: (C) Move the whole Storyboard group up by 120px in canvas coords
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.group.rect
+                      value:
+                        element_id: main
+                        y: -120
+                        coordinate_space: canvas
+              group_rect_scale:
+                summary: (C) Resize the group + scale children (default resize_mode)
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.group.rect
+                      value:
+                        element_id: main
+                        x: 111
+                        y: -120
+                        w: 498
+                        h: 174
+                        coordinate_space: canvas
+                        resize_mode: scale_children
       responses:
         '200':
           description: |
@@ -955,24 +1048,60 @@ paths:
     post:
       tags: [Library]
       operationId: getVideoData
-      summary: Read the full structured video script for a topic_id.
+      summary: Read structured scene data (data-first audit/edit entry point).
       description: |
-        Synchronous, free. Returns every scene's `text` (narration),
-        `voice_file` (the per-scene UID `/v1/modify_scene` needs), `type`
-        (A-roll / B-roll), `duration`, `mediaUrl` (currently-shown
-        background or A-roll overlay), `mediaType`, `thumbnailUrl`, plus
-        `narrator` (voice + face clone ids when set) and `global_settings`
-        (aspect ratio, music, brand, language).
+        Synchronous, free. **First step for data-first scene audit/edit** —
+        call this before `/v1/modify_scene` or `/v1/scene_inspector`. Returns
+        full annotated segment dicts in `segments`.
+
+        To keep MCP payloads usable the API trims per-segment `words` timing
+        arrays, top-level `captions`, and internal preview-cache fields
+        (`savedVideos`, `savedImages`, `_previewInstanceId`,
+        `_remotionSpecFetching`, `_forceNarratorRefit`). UI routes still get
+        full data; this is the agent-safe slim view.
+
+        **Scene identity rule** (also returned as `scene_identity` in the
+        response): use `voice_file` as the stable per-scene UID.
+        `segment.id` is only display/order metadata and may change after
+        reorder/add/delete. The Remotion spec for a scene is
+        `{voice_file}_spec.json`.
+
+        **Per-segment fields agents care about**:
+          * `voice_file` (stable scene UID; use for modify/inspect).
+          * `id` / `order_id` / `scene_index` (current order; UNSTABLE).
+          * `type` (`A-roll` | `B-roll` | `thumbnail`).
+          * `text` (narration), `talking_point`, `visual`, `quote`,
+            `keyword`.
+          * `mediaUrl`, `mediaType`, `thumbnailUrl`, `videoTrim`.
+          * `overlay.caption`, `overlay.narrator` — legacy 280×498 editor
+            preview coordinates.
+          * `remotion_spec` — `"none"` means the user intentionally
+            disabled the overlay on that scene; agents must NOT auto-edit
+            or re-enable unless the user asks.
+          * `remotion_spec_file` — `{voice_file}_spec.json`.
+          * `remotion_spec_url` — cache-busted
+            `https://widecast.ai/downloads/{company_id}/{topic_id}/{voice_file}_spec.json?v={mtime}`;
+            present only when `remotion_spec_state="ready"`.
+          * `remotion_spec_version`, `remotion_spec_exists`,
+            `remotion_spec_state` (`ready` | `missing` | `disabled`).
+          * `agent_meta` — same metadata bundled for quick consumption
+            (`stable_scene_id`, `coordinate_spaces`, `scene_index`, etc.).
+
+        **Coordinate warning**: Remotion spec objects use **720×1280
+        canvas** coordinates; legacy `overlay.caption` and
+        `overlay.narrator` use **280×498 editor preview** coordinates. Pass
+        `coordinate_space` to `/v1/modify_scene`'s `remotion.group.rect`
+        accordingly.
+
+        **Remotion spec is NOT inlined** — it can carry large base64
+        images. Fetch `remotion_spec_url` only when
+        `remotion_spec_state="ready"` and you actually need object-level
+        overlay boxes; otherwise use the metadata only.
 
         Mirrors the same engine the dashboard's scene editor uses on open
         (rebalance A/B rolls + ensure background music + persist if
         changed), so the data here matches what the user sees in
         `#scene_editor?topic_id=…` exactly.
-
-        Useful for agents that need to (a) tell the user what's in a video
-        scene-by-scene, (b) look up a `voice_file` before calling
-        `/v1/modify_scene`, or (c) inspect what asset is currently on a
-        scene before swapping it.
       requestBody:
         required: true
         content:
@@ -983,8 +1112,11 @@ paths:
               properties:
                 video_id:
                   type: string
-                  pattern: '^widecast[a-zA-Z0-9]{12,32}$'
-                  description: Topic id from /v1/create_video (same id used by /v1/status, /v1/export_video, /v1/modify_scene).
+                  description: |
+                    Topic id from `/v1/create_video` / scene_editor. Accepts
+                    `widecast...`, `gubo...`, or current topic ids. Same id
+                    used by `/v1/status`, `/v1/export_video`,
+                    `/v1/modify_scene`, `/v1/scene_inspector`.
               example:
                 video_id: "widecastABCDEFGHIJKL"
       responses:
@@ -1001,16 +1133,16 @@ paths:
         '404':
           description: |
             `video_not_found` — no video with this id on the account. Check
-            the id is the `widecast<...>` returned by /v1/create_video and
-            that it belongs to the API key's account.
+            the id is the topic_id returned by `/v1/create_video` and that
+            it belongs to the API key's account.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '409':
           description: |
             `script_not_ready` — video is still processing or never had a
-            script generated. Poll /v1/status until `status=="completed"`,
-            then retry.
+            script generated. Poll `/v1/status` until
+            `status=="completed"`, then retry.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1018,6 +1150,106 @@ paths:
           description: |
             `script_parse_failed` — stored video_script is malformed.
             Contact support with the request_id.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /v1/scene_inspector:
+    post:
+      tags: [Videos]
+      operationId: sceneInspector
+      summary: Live browser inspector for an open scene editor (data-first FIRST).
+      description: |
+        Synchronous live browser inspector. Use **only after** data-first
+        audit with `/v1/video_data`, when the agent specifically needs
+        BROWSER TRUTH (mounted DOM, computed boxes, preview play state, a
+        small 280×498 screenshot) — not what's stored in ES.
+
+        **How it works**: server broadcasts a tiny MQTT probe to every
+        open editor tab for this video, elects ONE healthy
+        foreground/active browser within ~800ms, then sends the real
+        inspector command only to that tab. `/v1/modify_scene` realtime
+        broadcasts to all editors separately — this tool's election only
+        affects which tab returns the live inspection.
+
+        **If no editor is open** the response is HTTP 200 with
+        `status: "unavailable"` and `code: "no_live_editor"` (no presence)
+        or `"no_active_editor"` (presence exists but all tabs
+        unresponsive). That is expected, not a crash. Fall back to
+        `/v1/video_data` + fetching `remotion_spec_url`.
+
+        **Actions** (`action`):
+          * `list_live_editors` — presence list of open editor tabs
+            (browser / OS / last_seen).
+          * `list_instances` — preview instance ids mounted in the elected
+            tab.
+          * `get_preview_state` — current playing/paused/scene/time in the
+            preview player.
+          * `get_scene_dom_snapshot` — DOM subtree for a scene (scoped via
+            optional `selector` — keep narrow).
+          * `get_computed_boxes` — `getBoundingClientRect` for scene
+            elements (preferred for structural audit).
+          * `screenshot_scene_280x498` — small browser-side capture for
+            aesthetic / visual judgment. Best-effort; use
+            renderer/headless fallback for pixel-perfect verification.
+          * `activate_scene` — bring the elected tab to scene N (may
+            visibly switch the editor for that user).
+          * `reload_preview` / `pause_preview` / `play_preview` /
+            `seek_preview` — preview transport controls.
+
+        **No arbitrary JavaScript eval is exposed.** Screenshots
+        intentionally small (280×498). Use `voice_file` as the scene
+        selector wherever possible.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SceneInspectorRequest' }
+            examples:
+              presence:
+                summary: Check who has the editor open
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  action: list_live_editors
+              boxes:
+                summary: Computed bounding boxes for one scene
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  action: get_computed_boxes
+                  voice_file: XcR0k
+              screenshot:
+                summary: Small 280×498 capture (best-effort visual judgment)
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  action: screenshot_scene_280x498
+                  voice_file: XcR0k
+                  activate: true
+      responses:
+        '200':
+          description: |
+            Inspector outcome. `status` discriminates:
+              * `"completed"` — elected tab returned a `result`.
+              * `"unavailable"` — no editor available; `code` is
+                `no_live_editor` (no presence) or `no_active_editor`
+                (presence but unresponsive).
+              * `"error"` — browser-side failure; `code` carries the
+                provider error.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SceneInspectorResponse' }
+        '400':
+          description: |
+            `unsupported_action` (not in the action enum) or
+            `publisher_missing` (server MQTT publisher unavailable).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: |
+            `video_not_found` — no video with this id on the account.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1819,54 +2051,75 @@ components:
       properties:
         id:
           type: string
-          pattern: '^widecast[a-zA-Z0-9]{12,32}$'
           description: |
-            `topic_id` from `/v1/create_video`. Same id used by `/v1/status`
-            and `/v1/export_video`. The video must have reached
-            `scenes_ready_for_review` (HTTP 409 otherwise).
+            `topic_id` from `/v1/create_video` / `/v1/video_data`. Same id
+            used by `/v1/status` and `/v1/export_video`. Accepts both
+            `widecast...` and legacy/current `gubo...`. The video must have
+            reached `scenes_ready_for_review` (HTTP 409 otherwise).
           example: widecast7c0d4f8a9b1e2d3f
         by:
           type: string
           enum: [id, voice_file, text]
           description: |
             How to pick the scene.
-              * `id` — exact match on `segment.id` (most reliable when
-                /v1/status has given you one).
-              * `voice_file` — exact match on the per-scene uid (also the
-                mp3 narration filename).
-              * `text` — fuzzy match against `segment.text`. If two scenes
-                match too closely the response is a `ClarificationResponse`
-                — pass `candidates` to the user and call again with
-                `by="voice_file"`.
+              * `voice_file` — **preferred**. Exact match on the stable
+                per-scene UID (also the base of `{voice_file}_spec.json`).
+                `segment.id` is only display/order metadata and may change
+                after reorder/add/delete.
+              * `id` — exact match on the current `segment.id` order/display.
+                Use only when you already have it.
+              * `text` — fuzzy match against `segment.text`. Multi-match
+                returns a 200 `ClarificationResponse` — pass `candidates`
+                to the user and re-call with `by="voice_file"`.
           example: voice_file
         value:
           oneOf:
             - { type: string }
             - { type: number }
-          description: The id / voice_file string / narration snippet to match.
+          description: The voice_file / id / narration snippet to match.
           example: XcR0k
         fields:
           type: array
           minItems: 1
           description: |
-            Edits to apply. Today honoured:
-              * `{field_name: "mediaUrl", value: "<http(s) URL>"}` —
-                background image OR video for this scene.
-              * `{field_name: "mediaType", value: "image" | "video"}` —
-                optional; auto-detected from the URL extension if omitted.
-            Other field names return `unsupported_field` (HTTP 400).
+            Edits to apply. Pick exactly **one family** per call — do not
+            mix media, upload overlay, and group rect fields.
+
+            **(A) Background media swap** — `mediaUrl` (+ optional
+            `mediaType`). Roll-aware: B-roll scenes update
+            `mediaUrl`/`brollUrl`; A-roll scenes register as
+            `brollUrl`/`user_asset_url` without disturbing the narrator.
+
+            **(B) Upload Overlay** — `remotion.upload_overlay`. Send ONE
+            field; `value` is either a string URL or `{url: "..."}`. Free,
+            agent-supplied image → Remotion spec (NOT Regenerate Overlay
+            which is paid). Prefer portrait 9:16 transparent PNG (720×1280)
+            for object decomposition.
+
+            **(C) Remotion Storyboard group rect** — `remotion.group.rect`.
+            Send ONE field; `value` = `{element_id?, x?, y?, w?, h?,
+            coordinate_space: "canvas"|"preview",
+            resize_mode?: "scale_children"|"wrapper_only"}`. Free layout
+            edit. `remotion.object.rect` is disabled (returns 400
+            `object_level_edit_disabled`).
           items:
             type: object
             required: [field_name, value]
             properties:
-              field_name: { type: string, example: mediaUrl }
-              value: { description: "Any JSON value; for media edits, a string URL." }
+              field_name:
+                type: string
+                enum: [mediaUrl, mediaType, remotion.upload_overlay, remotion.group.rect]
+                example: mediaUrl
+              value:
+                description: |
+                  Family-dependent. URL string for `mediaUrl` /
+                  `remotion.upload_overlay`. `"image"` or `"video"` for
+                  `mediaType`. Object `{element_id?, x?, y?, w?, h?,
+                  coordinate_space, resize_mode?}` for `remotion.group.rect`.
         op:
           type: string
           default: set
-          description: |
-            Reserved for future generic field ops. Defaults to `set`. Ignored
-            for the current media-only edit path.
+          description: Reserved. Defaults to `set`.
         min_score:
           type: number
           minimum: 0
@@ -1874,13 +2127,14 @@ components:
           default: 0.5
           description: |
             Only when `by="text"`. Acceptance threshold for fuzzy match.
-            Lower it cautiously when the user paraphrased; raising past 0.9
-            usually causes false negatives because exact text rarely matches
+            Lower cautiously for paraphrases; raising past 0.9 usually
+            causes false negatives because exact text rarely matches
             verbatim.
       description: |
         Body for POST /v1/modify_scene. SYNCHRONOUS, no credit charged. On
         ambiguous text match the response is a 200 `ClarificationResponse`
-        (with `candidates`) — no edit applied, retry with `by="voice_file"`.
+        — no edit applied, retry with `by="voice_file"`. Successful edits
+        publish MQTT realtime to every open editor for this video.
 
     SceneCandidate:
       type: object
@@ -1896,26 +2150,77 @@ components:
 
     SceneModifiedResponse:
       type: object
-      required: [object, id, scene_id, voice_file, applied]
-      description: Success body for POST /v1/modify_scene.
+      required: [object, id, voice_file]
+      description: |
+        Success body for POST /v1/modify_scene. Shape varies slightly
+        across the three edit families (media / upload_overlay /
+        group_rect); fields not relevant to the family are omitted.
       properties:
         object: { type: string, const: scene_modified }
         id: { type: string, description: "topic_id (same as the request)." }
-        scene_id: { type: integer, description: "segment.id of the scene that was edited." }
-        voice_file: { type: string, description: "voice_file uid of the edited scene." }
+        topic_id: { type: string }
+        company_id: { type: string }
+        action: { type: string, const: scene_modified }
+        event: { type: string, const: scene_modified }
+        scene_id:
+          oneOf:
+            - { type: string }
+            - { type: integer }
+            - { type: 'null' }
+          description: "segment.id of the scene that was edited (current display/order only — voice_file is the stable id)."
+        voice_file: { type: string, description: "Stable per-scene UID of the edited scene." }
         score:
           type: number
           description: |
-            Resolution confidence (1.0 for `by="id"` and `by="voice_file"`;
-            the fuzzy score for `by="text"`).
+            Resolution confidence (1.0 for `by="id"`/`by="voice_file"`; fuzzy
+            score for `by="text"`).
         applied:
-          type: string
-          enum: [media]
-          description: Which family of edits ran. Today only `media`.
+          oneOf:
+            - { type: string }
+            - { type: object }
+          description: |
+            Which family of edits ran + family-specific details. Older
+            media-only responses carried a string (`"media"`); current
+            responses carry an object with `cost`, `uploaded_overlay_url`,
+            or `group_rect_summary` depending on the family.
         media_type:
           type: string
           enum: [image, video]
-          description: Set when `applied="media"`. The resolved asset type.
+          description: Set when the background media branch ran. Resolved asset type.
+        media_url:
+          type: string
+          description: Set when the background media branch ran. The URL agent supplied.
+        segment:
+          type: object
+          description: |
+            The full updated segment as stored after the edit (deep-copy,
+            so caller can compare before/after). Includes `mediaUrl`,
+            `brollUrl`, `overlay.*`, `remotion_spec`, etc. — same shape as
+            entries in `/v1/video_data.segments`.
+        remotion_spec_updated:
+          type: boolean
+          description: True when the edit produced a new `{voice_file}_spec.json` (overlay upload / group rect).
+        remotion_spec_file:
+          type: string
+          description: Canonical `{voice_file}_spec.json`.
+        remotion_spec_url:
+          type: string
+          format: uri
+          description: Cache-busted public spec URL (`?v=<mtime>`); empty when state ≠ ready.
+        remotion_spec_version:
+          type: string
+          description: mtime token used for cache-busting.
+        remotion_spec_state:
+          type: string
+          enum: [ready, missing, disabled]
+        remotion_spec_exists:
+          type: boolean
+        uploaded_overlay_url:
+          type: string
+          description: Set on the Upload Overlay branch (the image URL the agent supplied).
+        cost:
+          type: number
+          description: Set on the Upload Overlay branch — always 0 (free path).
 
     AssetResponse:
       type: object
@@ -2357,50 +2662,145 @@ components:
     VideoDataSegment:
       type: object
       required: [voice_file, text, type]
-      description: One scene/segment in the video_data response.
+      description: |
+        One annotated scene/segment in the video_data response. Includes
+        stable-identity fields and Remotion spec metadata for agent
+        editing.
+      additionalProperties: true
       properties:
         id:
           oneOf:
             - { type: string }
             - { type: number }
           nullable: true
-          description: Integer-ish scene id (the ordering).
+          description: |
+            Current display/order id. UNSTABLE — may change after
+            reorder/add/delete. Use `voice_file` as the stable scene UID.
+        order_id:
+          oneOf:
+            - { type: string }
+            - { type: number }
+          nullable: true
+          description: Same as `id` (alias for clarity).
         voice_file:
           type: string
-          description: Per-scene UID — pass as `value` with `by="voice_file"` to /v1/modify_scene.
+          description: |
+            Stable per-scene UID. Pass as `value` with `by="voice_file"` to
+            `/v1/modify_scene`. Also the base of the Remotion spec filename
+            `{voice_file}_spec.json`.
+        scene_uid:
+          type: string
+          description: Alias of `voice_file` for clarity.
+        scene_index:
+          type: integer
+          description: 0-based index into the segments array (current order).
         text:
           type: string
           description: Narration (what the narrator says on this scene).
+        talking_point:
+          type: string
+        visual:
+          type: string
+          description: Visual-direction hint (what the scene's visual should convey).
+        quote:
+          type: string
+          description: Pull-quote (when the scene type uses one).
+        keyword:
+          type: string
+          description: Single-word search keyword used for stock B-roll fallback.
         type:
           type: string
-          enum: ["A-roll", "B-roll", ""]
-          description: '"A-roll" (narrator on screen) or "B-roll" (background only).'
+          description: Scene role — `A-roll` (narrator on screen), `B-roll` (background only), `thumbnail`, or empty.
         duration:
           type: number
           description: Length in seconds.
         mediaUrl:
           type: string
           description: Currently-shown background or A-roll overlay asset URL.
-        mediaType: { type: string }
+        mediaType:
+          type: string
+          description: '`image` or `video`.'
         brollUrl:
           type: string
-          description: Pure B-roll URL (may differ from mediaUrl when an A-roll overlay was added).
+          description: Pure B-roll URL (may differ from `mediaUrl` when an A-roll overlay was added).
         thumbnailUrl: { type: string }
+        videoTrim:
+          type: object
+          description: '`{start, end}` trim values when the scene uses a video clip.'
+        overlay:
+          type: object
+          description: |
+            Legacy overlay block — `caption` + `narrator` rects in **280×498**
+            editor preview coordinates. Distinct from the Remotion spec
+            (which uses 720×1280 canvas coords).
+          additionalProperties: true
         narrator: { $ref: '#/components/schemas/VideoDataSegmentNarrator' }
+        remotion_spec:
+          oneOf:
+            - { type: string }
+            - { type: 'null' }
+          description: |
+            Per-scene Remotion spec filename token (or `null`). `"none"`
+            means the user intentionally disabled the overlay for that
+            scene — agents must NOT auto-edit or re-enable unless the user
+            asks.
+        remotion_spec_file:
+          type: string
+          description: Canonical `{voice_file}_spec.json`.
+        remotion_spec_url:
+          type: string
+          format: uri
+          description: |
+            Cache-busted public URL
+            `https://widecast.ai/downloads/{company_id}/{topic_id}/{voice_file}_spec.json?v={mtime}`.
+            Empty when state is `missing` or `disabled`.
+        remotion_spec_version:
+          type: string
+          description: mtime token used for cache-busting.
+        remotion_spec_exists:
+          type: boolean
+        remotion_spec_state:
+          type: string
+          enum: [ready, missing, disabled]
+        agent_meta:
+          type: object
+          description: |
+            Same metadata bundled for quick consumption:
+            `stable_scene_id_field="voice_file"`, `stable_scene_id`,
+            `order_field="id"`, `order_value`, `scene_index`,
+            `remotion_spec` (same metadata), `coordinate_spaces` (the
+            720×1280 canvas + 280×498 preview maps).
 
     VideoDataGlobalSettings:
       type: object
       description: |
-        Compact global_settings block — only user-facing fields. Deeply
-        nested render-only knobs are NOT surfaced (use the dashboard if you
-        need them).
+        Slim subset of the script's globalSettings — only user-facing
+        fields surfaced (deeply nested render-only knobs are not in this
+        public response). Currently: `aspectRatio`, `voice_type`,
+        `avatar_type`, `last_voice_type`, `last_avatar_type`.
+      additionalProperties: true
       properties:
         aspectRatio:
           type: string
           enum: [portrait, landscape, square]
-        music: { type: object }
-        language: { type: string }
-        brand: { type: object }
+        voice_type: { type: string }
+        avatar_type: { type: string }
+        last_voice_type: { type: string }
+        last_avatar_type: { type: string }
+
+    SceneIdentityGuide:
+      type: object
+      description: Machine-readable scene-identity rules embedded in /v1/video_data responses.
+      properties:
+        stable_scene_id_field:
+          type: string
+          const: voice_file
+        order_field:
+          type: string
+          const: id
+        notes:
+          type: array
+          items: { type: string }
 
     VideoDataResponse:
       type: object
@@ -2418,6 +2818,7 @@ components:
         total_duration:
           type: number
           description: Sum of `duration` across segments (seconds).
+        scene_identity: { $ref: '#/components/schemas/SceneIdentityGuide' }
         segments:
           type: array
           items: { $ref: '#/components/schemas/VideoDataSegment' }
@@ -2427,6 +2828,91 @@ components:
           format: uri
           description: Scene-editor URL — opens this video in the dashboard's editor for review/edit.
         request_id: { type: string }
+
+    SceneInspectorRequest:
+      type: object
+      required: [id, action]
+      description: Body for POST /v1/scene_inspector.
+      properties:
+        id:
+          type: string
+          description: Topic id from `/v1/video_data` / scene_editor. Accepts widecast..., gubo..., or current topic ids.
+        action:
+          type: string
+          enum:
+            - list_live_editors
+            - list_instances
+            - get_preview_state
+            - get_scene_dom_snapshot
+            - get_computed_boxes
+            - screenshot_scene_280x498
+            - activate_scene
+            - reload_preview
+            - pause_preview
+            - play_preview
+            - seek_preview
+          description: Inspector action. Prefer `get_computed_boxes` / `get_scene_dom_snapshot` for structural audit; use `screenshot_scene_280x498` only when visual judgment is needed.
+        scene_id:
+          oneOf:
+            - { type: string }
+            - { type: number }
+          description: Current display/order scene id. Prefer `voice_file` when available.
+        voice_file:
+          type: string
+          description: Stable per-scene UID from `/v1/video_data`; preferred selector.
+        selector:
+          type: string
+          description: Optional DOM selector scoped to the target preview root (used by `get_scene_dom_snapshot` / `get_computed_boxes`). Avoid broad selectors.
+        activate:
+          type: boolean
+          description: Allow the elected browser to activate/load the requested scene before inspecting. May visibly switch the open editor scene for that user.
+        seek_seconds:
+          type: number
+          description: Optional seek time for `seek_preview` or screenshot capture.
+        timeout_ms:
+          type: integer
+          description: Command timeout. Default ~7000ms (server clamps 1000-15000ms).
+        probe_timeout_ms:
+          type: integer
+          description: Foreground election window. Default ~800ms (server clamps 150-2000ms).
+        options:
+          type: object
+          description: Advanced action-specific options.
+
+    SceneInspectorResponse:
+      type: object
+      required: [object, status, code, request_id, action, topic_id]
+      description: |
+        Outcome of a live inspector call. `status` discriminates the
+        downstream branches an agent should take.
+      properties:
+        object: { type: string, const: scene_inspector_result }
+        status:
+          type: string
+          enum: [completed, error, unavailable]
+        code:
+          type: string
+          description: |
+            `ok` | `no_live_editor` | `no_active_editor` |
+            `unsupported_action` | `publisher_missing` |
+            `mqtt_publish_failed` | `browser_error`.
+        request_id: { type: string }
+        action: { type: string }
+        topic_id: { type: string }
+        company_id: { type: string }
+        selected_browser:
+          type: object
+          description: Tab metadata for the elected browser (set only when `status="completed"`).
+        result:
+          type: object
+          description: Action-specific result payload from the elected browser.
+        editors:
+          type: array
+          items: { type: object }
+          description: Set only when `action="list_live_editors"`.
+        fallback:
+          type: object
+          description: Set when `status="unavailable"` — describes the data-first fallback path.
 
     CollectIdeasRequest:
       type: object

@@ -122,7 +122,12 @@
 <tr>
 <td><a href="endpoints/modify-scene.html"><code>/v1/modify_scene</code></a></td>
 <td>POST</td>
-<td>(sync, free) Swap the background image/video on ONE scene of an existing video</td>
+<td>(sync, free) Edit ONE scene — background media swap, Upload Overlay (free agent-supplied image → Remotion spec), or Storyboard group rect (move/resize the overlay group)</td>
+</tr>
+<tr>
+<td><a href="endpoints/scene-inspector.html"><code>/v1/scene_inspector</code></a></td>
+<td>POST</td>
+<td>(sync, free) Live browser inspector for an open scene editor — DOM, computed boxes, preview play state, small 280×498 screenshot. Use <strong>only after</strong> <code>/v1/video_data</code> when you need browser truth</td>
 </tr>
 <tr>
 <td><a href="endpoints/upload-asset.html"><code>/v1/upload_asset</code></a></td>
@@ -167,7 +172,7 @@
 <tr>
 <td><a href="endpoints/video-data.html"><code>/v1/video_data</code></a></td>
 <td>POST</td>
-<td>(sync, free) Read the FULL structured video script for a topic_id — scenes, narrator, media URLs, global settings — same shape the scene editor sees</td>
+<td>(sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — <strong>first step for data-first scene audit/edit</strong></td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/account</code></a></td>

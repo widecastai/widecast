@@ -52,7 +52,8 @@ console.log(v.status, v.review_url);
 |---|---|---|
 | [`/v1/create_video`](endpoints/create-video.html) | POST | Submit a finished script (`source=text`), an idea brief (`source=idea`), a blog/article (`source=blog`), or an existing video/audio by URL or upload (`source=video_url`/`video_file`/`audio_url`/`audio_file`) for AI sourcing |
 | [`/v1/export_video`](endpoints/export-video.html) | POST | For `output_type=scene` videos, kick the final-MP4 renderer after review |
-| [`/v1/modify_scene`](endpoints/modify-scene.html) | POST | (sync, free) Swap the background image/video on ONE scene of an existing video |
+| [`/v1/modify_scene`](endpoints/modify-scene.html) | POST | (sync, free) Edit ONE scene — background media swap, Upload Overlay (free agent-supplied image → Remotion spec), or Storyboard group rect (move/resize the overlay group) |
+| [`/v1/scene_inspector`](endpoints/scene-inspector.html) | POST | (sync, free) Live browser inspector for an open scene editor — DOM, computed boxes, preview play state, small 280×498 screenshot. Use **only after** `/v1/video_data` when you need browser truth |
 | [`/v1/upload_asset`](endpoints/upload-asset.html) | POST | (sync, free) Upload an audio / video / image to WideCast's S3 bucket and get back a 24-hour public URL — use as `audio_url` / `video_url` on `/v1/create_video` |
 | [`/v1/create_content`](endpoints/create-content.html) | POST | Generate written content — a blog or social post (Facebook/X/LinkedIn) from a URL, idea, or text |
 | [`/v1/create_image`](endpoints/create-image.html) | POST | Generate 1-4 AI images from a text prompt — returns a numbered thumbnail set for the user to pick (1 credit/image) |
@@ -61,7 +62,7 @@ console.log(v.status, v.review_url);
 | [`/v1/publish`](endpoints/publish.html) | POST | Publish a video / blog / text to connected social platforms (returns request_ids → poll status) |
 | [`/v1/telegram/send`](endpoints/telegram-send.html) | POST | (sync, free) Push a notification to the user's own connected Telegram chat (self-notify only — text + optional photo/video URL) |
 | [`/v1/videos`](endpoints/library.html) | GET | (read, free) List the account's recent videos |
-| [`/v1/video_data`](endpoints/video-data.html) | POST | (sync, free) Read the FULL structured video script for a topic_id — scenes, narrator, media URLs, global settings — same shape the scene editor sees |
+| [`/v1/video_data`](endpoints/video-data.html) | POST | (sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — **first step for data-first scene audit/edit** |
 | [`/v1/account`](endpoints/library.html) | GET | (read, free) Account profile + remaining credits |
 | [`/v1/analytics`](endpoints/library.html) | GET | (read, free) Social analytics dashboard |
 | [`/v1/roadmap`](endpoints/library.html) | GET | (read, free) Content roadmap |

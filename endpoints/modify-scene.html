@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Edit one scene — `POST /v1/modify_scene` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, no credit charged.** After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to swap the background image or video on a specific scene, call this endpoint to apply the edit in place.">
+  <meta name="description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
   <link rel="canonical" href="https://widecast.ai/endpoints/modify-scene.html">
 
   <meta property="og:title" content="Edit one scene — `POST /v1/modify_scene` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, no credit charged.** After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to swap the background image or video on a specific scene, call this endpoint to apply the edit in place.">
+  <meta property="og:description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/modify-scene.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Edit one scene — `POST /v1/modify_scene` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, no credit charged.** After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to swap the background image or video on a specific scene, call this endpoint to apply the edit in place.">
+  <meta name="twitter:description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,15 +57,46 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="edit-one-scene-post-v1modify_scene">Edit one scene — <code>POST /v1/modify_scene</code></h1>
-<p><strong>Synchronous, no credit charged.</strong> After the user reviews scenes (via <code>result.review_url</code> from <a href="create-video.md"><code>/v1/create_video</code></a>) and asks to swap the background image or video on a specific scene, call this endpoint to apply the edit in place.</p>
-<p>The endpoint is <strong>roll-aware</strong> — you don't pick "background vs overlay"; the server does the right thing based on whether the scene is B-roll (asset becomes the background) or A-roll (asset becomes the overlay, narrator + grid untouched).</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="by-voice-file" id="ex-modify-scene--by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📎 Swap image on scene XcR0k</h3><p class="wc-pg-example-desc">Most reliable — paste the scene's voice_file from /v1/status and the new image URL.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="by-text" id="ex-modify-scene--by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Swap by what's said in the scene</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification with candidates if two scenes match too closely.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<p><strong>Synchronous, no credit charged</strong> until <a href="export-video.md"><code>/v1/export_video</code></a> re-renders the final MP4. After the user reviews scenes (via <code>result.review_url</code> from <a href="create-video.md"><code>/v1/create_video</code></a>) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.</p>
+<blockquote>
+<p><strong>Agent rule — data-first.</strong> Call <a href="video-data.md"><code>/v1/video_data</code></a> <strong>first</strong> and use <code>voice_file</code> (the stable per-scene UID, also the base of <code>{voice_file}_spec.json</code>) as the selector. <code>segment.id</code> is only current display/order metadata and may change after reorder/add/delete.</p>
+</blockquote>
+<p>The endpoint supports <strong>three edit branches</strong>. Pick exactly one family per call — do not mix.</p>
+<table>
+<thead>
+<tr>
+<th>Branch</th>
+<th>Use it when</th>
+<th>Field family</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>(A) Background media swap</strong></td>
+<td>Replace the background image/video on a scene.</td>
+<td><code>mediaUrl</code> (+ optional <code>mediaType</code>)</td>
+</tr>
+<tr>
+<td><strong>(B) Upload Overlay</strong></td>
+<td>Drop in an agent-supplied image and recompute the Remotion overlay spec. NOT Regenerate Overlay (which is paid).</td>
+<td><code>remotion.upload_overlay</code></td>
+</tr>
+<tr>
+<td><strong>(C) Storyboard group rect</strong></td>
+<td>Move / resize the entire Storyboard group in the Remotion spec.</td>
+<td><code>remotion.group.rect</code></td>
+</tr>
+</tbody>
+</table>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-voice-file" id="ex-modify-scene--media-by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Swap image on scene XcR0k by voice_file</h3><p class="wc-pg-example-desc">Most reliable. Roll-aware — B-roll scenes update mediaUrl/brollUrl, A-roll registers as brollUrl/user_asset_url without disturbing the narrator.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-text" id="ex-modify-scene--media-by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Swap by what's said in the scene (video)</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay" id="ex-modify-scene--upload-overlay"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)</h3><p class="wc-pg-example-desc">NOT Regenerate Overlay (paid). Classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-move" id="ex-modify-scene--group-rect-move"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Move the Storyboard group up by 120px (canvas coords)</h3><p class="wc-pg-example-desc">Move-only — only the wrapper position changes; child objects untouched. Canvas (720×1280) coordinates are NOT clamped — negative y is allowed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-scale" id="ex-modify-scene--group-rect-scale"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Resize group + scale children (default resize_mode)</h3><p class="wc-pg-example-desc">Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout. `wrapper_only` is advanced.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <blockquote>
-<p><strong>Today's limit.</strong> Only the background media is editable (<code>field_name: "mediaUrl"</code> + optional <code>"mediaType"</code>). Other field names return <code>400 unsupported_field</code>. Generic field edits, atomicity, and re-spec-gen triggering land in a follow-up release.</p>
+<p><strong><code>remotion.object.rect</code> is disabled for agents.</strong> Child-object edits break the computed group layout — the server returns <code>400 object_level_edit_disabled</code>. Use group rect instead.</p>
+<p><strong><code>segment.remotion_spec == "none"</code></strong> means the user intentionally disabled the overlay on that scene. Layout edits (branch C) return <code>remotion_spec_disabled</code>. <strong>Do not auto-enable</strong> — restore the overlay only with Upload Overlay if the user explicitly asks.</p>
+<p><strong>Planned</strong>: <code>overlay.narrator</code> / <code>overlay.caption</code> rect/config in the legacy 280×498 editor coordinate space (not in this release).</p>
 </blockquote>
 <hr />
-<h2 id="request">Request</h2>
+<h2 id="common-request-envelope">Common request envelope</h2>
 <div class="highlight"><pre><span></span><code><span class="err">POST /v1/modify_scene</span>
 <span class="err">Authorization: Bearer wc_live_REPLACE_ME</span>
 <span class="err">Content-Type: application/json</span>
@@ -74,14 +105,11 @@
 <span class="err">  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,</span>
 <span class="err">  &quot;by&quot;:    &quot;voice_file&quot;,</span>
 <span class="err">  &quot;value&quot;: &quot;XcR0k&quot;,</span>
-<span class="err">  &quot;fields&quot;: [</span>
-<span class="err">    { &quot;field_name&quot;: &quot;mediaUrl&quot;,  &quot;value&quot;: &quot;https://cdn.example.com/coast-sunset.jpg&quot; },</span>
-<span class="err">    { &quot;field_name&quot;: &quot;mediaType&quot;, &quot;value&quot;: &quot;image&quot; }</span>
-<span class="err">  ]</span>
+<span class="err">  &quot;fields&quot;: [ /* one family — see branches below */ ]</span>
 <span class="err">}</span>
 </code></pre></div>
 
-<h3 id="field-reference">Field reference</h3>
+<h3 id="common-field-reference">Common field reference</h3>
 <table>
 <thead>
 <tr>
@@ -96,177 +124,309 @@
 <td><code>id</code></td>
 <td>string</td>
 <td>yes</td>
-<td><code>topic_id</code> from <code>/v1/create_video</code>. Same id used by <code>/v1/status</code> and <code>/v1/export_video</code>. The video must have reached <code>scenes_ready_for_review</code> (HTTP 409 otherwise).</td>
+<td><code>topic_id</code> from <a href="create-video.md"><code>/v1/create_video</code></a> / <a href="video-data.md"><code>/v1/video_data</code></a>. Accepts <code>widecast...</code>, <code>gubo...</code>, or current ids. Same id used by <code>/v1/status</code> and <code>/v1/export_video</code>. The video must have reached <code>scenes_ready_for_review</code> (HTTP 409 otherwise).</td>
 </tr>
 <tr>
 <td><code>by</code></td>
 <td>string enum</td>
 <td>yes</td>
-<td>How to pick the scene. <code>"id"</code> = exact <code>segment.id</code> match. <code>"voice_file"</code> = exact match on the per-scene uid (also the mp3 narration filename — most reliable). <code>"text"</code> = fuzzy match against <code>segment.text</code>; may return a clarification response.</td>
+<td>How to pick the scene. <strong>Prefer <code>"voice_file"</code></strong> — the stable per-scene UID. <code>"id"</code> matches the current <code>segment.id</code> order/display (UNSTABLE). <code>"text"</code> fuzzy-matches <code>segment.text</code>; multi-match returns a clarification.</td>
 </tr>
 <tr>
 <td><code>value</code></td>
 <td>string | number</td>
 <td>yes</td>
-<td>The id / voice_file / narration snippet to match against. For <code>by="text"</code> pass enough of the narration to be unambiguous.</td>
+<td>The <code>voice_file</code> / <code>id</code> / narration snippet to match.</td>
 </tr>
 <tr>
 <td><code>fields</code></td>
 <td>array</td>
 <td>yes</td>
-<td>Non-empty list of <code>{ field_name, value }</code> edits. Today honoured: <code>{ field_name: "mediaUrl", value: "&lt;http(s) URL&gt;" }</code> and optional <code>{ field_name: "mediaType", value: "image" \| "video" }</code> (auto-detected from URL extension if omitted). Other field names → 400 <code>unsupported_field</code>.</td>
+<td>Non-empty list of <code>{ field_name, value }</code> edits — one family only. See branch sections below.</td>
 </tr>
 <tr>
 <td><code>op</code></td>
 <td>string</td>
 <td>no</td>
-<td>Reserved for future generic field ops. Defaults to <code>"set"</code>. Ignored for media edits today.</td>
+<td>Reserved for future generic ops. Defaults to <code>"set"</code>.</td>
 </tr>
 <tr>
 <td><code>min_score</code></td>
 <td>number</td>
 <td>no</td>
-<td>Only when <code>by="text"</code>. Fuzzy-match acceptance threshold, 0..1 (default <code>0.5</code>). Lower cautiously for paraphrases; raising past <code>0.9</code> usually causes false negatives because exact narration text rarely matches verbatim.</td>
+<td>Only for <code>by="text"</code>. Fuzzy threshold 0..1 (default <code>0.5</code>). Lower cautiously for paraphrases; raising past <code>0.9</code> usually causes false negatives.</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="responses">Responses</h2>
-<h3 id="200-ok-success"><code>200 OK</code> — success</h3>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;scene_modified&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w">         </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;scene_id&quot;</span><span class="p">:</span><span class="w">   </span><span class="mi">3</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;voice_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w">      </span><span class="mf">1.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;applied&quot;</span><span class="p">:</span><span class="w">    </span><span class="s2">&quot;media&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;media_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image&quot;</span>
-<span class="p">}</span>
+<h2 id="branch-a-background-media-swap">Branch (A) — Background media swap</h2>
+<p>Roll-aware: B-roll scenes get the asset as the background; A-roll scenes register it as the overlay without touching the narrator.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;mediaUrl&quot;,  &quot;value&quot;: &quot;https://cdn.example.com/coast-sunset.jpg&quot; },
+    { &quot;field_name&quot;: &quot;mediaType&quot;, &quot;value&quot;: &quot;image&quot; }
+  ]
+}
 </code></pre></div>
 
+<table>
+<thead>
+<tr>
+<th><code>field_name</code></th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mediaUrl</code></td>
+<td>http(s) URL</td>
+<td>The image OR video to use.</td>
+</tr>
+<tr>
+<td><code>mediaType</code></td>
+<td><code>"image"</code> | <code>"video"</code></td>
+<td>Optional; auto-detected from the URL extension.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Scene roll</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>B-roll</strong></td>
+<td>Asset IS the background. <code>mediaUrl</code>, <code>thumbnailUrl</code>, <code>brollUrl</code>, <code>brollThumbnailUrl</code> are synced (<code>brollUrl === mediaUrl</code>).</td>
+</tr>
+<tr>
+<td><strong>A-roll</strong></td>
+<td>Narrator + grid untouched. Asset becomes <code>brollUrl</code> / <code>user_asset_url</code>; the next scene-spec gen turns it into the overlay (image → chest-card; video → <code>brollUrl</code> backdrop).</td>
+</tr>
+</tbody>
+</table>
+<p>Success response includes <code>applied</code>, <code>media_type</code>, <code>media_url</code>, and the full updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-b-upload-overlay">Branch (B) — Upload Overlay</h2>
+<p>Free, agent-supplied image → Remotion overlay spec. This is <strong>not</strong> Regenerate Overlay (which is paid because WideCast calls image generation). The pipeline classifies the image (graphic vs realistic), decomposes it into objects, and applies a strict no-AI fallback when decomposition fails.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;remotion.upload_overlay&quot;, &quot;value&quot;: &quot;https://cdn.example.com/overlay-720x1280.png&quot; }
+  ]
+}
+</code></pre></div>
+
+<p>You can also pass <code>value: { "url": "https://..." }</code> if you need to attach future options.</p>
+<p><strong>Grounding rule.</strong> If the agent creates the image first, it MUST be grounded in scene context (<code>text</code>, <code>talking_point</code>, <code>visual</code>, <code>quote</code>, <code>keyword</code>, <code>type</code>) — do not invent unrelated visuals.</p>
+<p><strong>Image guidance for best decomposition</strong>:</p>
 <ul>
-<li><code>scene_id</code> — <code>segment.id</code> of the edited scene.</li>
-<li><code>voice_file</code> — stable per-scene uid (also the mp3 filename).</li>
-<li><code>score</code> — <code>1.0</code> for <code>by="id"</code> / <code>by="voice_file"</code>; the fuzzy score for <code>by="text"</code>.</li>
-<li><code>applied</code> — which family of edits ran. Today only <code>"media"</code>.</li>
-<li><code>media_type</code> — <code>"image"</code> or <code>"video"</code>, the asset type the server resolved.</li>
+<li>Portrait 9:16, preferably <strong>720×1280 transparent PNG</strong>.</li>
+<li>Flat-background graphic with large, separated foreground objects/text.</li>
+<li>Strong contrast, readable typography.</li>
+<li>Avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text — those get classified <code>realistic</code> and are kept as ONE full-frame image (not decomposed).</li>
 </ul>
-<p>The change is visible in the editor (<code>review_url</code>) immediately. Call <code>/v1/export_video</code> again only when the user wants a fresh final MP4 to reflect the edit.</p>
-<h3 id="200-ok-clarification-ambiguous-bytext"><code>200 OK</code> — clarification (ambiguous <code>by="text"</code>)</h3>
-<p>When two or more scenes match the supplied text closely enough that picking one would be a guess, the server returns a clarification — <strong>no edit is applied</strong>.</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w">      </span><span class="s2">&quot;clarification&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;needs_input&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;value&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w">     </span><span class="s2">&quot;More than one scene matches that text closely. Pick one and call again with by=&#39;voice_file&#39; (or by=&#39;id&#39;) and value set to the chosen scene&#39;s identifier.&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;candidates&quot;</span><span class="p">:</span><span class="w">  </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;segment_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;voice_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.92</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Meta đã chi 14.3 tỷ đô để mua Scale AI…&quot;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;segment_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;voice_file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Z9p2m&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.88</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Meta chi 14.3 tỷ USD đầu tư vào AI training data…&quot;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">  </span><span class="p">]</span>
-<span class="p">}</span>
+<p>Upload Overlay is an <strong>explicit opt-in to recreate an overlay</strong> even if the scene previously had <code>remotion_spec="none"</code>.</p>
+<p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus the agent-supplied <code>uploaded_overlay_url</code> and <code>cost: 0</code>.</p>
+<hr />
+<h2 id="branch-c-remotion-storyboard-group-rect">Branch (C) — Remotion Storyboard group rect</h2>
+<p>Free layout edit. Moves or resizes the entire Storyboard group in the per-scene Remotion spec without touching child objects (default) or with a wrapper-only change (advanced).</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    {
+      &quot;field_name&quot;: &quot;remotion.group.rect&quot;,
+      &quot;value&quot;: {
+        &quot;element_id&quot;: &quot;main&quot;,
+        &quot;x&quot;: 111,
+        &quot;y&quot;: -120,
+        &quot;w&quot;: 498,
+        &quot;h&quot;: 174,
+        &quot;coordinate_space&quot;: &quot;canvas&quot;,
+        &quot;resize_mode&quot;: &quot;scale_children&quot;
+      }
+    }
+  ]
+}
 </code></pre></div>
 
-<p>Show the <code>text</code> previews to the user, get a pick, then call again with <code>by="voice_file"</code> and the chosen scene's <code>voice_file</code>. The server never silently picks one.</p>
-<h3 id="404-not-found-video_not_found-scene_not_found"><code>404 Not Found</code> — <code>video_not_found</code> / <code>scene_not_found</code></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>element_id</code></td>
+<td>Optional. Group id. Omit when the spec has a single Storyboard group or a group with <code>id="main"</code>.</td>
+</tr>
+<tr>
+<td><code>x</code>, <code>y</code></td>
+<td>Wrapper top-left position. <strong>Move-only when w/h omitted.</strong> Canvas coords are <strong>not clamped</strong> — <code>y: -120</code> legitimately translates a full-canvas group upward.</td>
+</tr>
+<tr>
+<td><code>w</code>, <code>h</code></td>
+<td>Wrapper width/height. Triggers resize.</td>
+</tr>
+<tr>
+<td><code>coordinate_space</code></td>
+<td><code>"canvas"</code> (720×1280) or <code>"preview"</code> (280×498 editor coords — server converts).</td>
+</tr>
+<tr>
+<td><code>resize_mode</code></td>
+<td><code>"scale_children"</code> (default) — wrapper + every child object + root <code>background.bbox</code> scale together. <code>"wrapper_only"</code> is advanced and rarely correct for agents.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Coordinate spaces</strong> (also embedded in <code>agent_meta.coordinate_spaces</code> returned by <code>/v1/video_data</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Space</th>
+<th>Width × Height</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Remotion canvas</td>
+<td>720 × 1280</td>
+<td><code>remotion.*</code> fields, the per-scene spec file</td>
+</tr>
+<tr>
+<td>Legacy editor preview</td>
+<td>280 × 498</td>
+<td><code>overlay.caption</code>, <code>overlay.narrator</code></td>
+</tr>
+</tbody>
+</table>
+<p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus an <code>applied</code> object describing the group rect change.</p>
+<hr />
+<h2 id="responses">Responses</h2>
+<h3 id="200-ok-scene_modified"><code>200 OK</code> — <code>scene_modified</code></h3>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:     &quot;scene_modified&quot;,
+  &quot;id&quot;:         &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;scene_id&quot;:   3,
+  &quot;voice_file&quot;: &quot;XcR0k&quot;,
+  &quot;score&quot;:      1.0,
+  &quot;applied&quot;:    { &quot;cost&quot;: 0, &quot;uploaded_overlay_url&quot;: &quot;https://...&quot; },
+  &quot;segment&quot;:    { /* full updated segment */ },
+  &quot;remotion_spec_updated&quot;:   true,
+  &quot;remotion_spec_file&quot;:      &quot;XcR0k_spec.json&quot;,
+  &quot;remotion_spec_url&quot;:       &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_spec.json?v=1748293012&quot;,
+  &quot;remotion_spec_version&quot;:   &quot;1748293012&quot;,
+  &quot;remotion_spec_state&quot;:     &quot;ready&quot;,
+  &quot;remotion_spec_exists&quot;:    true
+}
+</code></pre></div>
+
 <ul>
-<li><code>video_not_found</code> — no video with this id in the account.</li>
+<li><code>scene_id</code> — current <code>segment.id</code> (display/order). For tracking the same scene across edits use <code>voice_file</code>.</li>
+<li><code>score</code> — <code>1.0</code> for <code>by="id"</code>/<code>by="voice_file"</code>; the fuzzy score for <code>by="text"</code>.</li>
+<li><code>applied</code> — older media-only responses carried a string (<code>"media"</code>); current responses carry an object describing the family-specific change.</li>
+<li><code>media_type</code>, <code>media_url</code> — set only on the background-media branch.</li>
+<li><code>remotion_spec_*</code> — set on Upload Overlay and group rect branches.</li>
+</ul>
+<p>Successful edits publish MQTT realtime to every open editor; the change is visible immediately. Call <a href="export-video.md"><code>/v1/export_video</code></a> again only when the user wants a fresh final MP4.</p>
+<h3 id="200-ok-clarification-ambiguous-bytext"><code>200 OK</code> — <code>clarification</code> (ambiguous <code>by="text"</code>)</h3>
+<p>When two or more scenes match the supplied text closely enough that picking one would be a guess, the server returns a clarification — <strong>no edit is applied</strong>.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:      &quot;clarification&quot;,
+  &quot;needs_input&quot;: &quot;value&quot;,
+  &quot;message&quot;:     &quot;More than one scene matches that text closely. Pick one and call again with by=&#39;voice_file&#39; and value set to the chosen scene&#39;s voice_file.&quot;,
+  &quot;candidates&quot;:  [
+    { &quot;segment_id&quot;: 3, &quot;voice_file&quot;: &quot;XcR0k&quot;, &quot;score&quot;: 0.92, &quot;text&quot;: &quot;Meta đã chi 14.3 tỷ đô để mua Scale AI…&quot; },
+    { &quot;segment_id&quot;: 7, &quot;voice_file&quot;: &quot;Z9p2m&quot;, &quot;score&quot;: 0.88, &quot;text&quot;: &quot;Meta chi 14.3 tỷ USD đầu tư vào AI training data…&quot; }
+  ]
+}
+</code></pre></div>
+
+<p>Show the <code>text</code> previews to the user, get a pick, retry with <code>by="voice_file"</code>.</p>
+<h3 id="404-not-found"><code>404 Not Found</code></h3>
+<ul>
+<li><code>video_not_found</code> — no video with this id on the account.</li>
 <li><code>scene_not_found</code> — the id / voice_file / text didn't match any scene (with the configured <code>min_score</code> floor).</li>
 </ul>
-<h3 id="409-precondition-failed-scenes_not_ready-invalid_script"><code>409 Precondition Failed</code> — <code>scenes_not_ready</code> / <code>invalid_script</code></h3>
+<h3 id="409-precondition-failed"><code>409 Precondition Failed</code></h3>
 <ul>
-<li><code>scenes_not_ready</code> — the video hasn't reached <code>scenes_ready_for_review</code> yet. Poll <code>/v1/status/{id}</code> first.</li>
+<li><code>scenes_not_ready</code> — the video hasn't reached <code>scenes_ready_for_review</code>. Poll <code>/v1/status/{id}</code> first.</li>
 <li><code>invalid_script</code> — the stored scene script is malformed; the video cannot be edited via this endpoint.</li>
 </ul>
 <h3 id="400-bad-request"><code>400 Bad Request</code></h3>
 <ul>
 <li><code>invalid_json</code> — request body is not valid JSON.</li>
-<li><code>missing_field</code> — required field missing (<code>id</code>, <code>by</code>, <code>value</code>, or <code>fields</code>).</li>
-<li><code>invalid_id</code> — <code>id</code> doesn't match the <code>widecast&lt;alphanumeric&gt;</code> pattern.</li>
-<li><code>invalid_by</code> — <code>by</code> is not one of <code>id</code> / <code>voice_file</code> / <code>text</code>.</li>
+<li><code>missing_field</code> — required field missing (<code>id</code>, <code>by</code>, <code>value</code>, <code>fields</code>).</li>
+<li><code>invalid_id</code> — <code>id</code> doesn't match an accepted topic id.</li>
+<li><code>invalid_by</code> — <code>by</code> is not one of <code>voice_file</code> / <code>id</code> / <code>text</code>.</li>
 <li><code>invalid_field_entry</code> — an entry in <code>fields</code> is not <code>{ field_name, value }</code>.</li>
-<li><code>invalid_media_url</code> — <code>mediaUrl</code> is not an http(s) URL the server can reach.</li>
-<li><code>unsupported_field</code> — <code>fields</code> contains a <code>field_name</code> other than <code>mediaUrl</code> / <code>mediaType</code> (only the background media is editable today).</li>
+<li><code>unsupported_field</code> — <code>field_name</code> not in the supported set (<code>mediaUrl</code>, <code>mediaType</code>, <code>remotion.upload_overlay</code>, <code>remotion.group.rect</code>).</li>
+<li><code>invalid_media_url</code> — <code>mediaUrl</code> / <code>remotion.upload_overlay</code> value is not an http(s) URL the server can reach.</li>
+<li><code>object_level_edit_disabled</code> — <code>remotion.object.rect</code> requested; child-object edits break the computed layout. Use <code>remotion.group.rect</code> instead.</li>
+<li><code>remotion_spec_disabled</code> — the scene has <code>remotion_spec="none"</code>; do not auto-enable. Use Upload Overlay only if the user explicitly asks.</li>
 </ul>
 <hr />
-<h2 id="roll-aware-behaviour">Roll-aware behaviour</h2>
-<table>
-<thead>
-<tr>
-<th>Scene roll</th>
-<th>What happens</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>B-roll</strong> (no narrator on screen)</td>
-<td>The asset IS the background. <code>mediaUrl</code>, <code>thumbnailUrl</code>, <code>brollUrl</code>, and <code>brollThumbnailUrl</code> are all set (B-roll invariant <code>brollUrl === mediaUrl</code>); the asset is appended to <code>savedImages</code> / <code>savedVideos</code> so the editor lists it as a switchable option.</td>
-</tr>
-<tr>
-<td><strong>A-roll</strong> (narrator on screen)</td>
-<td>The narrator, grid background, and overlay structure are <strong>untouched</strong>. The asset is registered as a saved option and stamped as <code>user_asset_url</code> on the scene; the next scene-spec gen turns it into the overlay (image → chest-card overlay; video → <code>brollUrl</code> backdrop).</td>
-</tr>
-</tbody>
-</table>
-<p>You never need to know the roll — pass the asset, the server applies it correctly.</p>
-<hr />
 <h2 id="sdk-examples">SDK examples</h2>
-<h3 id="python">Python</h3>
+<h3 id="python-upload-overlay">Python — Upload Overlay</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
 
-<span class="c1"># 1) Make the video, wait for scenes to be ready.</span>
-<span class="n">v</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">create_video</span><span class="p">(</span><span class="n">script_text</span><span class="o">=</span><span class="n">script</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+<span class="c1"># 1) Data-first audit.</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">)</span>
+<span class="n">target</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;Scale AI&quot;</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
 
-<span class="c1"># 2) User reviews v.review_url. They say &quot;use this image for scene 3&quot;.</span>
+<span class="c1"># 2) Drop in a portrait 720x1280 transparent PNG.</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">modify_scene</span><span class="p">(</span>
-    <span class="n">v</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-    <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
-    <span class="n">value</span><span class="o">=</span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
-    <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;mediaUrl&quot;</span><span class="p">,</span>  <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;https://cdn.example.com/coast-sunset.jpg&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;mediaType&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;image&quot;</span><span class="p">},</span>
-    <span class="p">],</span>
+    <span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+    <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;remotion.upload_overlay&quot;</span><span class="p">,</span>
+             <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;https://cdn.example.com/overlay-720x1280.png&quot;</span><span class="p">}],</span>
 <span class="p">)</span>
-
-<span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;object&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;clarification&quot;</span><span class="p">:</span>
-    <span class="c1"># Two scenes matched too closely — show candidates to the user.</span>
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;candidates&quot;</span><span class="p">]:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span> <span class="s2">&quot;→&quot;</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
-    <span class="c1"># …after they pick, call again with by=&quot;voice_file&quot; and the chosen value.</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;object&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;scene_modified&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Edited scene </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;scene_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;media_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-
-<span class="c1"># 3) Render the final MP4 only when the user is happy.</span>
-<span class="n">client</span><span class="o">.</span><span class="n">export_video</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">900</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new spec:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;remotion_spec_url&quot;</span><span class="p">])</span>
 </code></pre></div>
 
-<h3 id="typescript">TypeScript</h3>
+<h3 id="typescript-group-rect-move">TypeScript — group rect move</h3>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">create_video</span><span class="p">({</span><span class="w"> </span><span class="nx">script_text</span><span class="o">:</span><span class="w"> </span><span class="kt">script</span><span class="w"> </span><span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">());</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">video_data</span><span class="p">(</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="o">/</span><span class="nx">Scale</span><span class="w"> </span><span class="nx">AI</span><span class="o">/</span><span class="nx">i</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">text</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">))</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">modify_scene</span><span class="p">({</span>
-<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">v.id</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">by</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w">    </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">by</span><span class="o">:</span><span class="w">    </span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">target.voice_file</span><span class="p">,</span>
 <span class="w">  </span><span class="nx">fields</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">field_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;mediaUrl&quot;</span><span class="p">,</span><span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://cdn.example.com/coast-sunset.jpg&quot;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">field_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;mediaType&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;image&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">field_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;remotion.group.rect&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">element_id</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">y</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">120</span><span class="p">,</span><span class="w">                 </span><span class="c1">// canvas coords; negative is allowed</span>
+<span class="w">        </span><span class="nx">coordinate_space</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;canvas&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">    </span><span class="p">},</span>
 <span class="w">  </span><span class="p">],</span>
 <span class="p">});</span>
 
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">object</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;clarification&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">candidates</span><span class="p">)</span><span class="w"> </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">voice_file</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;→&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">text</span><span class="p">);</span>
-<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Edited scene </span><span class="si">${</span><span class="nx">result</span><span class="p">.</span><span class="nx">scene_id</span><span class="si">}</span><span class="sb"> (</span><span class="si">${</span><span class="nx">result</span><span class="p">.</span><span class="nx">media_type</span><span class="si">}</span><span class="sb">)`</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">object</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;scene_modified&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;spec ready:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">remotion_spec_url</span><span class="p">);</span>
 <span class="p">}</span>
-
-<span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">export_video</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="nx">v</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">v</span><span class="p">.</span><span class="nx">wait</span><span class="p">({</span><span class="w"> </span><span class="nx">timeoutMs</span><span class="o">:</span><span class="w"> </span><span class="kt">900_000</span><span class="w"> </span><span class="p">}));</span>
 </code></pre></div>
 
-<h3 id="manual-curl">Manual (curl)</h3>
+<h3 id="manual-curl-background-media-swap">Manual (curl) — Background media swap</h3>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/modify_scene&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -284,11 +444,11 @@
 <h2 id="cost-ordering">Cost &amp; ordering</h2>
 <ul>
 <li><strong>Free</strong> — <code>/v1/modify_scene</code> does not consume credits. The expensive work (re-rendering the final MP4) only runs when you call <a href="export-video.md"><code>/v1/export_video</code></a> again.</li>
-<li><strong>Order matters when re-rendering</strong>: apply all <code>modify_scene</code> edits first, then call <code>/v1/export_video</code> once. Edits made after <code>/v1/export_video</code> won't appear in the already-queued render.</li>
+<li><strong>Order matters when re-rendering</strong>: apply all edits first, then call <code>/v1/export_video</code> once. Edits made after <code>/v1/export_video</code> won't appear in the already-queued render.</li>
 </ul>
 <hr />
 <h2 id="when-to-use-bytext">When to use <code>by="text"</code></h2>
-<p>Prefer <code>by="voice_file"</code> or <code>by="id"</code> whenever you have either from a previous <code>/v1/status</code> call — exact matches never fail. Use <code>by="text"</code> only when the user names a scene by what's said in it ("change the picture on the scene about Meta and Scale AI"). The endpoint is ambiguity-safe — it returns a clarification rather than guess — but the round-trip costs a call. When the user paraphrases (e.g. mixes Vietnamese and English versions of the same line), lower <code>min_score</code> cautiously to <code>0.4</code> or <code>0.45</code>; do not raise past <code>0.9</code>.</p>
+<p>Prefer <code>by="voice_file"</code> whenever you have it from a previous <code>/v1/video_data</code> / <code>/v1/status</code> call — exact matches never fail. Use <code>by="text"</code> only when the user names a scene by what's said in it ("change the picture on the scene about Meta and Scale AI"). The endpoint is ambiguity-safe — it returns a clarification rather than guess — but the round-trip costs a call. When the user paraphrases, lower <code>min_score</code> cautiously to <code>0.4</code>–<code>0.45</code>; do not raise past <code>0.9</code>.</p>
     </article>
   </main>
 

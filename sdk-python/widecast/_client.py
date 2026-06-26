@@ -806,35 +806,78 @@ class Widecast:
     def modify_scene(self, video_id: str, *, by: str, value, fields: list,
                      op: Optional[str] = None,
                      min_score: Optional[float] = None) -> dict:
-        """POST /v1/modify_scene — SYNCHRONOUS, **no credit charged**. Swap the
-        background image/video on ONE scene of an existing video.
+        """POST /v1/modify_scene — SYNCHRONOUS, **no credit charged** until
+        :meth:`export_video` re-renders the final MP4. Edit ONE scene of an
+        existing video. Successful edits publish MQTT realtime so every
+        open scene editor for this video hot-updates.
+
+        **Agent rule — data-first**: call :meth:`video_data` first and use
+        ``voice_file`` (the stable per-scene UID, also the base of
+        ``{voice_file}_spec.json``) for ``by``/``value``. ``segment.id`` is
+        only display/order metadata and may change after
+        reorder/add/delete.
 
         Resolve the scene with ``by`` + ``value``:
-          - ``by="id"`` — exact ``segment.id`` match.
-          - ``by="voice_file"`` — exact per-scene uid match (most reliable).
-          - ``by="text"`` — fuzzy match against the narration; on ambiguity
-            returns a clarification dict instead of editing.
+          - ``by="voice_file"`` — **preferred**. Exact match on the stable
+            per-scene UID.
+          - ``by="id"`` — exact match on current ``segment.id`` order.
+          - ``by="text"`` — fuzzy match against narration. Multi-match
+            returns a clarification dict (no edit applied).
 
-        ``fields`` is a list of ``{"field_name", "value"}`` edits. Today
-        honoured: ``{"field_name": "mediaUrl", "value": "<http(s) URL>"}``
-        (image OR video) and optional ``{"field_name": "mediaType", "value":
-        "image"|"video"}`` (auto-detected from URL extension if omitted).
-        Other field names return 400 ``unsupported_field``.
+        ``fields`` is a list of ``{"field_name", "value"}`` edits. Pick
+        **exactly one family per call** — do not mix:
 
-        Return — the raw response dict. Two shapes:
+          **(A) Background media swap.**
+              ``[{"field_name": "mediaUrl", "value": "<http(s) URL>"},
+              {"field_name": "mediaType", "value": "image"|"video"}?]``.
+              Roll-aware: B-roll scenes update ``mediaUrl`` / ``brollUrl``;
+              A-roll scenes register the asset as ``brollUrl`` /
+              ``user_asset_url`` without disturbing the narrator.
 
-          * success → ``{"object": "scene_modified", "id", "scene_id",
-            "voice_file", "score", "applied": "media", "media_type"}``.
+          **(B) Upload Overlay (FREE, agent-supplied image → spec).**
+              ``[{"field_name": "remotion.upload_overlay",
+              "value": "<image URL>"}]`` or
+              ``value={"url": "<image URL>"}``. NOT Regenerate Overlay
+              (which is paid). Ground the image in scene context
+              (``text``, ``talking_point``, ``visual``, ``quote``,
+              ``keyword``, ``type``). Prefer a 720×1280 transparent PNG or
+              flat-bg graphic for object decomposition. Response includes
+              cache-busted ``remotion_spec_url``.
 
-          * ambiguous text match → ``{"object": "clarification",
-            "needs_input": "value", "message": "...", "candidates": [
-            {"segment_id", "voice_file", "score", "text"}]}``. The edit was
-            NOT applied. Show the candidates to the user, pick one, and call
-            again with ``by="voice_file"`` and the chosen ``voice_file``.
+          **(C) Remotion Storyboard group rect (FREE layout edit).**
+              ``[{"field_name": "remotion.group.rect", "value": {
+              "element_id": "main", "x": ..., "y": ..., "w": ..., "h": ...,
+              "coordinate_space": "canvas"|"preview",
+              "resize_mode": "scale_children"|"wrapper_only"}}]``.
+              Move-only (x/y) updates the wrapper position; canvas coords
+              are NOT clamped (negative y is allowed). Resize defaults to
+              ``scale_children``. ``remotion.object.rect`` is **disabled
+              for agents** (returns ``object_level_edit_disabled``).
 
-        Edits are roll-aware: B-roll scenes swap the background and sync the
-        ``brollUrl`` invariant; A-roll scenes keep narrator + grid untouched
-        and register the asset as the overlay for the next spec gen.
+        Remotion canvas = 720×1280; legacy ``overlay.caption`` /
+        ``overlay.narrator`` use 280×498 editor preview coords. Set
+        ``coordinate_space`` accordingly.
+
+        ``segment.remotion_spec == "none"`` means the user intentionally
+        disabled the overlay on that scene. Layout edits return
+        ``remotion_spec_disabled``. Use Upload Overlay only if the user
+        explicitly asks to restore the overlay.
+
+        Return — the raw response dict. Shapes:
+
+          * Success (media branch) → ``{"object": "scene_modified", "id",
+            "scene_id", "voice_file", "score", "applied", "media_type",
+            "media_url", "segment", ...}``.
+          * Success (upload_overlay / group_rect) → adds
+            ``remotion_spec_updated``, ``remotion_spec_file``,
+            ``remotion_spec_url``, ``remotion_spec_version``,
+            ``remotion_spec_state``, ``remotion_spec_exists`` (and on
+            upload overlay: ``uploaded_overlay_url``, ``cost``).
+          * Ambiguous text match → ``{"object": "clarification",
+            "needs_input": "value", "message": "...",
+            "candidates": [{"segment_id", "voice_file", "score", "text"}]}``.
+            The edit was NOT applied. Show candidates, pick one, retry
+            with ``by="voice_file"``.
         """
         if not video_id or not isinstance(video_id, str):
             raise InvalidRequestError("video_id must be a non-empty string.",
@@ -1160,27 +1203,53 @@ class Widecast:
     # title filter instead.
 
     def video_data(self, video_id: str) -> dict:
-        """POST /v1/video_data — read the FULL structured video script for a
-        topic_id. SYNC, FREE.
+        """POST /v1/video_data — read structured scene data for a topic_id.
+        SYNC, FREE. **First step for data-first scene audit/edit** — call
+        this before :meth:`modify_scene` or :meth:`scene_inspector`.
 
-        Returns every scene's text/narration, ``voice_file`` (the per-scene
-        UID :meth:`modify_scene` needs), ``type`` ('A-roll' or 'B-roll'),
-        ``duration``, ``mediaUrl`` (currently-shown background or A-roll
-        overlay), ``mediaType``, ``thumbnailUrl``, plus ``narrator`` (voice
-        + face clone ids when set) and ``global_settings`` (aspect ratio,
-        music, brand, language). Same engine the scene editor uses on
-        open, so the data matches what the user sees there exactly.
+        Returns full annotated segment dicts. To keep MCP payloads usable,
+        per-segment ``words`` timing arrays, top-level ``captions``, and
+        internal preview-cache fields (``savedVideos``, ``savedImages``,
+        ``_previewInstanceId``, ``_remotionSpecFetching``,
+        ``_forceNarratorRefit``) are trimmed.
+
+        **Scene identity rule** (also returned as ``scene_identity`` in
+        the response): use ``voice_file`` as the stable per-scene UID.
+        ``segment.id`` is only display/order metadata and may change after
+        reorder/add/delete. The Remotion spec for a scene is
+        ``{voice_file}_spec.json``.
+
+        **Per-segment fields agents care about**:
+          * ``voice_file`` — stable scene UID (use for modify/inspect).
+          * ``id`` / ``order_id`` / ``scene_index`` — current order;
+            UNSTABLE.
+          * ``type`` — ``A-roll`` | ``B-roll`` | ``thumbnail``.
+          * ``text`` (narration), ``talking_point``, ``visual``,
+            ``quote``, ``keyword``.
+          * ``mediaUrl``, ``mediaType``, ``thumbnailUrl``, ``videoTrim``.
+          * ``overlay.caption``, ``overlay.narrator`` — legacy **280×498**
+            editor preview coordinates.
+          * ``remotion_spec`` — ``"none"`` means the user intentionally
+            disabled the overlay; do NOT auto-edit/re-enable.
+          * ``remotion_spec_file`` — ``{voice_file}_spec.json``.
+          * ``remotion_spec_url`` — cache-busted public URL; set only when
+            ``remotion_spec_state == "ready"``.
+          * ``remotion_spec_version``, ``remotion_spec_exists``,
+            ``remotion_spec_state`` (``ready`` | ``missing`` |
+            ``disabled``).
+          * ``agent_meta`` — same metadata bundled for quick consumption.
+
+        **Coordinate warning**: Remotion spec objects use **720×1280
+        canvas** coordinates; legacy ``overlay.caption`` and
+        ``overlay.narrator`` use **280×498 editor preview** coordinates.
+
+        **Remotion spec is NOT inlined** — fetch ``remotion_spec_url``
+        only when state is ``ready`` and you actually need object-level
+        overlay boxes.
 
         Args:
-            video_id: Topic id from :meth:`create_video` (same id used by
-                      :meth:`get_status`, :meth:`export_video`,
-                      :meth:`modify_scene`).
-
-        Returns dict ``{"object":"video_data", "id", "topic_id",
-        "aspect_ratio", "title", "language", "total_segments",
-        "total_duration", "segments":[{"id","voice_file","text","type",
-        "duration","mediaUrl","mediaType","brollUrl","thumbnailUrl",
-        "narrator":{...}}], "global_settings", "review_url", "request_id"}``.
+            video_id: Topic id from :meth:`create_video` / scene_editor.
+                      Accepts widecast..., gubo..., or current topic ids.
 
         Raises ``InvalidRequestError(code="video_not_found", 404)`` when
         the id doesn't exist on the account, or
@@ -1189,11 +1258,90 @@ class Widecast:
         """
         if not isinstance(video_id, str) or not video_id.strip():
             raise InvalidRequestError(
-                "video_id (the widecast<...> topic_id) is required.",
+                "video_id (the topic_id) is required.",
                 code="missing_field", param="video_id")
         return self._request("POST", "/v1/video_data",
                              json_body={"video_id": video_id.strip()},
                              idempotency_key=str(uuid.uuid4()))
+
+    def scene_inspector(self, video_id: str, action: str, *,
+                        scene_id: Optional[Any] = None,
+                        voice_file: Optional[str] = None,
+                        selector: Optional[str] = None,
+                        activate: Optional[bool] = None,
+                        seek_seconds: Optional[float] = None,
+                        timeout_ms: Optional[int] = None,
+                        probe_timeout_ms: Optional[int] = None,
+                        options: Optional[Mapping[str, Any]] = None) -> dict:
+        """POST /v1/scene_inspector — live browser inspector for an open
+        scene editor of a video. Use **only after** data-first audit with
+        :meth:`video_data`, when the agent needs BROWSER TRUTH (mounted
+        DOM, computed boxes, preview play state, a small 280×498
+        screenshot).
+
+        Server broadcasts a tiny MQTT probe to every open editor tab,
+        elects ONE healthy foreground/active browser within ~800ms, then
+        sends the inspector command only to that tab. If no editor is
+        open, the response is ``{status: "unavailable", code:
+        "no_live_editor" | "no_active_editor", fallback: {...}}`` —
+        expected, not a crash. Fall back to :meth:`video_data` +
+        ``remotion_spec_url``.
+
+        Allowed actions:
+          ``list_live_editors`` | ``list_instances`` |
+          ``get_preview_state`` | ``get_scene_dom_snapshot`` |
+          ``get_computed_boxes`` | ``screenshot_scene_280x498`` |
+          ``activate_scene`` | ``reload_preview`` | ``pause_preview`` |
+          ``play_preview`` | ``seek_preview``.
+
+        No arbitrary JavaScript eval is exposed. Screenshots intentionally
+        small (280×498). Use ``voice_file`` for scene selection whenever
+        possible.
+
+        Args:
+            video_id:         Topic id.
+            action:           Inspector action (see allowed list).
+            scene_id:         Current display/order scene id.
+            voice_file:       Stable per-scene UID (preferred).
+            selector:         Optional DOM selector scoped to the target.
+            activate:         Allow the elected browser to switch scenes.
+            seek_seconds:     Seek time for seek_preview / screenshot.
+            timeout_ms:       Command timeout (~7000ms default).
+            probe_timeout_ms: Election window (~800ms default).
+            options:          Advanced action-specific options.
+        """
+        if not isinstance(video_id, str) or not video_id.strip():
+            raise InvalidRequestError(
+                "video_id (the topic_id) is required.",
+                code="missing_field", param="video_id")
+        allowed_actions = {
+            "list_live_editors", "list_instances", "get_preview_state",
+            "get_scene_dom_snapshot", "get_computed_boxes",
+            "screenshot_scene_280x498", "activate_scene", "reload_preview",
+            "pause_preview", "play_preview", "seek_preview",
+        }
+        if action not in allowed_actions:
+            raise InvalidRequestError(
+                f"action must be one of {sorted(allowed_actions)}.",
+                code="unsupported_action", param="action")
+        body: dict = {"id": video_id.strip(), "action": action}
+        if scene_id is not None:
+            body["scene_id"] = scene_id
+        if voice_file is not None:
+            body["voice_file"] = voice_file
+        if selector is not None:
+            body["selector"] = selector
+        if activate is not None:
+            body["activate"] = bool(activate)
+        if seek_seconds is not None:
+            body["seek_seconds"] = float(seek_seconds)
+        if timeout_ms is not None:
+            body["timeout_ms"] = int(timeout_ms)
+        if probe_timeout_ms is not None:
+            body["probe_timeout_ms"] = int(probe_timeout_ms)
+        if options is not None:
+            body["options"] = dict(options)
+        return self._request("POST", "/v1/scene_inspector", json_body=body)
 
     def account(self) -> dict:
         """GET /v1/account — account profile + remaining credits. Free."""

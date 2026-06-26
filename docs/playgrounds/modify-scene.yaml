@@ -5,18 +5,22 @@ endpoint:
   method: POST
   path: /v1/modify_scene
 
-title: Swap background media on one scene
+title: Edit one scene (media swap / overlay upload / group layout)
 description: |
-  Synchronous, no credit charged. Pick ONE scene of an existing video by
-  `voice_file` (most reliable), `id`, or `text` (fuzzy), then pass a new
-  background image/video URL in `fields`. Roll-aware — server applies the
-  asset as the background (B-roll) or as the overlay (A-roll) without
-  disturbing the narrator.
+  Synchronous, no credit charged until /v1/export_video re-renders the
+  final MP4. Pick ONE scene by `voice_file` (the stable per-scene UID —
+  preferred), `id` (display/order, UNSTABLE), or `text` (fuzzy), then
+  send exactly ONE of the three field families: (A) background media
+  swap (mediaUrl + optional mediaType), (B) Upload Overlay
+  (remotion.upload_overlay — FREE agent-supplied image → Remotion spec,
+  NOT Regenerate Overlay), or (C) Storyboard group rect
+  (remotion.group.rect — move/resize the overlay group). Successful
+  edits publish MQTT realtime to every open editor.
 
 fields:
   - name: id
     type: text
-    label: "Video id (topic_id from /v1/create_video)"
+    label: "Video id (topic_id from /v1/video_data or /v1/create_video)"
     required: true
     placeholder: "widecast7c0d4f8a9b1e2d3f"
   - name: by
@@ -24,8 +28,8 @@ fields:
     label: "How to pick the scene"
     required: true
     options:
-      - { value: "voice_file", label: "voice_file (per-scene uid — most reliable)" }
-      - { value: "id",         label: "id (segment.id)" }
+      - { value: "voice_file", label: "voice_file (stable per-scene UID — preferred)" }
+      - { value: "id",         label: "id (segment.id — UNSTABLE display/order)" }
       - { value: "text",       label: "text (fuzzy narration match)" }
     default: "voice_file"
   - name: value
@@ -33,18 +37,18 @@ fields:
     label: "Value matching `by`"
     required: true
     placeholder: "XcR0k"
-    help: "When by='voice_file' use the scene uid; by='id' the segment.id; by='text' a narration snippet."
+    help: "When by='voice_file' use the scene voice_file from /v1/video_data; by='id' the current segment.id; by='text' a narration snippet."
   - name: fields
     type: json
-    label: "fields[] — edits to apply"
+    label: "fields[] — one family per call"
     required: true
-    rows: 5
+    rows: 7
     placeholder: |
       [
         { "field_name": "mediaUrl",  "value": "https://cdn.example.com/coast-sunset.jpg" },
         { "field_name": "mediaType", "value": "image" }
       ]
-    help: "Today only mediaUrl + optional mediaType are honoured; other field names return 400 unsupported_field."
+    help: "Pick ONE family — do not mix: (A) mediaUrl/mediaType, (B) remotion.upload_overlay, (C) remotion.group.rect. `remotion.object.rect` is disabled (object_level_edit_disabled). segment.remotion_spec='none' = user-disabled; do NOT auto-enable."
   - name: min_score
     type: text
     label: "min_score (only when by='text')"
@@ -56,9 +60,9 @@ poll_after_create:
   enabled: false
 
 use_cases:
-  - id: by-voice-file
-    title: "📎 Swap image on scene XcR0k"
-    description: "Most reliable — paste the scene's voice_file from /v1/status and the new image URL."
+  - id: media-by-voice-file
+    title: "(A) Swap image on scene XcR0k by voice_file"
+    description: "Most reliable. Roll-aware — B-roll scenes update mediaUrl/brollUrl, A-roll registers as brollUrl/user_asset_url without disturbing the narrator."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -66,9 +70,11 @@ use_cases:
       fields:
         - field_name: "mediaUrl"
           value: "https://cdn.example.com/coast-sunset.jpg"
-  - id: by-text
-    title: "📝 Swap by what's said in the scene"
-    description: "Fuzzy match on the narration. May return a clarification with candidates if two scenes match too closely."
+        - field_name: "mediaType"
+          value: "image"
+  - id: media-by-text
+    title: "(A) Swap by what's said in the scene (video)"
+    description: "Fuzzy match on the narration. May return a clarification — pick a voice_file and retry."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "text"
@@ -78,3 +84,43 @@ use_cases:
           value: "https://cdn.example.com/scale-ai-news.mp4"
         - field_name: "mediaType"
           value: "video"
+  - id: upload-overlay
+    title: "(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)"
+    description: "NOT Regenerate Overlay (paid). Classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type)."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.upload_overlay"
+          value: "https://cdn.example.com/overlay-720x1280.png"
+  - id: group-rect-move
+    title: "(C) Move the Storyboard group up by 120px (canvas coords)"
+    description: "Move-only — only the wrapper position changes; child objects untouched. Canvas (720×1280) coordinates are NOT clamped — negative y is allowed."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.group.rect"
+          value:
+            element_id: "main"
+            y: -120
+            coordinate_space: "canvas"
+  - id: group-rect-scale
+    title: "(C) Resize group + scale children (default resize_mode)"
+    description: "Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout. `wrapper_only` is advanced."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.group.rect"
+          value:
+            element_id: "main"
+            x: 111
+            y: -120
+            w: 498
+            h: 174
+            coordinate_space: "canvas"
+            resize_mode: "scale_children"

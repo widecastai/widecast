@@ -3,13 +3,13 @@
     "method": "POST",
     "path": "/v1/video_data"
   },
-  "title": "Read a video's full structured script (segments + narrator + media)",
-  "description": "Synchronous, free. Returns every scene's narration, the per-scene UID\nmodify_scene needs, the currently-shown media URL, narrator clone\nconfig, and global settings (aspect ratio, music, brand, language).\nMirrors the engine the dashboard's scene editor uses on open.\n",
+  "title": "Read structured scene data (data-first audit/edit entry point)",
+  "description": "Synchronous, free. First step for data-first scene audit/edit — call\nthis BEFORE /v1/modify_scene or /v1/scene_inspector. Returns full\nannotated segment dicts with stable-identity fields, Remotion spec\nmetadata, and coordinate-space hints (720×1280 canvas vs 280×498\nlegacy editor preview). `voice_file` is the stable per-scene UID;\n`segment.id` is only current display/order.\n",
   "fields": [
     {
       "name": "video_id",
       "type": "text",
-      "label": "video_id (widecast<...> from /v1/create_video)",
+      "label": "video_id (topic_id — accepts widecast..., gubo..., or current ids)",
       "required": true,
       "placeholder": "widecastABCDEFGHIJKL"
     }
@@ -20,8 +20,8 @@
   "use_cases": [
     {
       "id": "read-video",
-      "title": "📜 Read a video's full script",
-      "description": "Paste a `widecast<...>` topic_id (the id returned by /v1/create_video) to read every scene's narration + voice_file + media URL + narrator config. Same data the scene editor sees on open.",
+      "title": "📜 Audit a video — list every scene + Remotion spec status",
+      "description": "Paste a topic_id (the id returned by /v1/create_video) to see scene_identity, every scene's voice_file (stable UID), current mediaUrl/mediaType, narrator config, and remotion_spec_url (cache-busted) + remotion_spec_state (ready/missing/disabled). Spec content is NOT inlined — fetch remotion_spec_url only when state is ready and you need object boxes.",
       "request": {
         "video_id": "widecastABCDEFGHIJKL"
       }
