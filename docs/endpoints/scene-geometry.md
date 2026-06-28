@@ -2,13 +2,15 @@
 
 **Synchronous, free, read-only.** Use this **after** [`/v1/video_data`](video-data.md) and **before** any screenshot / vision step when an agent needs to audit layout cheaply or pick coordinates for [`/v1/modify_scene`](modify-scene.md).
 
-`/v1/scene_geometry` resolves one scene by its stable `voice_file`, loads `{voice_file}_spec.json` if available, and returns narrator / caption / Remotion Storyboard display boxes in one **280×498 editor-preview** coordinate space — plus dead zones, collision violations, and warnings. It never broadcasts MQTT, never renders screenshots, never exposes base64 assets, and never modifies the video.
+`/v1/scene_geometry` resolves one scene by its stable `voice_file`, loads `{voice_file}_spec.json` if available, and returns narrator / caption / Remotion Storyboard display boxes in one **280×498 editor-preview** coordinate space — plus dead zones and a structural `summary`. It never broadcasts MQTT, never renders screenshots, never exposes base64 assets, and never modifies the video.
 
 It is designed for **LLM-only agents that cannot see images**: reason over JSON, then call [`/v1/modify_scene`](modify-scene.md) — typically with a `layout.batch` containing `overlay.narrator.rect`, `overlay.caption.y`, and `remotion.object.rect`.
 
 <!-- widecast-playground:scene-geometry -->
 
 > **Recommended chain**: [`/v1/video_data`](video-data.md) → **`/v1/scene_geometry`** → [`/v1/modify_scene`](modify-scene.md). Use [`/v1/scene_inspector`](scene-inspector.md) only as an expensive last resort when you specifically need browser truth or a live screenshot.
+
+> **Mechanical linter output is debug-only.** By default the response is actionable data only — `violations[]` (collision codes), `warnings[]` (mobile-readability / face-staleness hints), `summary.error_count` / `summary.warning_count`, and the internal `remotion_poster_*` keys inside `remotion_spec` are **stripped**. Vision-capable agents should judge collisions and aesthetics from a screenshot via [`/v1/scene_inspector`](scene-inspector.md); LLM-only agents should proceed with the rects + `boxes.narrator.face` to keep overlays off the face. Pass `include_diagnostics: true` to opt back in for server/debug audits — see the [Diagnostic mode](#diagnostic-mode-include_diagnosticstrue) section below.
 
 ---
 
@@ -35,6 +37,7 @@ Content-Type: application/json
 | `by` | string enum | one of | `"voice_file"` (preferred), `"id"`, or `"text"`. Required if neither `voice_file` nor `scene_id` is set. |
 | `value` | string \| number | one of | Match value for `by`. Required when `by` is set. |
 | `min_score` | number | no | Only for `by="text"`. Fuzzy-match threshold 0..1 (default `0.5`). |
+| `include_diagnostics` | boolean | no | Default `false`. When `true`, the response also carries `violations[]`, `warnings[]`, `summary.error_count` / `summary.warning_count`, and `remotion_spec.remotion_poster_*`. See [Diagnostic mode](#diagnostic-mode-include_diagnosticstrue). |
 
 You must provide exactly one of: `voice_file`, `scene_id`, or `by`+`value`.
 
@@ -118,27 +121,7 @@ You must provide exactly one of: `voice_file`, `scene_id`, or `by`+`value`.
     "remotion_spec_exists":  true,
     "remotion_spec_state":   "ready"
   },
-  "violations": [
-    {
-      "code":     "remotion_object_in_top_dead_zone",
-      "severity": "warning",
-      "a":        "remotion.object_layer:main.one_by_one",
-      "b":        "dead_zone.top",
-      "overlap":  0.18
-    }
-  ],
-  "warnings": [
-    {
-      "code":     "remotion_object_too_small_for_mobile",
-      "severity": "warning",
-      "object":   "remotion.object_layer:main.obj_03_text",
-      "rect":     { "x": 24, "y": 140, "w": 22, "h": 14 },
-      "message":  "Object may be too small to read on mobile."
-    }
-  ],
   "summary": {
-    "error_count":                       0,
-    "warning_count":                     2,
     "remotion_object_count":             2,
     "remotion_object_layer_count":       1,
     "remotion_sequence_object_count":    1,
@@ -170,10 +153,71 @@ You must provide exactly one of: `voice_file`, `scene_id`, or `by`+`value`.
 | `boxes.remotion.objects[]` | STATIC/POSTER display boxes resolved with the same Storyboard math used by `{voice_file}_overlay_poster.png`. Lower-level debug. |
 | `boxes.remotion.object_layer.objects[]` | **Agent-facing layer.** Each item: `layout_id`, `rect` (preview), `rect_canvas` (Remotion 720×1280), `temporal_policy`, `update_field: "remotion.object.rect"`. |
 | `boxes.remotion.sequence_objects[]` | All temporal objects (every timed instance). Lower-level debug. |
-| `remotion_spec` | Loaded `{voice_file}_spec.json` metadata: `remotion_spec_file`, cache-busted `remotion_spec_url`, `remotion_spec_version`, `remotion_spec_exists`, `remotion_spec_state`. |
-| `violations[]` | Collision codes with `severity: error|warning|info`, `a_label` / `b_label` for the colliding rects, `overlap` ratio. |
-| `warnings[]` | Soft signals (e.g. mobile-readability, missing narrator_face). |
-| `summary` | Top-level counts + policy summary. |
+| `remotion_spec` | Loaded `{voice_file}_spec.json` metadata: `remotion_spec_file`, cache-busted `remotion_spec_url`, `remotion_spec_version`, `remotion_spec_exists`, `remotion_spec_state`. Internal `remotion_poster_*` keys are diagnostic-only. |
+| `summary` | Structural counts + policy summary (`remotion_object_count`, `remotion_object_layer_count`, `remotion_sequence_object_count`, `remotion_group_count`, `remotion_temporal_policies`, `remotion_geometry_basis`). `error_count` and `warning_count` are diagnostic-only. |
+
+---
+
+## Diagnostic mode (`include_diagnostics=true`)
+
+Pass `include_diagnostics: true` in the request body to opt back in to the full debug payload. This is intended for **server / debug audits only** — vision-capable agents should judge collisions and aesthetics from a screenshot via [`/v1/scene_inspector`](scene-inspector.md), and LLM-only agents should already have enough from the default response (rects + `boxes.narrator.face`) to keep overlays off the face.
+
+```http
+POST /v1/scene_geometry
+Authorization: Bearer wc_live_REPLACE_ME
+Content-Type: application/json
+
+{
+  "id":                  "widecast7c0d4f8a9b1e2d3f",
+  "voice_file":          "XcR0k",
+  "include_diagnostics": true
+}
+```
+
+The response adds these fields on top of the default body:
+
+```jsonc
+{
+  /* …default body… */
+  "violations": [
+    {
+      "code":     "remotion_object_in_top_dead_zone",
+      "severity": "warning",
+      "a":        "remotion.object_layer:main.one_by_one",
+      "b":        "dead_zone.top",
+      "overlap":  0.18
+    }
+  ],
+  "warnings": [
+    {
+      "code":     "remotion_object_too_small_for_mobile",
+      "severity": "warning",
+      "object":   "remotion.object_layer:main.obj_03_text",
+      "rect":     { "x": 24, "y": 140, "w": 22, "h": 14 },
+      "message":  "Object may be too small to read on mobile."
+    }
+  ],
+  "summary": {
+    "error_count":                       0,
+    "warning_count":                     2,
+    "remotion_object_count":             2,
+    "remotion_object_layer_count":       1,
+    "remotion_sequence_object_count":    1,
+    "remotion_group_count":              1,
+    "remotion_temporal_policies":        ["simultaneous_static"],
+    "remotion_geometry_basis":           "static_poster_objects_with_sequence_metadata"
+  },
+  "remotion_spec": {
+    /* …same as default, plus: */
+    "remotion_poster_file":    "XcR0k_overlay_poster.png",
+    "remotion_poster_url":     "https://widecast.ai/downloads/<company_id>/<topic_id>/XcR0k_overlay_poster.png?v=1748293012",
+    "remotion_poster_version": "1748293012",
+    "remotion_poster_state":   "ready",
+    "remotion_poster_exists":  true,
+    "remotion_poster_warnings": []
+  }
+}
+```
 
 ### Violation codes
 
@@ -194,6 +238,10 @@ You must provide exactly one of: `voice_file`, `scene_id`, or `by`+`value`.
 | `remotion_object_too_small_for_mobile` | Object width or height below mobile-readability minimum. |
 | `narrator_face_outside_narrator` | Converted face center falls outside `overlay.narrator.rect` — narrator_face source data or rect may be stale. |
 | `missing_narrator_face` | Scene has no `narrator_face`; face collision can only be approximated from the narrator body. |
+
+> **The mechanical collision math is approximate.** It treats every overlay object as a rectangle and the narrator face as a rectangle around the source face crop; staggered glyph corners, alpha-channel transparency, and animation timing aren't modelled. Treat these codes as hints, not ground truth — and prefer a real screenshot via [`/v1/scene_inspector`](scene-inspector.md) when correctness matters.
+
+---
 
 ### Error responses
 

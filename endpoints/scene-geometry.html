@@ -58,12 +58,13 @@
     <article class="wc-article">
       <h1 id="data-only-scene-layout-geometry-post-v1scene_geometry">Data-only scene layout geometry — <code>POST /v1/scene_geometry</code></h1>
 <p><strong>Synchronous, free, read-only.</strong> Use this <strong>after</strong> <a href="video-data.md"><code>/v1/video_data</code></a> and <strong>before</strong> any screenshot / vision step when an agent needs to audit layout cheaply or pick coordinates for <a href="modify-scene.md"><code>/v1/modify_scene</code></a>.</p>
-<p><code>/v1/scene_geometry</code> resolves one scene by its stable <code>voice_file</code>, loads <code>{voice_file}_spec.json</code> if available, and returns narrator / caption / Remotion Storyboard display boxes in one <strong>280×498 editor-preview</strong> coordinate space — plus dead zones, collision violations, and warnings. It never broadcasts MQTT, never renders screenshots, never exposes base64 assets, and never modifies the video.</p>
+<p><code>/v1/scene_geometry</code> resolves one scene by its stable <code>voice_file</code>, loads <code>{voice_file}_spec.json</code> if available, and returns narrator / caption / Remotion Storyboard display boxes in one <strong>280×498 editor-preview</strong> coordinate space — plus dead zones and a structural <code>summary</code>. It never broadcasts MQTT, never renders screenshots, never exposes base64 assets, and never modifies the video.</p>
 <p>It is designed for <strong>LLM-only agents that cannot see images</strong>: reason over JSON, then call <a href="modify-scene.md"><code>/v1/modify_scene</code></a> — typically with a <code>layout.batch</code> containing <code>overlay.narrator.rect</code>, <code>overlay.caption.y</code>, and <code>remotion.object.rect</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_geometry</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-geometry.json" data-usecase-id="by-voice-file" id="ex-scene-geometry--by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🧭 Audit a scene by voice_file (preferred)</h3><p class="wc-pg-example-desc">Cheapest, most reliable selector — paste the scene's voice_file from /v1/video_data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-geometry.json" data-usecase-id="by-text" id="ex-scene-geometry--by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Audit a scene by fuzzy narration text</h3><p class="wc-pg-example-desc">Use when the user names a scene by what's said. Multi-match returns a ClarificationResponse — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_geometry</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-geometry.json" data-usecase-id="by-voice-file" id="ex-scene-geometry--by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🧭 Audit a scene by voice_file (preferred)</h3><p class="wc-pg-example-desc">Default response — actionable data only. Cheapest, most reliable selector; paste the scene's voice_file from /v1/video_data.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-geometry.json" data-usecase-id="by-text" id="ex-scene-geometry--by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Audit a scene by fuzzy narration text</h3><p class="wc-pg-example-desc">Use when the user names a scene by what's said. Multi-match returns a ClarificationResponse — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-geometry.json" data-usecase-id="with-diagnostics" id="ex-scene-geometry--with-diagnostics"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔬 Server/debug audit — include violations + warnings + counts</h3><p class="wc-pg-example-desc">Opt back into the full debug payload (violations[], warnings[], summary.error_count/warning_count, remotion_poster_*). The mechanical collision math is approximate; treat results as hints.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <blockquote>
 <p><strong>Recommended chain</strong>: <a href="video-data.md"><code>/v1/video_data</code></a> → <strong><code>/v1/scene_geometry</code></strong> → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Use <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a> only as an expensive last resort when you specifically need browser truth or a live screenshot.</p>
+<p><strong>Mechanical linter output is debug-only.</strong> By default the response is actionable data only — <code>violations[]</code> (collision codes), <code>warnings[]</code> (mobile-readability / face-staleness hints), <code>summary.error_count</code> / <code>summary.warning_count</code>, and the internal <code>remotion_poster_*</code> keys inside <code>remotion_spec</code> are <strong>stripped</strong>. Vision-capable agents should judge collisions and aesthetics from a screenshot via <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>; LLM-only agents should proceed with the rects + <code>boxes.narrator.face</code> to keep overlays off the face. Pass <code>include_diagnostics: true</code> to opt back in for server/debug audits — see the <a href="#diagnostic-mode-include_diagnosticstrue">Diagnostic mode</a> section below.</p>
 </blockquote>
 <hr />
 <h2 id="request">Request</h2>
@@ -123,6 +124,12 @@
 <td>number</td>
 <td>no</td>
 <td>Only for <code>by="text"</code>. Fuzzy-match threshold 0..1 (default <code>0.5</code>).</td>
+</tr>
+<tr>
+<td><code>include_diagnostics</code></td>
+<td>boolean</td>
+<td>no</td>
+<td>Default <code>false</code>. When <code>true</code>, the response also carries <code>violations[]</code>, <code>warnings[]</code>, <code>summary.error_count</code> / <code>summary.warning_count</code>, and <code>remotion_spec.remotion_poster_*</code>. See <a href="#diagnostic-mode-include_diagnosticstrue">Diagnostic mode</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -204,27 +211,7 @@
     &quot;remotion_spec_exists&quot;:  true,
     &quot;remotion_spec_state&quot;:   &quot;ready&quot;
   },
-  &quot;violations&quot;: [
-    {
-      &quot;code&quot;:     &quot;remotion_object_in_top_dead_zone&quot;,
-      &quot;severity&quot;: &quot;warning&quot;,
-      &quot;a&quot;:        &quot;remotion.object_layer:main.one_by_one&quot;,
-      &quot;b&quot;:        &quot;dead_zone.top&quot;,
-      &quot;overlap&quot;:  0.18
-    }
-  ],
-  &quot;warnings&quot;: [
-    {
-      &quot;code&quot;:     &quot;remotion_object_too_small_for_mobile&quot;,
-      &quot;severity&quot;: &quot;warning&quot;,
-      &quot;object&quot;:   &quot;remotion.object_layer:main.obj_03_text&quot;,
-      &quot;rect&quot;:     { &quot;x&quot;: 24, &quot;y&quot;: 140, &quot;w&quot;: 22, &quot;h&quot;: 14 },
-      &quot;message&quot;:  &quot;Object may be too small to read on mobile.&quot;
-    }
-  ],
   &quot;summary&quot;: {
-    &quot;error_count&quot;:                       0,
-    &quot;warning_count&quot;:                     2,
     &quot;remotion_object_count&quot;:             2,
     &quot;remotion_object_layer_count&quot;:       1,
     &quot;remotion_sequence_object_count&quot;:    1,
@@ -311,22 +298,71 @@
 </tr>
 <tr>
 <td><code>remotion_spec</code></td>
-<td>Loaded <code>{voice_file}_spec.json</code> metadata: <code>remotion_spec_file</code>, cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_exists</code>, <code>remotion_spec_state</code>.</td>
-</tr>
-<tr>
-<td><code>violations[]</code></td>
-<td>Collision codes with <code>severity: error|warning|info</code>, <code>a_label</code> / <code>b_label</code> for the colliding rects, <code>overlap</code> ratio.</td>
-</tr>
-<tr>
-<td><code>warnings[]</code></td>
-<td>Soft signals (e.g. mobile-readability, missing narrator_face).</td>
+<td>Loaded <code>{voice_file}_spec.json</code> metadata: <code>remotion_spec_file</code>, cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_exists</code>, <code>remotion_spec_state</code>. Internal <code>remotion_poster_*</code> keys are diagnostic-only.</td>
 </tr>
 <tr>
 <td><code>summary</code></td>
-<td>Top-level counts + policy summary.</td>
+<td>Structural counts + policy summary (<code>remotion_object_count</code>, <code>remotion_object_layer_count</code>, <code>remotion_sequence_object_count</code>, <code>remotion_group_count</code>, <code>remotion_temporal_policies</code>, <code>remotion_geometry_basis</code>). <code>error_count</code> and <code>warning_count</code> are diagnostic-only.</td>
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="diagnostic-mode-include_diagnosticstrue">Diagnostic mode (<code>include_diagnostics=true</code>)</h2>
+<p>Pass <code>include_diagnostics: true</code> in the request body to opt back in to the full debug payload. This is intended for <strong>server / debug audits only</strong> — vision-capable agents should judge collisions and aesthetics from a screenshot via <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>, and LLM-only agents should already have enough from the default response (rects + <code>boxes.narrator.face</code>) to keep overlays off the face.</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/scene_geometry</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{</span>
+<span class="err">  &quot;id&quot;:                  &quot;widecast7c0d4f8a9b1e2d3f&quot;,</span>
+<span class="err">  &quot;voice_file&quot;:          &quot;XcR0k&quot;,</span>
+<span class="err">  &quot;include_diagnostics&quot;: true</span>
+<span class="err">}</span>
+</code></pre></div>
+
+<p>The response adds these fields on top of the default body:</p>
+<div class="highlight"><pre><span></span><code>{
+  /* …default body… */
+  &quot;violations&quot;: [
+    {
+      &quot;code&quot;:     &quot;remotion_object_in_top_dead_zone&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;a&quot;:        &quot;remotion.object_layer:main.one_by_one&quot;,
+      &quot;b&quot;:        &quot;dead_zone.top&quot;,
+      &quot;overlap&quot;:  0.18
+    }
+  ],
+  &quot;warnings&quot;: [
+    {
+      &quot;code&quot;:     &quot;remotion_object_too_small_for_mobile&quot;,
+      &quot;severity&quot;: &quot;warning&quot;,
+      &quot;object&quot;:   &quot;remotion.object_layer:main.obj_03_text&quot;,
+      &quot;rect&quot;:     { &quot;x&quot;: 24, &quot;y&quot;: 140, &quot;w&quot;: 22, &quot;h&quot;: 14 },
+      &quot;message&quot;:  &quot;Object may be too small to read on mobile.&quot;
+    }
+  ],
+  &quot;summary&quot;: {
+    &quot;error_count&quot;:                       0,
+    &quot;warning_count&quot;:                     2,
+    &quot;remotion_object_count&quot;:             2,
+    &quot;remotion_object_layer_count&quot;:       1,
+    &quot;remotion_sequence_object_count&quot;:    1,
+    &quot;remotion_group_count&quot;:              1,
+    &quot;remotion_temporal_policies&quot;:        [&quot;simultaneous_static&quot;],
+    &quot;remotion_geometry_basis&quot;:           &quot;static_poster_objects_with_sequence_metadata&quot;
+  },
+  &quot;remotion_spec&quot;: {
+    /* …same as default, plus: */
+    &quot;remotion_poster_file&quot;:    &quot;XcR0k_overlay_poster.png&quot;,
+    &quot;remotion_poster_url&quot;:     &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_overlay_poster.png?v=1748293012&quot;,
+    &quot;remotion_poster_version&quot;: &quot;1748293012&quot;,
+    &quot;remotion_poster_state&quot;:   &quot;ready&quot;,
+    &quot;remotion_poster_exists&quot;:  true,
+    &quot;remotion_poster_warnings&quot;: []
+  }
+}
+</code></pre></div>
+
 <h3 id="violation-codes">Violation codes</h3>
 <table>
 <thead>
@@ -397,6 +433,10 @@
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>The mechanical collision math is approximate.</strong> It treats every overlay object as a rectangle and the narrator face as a rectangle around the source face crop; staggered glyph corners, alpha-channel transparency, and animation timing aren't modelled. Treat these codes as hints, not ground truth — and prefer a real screenshot via <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a> when correctness matters.</p>
+</blockquote>
+<hr />
 <h3 id="error-responses">Error responses</h3>
 <table>
 <thead>

@@ -229,7 +229,8 @@ const TOOLS = [
             "**MANDATORY RULE — BUILD AN HTML ARTIFACT GALLERY; DO NOT INDIVIDUALLY DOWNLOAD / VIEW EACH THUMBNAIL**. The artifact's `<img src='https://…'>` is loaded by the USER'S BROWSER once per session — no quota burn on the AI host or the image source. If you instead call view_image / download-and-attach on every thumbnail, you'll trigger N requests in seconds (Pexels / Pixabay / Google / Shutterstock all rate-limit aggressively) and **the account may be banned within a single search**. So: open an HTML artifact, splice URLs only, NO per-thumbnail fetch. Template (use verbatim, splice URLs/titles in): " +
             "`<style>body{font-family:system-ui;margin:0;padding:16px;background:#0f172a;color:#e2e8f0}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.c{background:#1e293b;border-radius:8px;overflow:hidden;padding-bottom:8px;text-align:center}.c img{width:100%;height:220px;object-fit:cover;display:block;background:#0b1220}.n{font-weight:700;font-size:18px;color:#a78bfa;padding:8px 0 2px}.t{font-size:11px;color:#94a3b8;padding:0 6px;line-height:1.3;height:28px;overflow:hidden}</style><div class='g'>` + one `<div class='c'><img src='THUMB_URL'><div class='n'>N</div><div class='t'>TITLE</div></div>` per result + `</div>`. For videos, wrap the `<img>` in `<a href='VIDEO_URL' target='_blank'>` so click → opens the clip. " +
             "After the gallery is up, ask the user to pick by number ('Pick one — 1 through N?'). " +
-            "**Once they pick ONE** → 1 fetch is safe: you may download `results[N-1].url` locally to attach a high-res preview before they confirm, OR feed it directly into widecast_modify_scene (`field_name='mediaUrl'`) to swap a scene's background, OR use as `![](url)` inline in a script for widecast_create_video. The pattern is: gallery shows N thumbs via artifact (0 fetches), user picks 1, you fetch 1 if needed. NEVER 1 search = N fetches. " +
+            "**Once they pick ONE** → 1 fetch is safe: you may download `results[N-1].url` locally to attach a high-res preview before they confirm, OR feed it directly into widecast_modify_scene (`field_name='mediaUrl'`) to swap a scene's background, OR use as `![](url)` inline in a script for widecast_create_video. The pattern is: gallery shows N thumbs via artifact (0 fetches), user picks 1, you fetch 1 if needed. NEVER 1 search = N fetches.\n" +
+            "**🪟 Curated grid backgrounds (special branch — `kind='video'` only)**: when `keyword` is the EXACT single word `\"grid\"` (case-insensitive, no other words — phrases like `'grid background'` still go to normal stock search), the server SKIPS Pexels/Pixabay/Shutterstock and returns WideCast's CURATED INTERNAL grid-background video list, in the SAME `results[]` shape (each carries `number`, `type:'video'`, `url`, `thumbnail_url`, `title`, `source`). Show them in the same HTML artifact gallery so the user can pick — picked URL → widecast_modify_scene `field_name='mediaUrl'` like any other clip. Use this when the user asks for the WideCast template grid, e.g. 'show me the WideCast grid backgrounds', 'I want a grid', 'use the built-in grid'. The shared `stock_video_from_text` engine handles both UI Stock search and this MCP route, so the UI Stock-tab grid keyword and `widecast_search_broll(kind='video', keyword='grid')` return the same curated list.\n" +
             "Body: `{keyword (REQUIRED), kind: 'video'|'image' (REQUIRED), ratio?: 'portrait'|'landscape'|'square' (default portrait, only meaningful for kind=video), limit?: 1-20 (default 10)}`.",
         inputSchema: {
             type: "object",
@@ -529,6 +530,7 @@ const TOOLS = [
             "• `agent_meta` — same metadata bundled for quick agent consumption (`stable_scene_id`, `coordinate_spaces`, etc.).\n" +
             "**Coordinate warning**: Remotion spec objects use **720×1280 canvas** coordinates; legacy `overlay.caption` and `overlay.narrator` use **280×498 editor preview** coordinates. Pass `coordinate_space` to widecast_modify_scene's `remotion.group.rect` accordingly.\n" +
             "**Remotion spec is NOT inlined** — it can contain large base64 images that blow MCP payload budget. Fetch `remotion_spec_url` only when `remotion_spec_state='ready'` and you actually need object-level overlay boxes.\n" +
+            "**Internal poster diagnostics are stripped by default**: per-segment `remotion_poster_file` / `remotion_poster_url` / `remotion_poster_version` / `remotion_poster_state` / `remotion_poster_exists` / `remotion_poster_warnings` (and their copies inside `agent_meta.remotion_spec`) are removed from the default response — they describe the server-side `{voice_file}_overlay_poster.png` used by scene_inspector fallback, not anything an agent needs to act on. Pass `include_diagnostics:true` to opt back in for server/debug audits.\n" +
             "Mirrors the same engine the dashboard's scene editor uses on open (rebalance A/B rolls + ensure music + persist if changed), so the data matches what the user sees in `#scene_editor?topic_id=…` exactly. " +
             "Errors: 404 `video_not_found`, 409 `script_not_ready` (video still processing — poll widecast_wait_for_video first).",
         inputSchema: {
@@ -538,6 +540,10 @@ const TOOLS = [
                 video_id: {
                     type: "string",
                     description: "Topic id from widecast_create_video / scene_editor. Accepts widecast..., gubo..., or current topic ids. Same id widecast_get_status / widecast_export_video / widecast_modify_scene use.",
+                },
+                include_diagnostics: {
+                    type: "boolean",
+                    description: "Optional debug flag (default false). When true, each segment also carries `remotion_poster_*` diagnostic keys (and their copies inside `agent_meta.remotion_spec`). For server/debug audits only — vision-capable agents should judge aesthetics from screenshots.",
                 },
             },
         },
@@ -606,10 +612,9 @@ const TOOLS = [
             "• `boxes.remotion` — `{groups[], objects[], object_layer:{objects:[…]}, sequence_objects[]}`.\n" +
             "  - **`object_layer.objects[]` is the agent-facing layer**: each item carries `layout_id` (e.g. `main.one_by_one`, `main.obj_03_text`), `rect` (280×498 preview), `rect_canvas` (720×1280), temporal policy, and the update field name to pass back to `widecast_modify_scene`. Send `{field_name:'remotion.object.rect', value:{layout_id, x,y,w,h, coordinate_space:'preview'}}`. For `one_by_one`, scene_geometry exposes ONE logical `*.one_by_one` union rect — editing it transforms all timed sequence items together so agents don't reason about timing.\n" +
             "  - `groups[]`, `objects[]` (STATIC/POSTER display boxes resolved with the same Storyboard math used by `{voice_file}_overlay_poster.png`), and `sequence_objects[]` are lower-level debug data.\n" +
-            "• `remotion_spec` — metadata for the loaded `{voice_file}_spec.json` (file, url, version, state).\n" +
-            "• `violations[]` — collision codes like `remotion_object_overlaps_narrator_face` (error), `remotion_object_in_top_dead_zone` (warning), `remotion_group_in_bottom_dead_zone`, `caption_text_overlaps_narrator_face`.\n" +
-            "• `warnings[]` — e.g. `remotion_object_too_small_for_mobile`, `narrator_face_outside_narrator` (narrator_face source data or rect may be stale), `missing_narrator_face`.\n" +
-            "• `summary` — `{error_count, warning_count, remotion_object_count, remotion_object_layer_count, remotion_group_count, remotion_temporal_policies, remotion_geometry_basis}`.\n" +
+            "• `remotion_spec` — metadata for the loaded `{voice_file}_spec.json` (file, url, version, state). Internal poster fields (`remotion_poster_*`) are diagnostic-only — pass `include_diagnostics:true` to surface them.\n" +
+            "• `summary` — `{remotion_object_count, remotion_object_layer_count, remotion_sequence_object_count, remotion_group_count, remotion_temporal_policies, remotion_geometry_basis}`.\n" +
+            "**Mechanical linter output is debug-only**. By default the response is actionable data only — `violations[]` (collision codes), `warnings[]` (mobile-readability / face-staleness hints), and `summary.error_count` / `summary.warning_count` are stripped. Vision-capable agents should judge aesthetics from a screenshot via widecast_scene_inspector; LLM-only agents should still proceed with the rects + `boxes.narrator.face` to keep overlays out of the face. Pass `include_diagnostics:true` to opt back in.\n" +
             "**Designed for LLM-only agents that cannot see images**: reason over JSON, then call widecast_modify_scene with a `layout.batch` containing overlay.narrator.rect, overlay.caption.y, remotion.object.rect — or single-field calls. It does NOT call browser MQTT, does NOT render screenshots, does NOT expose base64 assets, and does NOT modify the video.\n" +
             "Errors: 404 `video_not_found`, 409 `script_not_ready`, 409 `invalid_script`, 200 `clarification` when `by='text'` matches multiple scenes.",
         inputSchema: {
@@ -622,6 +627,7 @@ const TOOLS = [
                 voice_file: { type: "string", description: "Stable per-scene UID; preferred shortcut (server folds into by='voice_file')." },
                 scene_id: { type: ["string", "number"], description: "Current display/order id; fallback only." },
                 min_score: { type: "number", minimum: 0, maximum: 1, description: "Only when by='text'. Default 0.5." },
+                include_diagnostics: { type: "boolean", description: "Optional debug flag (default false). When true, the response also carries `violations[]`, `warnings[]`, `summary.error_count`/`warning_count`, and `remotion_spec.remotion_poster_*` — for server/debug audits only. Vision-capable agents should judge aesthetics from screenshots instead." },
             },
         },
         annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
@@ -645,8 +651,6 @@ const TOOLS = [
                     },
                 },
                 remotion_spec: { type: "object" },
-                violations: { type: "array", items: { type: "object" } },
-                warnings: { type: "array", items: { type: "object" } },
                 summary: { type: "object" },
                 request_id: { type: "string" },
             },
@@ -657,16 +661,17 @@ const TOOLS = [
         title: "WideCast: Live browser inspector (expensive last-resort; use AFTER scene_geometry)",
         description: "SYNC live browser inspector for an open scene editor of a video. **More expensive than widecast_scene_geometry — use this only when data + geometry are NOT enough**: typically when the agent needs browser truth (mounted DOM, computed boxes, current preview play state) or a small 280×498 visual screenshot for aesthetic judgment. Do NOT use it as the first step if `widecast_scene_geometry` already gives you the boxes you need.\n" +
             "**How it works**: the server broadcasts a tiny MQTT probe to every open editor tab for this video, elects ONE healthy foreground/active browser within ~800ms, then sends the real inspector command only to that tab. widecast_modify_scene realtime broadcasts to all editors separately — this tool's election only affects which tab returns the live inspection. Presence alone is not usability: a tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.\n" +
+            "**🖼 `screenshot_scene_280x498` returns BINARY JPEG, not JSON.** On success (live editor capture OR server-fallback composite), the HTTP response is the raw image: `Content-Type: image/jpeg`, body = JPEG bytes (NOT JSON, NOT base64, NOT `result.screenshot`). Metadata is in response headers — `X-WideCast-Request-Id`, `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`, `Content-Length`, `Cache-Control: no-store`. Cap ~8 MB. **All other actions still return JSON `{object:'scene_inspector_result', status, code, result, …}` as before.** On screenshot errors (no image bytes / fallback failed) the route falls back to the JSON error envelope with new codes: 500 `screenshot_binary_missing` (composed but no bytes), 500 `server_fallback_failed` (couldn't compose a fallback) — plus the normal 400/404/auth/`unsupported_action`/`publisher_missing` codes.\n" +
             "**No live editor → graceful behaviour**:\n" +
-            "• For most actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
-            "• For `screenshot_scene_280x498` specifically, the server composes a cheap fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and returns `code='server_fallback'`. Treat fallback screenshots as approximate composites, not real renders.\n" +
+            "• For non-screenshot actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
+            "• For `screenshot_scene_280x498`, the server composes a fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and still returns BINARY JPEG (response headers carry `X-WideCast-*`; check the response framing — when bytes are returned successfully it's an image regardless of source). Treat fallback screenshots as approximate composites, not real renders.\n" +
             "**Actions** (`action`):\n" +
             "• `list_live_editors` — presence list of open editor tabs (browser/OS/last_seen) — debug/discovery only.\n" +
             "• `list_instances` — preview instance ids mounted in the elected tab.\n" +
             "• `get_preview_state` — current playing/paused/scene/time in the preview player.\n" +
             "• `get_scene_dom_snapshot` — DOM subtree for a scene (scoped via optional `selector` — keep it narrow).\n" +
             "• `get_computed_boxes` — computed `getBoundingClientRect` for scene elements. **Prefer widecast_scene_geometry for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.\n" +
-            "• `screenshot_scene_280x498` — small browser-side capture for aesthetic / visual judgment. Best-effort live capture; otherwise server-fallback composite. For pixel-perfect verification, use a renderer / headless-browser pass.\n" +
+            "• `screenshot_scene_280x498` — small JPEG (~280×498). **Response is raw `image/jpeg` bytes** (see above). For pixel-perfect verification, use a renderer / headless-browser pass.\n" +
             "• `activate_scene` — bring the elected tab to scene N (may visibly switch the editor for that user).\n" +
             "• `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` — preview transport controls.\n" +
             "**No arbitrary JavaScript eval is exposed.** Use `voice_file` as the scene selector wherever possible.",
@@ -708,7 +713,7 @@ const TOOLS = [
             properties: {
                 object: { type: "string", const: "scene_inspector_result" },
                 status: { type: "string", enum: ["completed", "error", "unavailable"] },
-                code: { type: "string", description: "ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | server_fallback (screenshot fallback composed from thumbnails + {voice_file}_overlay_poster.png)." },
+                code: { type: "string", description: "JSON-mode codes (non-screenshot actions, or screenshot errors): ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | server_fallback (legacy fallback marker) | screenshot_binary_missing (composed but no bytes — 500) | server_fallback_failed (couldn't compose fallback — 500). Successful `screenshot_scene_280x498` calls return raw image/jpeg bytes, NOT this JSON envelope." },
                 request_id: { type: "string" },
                 action: { type: "string" },
                 topic_id: { type: "string" },
@@ -977,6 +982,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
         if (name === "widecast_video_data") {
             const body = { video_id: String(args.video_id ?? "") };
+            if (args.include_diagnostics !== undefined)
+                body.include_diagnostics = args.include_diagnostics;
             const data = await wc("POST", "/v1/video_data", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
@@ -992,6 +999,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 body.scene_id = args.scene_id;
             if (args.min_score !== undefined)
                 body.min_score = args.min_score;
+            if (args.include_diagnostics !== undefined)
+                body.include_diagnostics = args.include_diagnostics;
             const data = await wc("POST", "/v1/scene_geometry", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }

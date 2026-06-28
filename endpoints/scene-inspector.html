@@ -61,7 +61,7 @@
 <blockquote>
 <p><strong>Recommended chain</strong>: <a href="video-data.md"><code>/v1/video_data</code></a> → <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Only reach for <code>/v1/scene_inspector</code> when you specifically need browser truth or a live screenshot — e.g. you suspect a CSS / load race after a <code>modify_scene</code> edit, or you want a quick aesthetic gut-check before suggesting another move.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot (visual gut-check)</h3><p class="wc-pg-example-desc">Best-effort browser-side capture. Use for aesthetic judgment only; use a renderer/headless fallback for pixel-perfect verification.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — RETURNS BINARY JPEG</h3><p class="wc-pg-example-desc">⚠ Special response shape: on success this action returns raw `Content-Type: image/jpeg` bytes (NOT JSON, NOT base64). Metadata is in response headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available — still returns JPEG bytes. On failure (no bytes / no fallback) → 500 JSON error: screenshot_binary_missing | server_fallback_failed. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes — for this action call /v1/scene_inspector over raw HTTP yourself (curl --output, fetch + arrayBuffer, etc).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="how-it-works">How it works</h2>
@@ -75,8 +75,57 @@
 <blockquote>
 <p><strong>Presence ≠ usability.</strong> A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.</p>
 </blockquote>
+<h3 id="screenshot_scene_280x498-returns-binary-jpeg-not-json">🖼 <code>screenshot_scene_280x498</code> returns binary JPEG, not JSON</h3>
+<p><strong>Special-cased response shape.</strong> On success — whether the bytes come from a live editor capture or from the server-fallback composite — the HTTP response is the raw image:</p>
+<ul>
+<li><code>Content-Type: image/jpeg</code></li>
+<li>Body = JPEG bytes (NOT JSON, NOT base64, NOT <code>result.screenshot</code>)</li>
+<li>Metadata in response headers:</li>
+<li><code>X-WideCast-Request-Id</code></li>
+<li><code>X-WideCast-Scene-Id</code></li>
+<li><code>X-WideCast-Voice-File</code></li>
+<li><code>X-WideCast-Scene-Index</code></li>
+<li><code>Content-Length</code></li>
+<li><code>Cache-Control: no-store</code></li>
+<li>Cap ~8 MB.</li>
+</ul>
+<p><strong>All other actions still return JSON</strong> <code>{object: "scene_inspector_result", status, code, result, …}</code> — only <code>screenshot_scene_280x498</code> switches content types.</p>
+<p><strong>On screenshot errors</strong> (no image bytes / fallback couldn't be composed), the route falls back to a JSON error envelope:</p>
+<div class="highlight"><pre><span></span><code>// HTTP 500 — server fallback ran but produced no image bytes
+{ &quot;error&quot;: { &quot;type&quot;: &quot;server_error&quot;, &quot;code&quot;: &quot;screenshot_binary_missing&quot;, &quot;message&quot;: &quot;…&quot;, &quot;request_id&quot;: &quot;req_…&quot; } }
+
+// HTTP 500 — couldn&#39;t even compose a fallback
+{ &quot;error&quot;: { &quot;type&quot;: &quot;server_error&quot;, &quot;code&quot;: &quot;server_fallback_failed&quot;,    &quot;message&quot;: &quot;…&quot;, &quot;request_id&quot;: &quot;req_…&quot; } }
+</code></pre></div>
+
+<p><strong>Client snippet — fetch the JPEG</strong>:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/scene_inspector&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{ &quot;id&quot;: &quot;widecast7c0d4f8a9b1e2d3f&quot;,</span>
+<span class="s1">        &quot;action&quot;: &quot;screenshot_scene_280x498&quot;,</span>
+<span class="s1">        &quot;voice_file&quot;: &quot;XcR0k&quot; }&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>scene.jpg
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="sb">`</span><span class="si">${</span><span class="nx">API</span><span class="si">}</span><span class="sb">/v1/scene_inspector`</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Authorization&quot;</span><span class="o">:</span><span class="w"> </span><span class="sb">`Bearer </span><span class="si">${</span><span class="nx">KEY</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Content-Type&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="kt">JSON.stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">action</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">voice_file</span><span class="w"> </span><span class="p">}),</span>
+<span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">ct</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">headers</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;content-type&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">ct</span><span class="p">.</span><span class="nx">startsWith</span><span class="p">(</span><span class="s2">&quot;image/jpeg&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">arrayBuffer</span><span class="p">();</span><span class="w">  </span><span class="c1">// ← raw JPEG</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">json</span><span class="p">();</span><span class="w">           </span><span class="c1">// ← JSON error envelope</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>SDK note.</strong> The Python (<code>client.scene_inspector</code>) and JS (<code>client.scene_inspector</code>) methods JSON-decode the response, so they <strong>cannot return image bytes</strong>. For the screenshot action specifically, call the endpoint over raw HTTP yourself (above). All other actions use the SDK methods normally.</p>
+</blockquote>
 <h3 id="no-editor-open-graceful-behaviour">"No editor open" — graceful behaviour</h3>
-<p>For <strong>most actions</strong>, no live editor → HTTP 200 with <code>status: "unavailable"</code>:</p>
+<p>For <strong>non-screenshot actions</strong>, no live editor → HTTP 200 with <code>status: "unavailable"</code>:</p>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:   &quot;scene_inspector_result&quot;,
   &quot;status&quot;:   &quot;unavailable&quot;,
@@ -103,7 +152,7 @@
 </tr>
 </tbody>
 </table>
-<p>For <strong><code>screenshot_scene_280x498</code> specifically</strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and returns <code>code: "server_fallback"</code>. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
+<p>For <strong><code>screenshot_scene_280x498</code></strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and <strong>still returns binary JPEG</strong> with the same headers as a live-editor capture. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
 <p>Agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> + <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a>, and when needed fetch the per-scene <code>remotion_spec_url</code>.</p>
 <hr />
 <h2 id="actions">Actions</h2>
@@ -143,8 +192,8 @@
 </tr>
 <tr>
 <td><code>screenshot_scene_280x498</code></td>
-<td>Small browser-side capture for aesthetic / visual judgment.</td>
-<td>Best-effort; use a renderer / headless-browser fallback for pixel-perfect verification.</td>
+<td>Small ~280×498 capture for aesthetic / visual judgment.</td>
+<td><strong>Response is <code>image/jpeg</code> bytes</strong>, not JSON — see <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">the binary section above</a>. Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification.</td>
 </tr>
 <tr>
 <td><code>activate_scene</code></td>
@@ -271,11 +320,10 @@
 }
 </code></pre></div>
 
+<h3 id="200-ok-imagejpeg-only-for-screenshot_scene_280x498"><code>200 OK</code> — <code>image/jpeg</code> (only for <code>screenshot_scene_280x498</code>)</h3>
+<p>Response body is raw JPEG bytes. See <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">the binary section above</a> for headers + client snippets. Server-fallback composites use the same content type — no way to distinguish from headers alone; assume "approximate" when reading <code>screenshot_scene_280x498</code> output.</p>
 <h3 id="200-ok-unavailable"><code>200 OK</code> — <code>unavailable</code></h3>
-<p>See "No editor open" above.</p>
-<blockquote>
-<p>For <code>screenshot_scene_280x498</code>, the body is still <code>status: "completed"</code> but <code>code: "server_fallback"</code> and <code>result</code> is a composite assembled from scene thumbnails + <code>{voice_file}_overlay_poster.png</code>. Treat as approximate.</p>
-</blockquote>
+<p>See "No editor open" above. <strong>Note</strong>: <code>screenshot_scene_280x498</code> never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still returns JPEG bytes (or a 500 JSON error if it cannot).</p>
 <h3 id="200-ok-error-browser-side-failure"><code>200 OK</code> — <code>error</code> (browser-side failure)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;: &quot;scene_inspector_result&quot;,
@@ -334,8 +382,31 @@
 </tr>
 </tbody>
 </table>
+<h3 id="500-internal-server-error-screenshot-only"><code>500 Internal Server Error</code> (screenshot-only)</h3>
+<p>JSON envelope returned when <code>screenshot_scene_280x498</code> can't produce bytes:</p>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>screenshot_binary_missing</code></td>
+<td>Server composed a fallback but no image bytes were produced.</td>
+</tr>
+<tr>
+<td><code>server_fallback_failed</code></td>
+<td>Could not compose any fallback screenshot.</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
+<blockquote>
+<p>⚠ The Python (<code>client.scene_inspector</code>) and JS (<code>client.scene_inspector</code>) methods JSON-decode the response, so they <strong>cannot return image bytes</strong>. For <code>screenshot_scene_280x498</code>, call the endpoint over raw HTTP — see the <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">client snippet above</a>.</p>
+</blockquote>
 <h3 id="python-screenshot-with-graceful-server-fallback">Python — screenshot with graceful server-fallback</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 

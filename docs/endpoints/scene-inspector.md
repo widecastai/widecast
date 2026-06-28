@@ -19,9 +19,64 @@
 
 > **Presence ≠ usability.** A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.
 
+### 🖼 `screenshot_scene_280x498` returns binary JPEG, not JSON
+
+**Special-cased response shape.** On success — whether the bytes come from a live editor capture or from the server-fallback composite — the HTTP response is the raw image:
+
+- `Content-Type: image/jpeg`
+- Body = JPEG bytes (NOT JSON, NOT base64, NOT `result.screenshot`)
+- Metadata in response headers:
+  - `X-WideCast-Request-Id`
+  - `X-WideCast-Scene-Id`
+  - `X-WideCast-Voice-File`
+  - `X-WideCast-Scene-Index`
+  - `Content-Length`
+  - `Cache-Control: no-store`
+- Cap ~8 MB.
+
+**All other actions still return JSON** `{object: "scene_inspector_result", status, code, result, …}` — only `screenshot_scene_280x498` switches content types.
+
+**On screenshot errors** (no image bytes / fallback couldn't be composed), the route falls back to a JSON error envelope:
+
+```jsonc
+// HTTP 500 — server fallback ran but produced no image bytes
+{ "error": { "type": "server_error", "code": "screenshot_binary_missing", "message": "…", "request_id": "req_…" } }
+
+// HTTP 500 — couldn't even compose a fallback
+{ "error": { "type": "server_error", "code": "server_fallback_failed",    "message": "…", "request_id": "req_…" } }
+```
+
+**Client snippet — fetch the JPEG**:
+
+```bash
+curl -sS -X POST ".../v1/scene_inspector" \
+  -H "Authorization: Bearer wc_live_REPLACE_ME" \
+  -H "Content-Type: application/json" \
+  -d '{ "id": "widecast7c0d4f8a9b1e2d3f",
+        "action": "screenshot_scene_280x498",
+        "voice_file": "XcR0k" }' \
+  --output scene.jpg
+```
+
+```typescript
+const r = await fetch(`${API}/v1/scene_inspector`, {
+  method: "POST",
+  headers: { "Authorization": `Bearer ${KEY}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ id, action: "screenshot_scene_280x498", voice_file }),
+});
+const ct = r.headers.get("content-type") || "";
+if (ct.startsWith("image/jpeg")) {
+  const bytes = await r.arrayBuffer();  // ← raw JPEG
+} else {
+  const err = await r.json();           // ← JSON error envelope
+}
+```
+
+> **SDK note.** The Python (`client.scene_inspector`) and JS (`client.scene_inspector`) methods JSON-decode the response, so they **cannot return image bytes**. For the screenshot action specifically, call the endpoint over raw HTTP yourself (above). All other actions use the SDK methods normally.
+
 ### "No editor open" — graceful behaviour
 
-For **most actions**, no live editor → HTTP 200 with `status: "unavailable"`:
+For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unavailable"`:
 
 ```jsonc
 {
@@ -37,7 +92,7 @@ For **most actions**, no live editor → HTTP 200 with `status: "unavailable"`:
 | `no_live_editor` | No editor tab is currently open for this video (no presence at all). |
 | `no_active_editor` | At least one tab is registered but none responded to the probe in time. |
 
-For **`screenshot_scene_280x498` specifically**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and returns `code: "server_fallback"`. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
+For **`screenshot_scene_280x498`**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and **still returns binary JPEG** with the same headers as a live-editor capture. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
 
 Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
 
@@ -52,7 +107,7 @@ Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geome
 | `get_preview_state` | `{playing, paused, scene, time}` for the preview player. | |
 | `get_scene_dom_snapshot` | DOM subtree for the scene (scoped via optional `selector`). | Keep `selector` narrow — broad selectors blow up the payload. |
 | `get_computed_boxes` | `getBoundingClientRect()` for elements in the scene. | **Prefer [`/v1/scene_geometry`](scene-geometry.md) for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON. |
-| `screenshot_scene_280x498` | Small browser-side capture for aesthetic / visual judgment. | Best-effort; use a renderer / headless-browser fallback for pixel-perfect verification. |
+| `screenshot_scene_280x498` | Small ~280×498 capture for aesthetic / visual judgment. | **Response is `image/jpeg` bytes**, not JSON — see [the binary section above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json). Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification. |
 | `activate_scene` | Brings the elected tab to the requested scene. May visibly switch the open editor for that user. | Use sparingly. |
 | `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` | Preview transport controls. | `seek_preview` accepts `seek_seconds`. |
 
@@ -117,11 +172,13 @@ Content-Type: application/json
 }
 ```
 
+### `200 OK` — `image/jpeg` (only for `screenshot_scene_280x498`)
+
+Response body is raw JPEG bytes. See [the binary section above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json) for headers + client snippets. Server-fallback composites use the same content type — no way to distinguish from headers alone; assume "approximate" when reading `screenshot_scene_280x498` output.
+
 ### `200 OK` — `unavailable`
 
-See "No editor open" above.
-
-> For `screenshot_scene_280x498`, the body is still `status: "completed"` but `code: "server_fallback"` and `result` is a composite assembled from scene thumbnails + `{voice_file}_overlay_poster.png`. Treat as approximate.
+See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still returns JPEG bytes (or a 500 JSON error if it cannot).
 
 ### `200 OK` — `error` (browser-side failure)
 
@@ -153,9 +210,20 @@ See "No editor open" above.
 |---|---|
 | `video_not_found` | No video with this id on the account. |
 
+### `500 Internal Server Error` (screenshot-only)
+
+JSON envelope returned when `screenshot_scene_280x498` can't produce bytes:
+
+| `error.code` | Meaning |
+|---|---|
+| `screenshot_binary_missing` | Server composed a fallback but no image bytes were produced. |
+| `server_fallback_failed` | Could not compose any fallback screenshot. |
+
 ---
 
 ## SDK examples
+
+> ⚠ The Python (`client.scene_inspector`) and JS (`client.scene_inspector`) methods JSON-decode the response, so they **cannot return image bytes**. For `screenshot_scene_280x498`, call the endpoint over raw HTTP — see the [client snippet above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json).
 
 ### Python — screenshot with graceful server-fallback
 

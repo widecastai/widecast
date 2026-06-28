@@ -161,7 +161,8 @@ info:
       script_not_ready | script_parse_failed | scene_geometry_failed |
       unsupported_action |
       publisher_missing | mqtt_publish_failed | no_live_editor |
-      no_active_editor | browser_error | server_fallback`
+      no_active_editor | browser_error | server_fallback |
+      screenshot_binary_missing | server_fallback_failed`
     - Headers (every response): `X-Request-Id`, `X-RateLimit-*`,
       `X-WideCast-Version`
     - Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)
@@ -847,18 +848,23 @@ paths:
             (STATIC/POSTER display boxes resolved with the same Storyboard
             math used by `{voice_file}_overlay_poster.png`).
           - `remotion_spec` — metadata for the loaded `{voice_file}_spec.json`
-            (file, url, version, state).
-          - `violations[]` — collision codes such as
-            `remotion_object_overlaps_narrator_face` (error),
-            `remotion_object_in_top_dead_zone` (warning),
-            `remotion_group_in_bottom_dead_zone`,
-            `caption_text_overlaps_narrator_face`.
-          - `warnings[]` — e.g. `remotion_object_too_small_for_mobile`,
-            `narrator_face_outside_narrator`, `missing_narrator_face`.
-          - `summary` — `{error_count, warning_count,
-            remotion_object_count, remotion_object_layer_count,
+            (file, url, version, state). Internal `remotion_poster_*`
+            keys are diagnostic-only — pass `include_diagnostics:true`
+            to surface them.
+          - `summary` — `{remotion_object_count,
+            remotion_object_layer_count, remotion_sequence_object_count,
             remotion_group_count, remotion_temporal_policies,
             remotion_geometry_basis}`.
+
+        **Mechanical linter output is debug-only.** By default the
+        response is actionable data only — `violations[]` (collision
+        codes), `warnings[]` (mobile-readability / face-staleness hints),
+        and `summary.error_count` / `summary.warning_count` are
+        stripped. Vision-capable agents should judge collisions and
+        aesthetics from a screenshot via `/v1/scene_inspector`; LLM-only
+        agents should still proceed with the rects + `boxes.narrator.face`
+        to keep overlays off the face. Pass `include_diagnostics: true`
+        to opt back in for server/debug audits.
 
         Designed for LLM-only agents that cannot see images: reason over
         JSON, then call `/v1/modify_scene` with a `layout.batch` containing
@@ -883,11 +889,20 @@ paths:
                   id: widecast7c0d4f8a9b1e2d3f
                   by: text
                   value: "Meta spent 14.3 billion to acquire Scale AI"
+              with_diagnostics:
+                summary: Server/debug audit — include violations + warnings + counts
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  voice_file: XcR0k
+                  include_diagnostics: true
       responses:
         '200':
           description: |
-            Scene geometry — boxes + violations + warnings in 280×498
-            preview coords. On ambiguous text match → `ClarificationResponse`.
+            Scene geometry — boxes + scene + summary in 280×498 preview
+            coords. `violations[]`, `warnings[]`, `summary.error_count`,
+            and `summary.warning_count` only appear when
+            `include_diagnostics: true`. On ambiguous text match →
+            `ClarificationResponse`.
           headers: *commonHeaders
           content:
             application/json:
@@ -1040,6 +1055,18 @@ paths:
         Prefer this over `/v1/create_image` when the user is asking for a
         REAL-WORLD asset (landmarks, products, people in the news) — real
         photos/footage beat AI generations for credibility.
+
+        **Curated grid backgrounds (special branch — `kind="video"` only).**
+        When `keyword` is the EXACT single word `"grid"` (case-insensitive,
+        no other words — phrases like `"grid background"` still hit the
+        normal stock search), the server SKIPS Pexels/Pixabay/Shutterstock
+        and returns WideCast's curated internal grid-background video
+        list, in the SAME `results[]` shape. Each item carries `number`,
+        `type: "video"`, `url`, `thumbnail_url`, `title`, `source` — drop
+        the picked URL into `/v1/modify_scene` `field_name="mediaUrl"`
+        like any other clip. The shared `stock_video_from_text` engine
+        handles both the UI Stock-tab grid keyword and this MCP/REST
+        route, so the two return the same curated list.
       requestBody:
         required: true
         content:
@@ -1059,6 +1086,11 @@ paths:
                   keyword: "Eiffel Tower morning"
                   kind: image
                   limit: 8
+              grid:
+                summary: Curated WideCast grid backgrounds — special single-word "grid" keyword
+                value:
+                  keyword: "grid"
+                  kind: video
       responses:
         '200':
           description: List of stock B-roll results, pre-numbered for an AI agent to relay as a numbered picker.
@@ -1410,6 +1442,16 @@ paths:
         `remotion_spec_state="ready"` and you actually need object-level
         overlay boxes; otherwise use the metadata only.
 
+        **Internal poster diagnostics are stripped by default.** Per-segment
+        `remotion_poster_file`, `remotion_poster_url`,
+        `remotion_poster_version`, `remotion_poster_state`,
+        `remotion_poster_exists`, and `remotion_poster_warnings` (and
+        their copies inside `agent_meta.remotion_spec`) describe the
+        server-side `{voice_file}_overlay_poster.png` used by
+        `/v1/scene_inspector` fallback. Pass
+        `include_diagnostics: true` to surface them for server/debug
+        audits.
+
         Mirrors the same engine the dashboard's scene editor uses on open
         (rebalance A/B rolls + ensure background music + persist if
         changed), so the data here matches what the user sees in
@@ -1429,6 +1471,16 @@ paths:
                     `widecast...`, `gubo...`, or current topic ids. Same id
                     used by `/v1/status`, `/v1/export_video`,
                     `/v1/modify_scene`, `/v1/scene_inspector`.
+                include_diagnostics:
+                  type: boolean
+                  default: false
+                  description: |
+                    Optional debug flag. When `true`, per-segment
+                    `remotion_poster_*` diagnostic keys (and their
+                    copies inside `agent_meta.remotion_spec`) are
+                    returned. Default is `false` because those keys
+                    describe the server-side poster used by scene
+                    inspector fallback — agents don't act on them.
               example:
                 video_id: "widecastABCDEFGHIJKL"
       responses:
@@ -1489,18 +1541,38 @@ paths:
         any page without a mounted scene preview are ignored for scene-
         bound commands.
 
+        **`screenshot_scene_280x498` returns BINARY JPEG, not JSON.** On
+        success (live editor capture OR server-fallback composite from
+        thumbnails + `{voice_file}_overlay_poster.png`), the HTTP
+        response is the raw image:
+
+          * `Content-Type: image/jpeg`
+          * Body = JPEG bytes (NOT JSON, NOT base64, NOT
+            `result.screenshot`).
+          * Metadata in response headers: `X-WideCast-Request-Id`,
+            `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,
+            `X-WideCast-Scene-Index`, `Content-Length`,
+            `Cache-Control: no-store`. Cap ~8 MB.
+
+        **All other actions still return JSON
+        `SceneInspectorResponse`** as before — only
+        `screenshot_scene_280x498` switches content types.
+
         **No live editor → graceful behaviour**:
-          - For most actions, the response is HTTP 200 with
+          - For non-screenshot actions, the response is HTTP 200 with
             `status: "unavailable"` and `code: "no_live_editor"` (no
             presence) or `"no_active_editor"` (presence but unresponsive).
             Fall back to `/v1/video_data` + `/v1/scene_geometry` +
             fetching `remotion_spec_url`.
-          - For `screenshot_scene_280x498` specifically, the server
-            composes a cheap fallback screenshot from scene thumbnails +
+          - For `screenshot_scene_280x498`, the server composes a
+            fallback screenshot from scene thumbnails +
             `{voice_file}_overlay_poster.png` (the static overlay poster
             refreshed by spec-changing `/v1/modify_scene` edits) and
-            returns `code: "server_fallback"`. Treat fallback screenshots
-            as approximate composites, not real renders.
+            still returns BINARY JPEG. Treat fallback screenshots as
+            approximate composites, not real renders. If the composer
+            cannot produce bytes at all → HTTP 500 JSON error
+            `screenshot_binary_missing`; if no fallback could be
+            assembled → HTTP 500 JSON error `server_fallback_failed`.
 
         **Actions** (`action`):
           * `list_live_editors` — presence list of open editor tabs
@@ -1516,18 +1588,16 @@ paths:
             audits** — it is cheaper, always-available (no browser
             needed), and returns the same boxes plus collision violations
             and safe zones in pure JSON.
-          * `screenshot_scene_280x498` — small browser-side capture for
-            aesthetic / visual judgment. Best-effort live capture;
-            otherwise server-fallback composite. For pixel-perfect
+          * `screenshot_scene_280x498` — small JPEG (~280×498). **Returns
+            raw `image/jpeg` bytes** (see above). For pixel-perfect
             verification, use a renderer / headless-browser pass.
           * `activate_scene` — bring the elected tab to scene N (may
             visibly switch the editor for that user).
           * `reload_preview` / `pause_preview` / `play_preview` /
             `seek_preview` — preview transport controls.
 
-        **No arbitrary JavaScript eval is exposed.** Screenshots
-        intentionally small (280×498). Use `voice_file` as the scene
-        selector wherever possible.
+        **No arbitrary JavaScript eval is exposed.** Use `voice_file` as
+        the scene selector wherever possible.
       requestBody:
         required: true
         content:
@@ -1555,15 +1625,29 @@ paths:
       responses:
         '200':
           description: |
-            Inspector outcome. `status` discriminates:
-              * `"completed"` — elected tab returned a `result`.
-              * `"unavailable"` — no editor available; `code` is
-                `no_live_editor` (no presence) or `no_active_editor`
-                (presence but unresponsive).
-              * `"error"` — browser-side failure; `code` carries the
-                provider error.
+            Inspector outcome. Content type depends on the action:
+              * **`screenshot_scene_280x498`** → raw `image/jpeg` bytes.
+                Metadata is in response headers (`X-WideCast-Request-Id`,
+                `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,
+                `X-WideCast-Scene-Index`, `Content-Length`,
+                `Cache-Control: no-store`).
+              * **All other actions** → JSON `SceneInspectorResponse`
+                with `status` discriminating:
+                  * `"completed"` — elected tab returned a `result`.
+                  * `"unavailable"` — no editor available; `code` is
+                    `no_live_editor` (no presence) or `no_active_editor`
+                    (presence but unresponsive).
+                  * `"error"` — browser-side failure; `code` carries the
+                    provider error.
           headers: *commonHeaders
           content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+                description: |
+                  Only returned for `action: "screenshot_scene_280x498"`
+                  on success. ~280×498 px JPEG; capped ~8 MB.
             application/json:
               schema: { $ref: '#/components/schemas/SceneInspectorResponse' }
         '400':
@@ -1578,6 +1662,16 @@ paths:
         '404':
           description: |
             `video_not_found` — no video with this id on the account.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: |
+            Screenshot-only error codes when bytes are unavailable:
+              * `screenshot_binary_missing` — server fallback composed
+                but no image bytes were produced.
+              * `server_fallback_failed` — server could not compose any
+                fallback screenshot.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -2754,6 +2848,18 @@ components:
           maximum: 1
           default: 0.5
           description: Only when `by="text"`. Fuzzy-match threshold.
+        include_diagnostics:
+          type: boolean
+          default: false
+          description: |
+            Optional debug flag. When `true`, the response also carries
+            `violations[]`, `warnings[]`, `summary.error_count` /
+            `summary.warning_count`, and the `remotion_poster_*` keys
+            inside `remotion_spec`. Default is `false` because mechanical
+            linter output is debug-only — vision-capable agents should
+            judge aesthetics from a screenshot via `/v1/scene_inspector`,
+            and LLM-only agents should proceed with the rects +
+            `boxes.narrator.face` to keep overlays out of the face.
 
     SceneGeometryResponse:
       type: object
@@ -2762,6 +2868,11 @@ components:
         Data-only scene layout geometry. Every box is in
         **280×498 editor-preview** coordinates unless explicitly suffixed
         with `_canvas` (Remotion 720×1280 canvas).
+
+        **Mechanical linter output is stripped by default.** `violations`,
+        `warnings`, `summary.error_count`, and `summary.warning_count`
+        are only present when the request included
+        `include_diagnostics: true`.
       properties:
         object: { type: string, const: scene_geometry }
         id: { type: string, description: topic_id (echoed). }
@@ -2854,19 +2965,41 @@ components:
                 sequence_objects: { type: array, items: { type: object } }
         remotion_spec:
           type: object
-          description: Metadata for the loaded `{voice_file}_spec.json` — file/url/version/state.
+          description: |
+            Metadata for the loaded `{voice_file}_spec.json` —
+            file/url/version/state. The internal `remotion_poster_*`
+            keys (file, url, version, state, exists, warnings) are
+            stripped by default; pass `include_diagnostics: true` to
+            surface them.
         violations:
           type: array
           items: { type: object }
-          description: Collision codes (error/warning/info severity).
+          description: |
+            **Diagnostic only — present only when
+            `include_diagnostics=true`.** Collision codes (error /
+            warning / info severity) such as
+            `remotion_object_overlaps_narrator_face`,
+            `remotion_object_in_top_dead_zone`,
+            `remotion_group_in_bottom_dead_zone`,
+            `caption_text_overlaps_narrator_face`. Vision-capable
+            agents should judge collisions from a screenshot instead.
         warnings:
           type: array
           items: { type: object }
+          description: |
+            **Diagnostic only — present only when
+            `include_diagnostics=true`.** Soft signals such as
+            `remotion_object_too_small_for_mobile`,
+            `narrator_face_outside_narrator`, `missing_narrator_face`.
         summary:
           type: object
           properties:
-            error_count: { type: integer }
-            warning_count: { type: integer }
+            error_count:
+              type: integer
+              description: '**Diagnostic only — present only when `include_diagnostics=true`.**'
+            warning_count:
+              type: integer
+              description: '**Diagnostic only — present only when `include_diagnostics=true`.**'
             remotion_object_count: { type: integer }
             remotion_object_layer_count: { type: integer }
             remotion_sequence_object_count: { type: integer }
@@ -3417,13 +3550,41 @@ components:
         remotion_spec_state:
           type: string
           enum: [ready, missing, disabled]
+        remotion_poster_file:
+          type: string
+          description: |
+            **Diagnostic only — present only when
+            `include_diagnostics=true`.** Canonical
+            `{voice_file}_overlay_poster.png` — derived static overlay
+            poster used by server-side scene_inspector screenshot
+            fallback.
+        remotion_poster_url:
+          type: string
+          format: uri
+          description: '**Diagnostic only — present only when `include_diagnostics=true`.** Cache-busted public poster URL (`?v=<mtime>`).'
+        remotion_poster_version:
+          type: string
+          description: '**Diagnostic only — present only when `include_diagnostics=true`.**'
+        remotion_poster_state:
+          type: string
+          enum: [ready, missing, disabled]
+          description: '**Diagnostic only — present only when `include_diagnostics=true`.**'
+        remotion_poster_exists:
+          type: boolean
+          description: '**Diagnostic only — present only when `include_diagnostics=true`.**'
+        remotion_poster_warnings:
+          type: array
+          items: { type: object }
+          description: '**Diagnostic only — present only when `include_diagnostics=true`.** Warnings emitted while rendering the static overlay poster.'
         agent_meta:
           type: object
           description: |
             Same metadata bundled for quick consumption:
             `stable_scene_id_field="voice_file"`, `stable_scene_id`,
             `order_field="id"`, `order_value`, `scene_index`,
-            `remotion_spec` (same metadata), `coordinate_spaces` (the
+            `remotion_spec` (same metadata; the inner `remotion_poster_*`
+            keys are diagnostic-only — only present when
+            `include_diagnostics=true`), `coordinate_spaces` (the
             720×1280 canvas + 280×498 preview maps).
 
     VideoDataGlobalSettings:
@@ -3548,12 +3709,15 @@ components:
         code:
           type: string
           description: |
+            For non-screenshot actions and screenshot-error envelopes:
             `ok` | `no_live_editor` | `no_active_editor` |
             `unsupported_action` | `publisher_missing` |
             `mqtt_publish_failed` | `browser_error` | `server_fallback`
-            (only for `screenshot_scene_280x498` when no live editor —
-            response carries a composite assembled from scene thumbnails
-            + `{voice_file}_overlay_poster.png`).
+            (legacy fallback marker) | `screenshot_binary_missing`
+            (composed but no image bytes — HTTP 500) |
+            `server_fallback_failed` (couldn't compose a fallback — HTTP
+            500). Successful `screenshot_scene_280x498` calls return raw
+            `image/jpeg` bytes — not this JSON envelope.
         request_id: { type: string }
         action: { type: string }
         topic_id: { type: string }

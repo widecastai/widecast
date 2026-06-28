@@ -53,6 +53,15 @@ fields:
     label: "min_score (only when by='text')"
     required: false
     placeholder: "0.5"
+  - name: include_diagnostics
+    type: select
+    label: "include_diagnostics (debug-only)"
+    required: false
+    options:
+      - { value: "",     label: "false (default — actionable data only)" }
+      - { value: "true", label: "true (also return violations[] / warnings[] / counts / poster_*)" }
+    default: ""
+    help: "Default false. When true, the response also carries `violations[]`, `warnings[]`, `summary.error_count`/`warning_count`, and `remotion_spec.remotion_poster_*` — for server/debug audits only. Vision-capable agents should judge aesthetics from screenshots."
 
 poll_after_create:
   enabled: false
@@ -60,7 +69,7 @@ poll_after_create:
 use_cases:
   - id: by-voice-file
     title: "🧭 Audit a scene by voice_file (preferred)"
-    description: "Cheapest, most reliable selector — paste the scene's voice_file from /v1/video_data."
+    description: "Default response — actionable data only. Cheapest, most reliable selector; paste the scene's voice_file from /v1/video_data."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       voice_file: "XcR0k"
@@ -71,3 +80,10 @@ use_cases:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "text"
       value: "Meta đã chi 14.3 tỷ đô để mua Scale AI"
+  - id: with-diagnostics
+    title: "🔬 Server/debug audit — include violations + warnings + counts"
+    description: "Opt back into the full debug payload (violations[], warnings[], summary.error_count/warning_count, remotion_poster_*). The mechanical collision math is approximate; treat results as hints."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      voice_file: "XcR0k"
+      include_diagnostics: true

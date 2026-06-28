@@ -12,6 +12,24 @@
       "label": "video_id (topic_id — accepts widecast..., gubo..., or current ids)",
       "required": true,
       "placeholder": "widecastABCDEFGHIJKL"
+    },
+    {
+      "name": "include_diagnostics",
+      "type": "select",
+      "label": "include_diagnostics (debug-only)",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "false (default — actionable data only)"
+        },
+        {
+          "value": "true",
+          "label": "true (also return per-segment remotion_poster_* keys)"
+        }
+      ],
+      "default": "",
+      "help": "Default false. When true, each segment also carries `remotion_poster_*` diagnostic keys (and their copies inside `agent_meta.remotion_spec`) describing the server-side overlay poster used by /v1/scene_inspector fallback. For server/debug audits only."
     }
   ],
   "poll_after_create": {
@@ -21,9 +39,18 @@
     {
       "id": "read-video",
       "title": "📜 Audit a video — list every scene + Remotion spec status",
-      "description": "Paste a topic_id (the id returned by /v1/create_video) to see scene_identity, every scene's voice_file (stable UID), current mediaUrl/mediaType, narrator config, and remotion_spec_url (cache-busted) + remotion_spec_state (ready/missing/disabled). Spec content is NOT inlined — fetch remotion_spec_url only when state is ready and you need object boxes.",
+      "description": "Default response. Paste a topic_id (the id returned by /v1/create_video) to see scene_identity, every scene's voice_file (stable UID), current mediaUrl/mediaType, narrator config, and remotion_spec_url (cache-busted) + remotion_spec_state (ready/missing/disabled). Spec content is NOT inlined — fetch remotion_spec_url only when state is ready and you need object boxes.",
       "request": {
         "video_id": "widecastABCDEFGHIJKL"
+      }
+    },
+    {
+      "id": "with-diagnostics",
+      "title": "🔬 Server/debug audit — include remotion_poster_*",
+      "description": "Opt back into the diagnostic poster keys per-segment (file, url, version, state, exists, warnings). For server/debug audits only — agents don't act on these.",
+      "request": {
+        "video_id": "widecastABCDEFGHIJKL",
+        "include_diagnostics": true
       }
     }
   ],

@@ -56,7 +56,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/search_broll" \
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `keyword` | string | yes | Search keyword. **1-3 words work best** — Pexels/Pixabay token-match poorly with sentence-long queries. |
+| `keyword` | string | yes | Search keyword. **1-3 words work best** — Pexels/Pixabay token-match poorly with sentence-long queries. **Special**: when `keyword` is the EXACT single word `"grid"` (case-insensitive, no other words — phrases like `"grid background"` still hit normal stock search) AND `kind="video"`, the server returns WideCast's curated internal grid backgrounds — see [Curated grid backgrounds](#curated-grid-backgrounds-keywordgrid) below. |
 | `kind` | string | yes | `"video"` = stock CLIPS, `"image"` = real PHOTOS. |
 | `ratio` | string | no | `"portrait"` (default), `"landscape"`, `"square"`. **Only filters when `kind="video"`** — image search ignores it (crop client-side if needed). |
 | `limit` | integer | no | 1-20 (default 10). Keep tight (6-10) for fast picks. |
@@ -116,6 +116,53 @@ Image results add `context_url` (web page the image was crawled from) and have `
 | `invalid_limit` | 400 | `limit` outside 1-20. |
 | `search_failed` | 502 | Upstream stock provider failed. |
 | `missing_api_key` / `invalid_api_key` | 401 | Auth. |
+
+---
+
+## Curated grid backgrounds (`keyword="grid"`)
+
+When `keyword` is the **exact single word `"grid"`** (case-insensitive, no other words) AND `kind="video"`, the server **skips Pexels/Pixabay/Shutterstock entirely** and returns WideCast's curated internal grid-background video list — the same set the broll.js Stock-tab grid keyword surfaces in the dashboard UI.
+
+```http
+POST /v1/search_broll
+Authorization: Bearer wc_live_REPLACE_ME
+Content-Type: application/json
+
+{ "keyword": "grid", "kind": "video" }
+```
+
+**Same response shape** as the normal stock search — each item carries `number`, `type: "video"`, `url`, `thumbnail_url`, `title`, `source`. Drop the picked URL into [`/v1/modify_scene`](modify-scene.md) `field_name="mediaUrl"` like any other clip.
+
+```jsonc
+{
+  "object":  "list",
+  "kind":    "video",
+  "keyword": "grid",
+  "ratio":   "portrait",
+  "total":   12,
+  "results": [
+    {
+      "number":        1,
+      "type":          "video",
+      "url":           "https://widecast.ai/.../grid1.mp4",
+      "thumbnail_url": "https://widecast.ai/.../grid1-thumb.jpg",
+      "title":         "WideCast grid · variant 1",
+      "source":        "widecast_grid"
+    }
+    /* …more curated grids… */
+  ],
+  "request_id": "req_abcd…"
+}
+```
+
+**Important triggering rules**:
+
+- **Single word only** — `"grid"` triggers the branch; `"grid background"`, `"abstract grid"`, `"grid pattern"` all hit normal stock search.
+- **`kind="video"` only** — `kind="image"` always goes to Google photo search.
+- **Case-insensitive + whitespace-trimmed** — `" Grid "` and `"GRID"` both trigger.
+- The shared `stock_video_from_text` engine handles both this REST/MCP route AND the UI Stock-tab grid keyword, so the two return the same curated list. No drift to manage.
+
+Use this when the user asks for the WideCast template grid: *"show me the WideCast grids"*, *"I want a grid background"*, *"use the built-in grid"*.
 
 ---
 

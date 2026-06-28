@@ -304,6 +304,11 @@ export interface SceneGeometryOptions {
   scene_id?: string | number;
   /** Only when `by="text"`. Fuzzy-match threshold (default 0.5). */
   min_score?: number;
+  /** Optional debug flag (default false). When true, the response also
+   *  carries `violations[]`, `warnings[]`, `summary.error_count`,
+   *  `summary.warning_count`, and `remotion_spec.remotion_poster_*` —
+   *  for server/debug audits only. */
+  include_diagnostics?: boolean;
 }
 
 /** Data-only scene layout geometry — narrator/caption/Remotion boxes in
@@ -363,9 +368,17 @@ export interface SceneGeometryResponse {
     };
   };
   remotion_spec?: Record<string, unknown>;
-  /** Collision codes (error/warning/info). */
-  violations: Record<string, unknown>[];
-  warnings: Record<string, unknown>[];
+  /** **Diagnostic only — present only when `include_diagnostics=true`.**
+   *  Collision codes (error / warning / info severity). */
+  violations?: Record<string, unknown>[];
+  /** **Diagnostic only — present only when `include_diagnostics=true`.**
+   *  Soft signals like `remotion_object_too_small_for_mobile`,
+   *  `narrator_face_outside_narrator`, `missing_narrator_face`. */
+  warnings?: Record<string, unknown>[];
+  /** `summary.error_count` and `summary.warning_count` are only present
+   *  when `include_diagnostics=true`; the rest of the keys
+   *  (`remotion_object_count`, `remotion_object_layer_count`, …) are
+   *  always present. */
   summary: Record<string, unknown>;
   request_id: string;
 }
@@ -1447,6 +1460,16 @@ export class Widecast {
    *  `kind: "image"` → Google real photos. Same engines the broll.js
    *  media picker uses (Stock tab vs Photos tab).
    *
+   *  **Curated grid backgrounds (special branch — `kind: "video"`
+   *  only)**. When `keyword` is the EXACT single word `"grid"`
+   *  (case-insensitive, no other words — phrases like
+   *  `"grid background"` still hit normal stock search), the server
+   *  skips Pexels/Pixabay/Shutterstock and returns WideCast's curated
+   *  internal grid-background video list in the SAME `results[]` shape.
+   *  The shared `stock_video_from_text` engine powers both the UI
+   *  Stock-tab grid keyword and this MCP/REST route, so the two return
+   *  the same curated list.
+   *
    *  AI-agent flow: render the returned `results` as a NUMBERED
    *  THUMBNAIL LIST and let the user pick by number — `result.results[N-1].url`
    *  is the asset URL.
@@ -1595,18 +1618,31 @@ export class Widecast {
    *  fetch `remotion_spec_url` only when state is `ready` and you
    *  actually need object boxes.
    *
+   *  **Internal poster diagnostics are stripped by default.** Per-segment
+   *  `remotion_poster_file` / `remotion_poster_url` /
+   *  `remotion_poster_version` / `remotion_poster_state` /
+   *  `remotion_poster_exists` / `remotion_poster_warnings` (and their
+   *  copies inside `agent_meta.remotion_spec`) describe the server-side
+   *  overlay poster used by `scene_inspector()` fallback. Pass
+   *  `include_diagnostics: true` to surface them.
+   *
    *  Throws `code="video_not_found"` (404) when the id doesn't exist on
    *  the account, or `code="script_not_ready"` (409) when the video is
    *  still processing — poll `wait_for_video()` first.
    */
-  async video_data(videoId: string): Promise<VideoDataResponse> {
+  async video_data(
+    videoId: string,
+    opts: { include_diagnostics?: boolean } = {},
+  ): Promise<VideoDataResponse> {
     if (typeof videoId !== "string" || !videoId.trim()) {
       throw new InvalidRequestError(
         "video_id (the topic_id) is required.",
         { code: "missing_field", param: "video_id" });
     }
+    const body: Record<string, unknown> = { video_id: videoId.trim() };
+    if (opts.include_diagnostics !== undefined) body.include_diagnostics = opts.include_diagnostics;
     return await this.#request<VideoDataResponse>(
-      "POST", "/v1/video_data", { video_id: videoId.trim() });
+      "POST", "/v1/video_data", body);
   }
 
   /** POST /v1/scene_geometry — data-only layout geometry for ONE scene.
@@ -1617,8 +1653,8 @@ export class Widecast {
    *  Resolves the scene by stable `voice_file` (preferred), loads
    *  `{voice_file}_spec.json` if available, and returns
    *  narrator/caption/Remotion Storyboard boxes in one 280×498
-   *  editor-preview coordinate space, plus dead zones, collision
-   *  violations, and warnings.
+   *  editor-preview coordinate space, plus dead zones and a structural
+   *  `summary`.
    *
    *  **Recommended overlay-layout flow**: read
    *  `boxes.remotion.object_layer.objects` — each item has
@@ -1634,6 +1670,16 @@ export class Widecast {
    *  `overlay.narrator.rect`. Do NOT mutate `segment.narrator_face` for
    *  layout edits; it only refreshes when narrator media is
    *  generated/recorded/uploaded.
+   *
+   *  **Mechanical linter output is debug-only.** By default the
+   *  response is actionable data only — `violations[]` (collision
+   *  codes), `warnings[]` (mobile-readability / face-staleness hints),
+   *  `summary.error_count` / `summary.warning_count`, and the
+   *  `remotion_poster_*` keys inside `remotion_spec` are stripped.
+   *  Vision-capable agents should judge collisions and aesthetics from
+   *  a screenshot via `scene_inspector()`. Pass
+   *  `include_diagnostics: true` to opt back in for server/debug
+   *  audits.
    *
    *  Designed for LLM-only agents that cannot see images: reason over
    *  JSON, then send the edits. Never broadcasts MQTT, never renders
@@ -1658,6 +1704,7 @@ export class Widecast {
     if (opts.voice_file !== undefined) body.voice_file = opts.voice_file;
     if (opts.scene_id !== undefined) body.scene_id = opts.scene_id;
     if (opts.min_score !== undefined) body.min_score = opts.min_score;
+    if (opts.include_diagnostics !== undefined) body.include_diagnostics = opts.include_diagnostics;
     return await this.#request<SceneGeometryResponse>(
       "POST", "/v1/scene_geometry", body);
   }
@@ -1674,16 +1721,36 @@ export class Widecast {
    *  elects ONE healthy foreground/active browser within ~800ms, then
    *  sends the inspector command only to that tab.
    *
+   *  **🖼 `screenshot_scene_280x498` returns BINARY JPEG, not JSON.** On
+   *  success — whether the bytes come from a live editor capture or
+   *  from the server-fallback composite — the HTTP response is the raw
+   *  image: `Content-Type: image/jpeg`, body = JPEG bytes (NOT JSON,
+   *  NOT base64, NOT `result.screenshot`). Metadata is in headers
+   *  (`X-WideCast-Request-Id`, `X-WideCast-Scene-Id`,
+   *  `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`,
+   *  `Content-Length`, `Cache-Control: no-store`); ~8 MB cap.
+   *
+   *  Because this method JSON-decodes the response, it CANNOT return
+   *  image bytes. **If you need the screenshot, call
+   *  `/v1/scene_inspector` over raw HTTP yourself** (e.g.
+   *  `fetch(url, {method:'POST', headers, body})` then
+   *  `response.arrayBuffer()` / `response.blob()`) — pass the same body
+   *  shape. For all other actions this method is the right tool.
+   *
+   *  On screenshot errors the route falls back to a JSON error envelope:
+   *  HTTP 500 with `code: "screenshot_binary_missing"` (composed but no
+   *  bytes) or `code: "server_fallback_failed"` (couldn't compose a
+   *  fallback).
+   *
    *  **No live editor → graceful behaviour**:
-   *    - For most actions, the response is `{status: "unavailable",
-   *      code: "no_live_editor" | "no_active_editor", fallback: {...}}`
-   *      — expected, not a crash. Fall back to `video_data()` +
-   *      `scene_geometry()` + `remotion_spec_url`.
+   *    - For non-screenshot actions, the response is `{status:
+   *      "unavailable", code: "no_live_editor" | "no_active_editor",
+   *      fallback: {...}}` — expected, not a crash. Fall back to
+   *      `video_data()` + `scene_geometry()` + `remotion_spec_url`.
    *    - For `screenshot_scene_280x498`, the server composes a
    *      fallback screenshot from scene thumbnails +
-   *      `{voice_file}_overlay_poster.png` and returns
-   *      `code: "server_fallback"` — treat as an approximate composite,
-   *      not a real render.
+   *      `{voice_file}_overlay_poster.png` and STILL returns JPEG bytes
+   *      — treat as an approximate composite, not a real render.
    *
    *  Allowed actions: `list_live_editors` | `list_instances` |
    *  `get_preview_state` | `get_scene_dom_snapshot` |

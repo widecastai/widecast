@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error | server_fallback`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error | server_fallback |\n  screenshot_binary_missing | server_fallback_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -765,6 +765,14 @@
                     "by": "text",
                     "value": "Meta spent 14.3 billion to acquire Scale AI"
                   }
+                },
+                "with_diagnostics": {
+                  "summary": "Server/debug audit — include violations + warnings + counts",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "voice_file": "XcR0k",
+                    "include_diagnostics": true
+                  }
                 }
               }
             }
@@ -772,7 +780,7 @@
         },
         "responses": {
           "200": {
-            "description": "Scene geometry — boxes + violations + warnings in 280×498\npreview coords. On ambiguous text match → `ClarificationResponse`.\n",
+            "description": "Scene geometry — boxes + scene + summary in 280×498 preview\ncoords. `violations[]`, `warnings[]`, `summary.error_count`,\nand `summary.warning_count` only appear when\n`include_diagnostics: true`. On ambiguous text match →\n`ClarificationResponse`.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1048,6 +1056,13 @@
                     "keyword": "Eiffel Tower morning",
                     "kind": "image",
                     "limit": 8
+                  }
+                },
+                "grid": {
+                  "summary": "Curated WideCast grid backgrounds — special single-word \"grid\" keyword",
+                  "value": {
+                    "keyword": "grid",
+                    "kind": "video"
                   }
                 }
               }
@@ -1526,6 +1541,11 @@
                   "video_id": {
                     "type": "string",
                     "description": "Topic id from `/v1/create_video` / scene_editor. Accepts\n`widecast...`, `gubo...`, or current topic ids. Same id\nused by `/v1/status`, `/v1/export_video`,\n`/v1/modify_scene`, `/v1/scene_inspector`.\n"
+                  },
+                  "include_diagnostics": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Optional debug flag. When `true`, per-segment\n`remotion_poster_*` diagnostic keys (and their\ncopies inside `agent_meta.remotion_spec`) are\nreturned. Default is `false` because those keys\ndescribe the server-side poster used by scene\ninspector fallback — agents don't act on them.\n"
                   }
                 },
                 "example": {
@@ -1648,7 +1668,7 @@
         },
         "responses": {
           "200": {
-            "description": "Inspector outcome. `status` discriminates:\n  * `\"completed\"` — elected tab returned a `result`.\n  * `\"unavailable\"` — no editor available; `code` is\n    `no_live_editor` (no presence) or `no_active_editor`\n    (presence but unresponsive).\n  * `\"error\"` — browser-side failure; `code` carries the\n    provider error.\n",
+            "description": "Inspector outcome. Content type depends on the action:\n  * **`screenshot_scene_280x498`** → raw `image/jpeg` bytes.\n    Metadata is in response headers (`X-WideCast-Request-Id`,\n    `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,\n    `X-WideCast-Scene-Index`, `Content-Length`,\n    `Cache-Control: no-store`).\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1667,6 +1687,13 @@
               }
             },
             "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "Only returned for `action: \"screenshot_scene_280x498\"`\non success. ~280×498 px JPEG; capped ~8 MB.\n"
+                }
+              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SceneInspectorResponse"
@@ -1689,6 +1716,16 @@
           },
           "404": {
             "description": "`video_not_found` — no video with this id on the account.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Screenshot-only error codes when bytes are unavailable:\n  * `screenshot_binary_missing` — server fallback composed\n    but no image bytes were produced.\n  * `server_fallback_failed` — server could not compose any\n    fallback screenshot.\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -3299,6 +3336,11 @@
             "maximum": 1,
             "default": 0.5,
             "description": "Only when `by=\"text\"`. Fuzzy-match threshold."
+          },
+          "include_diagnostics": {
+            "type": "boolean",
+            "default": false,
+            "description": "Optional debug flag. When `true`, the response also carries\n`violations[]`, `warnings[]`, `summary.error_count` /\n`summary.warning_count`, and the `remotion_poster_*` keys\ninside `remotion_spec`. Default is `false` because mechanical\nlinter output is debug-only — vision-capable agents should\njudge aesthetics from a screenshot via `/v1/scene_inspector`,\nand LLM-only agents should proceed with the rects +\n`boxes.narrator.face` to keep overlays out of the face.\n"
           }
         }
       },
@@ -3311,7 +3353,7 @@
           "coordinate_space",
           "boxes"
         ],
-        "description": "Data-only scene layout geometry. Every box is in\n**280×498 editor-preview** coordinates unless explicitly suffixed\nwith `_canvas` (Remotion 720×1280 canvas).\n",
+        "description": "Data-only scene layout geometry. Every box is in\n**280×498 editor-preview** coordinates unless explicitly suffixed\nwith `_canvas` (Remotion 720×1280 canvas).\n\n**Mechanical linter output is stripped by default.** `violations`,\n`warnings`, `summary.error_count`, and `summary.warning_count`\nare only present when the request included\n`include_diagnostics: true`.\n",
         "properties": {
           "object": {
             "type": "string",
@@ -3501,29 +3543,32 @@
           },
           "remotion_spec": {
             "type": "object",
-            "description": "Metadata for the loaded `{voice_file}_spec.json` — file/url/version/state."
+            "description": "Metadata for the loaded `{voice_file}_spec.json` —\nfile/url/version/state. The internal `remotion_poster_*`\nkeys (file, url, version, state, exists, warnings) are\nstripped by default; pass `include_diagnostics: true` to\nsurface them.\n"
           },
           "violations": {
             "type": "array",
             "items": {
               "type": "object"
             },
-            "description": "Collision codes (error/warning/info severity)."
+            "description": "**Diagnostic only — present only when\n`include_diagnostics=true`.** Collision codes (error /\nwarning / info severity) such as\n`remotion_object_overlaps_narrator_face`,\n`remotion_object_in_top_dead_zone`,\n`remotion_group_in_bottom_dead_zone`,\n`caption_text_overlaps_narrator_face`. Vision-capable\nagents should judge collisions from a screenshot instead.\n"
           },
           "warnings": {
             "type": "array",
             "items": {
               "type": "object"
-            }
+            },
+            "description": "**Diagnostic only — present only when\n`include_diagnostics=true`.** Soft signals such as\n`remotion_object_too_small_for_mobile`,\n`narrator_face_outside_narrator`, `missing_narrator_face`.\n"
           },
           "summary": {
             "type": "object",
             "properties": {
               "error_count": {
-                "type": "integer"
+                "type": "integer",
+                "description": "**Diagnostic only — present only when `include_diagnostics=true`.**"
               },
               "warning_count": {
-                "type": "integer"
+                "type": "integer",
+                "description": "**Diagnostic only — present only when `include_diagnostics=true`.**"
               },
               "remotion_object_count": {
                 "type": "integer"
@@ -4304,9 +4349,42 @@
               "disabled"
             ]
           },
+          "remotion_poster_file": {
+            "type": "string",
+            "description": "**Diagnostic only — present only when\n`include_diagnostics=true`.** Canonical\n`{voice_file}_overlay_poster.png` — derived static overlay\nposter used by server-side scene_inspector screenshot\nfallback.\n"
+          },
+          "remotion_poster_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "**Diagnostic only — present only when `include_diagnostics=true`.** Cache-busted public poster URL (`?v=<mtime>`)."
+          },
+          "remotion_poster_version": {
+            "type": "string",
+            "description": "**Diagnostic only — present only when `include_diagnostics=true`.**"
+          },
+          "remotion_poster_state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "missing",
+              "disabled"
+            ],
+            "description": "**Diagnostic only — present only when `include_diagnostics=true`.**"
+          },
+          "remotion_poster_exists": {
+            "type": "boolean",
+            "description": "**Diagnostic only — present only when `include_diagnostics=true`.**"
+          },
+          "remotion_poster_warnings": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "**Diagnostic only — present only when `include_diagnostics=true`.** Warnings emitted while rendering the static overlay poster."
+          },
           "agent_meta": {
             "type": "object",
-            "description": "Same metadata bundled for quick consumption:\n`stable_scene_id_field=\"voice_file\"`, `stable_scene_id`,\n`order_field=\"id\"`, `order_value`, `scene_index`,\n`remotion_spec` (same metadata), `coordinate_spaces` (the\n720×1280 canvas + 280×498 preview maps).\n"
+            "description": "Same metadata bundled for quick consumption:\n`stable_scene_id_field=\"voice_file\"`, `stable_scene_id`,\n`order_field=\"id\"`, `order_value`, `scene_index`,\n`remotion_spec` (same metadata; the inner `remotion_poster_*`\nkeys are diagnostic-only — only present when\n`include_diagnostics=true`), `coordinate_spaces` (the\n720×1280 canvas + 280×498 preview maps).\n"
           }
         }
       },
@@ -4519,7 +4597,7 @@
           },
           "code": {
             "type": "string",
-            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` | `server_fallback`\n(only for `screenshot_scene_280x498` when no live editor —\nresponse carries a composite assembled from scene thumbnails\n+ `{voice_file}_overlay_poster.png`).\n"
+            "description": "For non-screenshot actions and screenshot-error envelopes:\n`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` | `server_fallback`\n(legacy fallback marker) | `screenshot_binary_missing`\n(composed but no image bytes — HTTP 500) |\n`server_fallback_failed` (couldn't compose a fallback — HTTP\n500). Successful `screenshot_scene_280x498` calls return raw\n`image/jpeg` bytes — not this JSON envelope.\n"
           },
           "request_id": {
             "type": "string"

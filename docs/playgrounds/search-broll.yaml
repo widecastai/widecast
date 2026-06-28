@@ -16,6 +16,12 @@ description: |
   AI agent can render a numbered thumbnail list for the user to pick by
   number.
 
+  **Special**: when `keyword` is the exact single word `"grid"`
+  (case-insensitive) AND `kind="video"`, the server skips
+  Pexels/Pixabay/Shutterstock and returns WideCast's curated internal
+  grid-background video list in the SAME `results[]` shape. Phrases like
+  `"grid background"` still hit normal stock search.
+
 fields:
   - name: keyword
     type: text
@@ -55,3 +61,9 @@ use_cases:
       keyword: "Eiffel Tower morning"
       kind: "image"
       limit: 8
+  - id: curated-grid
+    title: "🪟 Curated WideCast grid backgrounds (special `keyword=\"grid\"`)"
+    description: "Single word `\"grid\"` + `kind=\"video\"` triggers the curated internal grid-background list — same result shape as normal stock search. Picked URL → /v1/modify_scene `field_name=\"mediaUrl\"` like any other clip. Note: `\"grid background\"` (multi-word) still hits normal stock search."
+    request:
+      keyword: "grid"
+      kind: "video"

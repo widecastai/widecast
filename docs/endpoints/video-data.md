@@ -4,6 +4,8 @@
 
 > **Recommended chain**: `video_data` → [`/v1/scene_geometry`](scene-geometry.md) (cheap layout audit) → [`/v1/modify_scene`](modify-scene.md). Use [`/v1/scene_inspector`](scene-inspector.md) only as an expensive last resort when you need browser truth or a live screenshot.
 
+> **Internal poster diagnostics are stripped by default.** Per-segment `remotion_poster_file` / `remotion_poster_url` / `remotion_poster_version` / `remotion_poster_state` / `remotion_poster_exists` / `remotion_poster_warnings` (and their copies inside `agent_meta.remotion_spec`) describe the server-side `{voice_file}_overlay_poster.png` used by [`/v1/scene_inspector`](scene-inspector.md) fallback — agents don't act on them. Pass `include_diagnostics: true` to surface them for server / debug audits.
+
 The endpoint mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data matches what the user sees in `https://widecast.ai/#scene_editor?topic_id=…` exactly.
 
 To keep MCP payloads usable, the API trims per-segment `words` timing arrays, top-level `captions`, plus internal preview-cache fields (`savedVideos`, `savedImages`, `_previewInstanceId`, `_remotionSpecFetching`, `_forceNarratorRefit`). UI routes still get full data; this is the agent-safe slim view.
@@ -55,6 +57,7 @@ Content-Type: application/json
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `video_id` | string | yes | Topic id from [`/v1/create_video`](create-video.md) / scene editor. Accepts `widecast...`, `gubo...`, or current ids. Same id used by `/v1/status`, `/v1/export_video`, `/v1/modify_scene`, `/v1/scene_inspector`. |
+| `include_diagnostics` | boolean | no | Default `false`. When `true`, per-segment `remotion_poster_*` diagnostic keys (and their copies inside `agent_meta.remotion_spec`) are returned. For server / debug audits only. |
 
 ---
 

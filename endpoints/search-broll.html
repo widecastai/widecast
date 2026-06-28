@@ -92,7 +92,7 @@
 <p><strong>Agent rendering rule — MANDATORY HTML artifact, NO per-thumbnail fetch. ⚠ Most AI-agent runtimes (Claude included) CANNOT render an external <code>https://…</code> URL inline in chat.</strong> Open an HTML artifact with a grid of <code>&lt;img src='https://…'&gt;</code> thumbnails (<a href="#html-artifact-template">template below</a>). The artifact is loaded by the <strong>user's browser</strong> once per session — no quota burn on the AI host or the source.</p>
 <p><strong>⚠ NEVER</strong> call view_image / download-and-attach on each thumbnail. That fires N requests in seconds — Pexels / Pixabay / Google / Shutterstock all rate-limit aggressively, and <strong>the account may be banned within a single search</strong>. The pattern is: <strong>N thumbs shown via artifact (0 fetches), pick 1, fetch 1 (only when the user picks)</strong>.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/search_broll</code></div><section class="wc-pg-example" data-cfg="playgrounds/search-broll.json" data-usecase-id="video-portrait" id="ex-search-broll--video-portrait"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Stock video clips (portrait)</h3><p class="wc-pg-example-desc">Search Pexels + Pixabay + Shutterstock for portrait-ratio video clips matching a keyword. Returns up to `limit` results, each pre-numbered for an agent to render as a thumbnail picker.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/search-broll.json" data-usecase-id="real-photos" id="ex-search-broll--real-photos"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🖼️ Real photos (Google search)</h3><p class="wc-pg-example-desc">Search Google image search for real photos matching a keyword — best when the user wants a SPECIFIC real-world asset (landmark, product, person in the news).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/search_broll</code></div><section class="wc-pg-example" data-cfg="playgrounds/search-broll.json" data-usecase-id="video-portrait" id="ex-search-broll--video-portrait"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Stock video clips (portrait)</h3><p class="wc-pg-example-desc">Search Pexels + Pixabay + Shutterstock for portrait-ratio video clips matching a keyword. Returns up to `limit` results, each pre-numbered for an agent to render as a thumbnail picker.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/search-broll.json" data-usecase-id="real-photos" id="ex-search-broll--real-photos"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🖼️ Real photos (Google search)</h3><p class="wc-pg-example-desc">Search Google image search for real photos matching a keyword — best when the user wants a SPECIFIC real-world asset (landmark, product, person in the news).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/search-broll.json" data-usecase-id="curated-grid" id="ex-search-broll--curated-grid"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🪟 Curated WideCast grid backgrounds (special `keyword="grid"`)</h3><p class="wc-pg-example-desc">Single word `"grid"` + `kind="video"` triggers the curated internal grid-background list — same result shape as normal stock search. Picked URL → /v1/modify_scene `field_name="mediaUrl"` like any other clip. Note: `"grid background"` (multi-word) still hits normal stock search.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="request">Request</h2>
@@ -134,7 +134,7 @@
 <td><code>keyword</code></td>
 <td>string</td>
 <td>yes</td>
-<td>Search keyword. <strong>1-3 words work best</strong> — Pexels/Pixabay token-match poorly with sentence-long queries.</td>
+<td>Search keyword. <strong>1-3 words work best</strong> — Pexels/Pixabay token-match poorly with sentence-long queries. <strong>Special</strong>: when <code>keyword</code> is the EXACT single word <code>"grid"</code> (case-insensitive, no other words — phrases like <code>"grid background"</code> still hit normal stock search) AND <code>kind="video"</code>, the server returns WideCast's curated internal grid backgrounds — see <a href="#curated-grid-backgrounds-keywordgrid">Curated grid backgrounds</a> below.</td>
 </tr>
 <tr>
 <td><code>kind</code></td>
@@ -238,6 +238,46 @@
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="curated-grid-backgrounds-keywordgrid">Curated grid backgrounds (<code>keyword="grid"</code>)</h2>
+<p>When <code>keyword</code> is the <strong>exact single word <code>"grid"</code></strong> (case-insensitive, no other words) AND <code>kind="video"</code>, the server <strong>skips Pexels/Pixabay/Shutterstock entirely</strong> and returns WideCast's curated internal grid-background video list — the same set the broll.js Stock-tab grid keyword surfaces in the dashboard UI.</p>
+<div class="highlight"><pre><span></span><code><span class="err">POST /v1/search_broll</span>
+<span class="err">Authorization: Bearer wc_live_REPLACE_ME</span>
+<span class="err">Content-Type: application/json</span>
+
+<span class="err">{ &quot;keyword&quot;: &quot;grid&quot;, &quot;kind&quot;: &quot;video&quot; }</span>
+</code></pre></div>
+
+<p><strong>Same response shape</strong> as the normal stock search — each item carries <code>number</code>, <code>type: "video"</code>, <code>url</code>, <code>thumbnail_url</code>, <code>title</code>, <code>source</code>. Drop the picked URL into <a href="modify-scene.md"><code>/v1/modify_scene</code></a> <code>field_name="mediaUrl"</code> like any other clip.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:  &quot;list&quot;,
+  &quot;kind&quot;:    &quot;video&quot;,
+  &quot;keyword&quot;: &quot;grid&quot;,
+  &quot;ratio&quot;:   &quot;portrait&quot;,
+  &quot;total&quot;:   12,
+  &quot;results&quot;: [
+    {
+      &quot;number&quot;:        1,
+      &quot;type&quot;:          &quot;video&quot;,
+      &quot;url&quot;:           &quot;https://widecast.ai/.../grid1.mp4&quot;,
+      &quot;thumbnail_url&quot;: &quot;https://widecast.ai/.../grid1-thumb.jpg&quot;,
+      &quot;title&quot;:         &quot;WideCast grid · variant 1&quot;,
+      &quot;source&quot;:        &quot;widecast_grid&quot;
+    }
+    /* …more curated grids… */
+  ],
+  &quot;request_id&quot;: &quot;req_abcd…&quot;
+}
+</code></pre></div>
+
+<p><strong>Important triggering rules</strong>:</p>
+<ul>
+<li><strong>Single word only</strong> — <code>"grid"</code> triggers the branch; <code>"grid background"</code>, <code>"abstract grid"</code>, <code>"grid pattern"</code> all hit normal stock search.</li>
+<li><strong><code>kind="video"</code> only</strong> — <code>kind="image"</code> always goes to Google photo search.</li>
+<li><strong>Case-insensitive + whitespace-trimmed</strong> — <code>" Grid "</code> and <code>"GRID"</code> both trigger.</li>
+<li>The shared <code>stock_video_from_text</code> engine handles both this REST/MCP route AND the UI Stock-tab grid keyword, so the two return the same curated list. No drift to manage.</li>
+</ul>
+<p>Use this when the user asks for the WideCast template grid: <em>"show me the WideCast grids"</em>, <em>"I want a grid background"</em>, <em>"use the built-in grid"</em>.</p>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
 <h3 id="python">Python</h3>

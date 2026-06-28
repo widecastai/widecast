@@ -1095,13 +1095,25 @@ class Widecast:
           - ``kind="image"`` → searches Google for real PHOTOS
             (broll.js Photos tab engine).
 
+        **Curated grid backgrounds (special branch — ``kind="video"``
+        only).** When ``keyword`` is the EXACT single word ``"grid"``
+        (case-insensitive, no other words — phrases like
+        ``"grid background"`` still go to normal stock search), the
+        server skips Pexels/Pixabay/Shutterstock and returns WideCast's
+        curated internal grid-background video list in the SAME
+        ``results[]`` shape. The shared ``stock_video_from_text`` engine
+        powers both the UI Stock-tab grid keyword and this MCP/REST
+        route, so the two return the same curated list.
+
         AI-agent flow: render the returned `results` as a NUMBERED
         THUMBNAIL LIST and let the user pick by number —
         `result["results"][N-1]["url"]` is the asset URL to feed into
         modify_scene or use inline in a script.
 
         Args:
-            keyword:  Required. 1-3 words work best.
+            keyword:  Required. 1-3 words work best. Pass ``"grid"``
+                      (single word) with ``kind="video"`` to fetch
+                      WideCast's curated grid backgrounds.
             kind:     Required. ``"video"`` or ``"image"``.
             ratio:    "portrait" (default), "landscape", or "square".
                       Only filters when kind="video".
@@ -1263,7 +1275,8 @@ class Widecast:
     # callers that need to find a topic can use list_videos() + a local
     # title filter instead.
 
-    def video_data(self, video_id: str) -> dict:
+    def video_data(self, video_id: str, *,
+                   include_diagnostics: bool = False) -> dict:
         """POST /v1/video_data — read structured scene data for a topic_id.
         SYNC, FREE. **First step for data-first scene audit/edit** — call
         this before :meth:`scene_geometry` / :meth:`modify_scene` /
@@ -1277,6 +1290,15 @@ class Widecast:
         internal preview-cache fields (``savedVideos``, ``savedImages``,
         ``_previewInstanceId``, ``_remotionSpecFetching``,
         ``_forceNarratorRefit``) are trimmed.
+
+        **Internal poster diagnostics are stripped by default.**
+        Per-segment ``remotion_poster_file``, ``remotion_poster_url``,
+        ``remotion_poster_version``, ``remotion_poster_state``,
+        ``remotion_poster_exists``, ``remotion_poster_warnings`` (and
+        their copies inside ``agent_meta.remotion_spec``) describe the
+        server-side ``{voice_file}_overlay_poster.png`` used by
+        :meth:`scene_inspector` fallback — agents don't act on them.
+        Pass ``include_diagnostics=True`` to surface them.
 
         **Scene identity rule** (also returned as ``scene_identity`` in
         the response): use ``voice_file`` as the stable per-scene UID.
@@ -1315,6 +1337,10 @@ class Widecast:
         Args:
             video_id: Topic id from :meth:`create_video` / scene_editor.
                       Accepts widecast..., gubo..., or current topic ids.
+            include_diagnostics: When ``True``, the per-segment
+                ``remotion_poster_*`` diagnostic keys (and their copies
+                inside ``agent_meta.remotion_spec``) are included.
+                Default ``False``.
 
         Raises ``InvalidRequestError(code="video_not_found", 404)`` when
         the id doesn't exist on the account, or
@@ -1325,8 +1351,11 @@ class Widecast:
             raise InvalidRequestError(
                 "video_id (the topic_id) is required.",
                 code="missing_field", param="video_id")
+        body: dict = {"video_id": video_id.strip()}
+        if include_diagnostics:
+            body["include_diagnostics"] = True
         return self._request("POST", "/v1/video_data",
-                             json_body={"video_id": video_id.strip()},
+                             json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 
     def scene_geometry(self, video_id: str, *,
@@ -1334,7 +1363,8 @@ class Widecast:
                        value: Optional[Any] = None,
                        voice_file: Optional[str] = None,
                        scene_id: Optional[Any] = None,
-                       min_score: Optional[float] = None) -> dict:
+                       min_score: Optional[float] = None,
+                       include_diagnostics: bool = False) -> dict:
         """POST /v1/scene_geometry — data-only layout geometry for ONE
         scene. SYNC, FREE, read-only.
 
@@ -1377,7 +1407,25 @@ class Widecast:
             (STATIC/POSTER display boxes from the same Storyboard math
             used by ``{voice_file}_overlay_poster.png``).
           * ``remotion_spec`` — metadata for the loaded
-            ``{voice_file}_spec.json``.
+            ``{voice_file}_spec.json``. The internal ``remotion_poster_*``
+            keys are stripped by default; pass
+            ``include_diagnostics=True`` to surface them.
+          * ``summary`` — ``{remotion_object_count,
+            remotion_object_layer_count, remotion_sequence_object_count,
+            remotion_group_count, remotion_temporal_policies,
+            remotion_geometry_basis}``.
+
+        **Mechanical linter output is debug-only.** By default the
+        response is actionable data only. ``violations[]`` (collision
+        codes), ``warnings[]`` (mobile-readability / face-staleness
+        hints), and ``summary.error_count`` / ``summary.warning_count``
+        are stripped. Vision-capable agents should judge collisions and
+        aesthetics from a screenshot via :meth:`scene_inspector`;
+        LLM-only agents should still proceed with the rects +
+        ``boxes.narrator.face`` to keep overlays off the face. Pass
+        ``include_diagnostics=True`` to opt back in for server/debug
+        audits:
+
           * ``violations[]`` — collision codes such as
             ``remotion_object_overlaps_narrator_face`` (error),
             ``remotion_object_in_top_dead_zone`` (warning),
@@ -1387,10 +1435,7 @@ class Widecast:
             ``remotion_object_too_small_for_mobile``,
             ``narrator_face_outside_narrator``,
             ``missing_narrator_face``.
-          * ``summary`` — ``{error_count, warning_count,
-            remotion_object_count, remotion_object_layer_count,
-            remotion_group_count, remotion_temporal_policies,
-            remotion_geometry_basis}``.
+          * ``summary.error_count`` / ``summary.warning_count``.
 
         Designed for LLM-only agents that cannot see images: reason over
         JSON, then call :meth:`modify_scene` with a ``layout.batch`` (or
@@ -1407,6 +1452,10 @@ class Widecast:
                 (folds into ``by="voice_file"``).
             scene_id: Current display/order id — fallback only.
             min_score: Only when ``by="text"``. Default 0.5.
+            include_diagnostics: When ``True``, the response also carries
+                ``violations[]``, ``warnings[]``,
+                ``summary.error_count``, ``summary.warning_count``, and
+                ``remotion_spec.remotion_poster_*``. Default ``False``.
 
         On ambiguous text match the response is
         ``{"object": "clarification", "needs_input": "value",
@@ -1428,6 +1477,8 @@ class Widecast:
             body["scene_id"] = scene_id
         if min_score is not None:
             body["min_score"] = float(min_score)
+        if include_diagnostics:
+            body["include_diagnostics"] = True
         return self._request("POST", "/v1/scene_geometry", json_body=body)
 
     def scene_inspector(self, video_id: str, action: str, *,
@@ -1452,18 +1503,44 @@ class Widecast:
         elects ONE healthy foreground/active browser within ~800ms, then
         sends the inspector command only to that tab.
 
+        **🖼 ``screenshot_scene_280x498`` returns BINARY JPEG, not JSON.**
+        On success — whether the bytes come from a live editor capture or
+        from the server-fallback composite — the HTTP response is the
+        raw image:
+
+          * ``Content-Type: image/jpeg``
+          * Body = JPEG bytes (NOT JSON, NOT base64, NOT
+            ``result.screenshot``)
+          * Metadata in response headers (``X-WideCast-Request-Id``,
+            ``X-WideCast-Scene-Id``, ``X-WideCast-Voice-File``,
+            ``X-WideCast-Scene-Index``, ``Content-Length``,
+            ``Cache-Control: no-store``); ~8 MB cap
+
+        Because this SDK method JSON-decodes the response, it CANNOT
+        return image bytes. **If you need the screenshot, call
+        ``/v1/scene_inspector`` over raw HTTP yourself** (e.g. with
+        ``requests``, ``httpx``, or via the underlying ``self._http``
+        client) — pass the same body shape, then read
+        ``response.content``. For all other actions this method is the
+        right tool.
+
+        On screenshot errors (no image bytes, or no fallback could be
+        assembled) the route falls back to a JSON error envelope: HTTP
+        500 with ``code="screenshot_binary_missing"`` or
+        ``code="server_fallback_failed"``.
+
         **No live editor → graceful behaviour**:
 
-          * For most actions, the response is ``{status:
+          * For non-screenshot actions, the response is ``{status:
             "unavailable", code: "no_live_editor" | "no_active_editor",
             fallback: {...}}`` — expected, not a crash. Fall back to
             :meth:`video_data` + :meth:`scene_geometry` +
             ``remotion_spec_url``.
           * For ``screenshot_scene_280x498``, the server composes a
             fallback screenshot from scene thumbnails +
-            ``{voice_file}_overlay_poster.png`` and returns
-            ``code: "server_fallback"`` — treat as an approximate
-            composite, not a real render.
+            ``{voice_file}_overlay_poster.png`` and STILL returns JPEG
+            bytes — treat as an approximate composite, not a real
+            render.
 
         Allowed actions:
           ``list_live_editors`` | ``list_instances`` |

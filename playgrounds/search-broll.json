@@ -4,7 +4,7 @@
     "path": "/v1/search_broll"
   },
   "title": "Search stock B-roll (video clips or real photos)",
-  "description": "Synchronous, free. Search stock B-roll for a keyword. Use **kind=video**\nfor stock clips (Pexels/Pixabay/Shutterstock — same engine as the\nbroll.js Stock tab) or **kind=image** for real photos (Google — broll.js\nPhotos tab). Returns a list with each result labeled by `number` so an\nAI agent can render a numbered thumbnail list for the user to pick by\nnumber.\n",
+  "description": "Synchronous, free. Search stock B-roll for a keyword. Use **kind=video**\nfor stock clips (Pexels/Pixabay/Shutterstock — same engine as the\nbroll.js Stock tab) or **kind=image** for real photos (Google — broll.js\nPhotos tab). Returns a list with each result labeled by `number` so an\nAI agent can render a numbered thumbnail list for the user to pick by\nnumber.\n\n**Special**: when `keyword` is the exact single word `\"grid\"`\n(case-insensitive) AND `kind=\"video\"`, the server skips\nPexels/Pixabay/Shutterstock and returns WideCast's curated internal\ngrid-background video list in the SAME `results[]` shape. Phrases like\n`\"grid background\"` still hit normal stock search.\n",
   "fields": [
     {
       "name": "keyword",
@@ -63,6 +63,15 @@
         "keyword": "Eiffel Tower morning",
         "kind": "image",
         "limit": 8
+      }
+    },
+    {
+      "id": "curated-grid",
+      "title": "🪟 Curated WideCast grid backgrounds (special `keyword=\"grid\"`)",
+      "description": "Single word `\"grid\"` + `kind=\"video\"` triggers the curated internal grid-background list — same result shape as normal stock search. Picked URL → /v1/modify_scene `field_name=\"mediaUrl\"` like any other clip. Note: `\"grid background\"` (multi-word) still hits normal stock search.",
+      "request": {
+        "keyword": "grid",
+        "kind": "video"
       }
     }
   ],
