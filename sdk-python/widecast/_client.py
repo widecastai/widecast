@@ -1503,24 +1503,28 @@ class Widecast:
         elects ONE healthy foreground/active browser within ~800ms, then
         sends the inspector command only to that tab.
 
-        **🖼 ``screenshot_scene_280x498`` returns BINARY JPEG, not JSON.**
-        On success — whether the bytes come from a live editor capture or
-        from the server-fallback composite — the HTTP response is the
-        raw image:
+        **🖼 ``screenshot_scene_280x498`` has a binary-image response
+        shape**, transport-dependent:
 
-          * ``Content-Type: image/jpeg``
-          * Body = JPEG bytes (NOT JSON, NOT base64, NOT
-            ``result.screenshot``)
-          * Metadata in response headers (``X-WideCast-Request-Id``,
-            ``X-WideCast-Scene-Id``, ``X-WideCast-Voice-File``,
-            ``X-WideCast-Scene-Index``, ``Content-Length``,
-            ``Cache-Control: no-store``); ~8 MB cap
+          * **Over MCP** (Claude Desktop / Claude.ai / ChatGPT MCP) the
+            WideCast MCP wrapper detects the upstream ``image/jpeg``
+            response and emits a proper MCP ``ImageContent`` block
+            (``{type:"image", data:"<base64>", mimeType:"image/jpeg"}``)
+            per MCP spec 2025-06-18 §6.3 — rendered inline, bytes never
+            enter the model's text stream.
+          * **Over raw REST** (curl / SDK / Action) the response is
+            ``Content-Type: image/jpeg`` with the JPEG bytes in the
+            body. Metadata is in response headers
+            (``X-WideCast-Request-Id``, ``X-WideCast-Scene-Id``,
+            ``X-WideCast-Voice-File``, ``X-WideCast-Scene-Index``,
+            ``Content-Length``, ``Cache-Control: no-store``); ~8 MB
+            cap.
 
         Because this SDK method JSON-decodes the response, it CANNOT
-        return image bytes. **If you need the screenshot, call
-        ``/v1/scene_inspector`` over raw HTTP yourself** (e.g. with
-        ``requests``, ``httpx``, or via the underlying ``self._http``
-        client) — pass the same body shape, then read
+        return image bytes. **If you need the screenshot from the SDK,
+        call ``/v1/scene_inspector`` over raw HTTP yourself** (e.g.
+        with ``requests``, ``httpx``, or via the underlying
+        ``self._http`` client) — pass the same body shape, then read
         ``response.content``. For all other actions this method is the
         right tool.
 

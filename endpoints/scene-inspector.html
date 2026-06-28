@@ -61,7 +61,7 @@
 <blockquote>
 <p><strong>Recommended chain</strong>: <a href="video-data.md"><code>/v1/video_data</code></a> → <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Only reach for <code>/v1/scene_inspector</code> when you specifically need browser truth or a live screenshot — e.g. you suspect a CSS / load race after a <code>modify_scene</code> edit, or you want a quick aesthetic gut-check before suggesting another move.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — RETURNS BINARY JPEG</h3><p class="wc-pg-example-desc">⚠ Special response shape: on success this action returns raw `Content-Type: image/jpeg` bytes (NOT JSON, NOT base64). Metadata is in response headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available — still returns JPEG bytes. On failure (no bytes / no fallback) → 500 JSON error: screenshot_binary_missing | server_fallback_failed. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes — for this action call /v1/scene_inspector over raw HTTP yourself (curl --output, fetch + arrayBuffer, etc).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — binary JPEG (REST) / ImageContent (MCP)</h3><p class="wc-pg-example-desc">⚠ Special response shape, transport-dependent. (a) Over MCP (Claude Desktop / Claude.ai / ChatGPT MCP): the WideCast MCP wrapper emits a proper MCP ImageContent block — {type:'image', data:'<base64>', mimeType:'image/jpeg'} — rendered as an inline image; bytes never enter the model's text stream. (b) Over raw REST: response is `Content-Type: image/jpeg` with JPEG bytes in the body; metadata in headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available. On failure (no bytes / no fallback) → 500 JSON error: screenshot_binary_missing | server_fallback_failed. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes — for this action call /v1/scene_inspector over raw HTTP yourself (curl --output, fetch + arrayBuffer, etc).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="how-it-works">How it works</h2>
@@ -75,22 +75,17 @@
 <blockquote>
 <p><strong>Presence ≠ usability.</strong> A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.</p>
 </blockquote>
-<h3 id="screenshot_scene_280x498-returns-binary-jpeg-not-json">🖼 <code>screenshot_scene_280x498</code> returns binary JPEG, not JSON</h3>
-<p><strong>Special-cased response shape.</strong> On success — whether the bytes come from a live editor capture or from the server-fallback composite — the HTTP response is the raw image:</p>
+<h3 id="screenshot_scene_280x498-returns-binary-jpeg-rest-mcp-imagecontent-mcp">🖼 <code>screenshot_scene_280x498</code> returns binary JPEG (REST) / MCP ImageContent (MCP)</h3>
+<p>The response shape depends on <strong>which surface the agent uses</strong>. Both flows return the same underlying ~280×498 JPEG — only the transport differs.</p>
+<h4 id="rest-raw-imagejpeg-bytes">REST — raw <code>image/jpeg</code> bytes</h4>
+<p>On success (live editor capture OR server-fallback composite from scene thumbnails + <code>{voice_file}_overlay_poster.png</code>):</p>
 <ul>
 <li><code>Content-Type: image/jpeg</code></li>
 <li>Body = JPEG bytes (NOT JSON, NOT base64, NOT <code>result.screenshot</code>)</li>
-<li>Metadata in response headers:</li>
-<li><code>X-WideCast-Request-Id</code></li>
-<li><code>X-WideCast-Scene-Id</code></li>
-<li><code>X-WideCast-Voice-File</code></li>
-<li><code>X-WideCast-Scene-Index</code></li>
-<li><code>Content-Length</code></li>
-<li><code>Cache-Control: no-store</code></li>
-<li>Cap ~8 MB.</li>
+<li>Metadata in response headers: <code>X-WideCast-Request-Id</code>, <code>X-WideCast-Scene-Id</code>, <code>X-WideCast-Voice-File</code>, <code>X-WideCast-Scene-Index</code>, <code>Content-Length</code>, <code>Cache-Control: no-store</code></li>
+<li>Cap ~8 MB</li>
 </ul>
-<p><strong>All other actions still return JSON</strong> <code>{object: "scene_inspector_result", status, code, result, …}</code> — only <code>screenshot_scene_280x498</code> switches content types.</p>
-<p><strong>On screenshot errors</strong> (no image bytes / fallback couldn't be composed), the route falls back to a JSON error envelope:</p>
+<p><strong>On screenshot errors</strong> the route falls back to a JSON error envelope:</p>
 <div class="highlight"><pre><span></span><code>// HTTP 500 — server fallback ran but produced no image bytes
 { &quot;error&quot;: { &quot;type&quot;: &quot;server_error&quot;, &quot;code&quot;: &quot;screenshot_binary_missing&quot;, &quot;message&quot;: &quot;…&quot;, &quot;request_id&quot;: &quot;req_…&quot; } }
 
@@ -123,6 +118,25 @@
 
 <blockquote>
 <p><strong>SDK note.</strong> The Python (<code>client.scene_inspector</code>) and JS (<code>client.scene_inspector</code>) methods JSON-decode the response, so they <strong>cannot return image bytes</strong>. For the screenshot action specifically, call the endpoint over raw HTTP yourself (above). All other actions use the SDK methods normally.</p>
+</blockquote>
+<h4 id="mcp-imagecontent-block-claude-desktop-claudeai-chatgpt-mcp">MCP — <code>ImageContent</code> block (Claude Desktop / Claude.ai / ChatGPT MCP)</h4>
+<p>When an MCP host calls <code>widecast_scene_inspector</code> with <code>action="screenshot_scene_280x498"</code>, the WideCast MCP layer (both the remote <code>/mcp/&lt;token&gt;</code> connector and the local <code>@widecast/mcp-server</code> Node process) detects the binary <code>image/jpeg</code> response, base64-encodes the bytes, and emits an <strong>MCP <code>ImageContent</code> block</strong> per MCP spec 2025-06-18 §6.3:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;jsonrpc&quot;: &quot;2.0&quot;,
+  &quot;id&quot;: …,
+  &quot;result&quot;: {
+    &quot;content&quot;: [
+      { &quot;type&quot;: &quot;image&quot;, &quot;data&quot;: &quot;&lt;base64 of the JPEG bytes&gt;&quot;, &quot;mimeType&quot;: &quot;image/jpeg&quot; }
+    ],
+    &quot;isError&quot;: false
+  }
+}
+</code></pre></div>
+
+<p>Why: an MCP <code>ImageContent</code> block is the <strong>only</strong> image transport that doesn't leak bytes into the model's context as JSON-escaped Unicode. Claude Desktop / Claude.ai / ChatGPT MCP all render <code>ImageContent</code> natively (inline image in chat); the bytes are streamed to a sandboxed cache, not into the language model's text stream. <strong>No parsing required, no <code> JFIF…</code> token bloat</strong>, and no "model sees the bytes as escaped text" failure mode.</p>
+<p>All other actions still return regular <code>TextContent</code> blocks (<code>{ type: "text", text: "&lt;JSON&gt;" }</code>) as before — only <code>screenshot_scene_280x498</code> switches to <code>ImageContent</code>.</p>
+<blockquote>
+<p><strong>Historical bug</strong>: older builds of the MCP wrapper unconditionally called <code>r.json()</code> on the response. When the server returned <code>image/jpeg</code>, the parse failed and the wrapper fell back to a <code>{"raw": (r.text or "")[:2000]}</code> envelope — i.e. JPEG bytes UTF-8-decoded into mojibake (<code>���� JFIF…Lavc59…</code>) and dumped into a JSON <code>raw</code> field. That ate tens of thousands of tokens per call and produced unusable garbage. The current builds detect <code>Content-Type: image/*</code> upstream of <code>r.json()</code> and emit a proper <code>ImageContent</code> block.</p>
 </blockquote>
 <h3 id="no-editor-open-graceful-behaviour">"No editor open" — graceful behaviour</h3>
 <p>For <strong>non-screenshot actions</strong>, no live editor → HTTP 200 with <code>status: "unavailable"</code>:</p>

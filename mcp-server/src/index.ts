@@ -27,8 +27,14 @@ if (!API_KEY) {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const isTerminal = (s: unknown) => s === "completed" || s === "failed";
 
+/** Distinguishes binary image responses (returned as base64 for MCP
+ *  ImageContent emission) from regular JSON responses. */
+type WcBinary = { __mcpBinary: true; mimeType: string; base64: string };
+
 async function wc(method: string, path: string, body?: unknown): Promise<any> {
-  const headers: Record<string, string> = { Accept: "application/json", "User-Agent": `widecast-mcp/${VERSION}` };
+  // Accept both JSON and image responses — /v1/scene_inspector returns
+  // image/jpeg bytes for action=screenshot_scene_280x498.
+  const headers: Record<string, string> = { Accept: "application/json, image/*", "User-Agent": `widecast-mcp/${VERSION}` };
   if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
   const init: RequestInit = { method, headers };
   if (body !== undefined) {
@@ -51,6 +57,14 @@ async function wc(method: string, path: string, body?: unknown): Promise<any> {
   } finally {
     clearTimeout(timer);
   }
+  // Binary image response → return as a marker the caller turns into an MCP
+  // ImageContent block. NEVER JSON-decode binary bytes — that's the bug
+  // older versions hit (escaped JPEG bytes leaked into a "raw" text field).
+  const ctype = (resp.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
+  if (resp.ok && ctype.startsWith("image/")) {
+    const buf = Buffer.from(await resp.arrayBuffer());
+    return { __mcpBinary: true, mimeType: ctype, base64: buf.toString("base64") } as WcBinary;
+  }
   let data: any = {};
   try { data = await resp.json(); } catch (_) { data = {}; }
   if (!resp.ok) {
@@ -58,6 +72,17 @@ async function wc(method: string, path: string, body?: unknown): Promise<any> {
     throw new Error(`WideCast ${resp.status}: ${e.code || "error"} — ${e.message || resp.statusText} (request_id=${e.request_id || "-"})`);
   }
   return data;
+}
+
+/** Wraps an arbitrary `wc()` return value into an MCP tool-call result —
+ *  binary marker → ImageContent block, anything else → text block of
+ *  JSON. Use this in every dispatcher branch so screenshots Just Work. */
+function toMcpResult(data: any): { content: Array<{ type: string; [k: string]: any }> } {
+  if (data && (data as WcBinary).__mcpBinary === true) {
+    const b = data as WcBinary;
+    return { content: [{ type: "image", data: b.base64, mimeType: b.mimeType }] };
+  }
+  return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 
 function summarize(v: any) {
@@ -678,7 +703,7 @@ const TOOLS = [
     description:
       "SYNC live browser inspector for an open scene editor of a video. **More expensive than widecast_scene_geometry — use this only when data + geometry are NOT enough**: typically when the agent needs browser truth (mounted DOM, computed boxes, current preview play state) or a small 280×498 visual screenshot for aesthetic judgment. Do NOT use it as the first step if `widecast_scene_geometry` already gives you the boxes you need.\n" +
       "**How it works**: the server broadcasts a tiny MQTT probe to every open editor tab for this video, elects ONE healthy foreground/active browser within ~800ms, then sends the real inspector command only to that tab. widecast_modify_scene realtime broadcasts to all editors separately — this tool's election only affects which tab returns the live inspection. Presence alone is not usability: a tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.\n" +
-      "**🖼 `screenshot_scene_280x498` returns BINARY JPEG, not JSON.** On success (live editor capture OR server-fallback composite), the HTTP response is the raw image: `Content-Type: image/jpeg`, body = JPEG bytes (NOT JSON, NOT base64, NOT `result.screenshot`). Metadata is in response headers — `X-WideCast-Request-Id`, `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`, `Content-Length`, `Cache-Control: no-store`. Cap ~8 MB. **All other actions still return JSON `{object:'scene_inspector_result', status, code, result, …}` as before.** On screenshot errors (no image bytes / fallback failed) the route falls back to the JSON error envelope with new codes: 500 `screenshot_binary_missing` (composed but no bytes), 500 `server_fallback_failed` (couldn't compose a fallback) — plus the normal 400/404/auth/`unsupported_action`/`publisher_missing` codes.\n" +
+      "**🖼 `screenshot_scene_280x498` has a binary-image response shape.** Over MCP (this tool): the wrapper detects the upstream `image/jpeg` response and emits a proper MCP **ImageContent** block — `{type:'image', data:'<base64>', mimeType:'image/jpeg'}` per MCP spec 2025-06-18 §6.3. Claude Desktop / Claude.ai / ChatGPT MCP render it as an inline image; the bytes never enter the model's text stream (no JSON-escaped mojibake, no `JFIF…` token bloat). Cap ~8 MB. **All other actions still return regular `TextContent` blocks with JSON `{object:'scene_inspector_result', status, code, result, …}` as before.** On screenshot errors (no image bytes / fallback failed) the route falls back to the JSON error envelope with new codes: 500 `screenshot_binary_missing` (composed but no bytes), 500 `server_fallback_failed` (couldn't compose a fallback) — plus the normal 400/404/auth/`unsupported_action`/`publisher_missing` codes. (Raw REST callers — curl / SDK — receive `Content-Type: image/jpeg` and the JPEG bytes in the body, with metadata in `X-WideCast-*` headers; the MCP wrapper is the only path that emits `ImageContent`.)\n" +
       "**No live editor → graceful behaviour**:\n" +
       "• For non-screenshot actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
       "• For `screenshot_scene_280x498`, the server composes a fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and still returns BINARY JPEG (response headers carry `X-WideCast-*`; check the response framing — when bytes are returned successfully it's an image regardless of source). Treat fallback screenshots as approximate composites, not real renders.\n" +
@@ -1030,8 +1055,14 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       if (args.timeout_ms !== undefined) body.timeout_ms = args.timeout_ms;
       if (args.probe_timeout_ms !== undefined) body.probe_timeout_ms = args.probe_timeout_ms;
       if (args.options !== undefined) body.options = args.options;
+      // For action="screenshot_scene_280x498", the REST endpoint returns
+      // image/jpeg bytes — wc() captures them as a binary marker and
+      // toMcpResult() emits an MCP ImageContent block so Claude / GPT can
+      // render the screenshot inline without JSON-parsing the bytes. All
+      // other actions return a JSON SceneInspectorResponse and fall
+      // through to a text block. (See widecast/docs/endpoints/scene-inspector.md.)
       const data = await wc("POST", "/v1/scene_inspector", body);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      return toMcpResult(data);
     }
     if (name === "widecast_export_video") {
       // Confirmation gate at MCP layer — REST stays unchanged for SDK / HTTP.

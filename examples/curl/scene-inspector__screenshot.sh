@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 📸 Small 280×498 screenshot — RETURNS BINARY JPEG
+# 📸 Small 280×498 screenshot — binary JPEG (REST) / ImageContent (MCP)
 # Auto-generated from widecast/docs/playgrounds/scene-inspector.yaml.
 
 curl -X POST "https://widecast.ai/app/dashboard/v1/scene_inspector" \

@@ -153,8 +153,8 @@
     },
     {
       "id": "screenshot",
-      "title": "📸 Small 280×498 screenshot — RETURNS BINARY JPEG",
-      "description": "⚠ Special response shape: on success this action returns raw `Content-Type: image/jpeg` bytes (NOT JSON, NOT base64). Metadata is in response headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available — still returns JPEG bytes. On failure (no bytes / no fallback) → 500 JSON error: screenshot_binary_missing | server_fallback_failed. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes — for this action call /v1/scene_inspector over raw HTTP yourself (curl --output, fetch + arrayBuffer, etc).",
+      "title": "📸 Small 280×498 screenshot — binary JPEG (REST) / ImageContent (MCP)",
+      "description": "⚠ Special response shape, transport-dependent. (a) Over MCP (Claude Desktop / Claude.ai / ChatGPT MCP): the WideCast MCP wrapper emits a proper MCP ImageContent block — {type:'image', data:'<base64>', mimeType:'image/jpeg'} — rendered as an inline image; bytes never enter the model's text stream. (b) Over raw REST: response is `Content-Type: image/jpeg` with JPEG bytes in the body; metadata in headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available. On failure (no bytes / no fallback) → 500 JSON error: screenshot_binary_missing | server_fallback_failed. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes — for this action call /v1/scene_inspector over raw HTTP yourself (curl --output, fetch + arrayBuffer, etc).",
       "request": {
         "id": "widecast7c0d4f8a9b1e2d3f",
         "action": "screenshot_scene_280x498",
