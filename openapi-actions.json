@@ -1724,8 +1724,28 @@
               }
             }
           },
+          "409": {
+            "description": "`script_not_ready` — video still processing or never had a\nscript generated (screenshot composition needs the\nvideo_script).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "500": {
-            "description": "Screenshot-only error codes when bytes are unavailable:\n  * `screenshot_binary_missing` — server fallback composed\n    but no image bytes were produced.\n  * `server_fallback_failed` — server could not compose any\n    fallback screenshot.\n",
+            "description": "Defensive belt-and-suspenders only. After the\nnever-throws-never-500 refactor of the screenshot\ncompositor, individual layer failures surface as warning\ncodes in `result.warnings[]` while the response still\nreturns `image/jpeg` bytes. Hitting this branch means an\nunexpected exception path was triggered:\n  * `server_fallback_failed` — Exception fell outside the\n    lookup classification (extremely rare).\n  * `screenshot_binary_missing` — defensive belt-and-\n    suspenders; should not be reachable in normal builds.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`script_parse_failed` — stored video_script is malformed.\n",
             "content": {
               "application/json": {
                 "schema": {

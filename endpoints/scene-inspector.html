@@ -85,14 +85,110 @@
 <li>Metadata in response headers: <code>X-WideCast-Request-Id</code>, <code>X-WideCast-Scene-Id</code>, <code>X-WideCast-Voice-File</code>, <code>X-WideCast-Scene-Index</code>, <code>Content-Length</code>, <code>Cache-Control: no-store</code></li>
 <li>Cap ~8 MB</li>
 </ul>
-<p><strong>On screenshot errors</strong> the route falls back to a JSON error envelope:</p>
-<div class="highlight"><pre><span></span><code>// HTTP 500 — server fallback ran but produced no image bytes
-{ &quot;error&quot;: { &quot;type&quot;: &quot;server_error&quot;, &quot;code&quot;: &quot;screenshot_binary_missing&quot;, &quot;message&quot;: &quot;…&quot;, &quot;request_id&quot;: &quot;req_…&quot; } }
-
-// HTTP 500 — couldn&#39;t even compose a fallback
-{ &quot;error&quot;: { &quot;type&quot;: &quot;server_error&quot;, &quot;code&quot;: &quot;server_fallback_failed&quot;,    &quot;message&quot;: &quot;…&quot;, &quot;request_id&quot;: &quot;req_…&quot; } }
-</code></pre></div>
-
+<p><strong>Compositor never throws.</strong> Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to <code>result.warnings[]</code> and the response still returns <code>image/jpeg</code> with whatever could be composited. If even the JPEG encode fails, the server returns a <strong>placeholder JPEG</strong> (dark slate, the scene's <code>scene_id</code> + <code>voice_file</code> + the first warning drawn on it). The route does NOT collapse to 500 for compositor edge cases — only resource-lookup failures return non-<code>image/jpeg</code>:</p>
+<table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th><code>error.code</code></th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>404</td>
+<td><code>video_not_found</code></td>
+<td>Topic id doesn't exist on the account.</td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>scene_not_found</code></td>
+<td><code>scene_id</code> / <code>voice_file</code> didn't match any scene.</td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>script_not_ready</code></td>
+<td>Video still processing or never had a script.</td>
+</tr>
+<tr>
+<td>502</td>
+<td><code>script_parse_failed</code></td>
+<td>Stored video_script is malformed.</td>
+</tr>
+<tr>
+<td>500</td>
+<td><code>server_fallback_failed</code></td>
+<td>Lookup-level Exception not in the above categories (rare; reports <code>exception_name</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>The compositor warning codes that surface in <code>result.warnings[]</code> (visible only on the JSON-mode probe responses for non-screenshot actions, or via per-layer logs — the binary JPEG response itself doesn't carry them):</p>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Layer</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>background_layer_failed:&lt;ExcName&gt;</code></td>
+<td>background</td>
+<td>Couldn't load any thumbnail — using dark slate placeholder.</td>
+</tr>
+<tr>
+<td><code>background_missing</code> / <code>background_load_failed:&lt;ExcName&gt;</code> / <code>background_too_large</code></td>
+<td>background</td>
+<td>Per-step diagnostics from <code>_wc_inspector_load_image</code>.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_local_file_missing</code></td>
+<td>poster</td>
+<td><code>{voice_file}_spec.json</code> not on disk; can't build poster.</td>
+</tr>
+<tr>
+<td><code>remotion_poster_generated_on_demand</code></td>
+<td>poster</td>
+<td>Built poster lazily during this call.</td>
+</tr>
+<tr>
+<td><code>remotion_poster_generate_failed:&lt;reasons&gt;</code></td>
+<td>poster</td>
+<td><code>finalize_remotion_spec_assets</code> failed.</td>
+</tr>
+<tr>
+<td><code>poster_layer_failed:&lt;ExcName&gt;</code> / <code>poster_composite_failed:&lt;ExcName&gt;</code></td>
+<td>poster</td>
+<td>Load or alpha-composite threw.</td>
+</tr>
+<tr>
+<td><code>narrator_order_failed:&lt;ExcName&gt;</code></td>
+<td>narrator</td>
+<td><code>_wc_inspector_is_narrator_on_top</code> threw — defaulted to top.</td>
+</tr>
+<tr>
+<td><code>narrator_layer_failed:&lt;ExcName&gt;</code> / <code>narrator_image_missing_placeholder</code></td>
+<td>narrator</td>
+<td>Draw threw, or narrator URL unreachable → text placeholder.</td>
+</tr>
+<tr>
+<td><code>caption_layer_failed:&lt;ExcName&gt;</code></td>
+<td>caption</td>
+<td>Caption draw threw.</td>
+</tr>
+<tr>
+<td><code>jpeg_save_failed:&lt;ExcName&gt;</code></td>
+<td>output</td>
+<td>PIL save threw → placeholder JPEG returned.</td>
+</tr>
+<tr>
+<td><code>empty_image_bytes</code></td>
+<td>output</td>
+<td>Defensive — should never appear in practice.</td>
+</tr>
+</tbody>
+</table>
 <p><strong>Client snippet — fetch the JPEG</strong>:</p>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/scene_inspector&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>

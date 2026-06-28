@@ -1568,11 +1568,18 @@ paths:
             fallback screenshot from scene thumbnails +
             `{voice_file}_overlay_poster.png` (the static overlay poster
             refreshed by spec-changing `/v1/modify_scene` edits) and
-            still returns BINARY JPEG. Treat fallback screenshots as
-            approximate composites, not real renders. If the composer
-            cannot produce bytes at all → HTTP 500 JSON error
-            `screenshot_binary_missing`; if no fallback could be
-            assembled → HTTP 500 JSON error `server_fallback_failed`.
+            still returns BINARY JPEG. **The compositor never throws** —
+            each layer (background / poster / narrator / caption / JPEG
+            save) is wrapped independently, and individual failures
+            surface as codes in `result.warnings[]` while the response
+            still carries `image/jpeg` bytes. If even the JPEG encode
+            fails, the server emits a placeholder JPEG with the scene
+            identity drawn on dark slate. Compositor edge cases never
+            collapse to HTTP 500 — only resource-lookup failures
+            (`video_not_found`, `scene_not_found`, `script_not_ready`,
+            `script_parse_failed`) return non-`image/jpeg`. Treat
+            fallback screenshots as approximate composites, not real
+            renders.
 
         **Actions** (`action`):
           * `list_live_editors` — presence list of open editor tabs
@@ -1665,13 +1672,32 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: |
+            `script_not_ready` — video still processing or never had a
+            script generated (screenshot composition needs the
+            video_script).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500':
           description: |
-            Screenshot-only error codes when bytes are unavailable:
-              * `screenshot_binary_missing` — server fallback composed
-                but no image bytes were produced.
-              * `server_fallback_failed` — server could not compose any
-                fallback screenshot.
+            Defensive belt-and-suspenders only. After the
+            never-throws-never-500 refactor of the screenshot
+            compositor, individual layer failures surface as warning
+            codes in `result.warnings[]` while the response still
+            returns `image/jpeg` bytes. Hitting this branch means an
+            unexpected exception path was triggered:
+              * `server_fallback_failed` — Exception fell outside the
+                lookup classification (extremely rare).
+              * `screenshot_binary_missing` — defensive belt-and-
+                suspenders; should not be reachable in normal builds.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: |
+            `script_parse_failed` — stored video_script is malformed.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
