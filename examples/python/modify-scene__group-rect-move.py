@@ -1,5 +1,5 @@
 """
-(C) Move the Storyboard group up by 120px (canvas coords)
+(D) Group rect — move whole Storyboard group up by 120px (canvas)
 
 Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
 """

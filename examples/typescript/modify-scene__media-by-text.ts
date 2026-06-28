@@ -1,5 +1,5 @@
 /**
- * (A) Swap by what's said in the scene (video)
+ * (A) Background swap — match by narration text, video
  *
  * Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
  */

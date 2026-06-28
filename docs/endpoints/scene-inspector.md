@@ -1,8 +1,8 @@
 # Live browser inspector — `POST /v1/scene_inspector`
 
-**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. Use this **only after** data-first audit with [`/v1/video_data`](video-data.md) — when stored data isn't enough and you specifically need what the user's open editor is rendering right now.
+**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. **More expensive than [`/v1/scene_geometry`](scene-geometry.md) — use it only when data + geometry are not enough**: typically when the agent needs DOM/computed-box truth or a live visual screenshot. Do NOT call this as the first step if `/v1/scene_geometry` already gives you the boxes you need.
 
-> **Don't call this for routine edits.** [`/v1/video_data`](video-data.md) and the cache-busted `remotion_spec_url` it returns are usually enough. `/v1/scene_inspector` exists for the cases where you need to verify what's actually on screen — laid-out boxes after CSS, image-load races, a quick visual gut-check before suggesting a layout move.
+> **Recommended chain**: [`/v1/video_data`](video-data.md) → [`/v1/scene_geometry`](scene-geometry.md) → [`/v1/modify_scene`](modify-scene.md). Only reach for `/v1/scene_inspector` when you specifically need browser truth or a live screenshot — e.g. you suspect a CSS / load race after a `modify_scene` edit, or you want a quick aesthetic gut-check before suggesting another move.
 
 <!-- widecast-playground:scene-inspector -->
 
@@ -17,16 +17,18 @@
 
 `/v1/modify_scene` broadcasts MQTT realtime to every open editor independently — this tool's election only affects which tab returns the live inspection.
 
-### "No editor open" is expected, not an error
+> **Presence ≠ usability.** A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.
 
-If no tab responds (or none qualify), the response is **HTTP 200** with:
+### "No editor open" — graceful behaviour
+
+For **most actions**, no live editor → HTTP 200 with `status: "unavailable"`:
 
 ```jsonc
 {
   "object":   "scene_inspector_result",
   "status":   "unavailable",
   "code":     "no_live_editor",    // or "no_active_editor"
-  "fallback": { "available": true, "suggested": "Use /v1/video_data + fetch remotion_spec_url" }
+  "fallback": { "available": true, "suggested": "Use /v1/video_data + /v1/scene_geometry" }
 }
 ```
 
@@ -35,7 +37,9 @@ If no tab responds (or none qualify), the response is **HTTP 200** with:
 | `no_live_editor` | No editor tab is currently open for this video (no presence at all). |
 | `no_active_editor` | At least one tab is registered but none responded to the probe in time. |
 
-Agents should fall back to [`/v1/video_data`](video-data.md) and, when needed, fetch the per-scene `remotion_spec_url`.
+For **`screenshot_scene_280x498` specifically**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and returns `code: "server_fallback"`. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
+
+Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
 
 ---
 
@@ -47,7 +51,7 @@ Agents should fall back to [`/v1/video_data`](video-data.md) and, when needed, f
 | `list_instances` | Preview instance ids mounted in the elected tab. | Diagnostic. |
 | `get_preview_state` | `{playing, paused, scene, time}` for the preview player. | |
 | `get_scene_dom_snapshot` | DOM subtree for the scene (scoped via optional `selector`). | Keep `selector` narrow — broad selectors blow up the payload. |
-| `get_computed_boxes` | `getBoundingClientRect()` for elements in the scene. | **Preferred for structural audit.** |
+| `get_computed_boxes` | `getBoundingClientRect()` for elements in the scene. | **Prefer [`/v1/scene_geometry`](scene-geometry.md) for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON. |
 | `screenshot_scene_280x498` | Small browser-side capture for aesthetic / visual judgment. | Best-effort; use a renderer / headless-browser fallback for pixel-perfect verification. |
 | `activate_scene` | Brings the elected tab to the requested scene. May visibly switch the open editor for that user. | Use sparingly. |
 | `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` | Preview transport controls. | `seek_preview` accepts `seek_seconds`. |
@@ -117,6 +121,8 @@ Content-Type: application/json
 
 See "No editor open" above.
 
+> For `screenshot_scene_280x498`, the body is still `status: "completed"` but `code: "server_fallback"` and `result` is a composite assembled from scene thumbnails + `{voice_file}_overlay_poster.png`. Treat as approximate.
+
 ### `200 OK` — `error` (browser-side failure)
 
 ```jsonc
@@ -151,7 +157,7 @@ See "No editor open" above.
 
 ## SDK examples
 
-### Python — computed boxes, with fallback to spec URL
+### Python — screenshot with graceful server-fallback
 
 ```python
 from widecast import Widecast
@@ -162,22 +168,23 @@ target = data["segments"][2]
 
 resp = client.scene_inspector(
     video_id=data["id"],
-    action="get_computed_boxes",
+    action="screenshot_scene_280x498",
     voice_file=target["voice_file"],
     activate=True,
     timeout_ms=7000,
 )
 
-if resp["status"] == "completed":
-    for box in resp["result"]["boxes"]:
-        print(box["selector"], box)
+if resp["status"] == "completed" and resp.get("code") == "ok":
+    print("live screenshot:", resp["result"])
+elif resp.get("code") == "server_fallback":
+    print("server-composed fallback (thumbnails + overlay poster):", resp["result"])
 else:
-    # No live editor — fall back to data + spec
-    print("No editor open; falling back to remotion_spec_url:",
-          target["remotion_spec_url"])
+    # No live editor at all — fall back to scene_geometry
+    geom = client.scene_geometry(data["id"], voice_file=target["voice_file"])
+    print("falling back to scene_geometry:", geom["summary"])
 ```
 
-### TypeScript
+### TypeScript — structural audit (prefer scene_geometry)
 
 ```typescript
 import Widecast from "@widecast/sdk";
@@ -186,16 +193,16 @@ const client = new Widecast();
 const data = await client.video_data("widecast7c0d4f8a9b1e2d3f");
 const target = data.segments[2];
 
-const resp = await client.scene_inspector(data.id, "screenshot_scene_280x498", {
-  voice_file: target.voice_file,
-  activate:   true,
-});
+// For structural boxes, prefer scene_geometry — no browser needed.
+const geom = await client.scene_geometry(data.id, { voice_file: target.voice_file });
+console.log("narrator face:", geom.boxes.narrator.face);
+console.log("violations:", geom.violations);
 
-if (resp.status === "completed") {
-  console.log("screenshot:", resp.result);
-} else if (resp.status === "unavailable") {
-  console.log("no live editor — fallback:", target.remotion_spec_url);
-}
+// Use scene_inspector only when you need browser truth.
+const resp = await client.scene_inspector(data.id, "get_preview_state", {
+  voice_file: target.voice_file,
+});
+if (resp.status === "completed") console.log("preview state:", resp.result);
 ```
 
 ### MCP
@@ -214,12 +221,13 @@ if (resp.status === "completed") {
 
 ## When to use which action
 
-| Goal | Action |
+| Goal | Tool / action |
 |---|---|
-| Verify a layout move worked in the live preview | `get_computed_boxes` |
-| Eye-check whether text + image collide / wrap | `screenshot_scene_280x498` |
+| Pick coordinates / audit collisions before a layout edit | **[`/v1/scene_geometry`](scene-geometry.md)** (not this endpoint) |
+| Verify a layout move worked in the live preview after the edit | `get_computed_boxes` (or refetch `/v1/scene_geometry`) |
+| Aesthetic gut-check whether text + image collide / wrap | `screenshot_scene_280x498` |
 | See exactly what DOM the editor mounted | `get_scene_dom_snapshot` (narrow `selector`) |
 | Pause / step the preview to inspect a frame | `pause_preview` then `seek_preview` |
 | Confirm the user actually has the editor open | `list_live_editors` |
 
-> Prefer `get_computed_boxes` over screenshots for structural audit — text and numbers are cheaper than pixels and survive resolution changes.
+> For structural audits, prefer [`/v1/scene_geometry`](scene-geometry.md) over `get_computed_boxes` — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.

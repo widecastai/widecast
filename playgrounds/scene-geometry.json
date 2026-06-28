@@ -1,0 +1,96 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/scene_geometry"
+  },
+  "title": "Read data-only scene layout geometry (narrator / caption / Remotion boxes)",
+  "description": "Synchronous, free, read-only. Use AFTER /v1/video_data and BEFORE\n/v1/modify_scene or /v1/scene_inspector. Resolves one scene by\nstable voice_file (preferred), loads {voice_file}_spec.json if\navailable, and returns narrator/caption/Remotion Storyboard display\nboxes in one 280×498 editor-preview coordinate space — plus dead\nzones, collision violations, and warnings. Designed for LLM-only\nagents that cannot see images: reason over JSON, then call\n/v1/modify_scene with a layout.batch (or single-field) edit. Never\nbroadcasts MQTT, never renders screenshots, never modifies the video.\n",
+  "fields": [
+    {
+      "name": "id",
+      "type": "text",
+      "label": "Video id (topic_id from /v1/video_data)",
+      "required": true,
+      "placeholder": "widecast7c0d4f8a9b1e2d3f"
+    },
+    {
+      "name": "voice_file",
+      "type": "text",
+      "label": "voice_file (stable per-scene UID — preferred shortcut)",
+      "required": false,
+      "placeholder": "XcR0k"
+    },
+    {
+      "name": "scene_id",
+      "type": "text",
+      "label": "scene_id (display/order — fallback only)",
+      "required": false,
+      "placeholder": "3"
+    },
+    {
+      "name": "by",
+      "type": "select",
+      "label": "by (only if voice_file / scene_id not set)",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "(use voice_file / scene_id shortcut)"
+        },
+        {
+          "value": "voice_file",
+          "label": "voice_file (preferred)"
+        },
+        {
+          "value": "id",
+          "label": "id (display/order)"
+        },
+        {
+          "value": "text",
+          "label": "text (fuzzy narration match)"
+        }
+      ],
+      "default": ""
+    },
+    {
+      "name": "value",
+      "type": "text",
+      "label": "value (only when `by` is set)",
+      "required": false,
+      "placeholder": "XcR0k"
+    },
+    {
+      "name": "min_score",
+      "type": "text",
+      "label": "min_score (only when by='text')",
+      "required": false,
+      "placeholder": "0.5"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "by-voice-file",
+      "title": "🧭 Audit a scene by voice_file (preferred)",
+      "description": "Cheapest, most reliable selector — paste the scene's voice_file from /v1/video_data.",
+      "request": {
+        "id": "widecast7c0d4f8a9b1e2d3f",
+        "voice_file": "XcR0k"
+      }
+    },
+    {
+      "id": "by-text",
+      "title": "📝 Audit a scene by fuzzy narration text",
+      "description": "Use when the user names a scene by what's said. Multi-match returns a ClarificationResponse — pick a voice_file and retry.",
+      "request": {
+        "id": "widecast7c0d4f8a9b1e2d3f",
+        "by": "text",
+        "value": "Meta đã chi 14.3 tỷ đô để mua Scale AI"
+      }
+    }
+  ],
+  "_key": "scene-geometry",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

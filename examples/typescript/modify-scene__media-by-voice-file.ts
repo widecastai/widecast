@@ -1,5 +1,5 @@
 /**
- * (A) Swap image on scene XcR0k by voice_file
+ * (A) Background swap — image, by voice_file
  *
  * Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
  */

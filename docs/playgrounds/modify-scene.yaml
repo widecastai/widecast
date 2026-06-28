@@ -1,21 +1,34 @@
-# Playground manifest — POST /v1/modify_scene (SYNCHRONOUS, no credit).
-# Returns success / clarification inline (no polling).
+# Playground manifest — POST /v1/modify_scene.
+# Sync for most branches; voice.upload and narrator.upload_video are async.
+# Returns success / clarification / queued inline (no polling).
 
 endpoint:
   method: POST
   path: /v1/modify_scene
 
-title: Edit one scene (media swap / overlay upload / group layout)
+title: Edit one scene (media / overlay / layout / audio / text / metadata)
 description: |
-  Synchronous, no credit charged until /v1/export_video re-renders the
-  final MP4. Pick ONE scene by `voice_file` (the stable per-scene UID —
-  preferred), `id` (display/order, UNSTABLE), or `text` (fuzzy), then
-  send exactly ONE of the three field families: (A) background media
-  swap (mediaUrl + optional mediaType), (B) Upload Overlay
-  (remotion.upload_overlay — FREE agent-supplied image → Remotion spec,
-  NOT Regenerate Overlay), or (C) Storyboard group rect
-  (remotion.group.rect — move/resize the overlay group). Successful
-  edits publish MQTT realtime to every open editor.
+  Synchronous for most branches, no credit charged until /v1/export_video
+  re-renders the final MP4. Pick ONE scene by `voice_file` (the stable
+  per-scene UID — preferred), `id` (display/order, UNSTABLE), or `text`
+  (fuzzy). Then send exactly ONE field family per call — the only
+  intentional multi-family call is `layout.batch`, which composes
+  layout-only children. Branches:
+    (A) mediaUrl/mediaType — background media swap (roll-aware)
+    (B) remotion.upload_overlay — FREE agent-supplied image → Remotion
+        spec (NOT Regenerate Overlay)
+    (C) remotion.object.rect — PREFERRED overlay layout (read layout_id
+        from /v1/scene_geometry first; uses 280×498 preview coords)
+    (D) remotion.group.rect — low-level wrapper edit (canvas or preview)
+    (E) overlay.narrator.rect — narrator box layout in 280×498 preview
+    (F) overlay.caption.y — vertical-only caption placement in 280×498
+    (G) layout.batch — composes E/F/C/D atomically (one persist, one MQTT)
+    (H) voice.upload — async; user-supplied narration audio
+    (I) narrator.upload_video — async; user-supplied A-roll video
+    (J) roll.active / roll.switch — sync A/B-roll data switch
+    (K) segment.text — text correction (keeps audio timing)
+    (L) metadata — pattern / type / visual / keyword / quote / talking_point
+  segment.remotion_spec='none' = user-disabled overlay; do NOT auto-enable.
 
 fields:
   - name: id
@@ -40,15 +53,21 @@ fields:
     help: "When by='voice_file' use the scene voice_file from /v1/video_data; by='id' the current segment.id; by='text' a narration snippet."
   - name: fields
     type: json
-    label: "fields[] — one family per call"
+    label: "fields[] — one family per call (layout.batch composes layout-only children)"
     required: true
-    rows: 7
+    rows: 8
     placeholder: |
       [
-        { "field_name": "mediaUrl",  "value": "https://cdn.example.com/coast-sunset.jpg" },
-        { "field_name": "mediaType", "value": "image" }
+        {
+          "field_name": "remotion.object.rect",
+          "value": {
+            "layout_id": "main.one_by_one",
+            "x": 24, "y": 140, "w": 232, "h": 42,
+            "coordinate_space": "preview"
+          }
+        }
       ]
-    help: "Pick ONE family — do not mix: (A) mediaUrl/mediaType, (B) remotion.upload_overlay, (C) remotion.group.rect. `remotion.object.rect` is disabled (object_level_edit_disabled). segment.remotion_spec='none' = user-disabled; do NOT auto-enable."
+    help: "Pick ONE family. For layout edits, read boxes.remotion.object_layer.objects from /v1/scene_geometry to find layout_id."
   - name: min_score
     type: text
     label: "min_score (only when by='text')"
@@ -61,8 +80,8 @@ poll_after_create:
 
 use_cases:
   - id: media-by-voice-file
-    title: "(A) Swap image on scene XcR0k by voice_file"
-    description: "Most reliable. Roll-aware — B-roll scenes update mediaUrl/brollUrl, A-roll registers as brollUrl/user_asset_url without disturbing the narrator."
+    title: "(A) Background swap — image, by voice_file"
+    description: "Most reliable. Roll-aware — B-roll updates mediaUrl/brollUrl; A-roll registers as brollUrl/user_asset_url without disturbing the narrator."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -73,7 +92,7 @@ use_cases:
         - field_name: "mediaType"
           value: "image"
   - id: media-by-text
-    title: "(A) Swap by what's said in the scene (video)"
+    title: "(A) Background swap — match by narration text, video"
     description: "Fuzzy match on the narration. May return a clarification — pick a voice_file and retry."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
@@ -86,7 +105,7 @@ use_cases:
           value: "video"
   - id: upload-overlay
     title: "(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)"
-    description: "NOT Regenerate Overlay (paid). Classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type)."
+    description: "NOT Regenerate Overlay (paid). Pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type)."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -94,9 +113,41 @@ use_cases:
       fields:
         - field_name: "remotion.upload_overlay"
           value: "https://cdn.example.com/overlay-720x1280.png"
+  - id: object-rect-one-by-one
+    title: "(C) Object-layer rect — preferred overlay layout (one_by_one)"
+    description: "Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.object.rect"
+          value:
+            layout_id: "main.one_by_one"
+            x: 24
+            y: 140
+            w: 232
+            h: 42
+            coordinate_space: "preview"
+  - id: object-rect-single
+    title: "(C) Object-layer rect — move a single overlay text object"
+    description: "Per-object layout_id (e.g. main.obj_03_text). Server maps the preview rect onto raw Storyboard offsets/sizes."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.object.rect"
+          value:
+            layout_id: "main.obj_03_text"
+            x: 24
+            y: 160
+            w: 232
+            h: 42
+            coordinate_space: "preview"
   - id: group-rect-move
-    title: "(C) Move the Storyboard group up by 120px (canvas coords)"
-    description: "Move-only — only the wrapper position changes; child objects untouched. Canvas (720×1280) coordinates are NOT clamped — negative y is allowed."
+    title: "(D) Group rect — move whole Storyboard group up by 120px (canvas)"
+    description: "Low-level wrapper edit — child objects untouched. Canvas (720×1280) is NOT clamped; negative y is allowed."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -108,8 +159,8 @@ use_cases:
             y: -120
             coordinate_space: "canvas"
   - id: group-rect-scale
-    title: "(C) Resize group + scale children (default resize_mode)"
-    description: "Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout. `wrapper_only` is advanced."
+    title: "(D) Group rect — resize + scale children"
+    description: "Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together. `wrapper_only` is advanced."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -124,3 +175,111 @@ use_cases:
             h: 174
             coordinate_space: "canvas"
             resize_mode: "scale_children"
+  - id: narrator-rect
+    title: "(E) Narrator layout rect — 280×498 preview coords"
+    description: "Preserves narrator metadata + source-space segment.narrator_face. Marks overlay.narrator.touched=true so auto-fit doesn't overwrite. No media/audio/timeline/Remotion-spec changes."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "overlay.narrator.rect"
+          value:
+            x: 35
+            y: 124
+            w: 210
+            h: 374
+            visible: true
+  - id: caption-y
+    title: "(F) Caption Y — vertical placement only (280×498)"
+    description: "ONLY Y — does not change x/w/h, visibility, config, segment.text, segment.words, audio, duration, or Remotion specs."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "overlay.caption.y"
+          value: 408
+  - id: layout-batch-inline
+    title: "(G) Layout batch — multiple layout fields directly"
+    description: "One persist, one MQTT scene_modified. Allowed children: overlay.narrator.*, overlay.caption.y, remotion.object.rect, remotion.group.rect."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "overlay.narrator.rect"
+          value: { x: 35, y: 124, w: 210, h: 374, visible: true }
+        - field_name: "overlay.caption.y"
+          value: 408
+        - field_name: "remotion.object.rect"
+          value:
+            layout_id: "main.one_by_one"
+            x: 24
+            y: 200
+            coordinate_space: "preview"
+  - id: layout-batch-wrapped
+    title: "(G) Layout batch — via the explicit `layout.batch` envelope"
+    description: "Same composer, alternate request shape. Useful when the orchestrator already knows it's batching."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "layout.batch"
+          value:
+            fields:
+              - { field_name: "overlay.narrator.rect", value: { x: 35, y: 124, w: 210, h: 374 } }
+              - { field_name: "overlay.caption.y", value: 408 }
+  - id: voice-upload
+    title: "(H) Upload Voice — user-supplied audio (ASYNC; queued)"
+    description: "Free; not Use-AI-Voice. Returns scene_voice_upload_queued + queue_id. Wait for MQTT scene_voice_upload_applied, then call /v1/video_data to verify."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "voice.upload"
+          value: "https://cdn.example.com/voice.mp3"
+  - id: narrator-video-upload
+    title: "(I) Upload Narrator Video — user-supplied A-roll (ASYNC; queued)"
+    description: "Free; user-supplied video. If target is B-roll, server preserves the previous background and switches to A-roll on completion."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "narrator.upload_video"
+          value: "https://cdn.example.com/narrator.mp4"
+  - id: roll-switch
+    title: "(J) A/B-roll switch — show narrator A-roll"
+    description: "Sync data switch. Preserves both lanes; swaps the active runtime fields. A→B mirrors the editor's _switched file-family protection."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "roll.active"
+          value: "A"
+  - id: segment-text
+    title: "(K) Segment text correction"
+    description: "Rebuilds word timings over existing audio; no duration/timeline change."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "segment.text"
+          value: "Meta spent 14.3 billion to acquire Scale AI."
+  - id: scene-metadata
+    title: "(L) Scene metadata — validated pattern + quote"
+    description: "pattern is validated against ai_segment_text canonical values; type ∈ {HOOK, STAT, KEY POINT, DATA, FACT, CALL TO ACTION}. pattern='typography_only' auto-clears visual."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "pattern"
+          value: "typography_only"
+        - field_name: "quote"
+          value: "Short headline that lands"

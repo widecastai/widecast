@@ -1,6 +1,8 @@
 # Read a video's structured scene data — `POST /v1/video_data`
 
-**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/modify_scene`](modify-scene.md) or [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.
+**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.
+
+> **Recommended chain**: `video_data` → [`/v1/scene_geometry`](scene-geometry.md) (cheap layout audit) → [`/v1/modify_scene`](modify-scene.md). Use [`/v1/scene_inspector`](scene-inspector.md) only as an expensive last resort when you need browser truth or a live screenshot.
 
 The endpoint mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data matches what the user sees in `https://widecast.ai/#scene_editor?topic_id=…` exactly.
 

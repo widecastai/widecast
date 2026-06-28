@@ -1,5 +1,5 @@
 """
-(C) Resize group + scale children (default resize_mode)
+(D) Group rect — resize + scale children
 
 Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
 """

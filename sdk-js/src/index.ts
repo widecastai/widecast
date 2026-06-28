@@ -272,7 +272,10 @@ export interface SceneInspectorResponse {
    *  failure). */
   status: "completed" | "unavailable" | "error";
   /** `ok` | `no_live_editor` | `no_active_editor` | `unsupported_action`
-   *  | `publisher_missing` | `mqtt_publish_failed` | `browser_error`. */
+   *  | `publisher_missing` | `mqtt_publish_failed` | `browser_error` |
+   *  `server_fallback` (only for `screenshot_scene_280x498` when no live
+   *  editor — response carries a composite assembled from scene
+   *  thumbnails + `{voice_file}_overlay_poster.png`). */
   code: string;
   request_id: string;
   action: SceneInspectorAction;
@@ -286,6 +289,85 @@ export interface SceneInspectorResponse {
   editors?: Record<string, unknown>[];
   /** Set when status="unavailable" — describes the data-first fallback. */
   fallback?: { available?: boolean; suggested?: string };
+}
+
+/** Options for client.scene_geometry(). Pass exactly one selector:
+ *  `voice_file` (preferred), `scene_id`, or `by`+`value`. */
+export interface SceneGeometryOptions {
+  /** How to pick the scene. Prefer `"voice_file"`. */
+  by?: "id" | "voice_file" | "text";
+  /** The id / voice_file / narration snippet to inspect. */
+  value?: string | number;
+  /** Stable per-scene UID — preferred shortcut (folds into `by="voice_file"`). */
+  voice_file?: string;
+  /** Current display/order id — fallback only. */
+  scene_id?: string | number;
+  /** Only when `by="text"`. Fuzzy-match threshold (default 0.5). */
+  min_score?: number;
+}
+
+/** Data-only scene layout geometry — narrator/caption/Remotion boxes in
+ *  280×498 editor-preview coords. See client.scene_geometry(). */
+export interface SceneGeometryResponse {
+  object: "scene_geometry";
+  id?: string;
+  topic_id: string;
+  company_id?: string;
+  scene_id?: string | number | null;
+  voice_file: string;
+  score?: number;
+  /** `{width: 280, height: 498, unit: "editor_preview_px"}`. */
+  coordinate_space: { width: number; height: number; unit: string };
+  /** Dead zones + safe rect for layout decisions. */
+  safe_zones: {
+    dead_top: Record<string, unknown>;
+    dead_bottom: Record<string, unknown>;
+    safe_rect: Record<string, unknown>;
+  };
+  /** Scene narration + planning metadata for context. */
+  scene: Record<string, unknown>;
+  boxes: {
+    /** `face` is converted from source-space `segment.narrator_face` through
+     *  the current `overlay.narrator.rect`. Do NOT mutate
+     *  `segment.narrator_face` for layout edits. */
+    narrator: {
+      rect: Record<string, unknown> | null;
+      visible: boolean;
+      face_source?: Record<string, unknown> | null;
+      face?: Record<string, unknown> | null;
+      face_center?: Record<string, unknown> | null;
+      face_coordinate_space_note?: string;
+    };
+    /** Caption box is read-only; only `overlay.caption.y` is mutable. */
+    caption: {
+      container_rect: Record<string, unknown> | null;
+      text_rect_estimate?: Record<string, unknown> | null;
+      visible: boolean;
+    };
+    /** Remotion Storyboard boxes. `object_layer.objects[]` is the
+     *  agent-facing layer — each item has `layout_id`, `rect`,
+     *  `rect_canvas`, `temporal_policy`, and the update field
+     *  (`remotion.object.rect`) to pass back to `modify_scene`. */
+    remotion: {
+      groups: Record<string, unknown>[];
+      objects: Record<string, unknown>[];
+      object_layer?: { objects: Array<{
+        layout_id: string;
+        rect: Record<string, unknown>;
+        rect_canvas?: Record<string, unknown>;
+        temporal_policy?: string;
+        update_field?: "remotion.object.rect";
+        [k: string]: unknown;
+      }> };
+      sequence_objects?: Record<string, unknown>[];
+    };
+  };
+  remotion_spec?: Record<string, unknown>;
+  /** Collision codes (error/warning/info). */
+  violations: Record<string, unknown>[];
+  warnings: Record<string, unknown>[];
+  summary: Record<string, unknown>;
+  request_id: string;
 }
 
 /** Options for client.collect_ideas(). */
@@ -1164,46 +1246,87 @@ export class Widecast {
     return await this.#request<AssetPresignResponse>("POST", "/v1/upload_asset", body);
   }
 
-  /** POST /v1/modify_scene — SYNCHRONOUS, **no credit charged** until
+  /** POST /v1/modify_scene — synchronous for most branches (some
+   *  upload branches are async — see below), **no credit charged** until
    *  `export_video()` re-renders the final MP4. Edit ONE scene of an
    *  existing video. Successful edits publish MQTT realtime so every
    *  open scene editor for this video hot-updates.
    *
    *  **Agent rule — data-first**: call `video_data()` first and use
    *  `voice_file` (the stable per-scene UID, also the base of
-   *  `{voice_file}_spec.json`) for `by`/`value`. `segment.id` is only
-   *  display/order metadata and may change after reorder/add/delete.
+   *  `{voice_file}_spec.json`) for `by`/`value`. For **layout edits**,
+   *  also call `scene_geometry()` to read narrator/caption/Remotion
+   *  object boxes in 280×498 preview coords — no screenshot rendering.
+   *  `segment.id` is only display/order metadata and may change after
+   *  reorder/add/delete.
    *
    *  Resolution: `by="voice_file"` (preferred) / `by="id"` are exact;
    *  `by="text"` is fuzzy and may return an ambiguity clarification (no
    *  edit applied — show `result.candidates`, ask the user, then retry
    *  with `by: "voice_file"`).
    *
-   *  **Three supported edit branches — do NOT mix field families**:
-   *    (A) Background media: `[{field_name: "mediaUrl", value: "<URL>"},
-   *        {field_name: "mediaType", value: "image"|"video"}?]`.
-   *        Roll-aware: B-roll updates `mediaUrl`/`brollUrl`; A-roll
-   *        registers as `brollUrl`/`user_asset_url` without disturbing the
-   *        narrator.
-   *    (B) Upload Overlay: `[{field_name: "remotion.upload_overlay",
-   *        value: "<image URL>"}]` (or `value: {url}`). Free,
-   *        agent-supplied image → Remotion spec. NOT Regenerate Overlay
-   *        (which is paid). Ground the image in scene context. Prefer
-   *        720×1280 transparent PNG.
-   *    (C) Group rect (Remotion layout): `[{field_name:
-   *        "remotion.group.rect", value: {element_id?, x?, y?, w?, h?,
-   *        coordinate_space: "canvas"|"preview",
-   *        resize_mode?: "scale_children"|"wrapper_only"}}]`. Canvas =
-   *        720×1280; preview = 280×498 (converted). `remotion.object.rect`
-   *        is disabled.
+   *  **Pick exactly ONE field family per call.** The only intentional
+   *  multi-family call is `layout.batch`, which composes layout-only
+   *  children.
+   *
+   *  - **(A) Background media swap.** `[{field_name: "mediaUrl",
+   *    value: "<URL>"}, {field_name: "mediaType",
+   *    value: "image"|"video"}?]`. Roll-aware.
+   *  - **(B) Upload Overlay (FREE; agent-supplied image → spec).**
+   *    `[{field_name: "remotion.upload_overlay", value: "<image URL>"}]`.
+   *    NOT Regenerate Overlay (which is paid). Ground the image in
+   *    scene context.
+   *  - **(C) Remotion object-layer rect (PREFERRED overlay layout).**
+   *    First call `scene_geometry()` and read
+   *    `boxes.remotion.object_layer.objects`. Then send
+   *    `[{field_name: "remotion.object.rect", value: {layout_id, x?,
+   *    y?, w?, h?, coordinate_space: "preview"|"canvas"}}]`. For
+   *    `one_by_one`, scene_geometry exposes ONE logical `*.one_by_one`
+   *    rect — editing it transforms all timed sequence items together.
+   *  - **(D) Remotion group rect (low-level wrapper edit).**
+   *    `[{field_name: "remotion.group.rect", value: {element_id?, x?,
+   *    y?, w?, h?, coordinate_space: "canvas"|"preview",
+   *    resize_mode?: "scale_children"|"wrapper_only"}}]`. Prefer (C)
+   *    for visible overlay layout.
+   *  - **(E) Narrator layout rect.** `[{field_name:
+   *    "overlay.narrator.rect", value: {x,y,w,h,visible?,animation?,
+   *    borderRadius?}}]` or field-by-field via
+   *    `overlay.narrator.x|y|w|h`. 280×498 preview coords. Preserves
+   *    narrator metadata + source-space `segment.narrator_face`.
+   *  - **(F) Caption Y layout.** `[{field_name: "overlay.caption.y",
+   *    value: 408}]`. 280×498. ONLY Y — no text/x/w/h/style.
+   *  - **(G) Layout batch.** Multiple layout fields directly OR
+   *    `[{field_name: "layout.batch", value: {fields: [...]}}]`.
+   *    Allowed children: `overlay.narrator.*`, `overlay.caption.y`,
+   *    `remotion.object.rect`, `remotion.group.rect`. One persist, one
+   *    MQTT `scene_modified`.
+   *  - **(H) Upload Voice (FREE; ASYNC).** `[{field_name: "voice.upload",
+   *    value: "<audio URL>"}]`. Returns
+   *    `{object: "scene_voice_upload_queued", queue_id, status}`.
+   *  - **(I) Upload Narrator Video (FREE; ASYNC).** `[{field_name:
+   *    "narrator.upload_video", value: "<video URL>"}]`. Returns
+   *    `{object: "scene_narrator_upload_queued", ...}`.
+   *  - **(J) A/B-roll switch (SYNC data switch).** `[{field_name:
+   *    "roll.active", value: "A"|"B"}]` or `[{field_name:
+   *    "roll.switch", value: "toggle"}]`.
+   *  - **(K) Segment text correction.** `[{field_name: "segment.text",
+   *    value: "..."}]` — rebuilds word timings over existing audio.
+   *  - **(L) Scene metadata.** `pattern`, `visual`, `keyword`, `quote`,
+   *    `talking_point`, `type`, `sub_mode` (`segment.<name>` /
+   *    `scene.<name>` namespaced forms also accepted). `pattern` and
+   *    `type` are validated against ai_segment_text allow-lists.
    *
    *  `segment.remotion_spec == "none"` means the user intentionally
    *  disabled the overlay — agents must NOT auto-edit/re-enable.
    *
    *  Inspect `result.object`:
-   *    - `"scene_modified"` → success; family-dependent fields
-   *      (`media_type`/`media_url` for media; `remotion_spec_*` +
-   *      `uploaded_overlay_url` for upload_overlay/group_rect).
+   *    - `"scene_modified"` → sync success; family-dependent fields
+   *      (`media_*`, `remotion_spec_*`, `remotion_poster_*`,
+   *      `layout_batch_updated`, `narrator_layout_updated`,
+   *      `caption_layout_updated`, `remotion_object_updated`,
+   *      `roll_switched`, etc).
+   *    - `"scene_voice_upload_queued"` / `"scene_narrator_upload_queued"`
+   *      → async upload queued; `queue_id` set.
    *    - `"clarification"` → ambiguous text match; show `candidates`. */
   async modify_scene(opts: ModifySceneOptions): Promise<SceneModifiedOrClarification> {
     if (!opts || typeof opts.id !== "string" || !opts.id) {
@@ -1440,7 +1563,11 @@ export class Widecast {
 
   /** POST /v1/video_data — read structured scene data for a topic_id.
    *  **SYNC, FREE. First step for data-first scene audit/edit** — call
-   *  this before `modify_scene()` or `scene_inspector()`.
+   *  this before `scene_geometry()` / `modify_scene()` /
+   *  `scene_inspector()`. The recommended chain is
+   *  `video_data → scene_geometry → modify_scene` (use
+   *  `scene_inspector()` only as an expensive last resort when you need
+   *  browser truth / a small live screenshot).
    *
    *  Returns full annotated segment dicts. Per-segment `words`, top-level
    *  `captions`, and internal preview-cache fields are trimmed to keep
@@ -1482,24 +1609,90 @@ export class Widecast {
       "POST", "/v1/video_data", { video_id: videoId.trim() });
   }
 
+  /** POST /v1/scene_geometry — data-only layout geometry for ONE scene.
+   *  **SYNC, FREE, read-only**. Use this **after `video_data()` and
+   *  before any screenshot/vision step** when an agent needs to audit
+   *  layout cheaply or pick coordinates for `modify_scene()`.
+   *
+   *  Resolves the scene by stable `voice_file` (preferred), loads
+   *  `{voice_file}_spec.json` if available, and returns
+   *  narrator/caption/Remotion Storyboard boxes in one 280×498
+   *  editor-preview coordinate space, plus dead zones, collision
+   *  violations, and warnings.
+   *
+   *  **Recommended overlay-layout flow**: read
+   *  `boxes.remotion.object_layer.objects` — each item has
+   *  `layout_id`, `rect`, `rect_canvas`, `temporal_policy`, and the
+   *  update field (`remotion.object.rect`). Pass the rect back to
+   *  `modify_scene()` directly or as a child of a `layout.batch` along
+   *  with `overlay.narrator.rect` / `overlay.caption.y`. For
+   *  `one_by_one`, scene_geometry exposes ONE logical `*.one_by_one`
+   *  rect that transforms all timed sequence items together.
+   *
+   *  `boxes.narrator.face` is the **displayed** face box — converted
+   *  from source-space `segment.narrator_face` through the current
+   *  `overlay.narrator.rect`. Do NOT mutate `segment.narrator_face` for
+   *  layout edits; it only refreshes when narrator media is
+   *  generated/recorded/uploaded.
+   *
+   *  Designed for LLM-only agents that cannot see images: reason over
+   *  JSON, then send the edits. Never broadcasts MQTT, never renders
+   *  screenshots, never modifies the video.
+   *
+   *  On ambiguous text match the response is `{object: "clarification",
+   *  needs_input: "value", candidates: [...]}` — no geometry; ask the
+   *  user, then retry with `by: "voice_file"`.
+   */
+  async scene_geometry(
+    videoId: string,
+    opts: SceneGeometryOptions = {},
+  ): Promise<SceneGeometryResponse> {
+    if (typeof videoId !== "string" || !videoId.trim()) {
+      throw new InvalidRequestError(
+        "video_id (the topic_id) is required.",
+        { code: "missing_field", param: "video_id" });
+    }
+    const body: Record<string, unknown> = { id: videoId.trim() };
+    if (opts.by !== undefined) body.by = opts.by;
+    if (opts.value !== undefined) body.value = opts.value;
+    if (opts.voice_file !== undefined) body.voice_file = opts.voice_file;
+    if (opts.scene_id !== undefined) body.scene_id = opts.scene_id;
+    if (opts.min_score !== undefined) body.min_score = opts.min_score;
+    return await this.#request<SceneGeometryResponse>(
+      "POST", "/v1/scene_geometry", body);
+  }
+
   /** POST /v1/scene_inspector — live browser inspector for an open scene
-   *  editor of a video. Use **only after** data-first audit with
-   *  `video_data()`, when the agent needs BROWSER TRUTH (mounted DOM,
-   *  computed boxes, preview play state, a small 280×498 screenshot).
+   *  editor of a video. **More expensive than `scene_geometry()`** —
+   *  use only when data + geometry are not enough: typically when the
+   *  agent needs browser truth (mounted DOM, computed boxes, current
+   *  preview play state) or a small 280×498 visual screenshot for
+   *  aesthetic judgment. Do NOT use as the first step if
+   *  `scene_geometry()` already gives the boxes you need.
    *
    *  Server broadcasts a tiny MQTT probe to every open editor tab,
    *  elects ONE healthy foreground/active browser within ~800ms, then
-   *  sends the inspector command only to that tab. If no editor is
-   *  open, the response is `{status: "unavailable", code:
-   *  "no_live_editor" | "no_active_editor", fallback: {...}}` —
-   *  expected, not a crash. Fall back to `video_data()` +
-   *  `remotion_spec_url`.
+   *  sends the inspector command only to that tab.
+   *
+   *  **No live editor → graceful behaviour**:
+   *    - For most actions, the response is `{status: "unavailable",
+   *      code: "no_live_editor" | "no_active_editor", fallback: {...}}`
+   *      — expected, not a crash. Fall back to `video_data()` +
+   *      `scene_geometry()` + `remotion_spec_url`.
+   *    - For `screenshot_scene_280x498`, the server composes a
+   *      fallback screenshot from scene thumbnails +
+   *      `{voice_file}_overlay_poster.png` and returns
+   *      `code: "server_fallback"` — treat as an approximate composite,
+   *      not a real render.
    *
    *  Allowed actions: `list_live_editors` | `list_instances` |
    *  `get_preview_state` | `get_scene_dom_snapshot` |
    *  `get_computed_boxes` | `screenshot_scene_280x498` |
    *  `activate_scene` | `reload_preview` | `pause_preview` |
-   *  `play_preview` | `seek_preview`.
+   *  `play_preview` | `seek_preview`. Prefer `scene_geometry()` over
+   *  `get_computed_boxes` for structural audits — geometry is cheaper,
+   *  always-available, and returns the same boxes plus collision
+   *  violations and safe zones in pure JSON.
    *
    *  No arbitrary JavaScript eval is exposed. Use `voice_file` for
    *  scene selection whenever possible.

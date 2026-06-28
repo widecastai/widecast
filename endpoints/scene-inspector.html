@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Live browser inspector — `POST /v1/scene_inspector` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. Use this **only after** data-first audit with [`/v1/video_data`](video-data.md) — when stored data isn't enough and you specifically need what the user's open editor is rendering right now.">
+  <meta name="description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. **More expensive than [`/v1/scene_geometry`](scene-geometry.md) — use it only when data + geometry are not enough**: typically when the agent needs DOM/computed-box truth or a live visual screenshot. Do NOT call this as the first step if `/v1/scene_geometry` already gives you the boxes you need.">
   <link rel="canonical" href="https://widecast.ai/endpoints/scene-inspector.html">
 
   <meta property="og:title" content="Live browser inspector — `POST /v1/scene_inspector` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. Use this **only after** data-first audit with [`/v1/video_data`](video-data.md) — when stored data isn't enough and you specifically need what the user's open editor is rendering right now.">
+  <meta property="og:description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. **More expensive than [`/v1/scene_geometry`](scene-geometry.md) — use it only when data + geometry are not enough**: typically when the agent needs DOM/computed-box truth or a live visual screenshot. Do NOT call this as the first step if `/v1/scene_geometry` already gives you the boxes you need.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/scene-inspector.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Live browser inspector — `POST /v1/scene_inspector` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. Use this **only after** data-first audit with [`/v1/video_data`](video-data.md) — when stored data isn't enough and you specifically need what the user's open editor is rendering right now.">
+  <meta name="twitter:description" content="**Synchronous, free.** Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. **More expensive than [`/v1/scene_geometry`](scene-geometry.md) — use it only when data + geometry are not enough**: typically when the agent needs DOM/computed-box truth or a live visual screenshot. Do NOT call this as the first step if `/v1/scene_geometry` already gives you the boxes you need.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,9 +57,9 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="live-browser-inspector-post-v1scene_inspector">Live browser inspector — <code>POST /v1/scene_inspector</code></h1>
-<p><strong>Synchronous, free.</strong> Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. Use this <strong>only after</strong> data-first audit with <a href="video-data.md"><code>/v1/video_data</code></a> — when stored data isn't enough and you specifically need what the user's open editor is rendering right now.</p>
+<p><strong>Synchronous, free.</strong> Returns BROWSER TRUTH for a video that has an open scene editor: mounted DOM, computed bounding boxes, current preview play state, a small 280×498 screenshot. <strong>More expensive than <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> — use it only when data + geometry are not enough</strong>: typically when the agent needs DOM/computed-box truth or a live visual screenshot. Do NOT call this as the first step if <code>/v1/scene_geometry</code> already gives you the boxes you need.</p>
 <blockquote>
-<p><strong>Don't call this for routine edits.</strong> <a href="video-data.md"><code>/v1/video_data</code></a> and the cache-busted <code>remotion_spec_url</code> it returns are usually enough. <code>/v1/scene_inspector</code> exists for the cases where you need to verify what's actually on screen — laid-out boxes after CSS, image-load races, a quick visual gut-check before suggesting a layout move.</p>
+<p><strong>Recommended chain</strong>: <a href="video-data.md"><code>/v1/video_data</code></a> → <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Only reach for <code>/v1/scene_inspector</code> when you specifically need browser truth or a live screenshot — e.g. you suspect a CSS / load race after a <code>modify_scene</code> edit, or you want a quick aesthetic gut-check before suggesting another move.</p>
 </blockquote>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot (visual gut-check)</h3><p class="wc-pg-example-desc">Best-effort browser-side capture. Use for aesthetic judgment only; use a renderer/headless fallback for pixel-perfect verification.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
@@ -72,13 +72,16 @@
 <li>The tab runs the action against its mounted preview root and returns the result.</li>
 </ol>
 <p><code>/v1/modify_scene</code> broadcasts MQTT realtime to every open editor independently — this tool's election only affects which tab returns the live inspection.</p>
-<h3 id="no-editor-open-is-expected-not-an-error">"No editor open" is expected, not an error</h3>
-<p>If no tab responds (or none qualify), the response is <strong>HTTP 200</strong> with:</p>
+<blockquote>
+<p><strong>Presence ≠ usability.</strong> A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.</p>
+</blockquote>
+<h3 id="no-editor-open-graceful-behaviour">"No editor open" — graceful behaviour</h3>
+<p>For <strong>most actions</strong>, no live editor → HTTP 200 with <code>status: "unavailable"</code>:</p>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:   &quot;scene_inspector_result&quot;,
   &quot;status&quot;:   &quot;unavailable&quot;,
   &quot;code&quot;:     &quot;no_live_editor&quot;,    // or &quot;no_active_editor&quot;
-  &quot;fallback&quot;: { &quot;available&quot;: true, &quot;suggested&quot;: &quot;Use /v1/video_data + fetch remotion_spec_url&quot; }
+  &quot;fallback&quot;: { &quot;available&quot;: true, &quot;suggested&quot;: &quot;Use /v1/video_data + /v1/scene_geometry&quot; }
 }
 </code></pre></div>
 
@@ -100,7 +103,8 @@
 </tr>
 </tbody>
 </table>
-<p>Agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> and, when needed, fetch the per-scene <code>remotion_spec_url</code>.</p>
+<p>For <strong><code>screenshot_scene_280x498</code> specifically</strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and returns <code>code: "server_fallback"</code>. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
+<p>Agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> + <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a>, and when needed fetch the per-scene <code>remotion_spec_url</code>.</p>
 <hr />
 <h2 id="actions">Actions</h2>
 <table>
@@ -135,7 +139,7 @@
 <tr>
 <td><code>get_computed_boxes</code></td>
 <td><code>getBoundingClientRect()</code> for elements in the scene.</td>
-<td><strong>Preferred for structural audit.</strong></td>
+<td><strong>Prefer <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> for structural audits</strong> — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.</td>
 </tr>
 <tr>
 <td><code>screenshot_scene_280x498</code></td>
@@ -269,6 +273,9 @@
 
 <h3 id="200-ok-unavailable"><code>200 OK</code> — <code>unavailable</code></h3>
 <p>See "No editor open" above.</p>
+<blockquote>
+<p>For <code>screenshot_scene_280x498</code>, the body is still <code>status: "completed"</code> but <code>code: "server_fallback"</code> and <code>result</code> is a composite assembled from scene thumbnails + <code>{voice_file}_overlay_poster.png</code>. Treat as approximate.</p>
+</blockquote>
 <h3 id="200-ok-error-browser-side-failure"><code>200 OK</code> — <code>error</code> (browser-side failure)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;: &quot;scene_inspector_result&quot;,
@@ -329,7 +336,7 @@
 </table>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
-<h3 id="python-computed-boxes-with-fallback-to-spec-url">Python — computed boxes, with fallback to spec URL</h3>
+<h3 id="python-screenshot-with-graceful-server-fallback">Python — screenshot with graceful server-fallback</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
@@ -338,38 +345,39 @@
 
 <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_inspector</span><span class="p">(</span>
     <span class="n">video_id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
-    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;get_computed_boxes&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span>
     <span class="n">voice_file</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span>
     <span class="n">activate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">7000</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="k">if</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">box</span> <span class="ow">in</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;boxes&quot;</span><span class="p">]:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="s2">&quot;selector&quot;</span><span class="p">],</span> <span class="n">box</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;live screenshot:&quot;</span><span class="p">,</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
+<span class="k">elif</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;server_fallback&quot;</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;server-composed fallback (thumbnails + overlay poster):&quot;</span><span class="p">,</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="c1"># No live editor — fall back to data + spec</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No editor open; falling back to remotion_spec_url:&quot;</span><span class="p">,</span>
-          <span class="n">target</span><span class="p">[</span><span class="s2">&quot;remotion_spec_url&quot;</span><span class="p">])</span>
+    <span class="c1"># No live editor at all — fall back to scene_geometry</span>
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_geometry</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">voice_file</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;falling back to scene_geometry:&quot;</span><span class="p">,</span> <span class="n">geom</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">])</span>
 </code></pre></div>
 
-<h3 id="typescript">TypeScript</h3>
+<h3 id="typescript-structural-audit-prefer-scene_geometry">TypeScript — structural audit (prefer scene_geometry)</h3>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
 <span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">video_data</span><span class="p">(</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">);</span>
 <span class="kd">const</span><span class="w"> </span><span class="nx">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">[</span><span class="mf">2</span><span class="p">];</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">scene_inspector</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">voice_file</span><span class="o">:</span><span class="w"> </span><span class="kt">target.voice_file</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">activate</span><span class="o">:</span><span class="w">   </span><span class="kt">true</span><span class="p">,</span>
-<span class="p">});</span>
+<span class="c1">// For structural boxes, prefer scene_geometry — no browser needed.</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">geom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">scene_geometry</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">voice_file</span><span class="o">:</span><span class="w"> </span><span class="kt">target.voice_file</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;narrator face:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">geom</span><span class="p">.</span><span class="nx">boxes</span><span class="p">.</span><span class="nx">narrator</span><span class="p">.</span><span class="nx">face</span><span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;violations:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">geom</span><span class="p">.</span><span class="nx">violations</span><span class="p">);</span>
 
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;screenshot:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
-<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;unavailable&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;no live editor — fallback:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">target</span><span class="p">.</span><span class="nx">remotion_spec_url</span><span class="p">);</span>
-<span class="p">}</span>
+<span class="c1">// Use scene_inspector only when you need browser truth.</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">scene_inspector</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;get_preview_state&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">voice_file</span><span class="o">:</span><span class="w"> </span><span class="kt">target.voice_file</span><span class="p">,</span>
+<span class="p">});</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="p">)</span><span class="w"> </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;preview state:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
 </code></pre></div>
 
 <h3 id="mcp">MCP</h3>
@@ -388,16 +396,20 @@
 <thead>
 <tr>
 <th>Goal</th>
-<th>Action</th>
+<th>Tool / action</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Verify a layout move worked in the live preview</td>
-<td><code>get_computed_boxes</code></td>
+<td>Pick coordinates / audit collisions before a layout edit</td>
+<td><strong><a href="scene-geometry.md"><code>/v1/scene_geometry</code></a></strong> (not this endpoint)</td>
 </tr>
 <tr>
-<td>Eye-check whether text + image collide / wrap</td>
+<td>Verify a layout move worked in the live preview after the edit</td>
+<td><code>get_computed_boxes</code> (or refetch <code>/v1/scene_geometry</code>)</td>
+</tr>
+<tr>
+<td>Aesthetic gut-check whether text + image collide / wrap</td>
 <td><code>screenshot_scene_280x498</code></td>
 </tr>
 <tr>
@@ -415,7 +427,7 @@
 </tbody>
 </table>
 <blockquote>
-<p>Prefer <code>get_computed_boxes</code> over screenshots for structural audit — text and numbers are cheaper than pixels and survive resolution changes.</p>
+<p>For structural audits, prefer <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> over <code>get_computed_boxes</code> — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.</p>
 </blockquote>
     </article>
   </main>

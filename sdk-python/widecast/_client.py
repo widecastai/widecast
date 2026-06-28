@@ -806,53 +806,113 @@ class Widecast:
     def modify_scene(self, video_id: str, *, by: str, value, fields: list,
                      op: Optional[str] = None,
                      min_score: Optional[float] = None) -> dict:
-        """POST /v1/modify_scene — SYNCHRONOUS, **no credit charged** until
-        :meth:`export_video` re-renders the final MP4. Edit ONE scene of an
-        existing video. Successful edits publish MQTT realtime so every
-        open scene editor for this video hot-updates.
+        """POST /v1/modify_scene — synchronous for most branches (some
+        upload branches are async — see below), **no credit charged**
+        until :meth:`export_video` re-renders the final MP4. Edit ONE
+        scene of an existing video. Successful edits publish MQTT
+        realtime so every open scene editor for this video hot-updates.
 
-        **Agent rule — data-first**: call :meth:`video_data` first and use
-        ``voice_file`` (the stable per-scene UID, also the base of
-        ``{voice_file}_spec.json``) for ``by``/``value``. ``segment.id`` is
-        only display/order metadata and may change after
-        reorder/add/delete.
+        **Agent rule — data-first.** Call :meth:`video_data` first and
+        use ``voice_file`` (the stable per-scene UID, also the base of
+        ``{voice_file}_spec.json``) for ``by``/``value``. For **layout
+        edits**, also call :meth:`scene_geometry` to read
+        narrator/caption/Remotion object boxes in 280×498 preview coords
+        — no screenshot rendering. ``segment.id`` is only display/order
+        metadata and may change after reorder/add/delete.
 
         Resolve the scene with ``by`` + ``value``:
-          - ``by="voice_file"`` — **preferred**. Exact match on the stable
-            per-scene UID.
+
+          - ``by="voice_file"`` — **preferred**. Stable per-scene UID.
           - ``by="id"`` — exact match on current ``segment.id`` order.
           - ``by="text"`` — fuzzy match against narration. Multi-match
             returns a clarification dict (no edit applied).
 
         ``fields`` is a list of ``{"field_name", "value"}`` edits. Pick
-        **exactly one family per call** — do not mix:
+        **exactly one family per call.** The only intentional multi-
+        family call is ``layout.batch``, which composes layout-only
+        children.
 
           **(A) Background media swap.**
-              ``[{"field_name": "mediaUrl", "value": "<http(s) URL>"},
+              ``[{"field_name": "mediaUrl", "value": "<URL>"},
               {"field_name": "mediaType", "value": "image"|"video"}?]``.
-              Roll-aware: B-roll scenes update ``mediaUrl`` / ``brollUrl``;
-              A-roll scenes register the asset as ``brollUrl`` /
-              ``user_asset_url`` without disturbing the narrator.
+              Roll-aware.
 
-          **(B) Upload Overlay (FREE, agent-supplied image → spec).**
+          **(B) Upload Overlay (FREE; agent-supplied image → spec).**
               ``[{"field_name": "remotion.upload_overlay",
-              "value": "<image URL>"}]`` or
-              ``value={"url": "<image URL>"}``. NOT Regenerate Overlay
-              (which is paid). Ground the image in scene context
-              (``text``, ``talking_point``, ``visual``, ``quote``,
-              ``keyword``, ``type``). Prefer a 720×1280 transparent PNG or
-              flat-bg graphic for object decomposition. Response includes
-              cache-busted ``remotion_spec_url``.
+              "value": "<image URL>"}]``. NOT Regenerate Overlay (which
+              is paid). Ground the image in scene context. Prefer a
+              720×1280 transparent PNG or flat-bg graphic for object
+              decomposition.
 
-          **(C) Remotion Storyboard group rect (FREE layout edit).**
+          **(C) Remotion object-layer rect (PREFERRED overlay layout).**
+              First call :meth:`scene_geometry` and read
+              ``boxes.remotion.object_layer.objects`` — each item carries
+              ``layout_id``, ``rect`` (280×498 preview), ``rect_canvas``
+              (720×1280), and the update field name. Then send
+              ``[{"field_name": "remotion.object.rect",
+              "value": {"layout_id": "main.one_by_one",
+              "x": ..., "y": ..., "w": ..., "h": ...,
+              "coordinate_space": "preview"|"canvas"}}]``. For
+              ``one_by_one``, scene_geometry exposes ONE logical
+              ``*.one_by_one`` rect — editing it transforms all timed
+              sequence items together. The group wrapper stays unchanged.
+
+          **(D) Remotion group rect (low-level wrapper edit).**
               ``[{"field_name": "remotion.group.rect", "value": {
               "element_id": "main", "x": ..., "y": ..., "w": ..., "h": ...,
               "coordinate_space": "canvas"|"preview",
               "resize_mode": "scale_children"|"wrapper_only"}}]``.
               Move-only (x/y) updates the wrapper position; canvas coords
-              are NOT clamped (negative y is allowed). Resize defaults to
-              ``scale_children``. ``remotion.object.rect`` is **disabled
-              for agents** (returns ``object_level_edit_disabled``).
+              are NOT clamped. Resize defaults to ``scale_children``.
+              Prefer (C) for visible overlay layout.
+
+          **(E) Narrator layout rect.**
+              ``[{"field_name": "overlay.narrator.rect", "value":
+              {"x", "y", "w", "h", "visible"?, "animation"?,
+              "borderRadius"?}}]`` or field-by-field via
+              ``overlay.narrator.x|y|w|h``. Legacy 280×498 preview coords.
+              Preserves narrator metadata + source-space
+              ``segment.narrator_face`` (do NOT mutate
+              ``narrator_face`` for layout edits — scene_geometry
+              converts it through the current narrator rect for display).
+
+          **(F) Caption Y layout.**
+              ``[{"field_name": "overlay.caption.y", "value": 408}]``.
+              280×498 preview coords. ONLY Y — no text / x / w / h /
+              style.
+
+          **(G) Layout batch (one persist, one MQTT scene_modified).**
+              Either pass multiple layout fields directly OR wrap as
+              ``[{"field_name": "layout.batch",
+              "value": {"fields": [...]}}]``. Allowed children:
+              ``overlay.narrator.*``, ``overlay.caption.y``,
+              ``remotion.object.rect``, ``remotion.group.rect``.
+
+          **(H) Upload Voice (FREE; ASYNC).**
+              ``[{"field_name": "voice.upload", "value": "<audio URL>"}]``.
+              Returns ``{"object": "scene_voice_upload_queued",
+              "queue_id": "gs_{topic_id}_{voice_file}",
+              "status": "queued", ...}``. Verify with
+              :meth:`video_data` after MQTT completion.
+
+          **(I) Upload Narrator Video (FREE; ASYNC).**
+              ``[{"field_name": "narrator.upload_video",
+              "value": "<video URL>"}]``. Returns
+              ``{"object": "scene_narrator_upload_queued", ...}``.
+
+          **(J) A/B-roll switch (SYNC data switch).**
+              ``[{"field_name": "roll.active", "value": "A"|"B"}]`` OR
+              ``[{"field_name": "roll.switch", "value": "toggle"}]``.
+
+          **(K) Segment text correction.**
+              ``[{"field_name": "segment.text", "value": "..."}]`` —
+              rebuilds word timings over existing audio, no
+              duration/timeline change.
+
+          **(L) Scene metadata.** ``pattern``, ``visual``, ``keyword``,
+              ``quote``, ``talking_point``, ``type``, ``sub_mode`` (or
+              ``segment.<name>``/``scene.<name>`` forms). ``pattern`` and
+              ``type`` are validated against ai_segment_text allow-lists.
 
         Remotion canvas = 720×1280; legacy ``overlay.caption`` /
         ``overlay.narrator`` use 280×498 editor preview coords. Set
@@ -865,19 +925,20 @@ class Widecast:
 
         Return — the raw response dict. Shapes:
 
-          * Success (media branch) → ``{"object": "scene_modified", "id",
-            "scene_id", "voice_file", "score", "applied", "media_type",
-            "media_url", "segment", ...}``.
-          * Success (upload_overlay / group_rect) → adds
-            ``remotion_spec_updated``, ``remotion_spec_file``,
-            ``remotion_spec_url``, ``remotion_spec_version``,
-            ``remotion_spec_state``, ``remotion_spec_exists`` (and on
-            upload overlay: ``uploaded_overlay_url``, ``cost``).
+          * Sync success → ``{"object": "scene_modified", ...,
+            "applied", "segment", "remotion_spec_url", ...}``. Layout
+            edits add ``layout_batch_updated`` /
+            ``narrator_layout_updated`` /
+            ``caption_layout_updated`` /
+            ``remotion_object_updated`` /
+            ``remotion_poster_url`` /
+            ``remotion_poster_warnings`` flags.
+          * Async upload branches → ``{"object":
+            "scene_voice_upload_queued" |
+            "scene_narrator_upload_queued", "queue_id", "status":
+            "queued", ...}``.
           * Ambiguous text match → ``{"object": "clarification",
-            "needs_input": "value", "message": "...",
-            "candidates": [{"segment_id", "voice_file", "score", "text"}]}``.
-            The edit was NOT applied. Show candidates, pick one, retry
-            with ``by="voice_file"``.
+            "needs_input": "value", "candidates": [...]}``.
         """
         if not video_id or not isinstance(video_id, str):
             raise InvalidRequestError("video_id must be a non-empty string.",
@@ -1205,7 +1266,11 @@ class Widecast:
     def video_data(self, video_id: str) -> dict:
         """POST /v1/video_data — read structured scene data for a topic_id.
         SYNC, FREE. **First step for data-first scene audit/edit** — call
-        this before :meth:`modify_scene` or :meth:`scene_inspector`.
+        this before :meth:`scene_geometry` / :meth:`modify_scene` /
+        :meth:`scene_inspector`. The recommended chain is
+        ``video_data → scene_geometry → modify_scene`` (use
+        :meth:`scene_inspector` only as an expensive last resort when you
+        need browser truth / a small live screenshot).
 
         Returns full annotated segment dicts. To keep MCP payloads usable,
         per-segment ``words`` timing arrays, top-level ``captions``, and
@@ -1264,6 +1329,107 @@ class Widecast:
                              json_body={"video_id": video_id.strip()},
                              idempotency_key=str(uuid.uuid4()))
 
+    def scene_geometry(self, video_id: str, *,
+                       by: Optional[str] = None,
+                       value: Optional[Any] = None,
+                       voice_file: Optional[str] = None,
+                       scene_id: Optional[Any] = None,
+                       min_score: Optional[float] = None) -> dict:
+        """POST /v1/scene_geometry — data-only layout geometry for ONE
+        scene. SYNC, FREE, read-only.
+
+        **Use this after :meth:`video_data` and before any screenshot /
+        vision step** when an agent needs to audit layout cheaply or pick
+        coordinates for :meth:`modify_scene`. It resolves the scene by
+        stable ``voice_file`` (preferred), loads
+        ``{voice_file}_spec.json`` if available, and maps legacy
+        narrator/caption boxes plus Remotion Storyboard display boxes
+        into one **280×498 editor-preview** coordinate space.
+
+        Returns:
+
+          * ``coordinate_space`` — ``{width: 280, height: 498,
+            unit: "editor_preview_px"}``.
+          * ``safe_zones`` — ``dead_top`` (top 10% reserved),
+            ``dead_bottom`` (bottom 25% reserved), ``safe_rect`` between
+            them.
+          * ``scene`` — ``{text, talking_point, type, pattern, keyword,
+            visual, quote, show_narrator, active_roll}``.
+          * ``boxes.narrator`` — ``{rect, visible, face_source, face,
+            face_center, face_coordinate_space_note}``. ``face`` is the
+            **displayed** face box, computed by converting source-space
+            ``segment.narrator_face`` through the current
+            ``overlay.narrator.rect``. Do NOT mutate
+            ``segment.narrator_face`` for layout edits.
+          * ``boxes.caption`` — ``{container_rect, text_rect_estimate,
+            visible}``. Read-only for layout decisions; the only mutable
+            caption field is ``overlay.caption.y``.
+          * ``boxes.remotion.object_layer.objects[]`` — **the agent-
+            facing layer**. Each item has ``layout_id`` (e.g.
+            ``main.one_by_one``, ``main.obj_03_text``), ``rect`` (280×498
+            preview), ``rect_canvas`` (720×1280), ``temporal_policy``,
+            and the update field to pass back to :meth:`modify_scene`
+            (``remotion.object.rect``). For ``one_by_one``,
+            scene_geometry exposes ONE logical ``*.one_by_one`` rect —
+            editing it transforms all timed sequence items together.
+          * ``boxes.remotion.groups[]`` / ``objects[]`` /
+            ``sequence_objects[]`` — lower-level debug data
+            (STATIC/POSTER display boxes from the same Storyboard math
+            used by ``{voice_file}_overlay_poster.png``).
+          * ``remotion_spec`` — metadata for the loaded
+            ``{voice_file}_spec.json``.
+          * ``violations[]`` — collision codes such as
+            ``remotion_object_overlaps_narrator_face`` (error),
+            ``remotion_object_in_top_dead_zone`` (warning),
+            ``remotion_group_in_bottom_dead_zone``,
+            ``caption_text_overlaps_narrator_face``.
+          * ``warnings[]`` — e.g.
+            ``remotion_object_too_small_for_mobile``,
+            ``narrator_face_outside_narrator``,
+            ``missing_narrator_face``.
+          * ``summary`` — ``{error_count, warning_count,
+            remotion_object_count, remotion_object_layer_count,
+            remotion_group_count, remotion_temporal_policies,
+            remotion_geometry_basis}``.
+
+        Designed for LLM-only agents that cannot see images: reason over
+        JSON, then call :meth:`modify_scene` with a ``layout.batch`` (or
+        single-field) edit. Never broadcasts MQTT, never renders
+        screenshots, never modifies the video.
+
+        Args:
+            video_id: Topic id (widecast..., gubo..., or current).
+            by: ``"voice_file"`` (preferred) / ``"id"`` / ``"text"``.
+                If omitted, pass ``voice_file=`` or ``scene_id=``
+                directly.
+            value: The id / voice_file / narration snippet to inspect.
+            voice_file: Stable per-scene UID — preferred shortcut
+                (folds into ``by="voice_file"``).
+            scene_id: Current display/order id — fallback only.
+            min_score: Only when ``by="text"``. Default 0.5.
+
+        On ambiguous text match the response is
+        ``{"object": "clarification", "needs_input": "value",
+        "candidates": [...]}`` — no geometry; ask the user, then retry
+        with ``by="voice_file"``.
+        """
+        if not isinstance(video_id, str) or not video_id.strip():
+            raise InvalidRequestError(
+                "video_id (the topic_id) is required.",
+                code="missing_field", param="video_id")
+        body: dict = {"id": video_id.strip()}
+        if by is not None:
+            body["by"] = by
+        if value is not None:
+            body["value"] = value
+        if voice_file is not None:
+            body["voice_file"] = voice_file
+        if scene_id is not None:
+            body["scene_id"] = scene_id
+        if min_score is not None:
+            body["min_score"] = float(min_score)
+        return self._request("POST", "/v1/scene_geometry", json_body=body)
+
     def scene_inspector(self, video_id: str, action: str, *,
                         scene_id: Optional[Any] = None,
                         voice_file: Optional[str] = None,
@@ -1274,18 +1440,30 @@ class Widecast:
                         probe_timeout_ms: Optional[int] = None,
                         options: Optional[Mapping[str, Any]] = None) -> dict:
         """POST /v1/scene_inspector — live browser inspector for an open
-        scene editor of a video. Use **only after** data-first audit with
-        :meth:`video_data`, when the agent needs BROWSER TRUTH (mounted
-        DOM, computed boxes, preview play state, a small 280×498
-        screenshot).
+        scene editor of a video. **More expensive than
+        :meth:`scene_geometry`** — use only when data + geometry are
+        not enough: typically when the agent needs browser truth
+        (mounted DOM, computed boxes, current preview play state) or a
+        small 280×498 visual screenshot for aesthetic judgment. Do NOT
+        use as the first step if :meth:`scene_geometry` already gives
+        the boxes you need.
 
         Server broadcasts a tiny MQTT probe to every open editor tab,
         elects ONE healthy foreground/active browser within ~800ms, then
-        sends the inspector command only to that tab. If no editor is
-        open, the response is ``{status: "unavailable", code:
-        "no_live_editor" | "no_active_editor", fallback: {...}}`` —
-        expected, not a crash. Fall back to :meth:`video_data` +
-        ``remotion_spec_url``.
+        sends the inspector command only to that tab.
+
+        **No live editor → graceful behaviour**:
+
+          * For most actions, the response is ``{status:
+            "unavailable", code: "no_live_editor" | "no_active_editor",
+            fallback: {...}}`` — expected, not a crash. Fall back to
+            :meth:`video_data` + :meth:`scene_geometry` +
+            ``remotion_spec_url``.
+          * For ``screenshot_scene_280x498``, the server composes a
+            fallback screenshot from scene thumbnails +
+            ``{voice_file}_overlay_poster.png`` and returns
+            ``code: "server_fallback"`` — treat as an approximate
+            composite, not a real render.
 
         Allowed actions:
           ``list_live_editors`` | ``list_instances`` |

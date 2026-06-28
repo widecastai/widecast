@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (A) Swap image on scene XcR0k by voice_file
+# (A) Background swap — image, by voice_file
 # Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
 
 curl -X POST "https://widecast.ai/app/dashboard/v1/modify_scene" \

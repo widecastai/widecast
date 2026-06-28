@@ -122,12 +122,17 @@
 <tr>
 <td><a href="endpoints/modify-scene.html"><code>/v1/modify_scene</code></a></td>
 <td>POST</td>
-<td>(sync, free) Edit ONE scene — background media swap, Upload Overlay (free agent-supplied image → Remotion spec), or Storyboard group rect (move/resize the overlay group)</td>
+<td>(sync/async, free) Edit ONE scene — 12 branches: background media, Upload Overlay, Remotion object-layer rect (preferred), group rect, narrator/caption layout, <code>layout.batch</code>, Upload Voice/Narrator Video (async), A/B-roll switch, text, metadata</td>
+</tr>
+<tr>
+<td><a href="endpoints/scene-geometry.html"><code>/v1/scene_geometry</code></a></td>
+<td>POST</td>
+<td>(sync, free) Data-only scene layout geometry — narrator/caption/Remotion object boxes in 280×498 preview coords, plus collisions + safe zones. Cheap; no screenshot</td>
 </tr>
 <tr>
 <td><a href="endpoints/scene-inspector.html"><code>/v1/scene_inspector</code></a></td>
 <td>POST</td>
-<td>(sync, free) Live browser inspector for an open scene editor — DOM, computed boxes, preview play state, small 280×498 screenshot. Use <strong>only after</strong> <code>/v1/video_data</code> when you need browser truth</td>
+<td>(sync, free) <strong>Expensive last-resort</strong> browser inspector — use AFTER <code>/v1/scene_geometry</code>. <code>screenshot_scene_280x498</code> has a server-fallback composite from thumbnails + overlay poster when no live browser</td>
 </tr>
 <tr>
 <td><a href="endpoints/upload-asset.html"><code>/v1/upload_asset</code></a></td>
@@ -172,7 +177,7 @@
 <tr>
 <td><a href="endpoints/video-data.html"><code>/v1/video_data</code></a></td>
 <td>POST</td>
-<td>(sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — <strong>first step for data-first scene audit/edit</strong></td>
+<td>(sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — <strong>first step for data-first scene audit/edit</strong>. Chain: video_data → scene_geometry → modify_scene</td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/account</code></a></td>

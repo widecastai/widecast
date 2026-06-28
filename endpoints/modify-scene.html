@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Edit one scene — `POST /v1/modify_scene` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
+  <meta name="description" content="**Synchronous** for most branches (some upload branches are async — see below), **no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
   <link rel="canonical" href="https://widecast.ai/endpoints/modify-scene.html">
 
   <meta property="og:title" content="Edit one scene — `POST /v1/modify_scene` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
+  <meta property="og:description" content="**Synchronous** for most branches (some upload branches are async — see below), **no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/modify-scene.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Edit one scene — `POST /v1/modify_scene` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
+  <meta name="twitter:description" content="**Synchronous** for most branches (some upload branches are async — see below), **no credit charged** until [`/v1/export_video`](export-video.md) re-renders the final MP4. After the user reviews scenes (via `result.review_url` from [`/v1/create_video`](create-video.md)) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,11 +57,11 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="edit-one-scene-post-v1modify_scene">Edit one scene — <code>POST /v1/modify_scene</code></h1>
-<p><strong>Synchronous, no credit charged</strong> until <a href="export-video.md"><code>/v1/export_video</code></a> re-renders the final MP4. After the user reviews scenes (via <code>result.review_url</code> from <a href="create-video.md"><code>/v1/create_video</code></a>) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.</p>
+<p><strong>Synchronous</strong> for most branches (some upload branches are async — see below), <strong>no credit charged</strong> until <a href="export-video.md"><code>/v1/export_video</code></a> re-renders the final MP4. After the user reviews scenes (via <code>result.review_url</code> from <a href="create-video.md"><code>/v1/create_video</code></a>) and asks to edit a specific scene, call this endpoint to apply the change in place. Successful edits publish MQTT realtime to every open scene editor, so the user sees the change live.</p>
 <blockquote>
-<p><strong>Agent rule — data-first.</strong> Call <a href="video-data.md"><code>/v1/video_data</code></a> <strong>first</strong> and use <code>voice_file</code> (the stable per-scene UID, also the base of <code>{voice_file}_spec.json</code>) as the selector. <code>segment.id</code> is only current display/order metadata and may change after reorder/add/delete.</p>
+<p><strong>Agent rule — data-first.</strong> Call <a href="video-data.md"><code>/v1/video_data</code></a> <strong>first</strong> and use <code>voice_file</code> (the stable per-scene UID, also the base of <code>{voice_file}_spec.json</code>) as the selector. For <strong>layout edits</strong>, also call <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> to read narrator / caption / Remotion object boxes in 280×498 editor-preview coords without rendering anything. <code>segment.id</code> is only current display/order metadata and may change after reorder/add/delete.</p>
 </blockquote>
-<p>The endpoint supports <strong>three edit branches</strong>. Pick exactly one family per call — do not mix.</p>
+<p>The endpoint supports <strong>twelve edit branches</strong>, grouped by family. Pick exactly one family per call — the only intentional multi-family call is <strong><code>layout.batch</code></strong> (G), which composes layout-only children.</p>
 <table>
 <thead>
 <tr>
@@ -78,22 +78,65 @@
 </tr>
 <tr>
 <td><strong>(B) Upload Overlay</strong></td>
-<td>Drop in an agent-supplied image and recompute the Remotion overlay spec. NOT Regenerate Overlay (which is paid).</td>
+<td>Drop in an agent-supplied image and recompute the Remotion overlay spec. NOT Regenerate Overlay (paid).</td>
 <td><code>remotion.upload_overlay</code></td>
 </tr>
 <tr>
-<td><strong>(C) Storyboard group rect</strong></td>
-<td>Move / resize the entire Storyboard group in the Remotion spec.</td>
+<td><strong>(C) Object-layer rect</strong> <em>(preferred overlay layout)</em></td>
+<td>Move / resize a Remotion overlay object — read <code>boxes.remotion.object_layer.objects</code> from <code>/v1/scene_geometry</code> first.</td>
+<td><code>remotion.object.rect</code></td>
+</tr>
+<tr>
+<td><strong>(D) Storyboard group rect</strong> <em>(low-level wrapper edit)</em></td>
+<td>Move / resize the entire Storyboard group; prefer (C) for visible overlay layout.</td>
 <td><code>remotion.group.rect</code></td>
+</tr>
+<tr>
+<td><strong>(E) Narrator rect</strong></td>
+<td>Move / resize the narrator box in legacy 280×498 editor coords.</td>
+<td><code>overlay.narrator.rect</code> / <code>overlay.narrator.x|y|w|h</code></td>
+</tr>
+<tr>
+<td><strong>(F) Caption Y</strong></td>
+<td>Vertical-only caption placement in 280×498 coords.</td>
+<td><code>overlay.caption.y</code></td>
+</tr>
+<tr>
+<td><strong>(G) Layout batch</strong></td>
+<td>Atomic narrator + caption + Remotion layout changes (one persist + one MQTT).</td>
+<td><code>layout.batch</code> (or multiple layout fields directly)</td>
+</tr>
+<tr>
+<td><strong>(H) Upload Voice</strong> <em>(async)</em></td>
+<td>User-supplied narration audio (transcribed + retimed).</td>
+<td><code>voice.upload</code></td>
+</tr>
+<tr>
+<td><strong>(I) Upload Narrator Video</strong> <em>(async)</em></td>
+<td>User-supplied A-roll narrator video.</td>
+<td><code>narrator.upload_video</code></td>
+</tr>
+<tr>
+<td><strong>(J) A/B-roll switch</strong></td>
+<td>Toggle the active roll without uploading anything.</td>
+<td><code>roll.active</code> / <code>roll.switch</code></td>
+</tr>
+<tr>
+<td><strong>(K) Segment text</strong></td>
+<td>Correct narration/caption text while keeping audio timing.</td>
+<td><code>segment.text</code></td>
+</tr>
+<tr>
+<td><strong>(L) Scene metadata</strong></td>
+<td>Update scene planning metadata (<code>pattern</code>, <code>type</code>, …).</td>
+<td>metadata fields</td>
 </tr>
 </tbody>
 </table>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-voice-file" id="ex-modify-scene--media-by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Swap image on scene XcR0k by voice_file</h3><p class="wc-pg-example-desc">Most reliable. Roll-aware — B-roll scenes update mediaUrl/brollUrl, A-roll registers as brollUrl/user_asset_url without disturbing the narrator.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-text" id="ex-modify-scene--media-by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Swap by what's said in the scene (video)</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay" id="ex-modify-scene--upload-overlay"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)</h3><p class="wc-pg-example-desc">NOT Regenerate Overlay (paid). Classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-move" id="ex-modify-scene--group-rect-move"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Move the Storyboard group up by 120px (canvas coords)</h3><p class="wc-pg-example-desc">Move-only — only the wrapper position changes; child objects untouched. Canvas (720×1280) coordinates are NOT clamped — negative y is allowed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-scale" id="ex-modify-scene--group-rect-scale"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Resize group + scale children (default resize_mode)</h3><p class="wc-pg-example-desc">Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together, preserving WideCast's computed group layout. `wrapper_only` is advanced.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-voice-file" id="ex-modify-scene--media-by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — image, by voice_file</h3><p class="wc-pg-example-desc">Most reliable. Roll-aware — B-roll updates mediaUrl/brollUrl; A-roll registers as brollUrl/user_asset_url without disturbing the narrator.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-text" id="ex-modify-scene--media-by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — match by narration text, video</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay" id="ex-modify-scene--upload-overlay"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)</h3><p class="wc-pg-example-desc">NOT Regenerate Overlay (paid). Pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-one-by-one" id="ex-modify-scene--object-rect-one-by-one"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — preferred overlay layout (one_by_one)</h3><p class="wc-pg-example-desc">Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-single" id="ex-modify-scene--object-rect-single"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — move a single overlay text object</h3><p class="wc-pg-example-desc">Per-object layout_id (e.g. main.obj_03_text). Server maps the preview rect onto raw Storyboard offsets/sizes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-move" id="ex-modify-scene--group-rect-move"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — move whole Storyboard group up by 120px (canvas)</h3><p class="wc-pg-example-desc">Low-level wrapper edit — child objects untouched. Canvas (720×1280) is NOT clamped; negative y is allowed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-scale" id="ex-modify-scene--group-rect-scale"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — resize + scale children</h3><p class="wc-pg-example-desc">Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together. `wrapper_only` is advanced.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-rect" id="ex-modify-scene--narrator-rect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(E) Narrator layout rect — 280×498 preview coords</h3><p class="wc-pg-example-desc">Preserves narrator metadata + source-space segment.narrator_face. Marks overlay.narrator.touched=true so auto-fit doesn't overwrite. No media/audio/timeline/Remotion-spec changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="caption-y" id="ex-modify-scene--caption-y"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(F) Caption Y — vertical placement only (280×498)</h3><p class="wc-pg-example-desc">ONLY Y — does not change x/w/h, visibility, config, segment.text, segment.words, audio, duration, or Remotion specs.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-inline" id="ex-modify-scene--layout-batch-inline"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — multiple layout fields directly</h3><p class="wc-pg-example-desc">One persist, one MQTT scene_modified. Allowed children: overlay.narrator.*, overlay.caption.y, remotion.object.rect, remotion.group.rect.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-wrapped" id="ex-modify-scene--layout-batch-wrapped"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — via the explicit `layout.batch` envelope</h3><p class="wc-pg-example-desc">Same composer, alternate request shape. Useful when the orchestrator already knows it's batching.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="voice-upload" id="ex-modify-scene--voice-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(H) Upload Voice — user-supplied audio (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; not Use-AI-Voice. Returns scene_voice_upload_queued + queue_id. Wait for MQTT scene_voice_upload_applied, then call /v1/video_data to verify.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-video-upload" id="ex-modify-scene--narrator-video-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(I) Upload Narrator Video — user-supplied A-roll (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; user-supplied video. If target is B-roll, server preserves the previous background and switches to A-roll on completion.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="roll-switch" id="ex-modify-scene--roll-switch"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(J) A/B-roll switch — show narrator A-roll</h3><p class="wc-pg-example-desc">Sync data switch. Preserves both lanes; swaps the active runtime fields. A→B mirrors the editor's _switched file-family protection.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="segment-text" id="ex-modify-scene--segment-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(K) Segment text correction</h3><p class="wc-pg-example-desc">Rebuilds word timings over existing audio; no duration/timeline change.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="scene-metadata" id="ex-modify-scene--scene-metadata"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(L) Scene metadata — validated pattern + quote</h3><p class="wc-pg-example-desc">pattern is validated against ai_segment_text canonical values; type ∈ {HOOK, STAT, KEY POINT, DATA, FACT, CALL TO ACTION}. pattern='typography_only' auto-clears visual.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <blockquote>
-<p><strong><code>remotion.object.rect</code> is disabled for agents.</strong> Child-object edits break the computed group layout — the server returns <code>400 object_level_edit_disabled</code>. Use group rect instead.</p>
-<p><strong><code>segment.remotion_spec == "none"</code></strong> means the user intentionally disabled the overlay on that scene. Layout edits (branch C) return <code>remotion_spec_disabled</code>. <strong>Do not auto-enable</strong> — restore the overlay only with Upload Overlay if the user explicitly asks.</p>
-<p><strong>Planned</strong>: <code>overlay.narrator</code> / <code>overlay.caption</code> rect/config in the legacy 280×498 editor coordinate space (not in this release).</p>
+<p><strong><code>segment.remotion_spec == "none"</code></strong> means the user intentionally disabled the overlay on that scene. Layout edits return <code>remotion_spec_disabled</code>. <strong>Do not auto-enable</strong> — restore the overlay only with <strong>Upload Overlay</strong> (B) if the user explicitly asks.</p>
 </blockquote>
 <hr />
 <h2 id="common-request-envelope">Common request envelope</h2>
@@ -124,7 +167,7 @@
 <td><code>id</code></td>
 <td>string</td>
 <td>yes</td>
-<td><code>topic_id</code> from <a href="create-video.md"><code>/v1/create_video</code></a> / <a href="video-data.md"><code>/v1/video_data</code></a>. Accepts <code>widecast...</code>, <code>gubo...</code>, or current ids. Same id used by <code>/v1/status</code> and <code>/v1/export_video</code>. The video must have reached <code>scenes_ready_for_review</code> (HTTP 409 otherwise).</td>
+<td><code>topic_id</code> from <a href="create-video.md"><code>/v1/create_video</code></a> / <a href="video-data.md"><code>/v1/video_data</code></a>. Accepts <code>widecast...</code>, <code>gubo...</code>, or current ids. The video must have reached <code>scenes_ready_for_review</code> (HTTP 409 otherwise).</td>
 </tr>
 <tr>
 <td><code>by</code></td>
@@ -142,7 +185,7 @@
 <td><code>fields</code></td>
 <td>array</td>
 <td>yes</td>
-<td>Non-empty list of <code>{ field_name, value }</code> edits — one family only. See branch sections below.</td>
+<td>Non-empty list of <code>{ field_name, value }</code> edits — one family per call. See branch sections below.</td>
 </tr>
 <tr>
 <td><code>op</code></td>
@@ -158,6 +201,31 @@
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="coordinate-spaces">Coordinate spaces</h2>
+<p>Two spaces appear in <code>modify_scene</code> — they are <strong>not</strong> interchangeable:</p>
+<table>
+<thead>
+<tr>
+<th>Space</th>
+<th>Width × Height</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Remotion canvas</td>
+<td><strong>720 × 1280</strong></td>
+<td><code>remotion.group.rect</code> (default), spec content</td>
+</tr>
+<tr>
+<td>Legacy editor preview</td>
+<td><strong>280 × 498</strong></td>
+<td><code>overlay.narrator.*</code>, <code>overlay.caption.y</code>, <code>remotion.object.rect</code>, <code>remotion.group.rect</code> with <code>coordinate_space:"preview"</code></td>
+</tr>
+</tbody>
+</table>
+<p>When in doubt, ask <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> for the box you want to move — it returns everything in 280×498 preview coords plus a <code>rect_canvas</code> mirror for the object layer.</p>
 <hr />
 <h2 id="branch-a-background-media-swap">Branch (A) — Background media swap</h2>
 <p>Roll-aware: B-roll scenes get the asset as the background; A-roll scenes register it as the overlay without touching the narrator.</p>
@@ -184,12 +252,12 @@
 <tr>
 <td><code>mediaUrl</code></td>
 <td>http(s) URL</td>
-<td>The image OR video to use.</td>
+<td>Image OR video.</td>
 </tr>
 <tr>
 <td><code>mediaType</code></td>
 <td><code>"image"</code> | <code>"video"</code></td>
-<td>Optional; auto-detected from the URL extension.</td>
+<td>Optional; auto-detected from URL extension.</td>
 </tr>
 </tbody>
 </table>
@@ -203,15 +271,15 @@
 <tbody>
 <tr>
 <td><strong>B-roll</strong></td>
-<td>Asset IS the background. <code>mediaUrl</code>, <code>thumbnailUrl</code>, <code>brollUrl</code>, <code>brollThumbnailUrl</code> are synced (<code>brollUrl === mediaUrl</code>).</td>
+<td>Asset IS the background. <code>mediaUrl</code>, <code>thumbnailUrl</code>, <code>brollUrl</code>, <code>brollThumbnailUrl</code> synced (<code>brollUrl === mediaUrl</code>).</td>
 </tr>
 <tr>
 <td><strong>A-roll</strong></td>
-<td>Narrator + grid untouched. Asset becomes <code>brollUrl</code> / <code>user_asset_url</code>; the next scene-spec gen turns it into the overlay (image → chest-card; video → <code>brollUrl</code> backdrop).</td>
+<td>Narrator + grid untouched. Asset becomes <code>brollUrl</code> / <code>user_asset_url</code>; next scene-spec gen turns it into the overlay (image → chest-card; video → <code>brollUrl</code> backdrop).</td>
 </tr>
 </tbody>
 </table>
-<p>Success response includes <code>applied</code>, <code>media_type</code>, <code>media_url</code>, and the full updated <code>segment</code>.</p>
+<p>Response includes <code>applied</code>, <code>media_type</code>, <code>media_url</code>, and the full updated <code>segment</code>.</p>
 <hr />
 <h2 id="branch-b-upload-overlay">Branch (B) — Upload Overlay</h2>
 <p>Free, agent-supplied image → Remotion overlay spec. This is <strong>not</strong> Regenerate Overlay (which is paid because WideCast calls image generation). The pipeline classifies the image (graphic vs realistic), decomposes it into objects, and applies a strict no-AI fallback when decomposition fails.</p>
@@ -235,10 +303,71 @@
 <li>Avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text — those get classified <code>realistic</code> and are kept as ONE full-frame image (not decomposed).</li>
 </ul>
 <p>Upload Overlay is an <strong>explicit opt-in to recreate an overlay</strong> even if the scene previously had <code>remotion_spec="none"</code>.</p>
-<p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus the agent-supplied <code>uploaded_overlay_url</code> and <code>cost: 0</code>.</p>
+<p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus the agent-supplied <code>uploaded_overlay_url</code>, <code>cost: 0</code>, and <code>remotion_poster_url</code> (a static fallback poster used by <code>/v1/scene_inspector</code> when no live browser is available).</p>
 <hr />
-<h2 id="branch-c-remotion-storyboard-group-rect">Branch (C) — Remotion Storyboard group rect</h2>
-<p>Free layout edit. Moves or resizes the entire Storyboard group in the per-scene Remotion spec without touching child objects (default) or with a wrapper-only change (advanced).</p>
+<h2 id="branch-c-remotion-storyboard-object-layer-rect-preferred-overlay-layout">Branch (C) — Remotion Storyboard object-layer rect (preferred overlay layout)</h2>
+<p>Free layout edit. <strong>This is the API you want for visible overlay layout.</strong> First call <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> and read <code>boxes.remotion.object_layer.objects</code> — each item carries:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>layout_id</code></td>
+<td>Stable id, e.g. <code>main.one_by_one</code>, <code>main.obj_03_text</code>. Pass this back as the selector.</td>
+</tr>
+<tr>
+<td><code>rect</code></td>
+<td>Box in 280×498 editor-preview coords.</td>
+</tr>
+<tr>
+<td><code>rect_canvas</code></td>
+<td>Same box in 720×1280 Remotion canvas coords.</td>
+</tr>
+<tr>
+<td><code>temporal_policy</code></td>
+<td><code>simultaneous_static</code> / <code>one_by_one</code>.</td>
+</tr>
+<tr>
+<td><code>update_field</code></td>
+<td><code>"remotion.object.rect"</code> — the modify_scene field name.</td>
+</tr>
+</tbody>
+</table>
+<p>Then send:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    {
+      &quot;field_name&quot;: &quot;remotion.object.rect&quot;,
+      &quot;value&quot;: {
+        &quot;layout_id&quot;: &quot;main.one_by_one&quot;,
+        &quot;x&quot;: 24,
+        &quot;y&quot;: 140,
+        &quot;w&quot;: 232,
+        &quot;h&quot;: 42,
+        &quot;coordinate_space&quot;: &quot;preview&quot;
+      }
+    }
+  ]
+}
+</code></pre></div>
+
+<ul>
+<li>The agent edits <strong>simple visible object boxes</strong>; WideCast maps the rect back onto raw Storyboard object offsets/sizes and <strong>keeps the group wrapper unchanged</strong>.</li>
+<li>For <code>one_by_one</code>, scene_geometry exposes <strong>ONE logical <code>*.one_by_one</code> rect</strong> — editing it transforms all timed sequence items together so the agent never reasons about timing.</li>
+<li>Multiple <code>remotion.object.rect</code> entries in one call are allowed (still one family).</li>
+<li>Object-layer x/y may produce negative raw offsets relative to the group; that is allowed and matches Remotion rendering.</li>
+</ul>
+<p>Response includes <code>remotion_object_updated: true</code>, <code>remotion_spec_updated: true</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_poster_url</code> (refreshed), and the updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-d-remotion-storyboard-group-rect-low-level-wrapper-edit">Branch (D) — Remotion Storyboard group rect (low-level wrapper edit)</h2>
+<p>Free layout edit. <strong>Prefer (C)</strong> for visible overlay layout — this branch is the low-level wrapper edit used when you want to translate or resize the whole group without re-laying out the children.</p>
 <div class="highlight"><pre><span></span><code>{
   &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
   &quot;by&quot;:    &quot;voice_file&quot;,
@@ -290,59 +419,248 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Coordinate spaces</strong> (also embedded in <code>agent_meta.coordinate_spaces</code> returned by <code>/v1/video_data</code>):</p>
+<hr />
+<h2 id="branch-e-narrator-layout-rect">Branch (E) — Narrator layout rect</h2>
+<p>Free layout edit in legacy <strong>280×498 editor preview</strong> coords. Send the whole rect, or field-by-field.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    {
+      &quot;field_name&quot;: &quot;overlay.narrator.rect&quot;,
+      &quot;value&quot;: {
+        &quot;x&quot;: 35,
+        &quot;y&quot;: 124,
+        &quot;w&quot;: 210,
+        &quot;h&quot;: 374,
+        &quot;visible&quot;: true
+      }
+    }
+  ]
+}
+</code></pre></div>
+
+<p>You can also send <code>overlay.narrator.x</code>, <code>overlay.narrator.y</code>, <code>overlay.narrator.w</code>, <code>overlay.narrator.h</code> individually.</p>
+<p><strong>Important</strong>:</p>
+<ul>
+<li>The server preserves existing narrator metadata and the source-space <code>segment.narrator_face</code> — do NOT mutate <code>narrator_face</code> for layout edits. It's the source-space face box for the narrator media and only refreshes when narrator media is generated / recorded / uploaded.</li>
+<li><code>overlay.narrator.touched=true</code> is set by default so auto-fit doesn't overwrite the intentional placement.</li>
+<li><a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> returns the <strong>displayed</strong> face box converted through the current narrator rect (<code>boxes.narrator.face</code>) for layout collision checks.</li>
+<li>No media / audio / timeline / Remotion spec changes.</li>
+</ul>
+<p>Response: <code>narrator_layout_updated: true</code>, <code>message: "Narrator layout updated."</code>, plus the updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-f-caption-y-layout">Branch (F) — Caption Y layout</h2>
+<p>Vertical-only caption placement in 280×498 editor preview coords. Caption participates in scene layout as a vertical knob — nothing else.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;overlay.caption.y&quot;, &quot;value&quot;: 408 }
+  ]
+}
+</code></pre></div>
+
+<p>This edit updates ONLY <code>overlay.caption.y</code> plus <code>touched=true</code>. It does <strong>not</strong> change <code>x</code> / <code>w</code> / <code>h</code>, visibility, config / style, <code>segment.text</code>, <code>segment.words</code>, audio, duration, or Remotion specs. For combined layout changes, prefer <code>layout.batch</code> (G).</p>
+<p>Response: <code>caption_layout_updated: true</code>, <code>message: "Caption layout updated."</code>, plus the updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-g-layout-batch-one-persist-one-mqtt">Branch (G) — Layout batch (one persist, one MQTT)</h2>
+<p>Compose narrator + caption + Remotion object/group layout in a single atomic call. Either send the layout fields directly (the server detects 2+ layout families and routes through the batch path) <strong>or</strong> wrap them in <code>layout.batch</code>:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;overlay.narrator.rect&quot;, &quot;value&quot;: { &quot;x&quot;: 35, &quot;y&quot;: 124, &quot;w&quot;: 210, &quot;h&quot;: 374, &quot;visible&quot;: true } },
+    { &quot;field_name&quot;: &quot;overlay.caption.y&quot;, &quot;value&quot;: 408 },
+    {
+      &quot;field_name&quot;: &quot;remotion.object.rect&quot;,
+      &quot;value&quot;: { &quot;layout_id&quot;: &quot;main.one_by_one&quot;, &quot;x&quot;: 24, &quot;y&quot;: 200, &quot;coordinate_space&quot;: &quot;preview&quot; }
+    }
+  ]
+}
+</code></pre></div>
+
+<p>Or via the explicit envelope:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    {
+      &quot;field_name&quot;: &quot;layout.batch&quot;,
+      &quot;value&quot;: {
+        &quot;fields&quot;: [
+          { &quot;field_name&quot;: &quot;overlay.narrator.rect&quot;, &quot;value&quot;: { &quot;x&quot;: 35, &quot;y&quot;: 124, &quot;w&quot;: 210, &quot;h&quot;: 374 } },
+          { &quot;field_name&quot;: &quot;overlay.caption.y&quot;, &quot;value&quot;: 408 }
+        ]
+      }
+    }
+  ]
+}
+</code></pre></div>
+
+<p><strong>Semantics</strong>:</p>
+<ul>
+<li>Each child uses the same validator/apply helper as the single-edit branch (composition, not a parallel implementation).</li>
+<li>WideCast persists <code>generated_video_script</code> <strong>once</strong> and broadcasts <strong>one</strong> MQTT <code>scene_modified</code> event after all children succeed, so editors hot-update in a single frame.</li>
+<li><strong>Allowed children</strong>: <code>overlay.narrator.*</code>, <code>overlay.caption.y</code>, <code>remotion.object.rect</code>, <code>remotion.group.rect</code>.</li>
+<li><strong>Disallowed in batch</strong>: <code>mediaUrl</code>/<code>mediaType</code>, <code>voice.upload</code>, <code>narrator.upload_video</code>, <code>remotion.upload_overlay</code>, <code>roll.active</code>/<code>roll.switch</code>, <code>segment.text</code>, metadata fields — those have distinct validation/lifecycle.</li>
+</ul>
+<p>Response: <code>layout_batch_updated: true</code>, plus per-family flags (<code>narrator_layout_updated</code>, <code>caption_layout_updated</code>, <code>remotion_spec_updated</code>), the cache-busted <code>remotion_spec_url</code> / <code>remotion_poster_url</code>, and the updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-h-upload-voice-async">Branch (H) — Upload Voice (async)</h2>
+<p>User-supplied audio. <strong>Not Use-AI-Voice</strong> — the caller supplies the file, so no voice/model credit is spent.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;voice.upload&quot;, &quot;value&quot;: &quot;https://cdn.example.com/voice.mp3&quot; }
+  ]
+}
+</code></pre></div>
+
+<p><code>value</code> may also be <code>{ "url": "...", "filename": "voice.mp3", "content_type": "audio/mpeg" }</code>.</p>
+<p>The endpoint is <strong>asynchronous</strong> because WideCast must transcode/transcribe the audio. Response:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:     &quot;scene_voice_upload_queued&quot;,
+  &quot;id&quot;:         &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;scene_id&quot;:   3,
+  &quot;voice_file&quot;: &quot;XcR0k&quot;,
+  &quot;queue_id&quot;:   &quot;gs_widecast7c0d4f8a9b1e2d3f_XcR0k&quot;,
+  &quot;status&quot;:     &quot;queued&quot;,
+  &quot;media_type&quot;: &quot;audio&quot;,
+  &quot;applied&quot;:    { &quot;field_name&quot;: &quot;voice.upload&quot;, &quot;audio_url&quot;: &quot;...&quot;, &quot;queue_id&quot;: &quot;...&quot;, &quot;bytes&quot;: 12345, &quot;extension&quot;: &quot;mp3&quot;, &quot;cost&quot;: &quot;free_user_supplied_audio&quot;, &quot;async&quot;: true },
+  &quot;segment&quot;:    { /* snapshot at queue time */ }
+}
+</code></pre></div>
+
+<p>When the transcoder finishes, the server applies <code>words</code>, <code>text</code>, <code>duration</code>, following-scene timeline shifts, inactive caption-language timelines, <code>narrator_face</code> / chroma key, and <code>recorded=true</code> to <code>generated_video_script</code> and emits MQTT <code>event="scene_voice_upload_applied"</code> with the updated segment. <strong>Verify with <a href="video-data.md"><code>/v1/video_data</code></a> after completion.</strong></p>
+<hr />
+<h2 id="branch-i-upload-narrator-video-async">Branch (I) — Upload Narrator Video (async)</h2>
+<p>User-supplied A-roll narrator video. Reuses the same single-scene A-roll upload pipeline as the editor's Upload button.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;narrator.upload_video&quot;, &quot;value&quot;: &quot;https://cdn.example.com/narrator.mp4&quot; }
+  ]
+}
+</code></pre></div>
+
+<p>If the target scene is currently B-roll, the server preserves the previous <code>mediaUrl</code> / <code>thumbnailUrl</code> as <code>brollUrl</code> / <code>brollThumbnailUrl</code>, processes the new video as A-roll, then applies the same server roll-switch helper as <code>roll.active="A"</code> on completion.</p>
+<p>Response shape: <code>object: "scene_narrator_upload_queued"</code>, same <code>queue_id</code> family; completion emits MQTT <code>event="scene_narrator_upload_applied"</code>.</p>
+<hr />
+<h2 id="branch-j-ab-roll-switch-sync-data-switch">Branch (J) — A/B-roll switch (sync data switch)</h2>
+<p>Free synchronous data switch — no upload, transcode, or generation. Preserves both lanes (<code>arollUrl</code>/<code>brollUrl</code>) and swaps active runtime fields.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;roll.active&quot;, &quot;value&quot;: &quot;A&quot; }
+  ]
+}
+</code></pre></div>
+
+<p>Values: <code>"A"</code> (show/use narrator A-roll) or <code>"B"</code> (hide narrator/use B-roll). Or use <code>{ "field_name": "roll.switch", "value": "toggle" }</code> to flip the current state.</p>
+<p>The server mirrors the editor's Show/Hide Narrator data path — A→B protects the A-roll file family by renaming <code>{voice_file}.mp4</code> / <code>thumb_{voice_file}.jpg</code> to <code>_switched</code> when those files exist; B→A may ensure the preserved B-roll exists locally.</p>
+<p>Response: <code>roll_switched: true</code>, <code>active_roll: "A"|"B"</code>, <code>show_narrator: bool</code>, <code>media_type</code>, plus the updated <code>segment</code>.</p>
+<hr />
+<h2 id="branch-k-segment-text-correction">Branch (K) — Segment text correction</h2>
+<p>Free, synchronous, distinct from Upload Voice. Updates <code>segment.text</code> and rebuilds <code>segment.words</code> over existing audio timings — does NOT change audio, duration, or following-scene timelines.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;segment.text&quot;, &quot;value&quot;: &quot;Meta spent 14.3 billion to acquire Scale AI.&quot; }
+  ]
+}
+</code></pre></div>
+
+<p><code>value</code> may also be <code>{ "text": "..." }</code>. The server also syncs the current caption-language entry in <code>video_script.captions</code> by <code>voice_file</code>.</p>
+<hr />
+<h2 id="branch-l-scene-metadata">Branch (L) — Scene metadata</h2>
+<p>Update one or more scene planning fields from the same family. Validated:</p>
 <table>
 <thead>
 <tr>
-<th>Space</th>
-<th>Width × Height</th>
-<th>Used by</th>
+<th>Field</th>
+<th>Allowed values</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Remotion canvas</td>
-<td>720 × 1280</td>
-<td><code>remotion.*</code> fields, the per-scene spec file</td>
+<td><code>pattern</code></td>
+<td><code>single_metric</code>, <code>bar_chart</code>, <code>proportion_chart</code>, <code>trend_chart</code>, <code>structural_diagram</code>, <code>illustration</code>, <code>hybrid_vertical</code>, <code>typography_only</code>, <code>map_chart</code>, <code>comparison_table</code>, <code>timeline_events</code>, <code>checklist_tips</code>, <code>quote_card</code>, <code>narration_only</code>, <code>real_entity</code></td>
 </tr>
 <tr>
-<td>Legacy editor preview</td>
-<td>280 × 498</td>
-<td><code>overlay.caption</code>, <code>overlay.narrator</code></td>
+<td><code>type</code></td>
+<td><code>HOOK</code>, <code>STAT</code>, <code>KEY POINT</code>, <code>DATA</code>, <code>FACT</code>, <code>CALL TO ACTION</code></td>
+</tr>
+<tr>
+<td><code>sub_mode</code> (only with <code>pattern="illustration"</code>)</td>
+<td><code>photo_with_people</code>, <code>photo_no_people</code>, <code>document</code>, <code>digital_ui</code></td>
+</tr>
+<tr>
+<td><code>visual</code>, <code>keyword</code>, <code>quote</code>, <code>talking_point</code></td>
+<td>free text</td>
 </tr>
 </tbody>
 </table>
-<p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus an <code>applied</code> object describing the group rect change.</p>
+<p>Auto-clears: <code>pattern="narration_only"</code> clears <code>quote</code> + <code>visual</code>; <code>pattern="typography_only"</code> clears <code>visual</code>.</p>
+<p><code>segment.&lt;name&gt;</code> / <code>scene.&lt;name&gt;</code> namespaced forms are accepted (e.g. <code>segment.pattern</code>). Metadata edits sync to the current caption-language segment by <code>voice_file</code>. No audio / words / duration / media / spec changes.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;pattern&quot;, &quot;value&quot;: &quot;typography_only&quot; },
+    { &quot;field_name&quot;: &quot;quote&quot;,   &quot;value&quot;: &quot;Short headline that lands&quot; }
+  ]
+}
+</code></pre></div>
+
 <hr />
 <h2 id="responses">Responses</h2>
-<h3 id="200-ok-scene_modified"><code>200 OK</code> — <code>scene_modified</code></h3>
+<h3 id="200-ok-scene_modified-sync-branches"><code>200 OK</code> — <code>scene_modified</code> (sync branches)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:     &quot;scene_modified&quot;,
   &quot;id&quot;:         &quot;widecast7c0d4f8a9b1e2d3f&quot;,
   &quot;scene_id&quot;:   3,
   &quot;voice_file&quot;: &quot;XcR0k&quot;,
   &quot;score&quot;:      1.0,
-  &quot;applied&quot;:    { &quot;cost&quot;: 0, &quot;uploaded_overlay_url&quot;: &quot;https://...&quot; },
+  &quot;applied&quot;:    { /* family-specific details */ },
   &quot;segment&quot;:    { /* full updated segment */ },
-  &quot;remotion_spec_updated&quot;:   true,
-  &quot;remotion_spec_file&quot;:      &quot;XcR0k_spec.json&quot;,
-  &quot;remotion_spec_url&quot;:       &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_spec.json?v=1748293012&quot;,
-  &quot;remotion_spec_version&quot;:   &quot;1748293012&quot;,
-  &quot;remotion_spec_state&quot;:     &quot;ready&quot;,
-  &quot;remotion_spec_exists&quot;:    true
+
+  &quot;layout_batch_updated&quot;:     true,
+  &quot;narrator_layout_updated&quot;:  true,
+  &quot;caption_layout_updated&quot;:   true,
+  &quot;remotion_object_updated&quot;:  true,
+  &quot;remotion_spec_updated&quot;:    true,
+  &quot;remotion_spec_file&quot;:       &quot;XcR0k_spec.json&quot;,
+  &quot;remotion_spec_url&quot;:        &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_spec.json?v=1748293012&quot;,
+  &quot;remotion_spec_version&quot;:    &quot;1748293012&quot;,
+  &quot;remotion_spec_state&quot;:      &quot;ready&quot;,
+  &quot;remotion_spec_exists&quot;:     true,
+  &quot;remotion_poster_file&quot;:     &quot;XcR0k_overlay_poster.png&quot;,
+  &quot;remotion_poster_url&quot;:      &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_overlay_poster.png?v=1748293012&quot;,
+  &quot;remotion_poster_version&quot;:  &quot;1748293012&quot;,
+  &quot;remotion_poster_state&quot;:    &quot;ready&quot;,
+  &quot;remotion_poster_exists&quot;:   true,
+  &quot;remotion_poster_warnings&quot;: []
 }
 </code></pre></div>
 
-<ul>
-<li><code>scene_id</code> — current <code>segment.id</code> (display/order). For tracking the same scene across edits use <code>voice_file</code>.</li>
-<li><code>score</code> — <code>1.0</code> for <code>by="id"</code>/<code>by="voice_file"</code>; the fuzzy score for <code>by="text"</code>.</li>
-<li><code>applied</code> — older media-only responses carried a string (<code>"media"</code>); current responses carry an object describing the family-specific change.</li>
-<li><code>media_type</code>, <code>media_url</code> — set only on the background-media branch.</li>
-<li><code>remotion_spec_*</code> — set on Upload Overlay and group rect branches.</li>
-</ul>
-<p>Successful edits publish MQTT realtime to every open editor; the change is visible immediately. Call <a href="export-video.md"><code>/v1/export_video</code></a> again only when the user wants a fresh final MP4.</p>
+<p>Fields not relevant to the branch are omitted. <code>score</code> is <code>1.0</code> for <code>by="id"</code>/<code>by="voice_file"</code>; the fuzzy score for <code>by="text"</code>. Branches (A) also carry <code>media_type</code> / <code>media_url</code>; (B) also carries <code>uploaded_overlay_url</code> + <code>cost: 0</code>; (J) also carries <code>roll_switched</code> / <code>active_roll</code> / <code>show_narrator</code>.</p>
+<h3 id="200-ok-scene_voice_upload_queued-scene_narrator_upload_queued-async-branches"><code>200 OK</code> — <code>scene_voice_upload_queued</code> / <code>scene_narrator_upload_queued</code> (async branches)</h3>
+<p>Shown above for branch (H). The edit is <strong>not yet visible</strong> — wait for MQTT <code>scene_voice_upload_applied</code> / <code>scene_narrator_upload_applied</code>, then call <a href="video-data.md"><code>/v1/video_data</code></a> to verify.</p>
 <h3 id="200-ok-clarification-ambiguous-bytext"><code>200 OK</code> — <code>clarification</code> (ambiguous <code>by="text"</code>)</h3>
-<p>When two or more scenes match the supplied text closely enough that picking one would be a guess, the server returns a clarification — <strong>no edit is applied</strong>.</p>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:      &quot;clarification&quot;,
   &quot;needs_input&quot;: &quot;value&quot;,
@@ -354,16 +672,20 @@
 }
 </code></pre></div>
 
-<p>Show the <code>text</code> previews to the user, get a pick, retry with <code>by="voice_file"</code>.</p>
+<p>No edit was applied. Show the <code>text</code> previews to the user, get a pick, retry with <code>by="voice_file"</code>.</p>
 <h3 id="404-not-found"><code>404 Not Found</code></h3>
 <ul>
 <li><code>video_not_found</code> — no video with this id on the account.</li>
-<li><code>scene_not_found</code> — the id / voice_file / text didn't match any scene (with the configured <code>min_score</code> floor).</li>
+<li><code>scene_not_found</code> — id / voice_file / text didn't match any scene (with the configured <code>min_score</code> floor).</li>
+<li><code>remotion_spec_not_found</code> — branch (C) requested but <code>{voice_file}_spec.json</code> is missing.</li>
 </ul>
 <h3 id="409-precondition-failed"><code>409 Precondition Failed</code></h3>
 <ul>
 <li><code>scenes_not_ready</code> — the video hasn't reached <code>scenes_ready_for_review</code>. Poll <code>/v1/status/{id}</code> first.</li>
-<li><code>invalid_script</code> — the stored scene script is malformed; the video cannot be edited via this endpoint.</li>
+<li><code>invalid_script</code> — the stored scene script is malformed.</li>
+<li><code>remotion_spec_disabled</code> — branch (C)/(D) requested but <code>segment.remotion_spec="none"</code>. Do NOT auto-enable.</li>
+<li><code>remotion_spec_parse_failed</code> / <code>remotion_spec_invalid</code> — spec file present but unreadable.</li>
+<li><code>missing_voice_file</code> — branch (C) but the scene has no <code>voice_file</code>.</li>
 </ul>
 <h3 id="400-bad-request"><code>400 Bad Request</code></h3>
 <ul>
@@ -372,33 +694,49 @@
 <li><code>invalid_id</code> — <code>id</code> doesn't match an accepted topic id.</li>
 <li><code>invalid_by</code> — <code>by</code> is not one of <code>voice_file</code> / <code>id</code> / <code>text</code>.</li>
 <li><code>invalid_field_entry</code> — an entry in <code>fields</code> is not <code>{ field_name, value }</code>.</li>
-<li><code>unsupported_field</code> — <code>field_name</code> not in the supported set (<code>mediaUrl</code>, <code>mediaType</code>, <code>remotion.upload_overlay</code>, <code>remotion.group.rect</code>).</li>
-<li><code>invalid_media_url</code> — <code>mediaUrl</code> / <code>remotion.upload_overlay</code> value is not an http(s) URL the server can reach.</li>
-<li><code>object_level_edit_disabled</code> — <code>remotion.object.rect</code> requested; child-object edits break the computed layout. Use <code>remotion.group.rect</code> instead.</li>
-<li><code>remotion_spec_disabled</code> — the scene has <code>remotion_spec="none"</code>; do not auto-enable. Use Upload Overlay only if the user explicitly asks.</li>
+<li><code>unsupported_field</code> — <code>field_name</code> not in the supported set.</li>
+<li><code>invalid_media_url</code> — branch (A) / (B) / (H) / (I) URL is not http(s) the server can reach.</li>
+<li><code>mixed_remotion_fields</code> — multiple non-layout Remotion fields mixed; only layout fields compose via <code>layout.batch</code>.</li>
+<li><code>missing_remotion_object_rect</code> — branch (C) but no <code>remotion.object.rect</code> entry.</li>
+<li><code>object_level_edit_disabled</code> — <em>(legacy; no longer returned by current builds — branch (C) is enabled)</em>. Older clients may still surface it from cached docs.</li>
+</ul>
+<h3 id="500-502"><code>500 / 502</code></h3>
+<ul>
+<li><code>modify_failed</code>, <code>persist_failed</code>, <code>voice_upload_queue_failed</code>, <code>narrator_video_upload_queue_failed</code> — surface <code>request_id</code> and retry.</li>
 </ul>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
-<h3 id="python-upload-overlay">Python — Upload Overlay</h3>
+<h3 id="python-data-first-audit-object-layer-rect-via-layoutbatch">Python — data-first audit → object-layer rect via <code>layout.batch</code></h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
 
-<span class="c1"># 1) Data-first audit.</span>
+<span class="c1"># 1) Read scenes</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">)</span>
 <span class="n">target</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;Scale AI&quot;</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
 
-<span class="c1"># 2) Drop in a portrait 720x1280 transparent PNG.</span>
+<span class="c1"># 2) Read geometry (no screenshots, cheap)</span>
+<span class="n">geom</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_geometry</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">voice_file</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">])</span>
+<span class="n">oneby</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">o</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">geom</span><span class="p">[</span><span class="s2">&quot;boxes&quot;</span><span class="p">][</span><span class="s2">&quot;remotion&quot;</span><span class="p">][</span><span class="s2">&quot;object_layer&quot;</span><span class="p">][</span><span class="s2">&quot;objects&quot;</span><span class="p">]</span>
+             <span class="k">if</span> <span class="n">o</span><span class="p">[</span><span class="s2">&quot;layout_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.one_by_one&quot;</span><span class="p">))</span>
+
+<span class="c1"># 3) Move the overlay and the narrator+caption in ONE call</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">modify_scene</span><span class="p">(</span>
-    <span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
     <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">],</span>
-    <span class="n">fields</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;remotion.upload_overlay&quot;</span><span class="p">,</span>
-             <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;https://cdn.example.com/overlay-720x1280.png&quot;</span><span class="p">}],</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;overlay.narrator.rect&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">35</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">124</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">210</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="mi">374</span><span class="p">,</span> <span class="s2">&quot;visible&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+        <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;overlay.caption.y&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">408</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;remotion.object.rect&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;layout_id&quot;</span><span class="p">:</span> <span class="n">oneby</span><span class="p">[</span><span class="s2">&quot;layout_id&quot;</span><span class="p">],</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+                   <span class="s2">&quot;coordinate_space&quot;</span><span class="p">:</span> <span class="s2">&quot;preview&quot;</span><span class="p">}},</span>
+    <span class="p">],</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new spec:&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;remotion_spec_url&quot;</span><span class="p">])</span>
 </code></pre></div>
 
-<h3 id="typescript-group-rect-move">TypeScript — group rect move</h3>
+<h3 id="typescript-upload-narrator-video-async">TypeScript — upload narrator video (async)</h3>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
@@ -406,27 +744,22 @@
 <span class="kd">const</span><span class="w"> </span><span class="nx">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="o">/</span><span class="nx">Scale</span><span class="w"> </span><span class="nx">AI</span><span class="o">/</span><span class="nx">i</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">text</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">))</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">modify_scene</span><span class="p">({</span>
-<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w">    </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">by</span><span class="o">:</span><span class="w">    </span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="kt">data.id</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">by</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">target.voice_file</span><span class="p">,</span>
 <span class="w">  </span><span class="nx">fields</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nx">field_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;remotion.group.rect&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">element_id</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nx">y</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="mf">120</span><span class="p">,</span><span class="w">                 </span><span class="c1">// canvas coords; negative is allowed</span>
-<span class="w">        </span><span class="nx">coordinate_space</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;canvas&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="p">},</span>
-<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">field_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;narrator.upload_video&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://cdn.example.com/narrator.mp4&quot;</span><span class="w"> </span><span class="p">},</span>
 <span class="w">  </span><span class="p">],</span>
 <span class="p">});</span>
 
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">object</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;scene_modified&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;spec ready:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">remotion_spec_url</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">object</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;scene_narrator_upload_queued&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;queued:&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">queue_id</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Wait for MQTT &quot;scene_narrator_upload_applied&quot;, then call video_data.</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<h3 id="manual-curl-background-media-swap">Manual (curl) — Background media swap</h3>
+<h3 id="manual-curl-caption-y-only">Manual (curl) — caption Y only</h3>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/modify_scene&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -435,7 +768,7 @@
 <span class="s1">        &quot;by&quot;:    &quot;voice_file&quot;,</span>
 <span class="s1">        &quot;value&quot;: &quot;XcR0k&quot;,</span>
 <span class="s1">        &quot;fields&quot;: [</span>
-<span class="s1">          { &quot;field_name&quot;: &quot;mediaUrl&quot;,  &quot;value&quot;: &quot;https://cdn.example.com/coast-sunset.jpg&quot; }</span>
+<span class="s1">          { &quot;field_name&quot;: &quot;overlay.caption.y&quot;, &quot;value&quot;: 408 }</span>
 <span class="s1">        ]</span>
 <span class="s1">      }&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
 </code></pre></div>
@@ -445,10 +778,11 @@
 <ul>
 <li><strong>Free</strong> — <code>/v1/modify_scene</code> does not consume credits. The expensive work (re-rendering the final MP4) only runs when you call <a href="export-video.md"><code>/v1/export_video</code></a> again.</li>
 <li><strong>Order matters when re-rendering</strong>: apply all edits first, then call <code>/v1/export_video</code> once. Edits made after <code>/v1/export_video</code> won't appear in the already-queued render.</li>
+<li><strong>Async branches</strong> (H, I) settle later — wait for MQTT or re-verify with <a href="video-data.md"><code>/v1/video_data</code></a> before re-rendering.</li>
 </ul>
 <hr />
 <h2 id="when-to-use-bytext">When to use <code>by="text"</code></h2>
-<p>Prefer <code>by="voice_file"</code> whenever you have it from a previous <code>/v1/video_data</code> / <code>/v1/status</code> call — exact matches never fail. Use <code>by="text"</code> only when the user names a scene by what's said in it ("change the picture on the scene about Meta and Scale AI"). The endpoint is ambiguity-safe — it returns a clarification rather than guess — but the round-trip costs a call. When the user paraphrases, lower <code>min_score</code> cautiously to <code>0.4</code>–<code>0.45</code>; do not raise past <code>0.9</code>.</p>
+<p>Prefer <code>by="voice_file"</code> whenever you have it from a previous <a href="video-data.md"><code>/v1/video_data</code></a> / <code>/v1/status</code> call. Use <code>by="text"</code> only when the user names a scene by what's said in it ("change the picture on the scene about Meta and Scale AI"). The endpoint is ambiguity-safe — it returns a clarification rather than guess. When the user paraphrases, lower <code>min_score</code> cautiously to <code>0.4</code>–<code>0.45</code>; do not raise past <code>0.9</code>.</p>
     </article>
   </main>
 

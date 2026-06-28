@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  invalid_media_url | modify_failed | persist_failed |\n  script_not_ready | script_parse_failed | unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error | server_fallback`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -362,8 +362,8 @@
           "Videos"
         ],
         "operationId": "modifyScene",
-        "summary": "Edit ONE scene (media swap / overlay upload / group layout). Free.",
-        "description": "Edit ONE scene (media swap / overlay upload / group layout). Free.",
+        "summary": "Edit ONE scene (media / overlay / layout / audio / text / metadata). Free.",
+        "description": "Edit ONE scene (media / overlay / layout / audio / text / metadata). Free.",
         "requestBody": {
           "required": true,
           "content": {
@@ -441,7 +441,7 @@
                   }
                 },
                 "group_rect_scale": {
-                  "summary": "(C) Resize the group + scale children (default resize_mode)",
+                  "summary": "(D) Resize the group + scale children (default resize_mode)",
                   "value": {
                     "id": "widecast7c0d4f8a9b1e2d3f",
                     "by": "voice_file",
@@ -461,6 +461,219 @@
                       }
                     ]
                   }
+                },
+                "object_rect_one_by_one": {
+                  "summary": "(C) Object-layer rect — preferred overlay layout (one_by_one)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "remotion.object.rect",
+                        "value": {
+                          "layout_id": "main.one_by_one",
+                          "x": 24,
+                          "y": 140,
+                          "w": 232,
+                          "h": 42,
+                          "coordinate_space": "preview"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "object_rect_single_object": {
+                  "summary": "(C) Object-layer rect — move a single overlay text object",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "remotion.object.rect",
+                        "value": {
+                          "layout_id": "main.obj_03_text",
+                          "x": 24,
+                          "y": 160,
+                          "w": 232,
+                          "h": 42,
+                          "coordinate_space": "preview"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "narrator_rect": {
+                  "summary": "(E) Narrator layout rect — legacy 280×498 preview coords",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "overlay.narrator.rect",
+                        "value": {
+                          "x": 35,
+                          "y": 124,
+                          "w": 210,
+                          "h": 374,
+                          "visible": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "caption_y": {
+                  "summary": "(F) Caption vertical placement — only Y; nothing else changes",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "overlay.caption.y",
+                        "value": 408
+                      }
+                    ]
+                  }
+                },
+                "layout_batch_inline": {
+                  "summary": "(G) Layout batch via multiple layout fields directly",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "overlay.narrator.rect",
+                        "value": {
+                          "x": 35,
+                          "y": 124,
+                          "w": 210,
+                          "h": 374,
+                          "visible": true
+                        }
+                      },
+                      {
+                        "field_name": "overlay.caption.y",
+                        "value": 408
+                      },
+                      {
+                        "field_name": "remotion.object.rect",
+                        "value": {
+                          "layout_id": "main.one_by_one",
+                          "x": 24,
+                          "y": 200,
+                          "coordinate_space": "preview"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "layout_batch_wrapped": {
+                  "summary": "(G) Layout batch via the `layout.batch` envelope",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "layout.batch",
+                        "value": {
+                          "fields": [
+                            {
+                              "field_name": "overlay.narrator.rect",
+                              "value": {
+                                "x": 35,
+                                "y": 124,
+                                "w": 210,
+                                "h": 374
+                              }
+                            },
+                            {
+                              "field_name": "overlay.caption.y",
+                              "value": 408
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "voice_upload": {
+                  "summary": "(H) Upload user-supplied voice audio (async; queued)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "voice.upload",
+                        "value": "https://cdn.example.com/voice.mp3"
+                      }
+                    ]
+                  }
+                },
+                "narrator_video_upload": {
+                  "summary": "(I) Upload user-supplied narrator video (async; queued)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "narrator.upload_video",
+                        "value": "https://cdn.example.com/narrator.mp4"
+                      }
+                    ]
+                  }
+                },
+                "roll_switch": {
+                  "summary": "(J) Switch the scene to A-roll (narrator on)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "roll.active",
+                        "value": "A"
+                      }
+                    ]
+                  }
+                },
+                "segment_text": {
+                  "summary": "(K) Correct narration text while keeping audio timing",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "segment.text",
+                        "value": "Meta spent 14.3 billion to acquire Scale AI."
+                      }
+                    ]
+                  }
+                },
+                "scene_metadata": {
+                  "summary": "(L) Update scene planning metadata (validated)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "voice_file",
+                    "value": "XcR0k",
+                    "fields": [
+                      {
+                        "field_name": "pattern",
+                        "value": "typography_only"
+                      },
+                      {
+                        "field_name": "quote",
+                        "value": "Short headline that lands"
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -468,7 +681,7 @@
         },
         "responses": {
           "200": {
-            "description": "On success → `SceneModifiedResponse`. On ambiguous text match →\n`ClarificationResponse` with `candidates` (no edit applied, ask\nthe user to pick a `voice_file` and call again).\n",
+            "description": "On synchronous success → `SceneModifiedResponse`. On async upload\nbranches (`voice.upload`, `narrator.upload_video`) →\n`SceneUploadQueuedResponse` with `queue_id`. On ambiguous text\nmatch → `ClarificationResponse` with `candidates` (no edit\napplied, ask the user to pick a `voice_file` and call again).\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -492,6 +705,97 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/SceneModifiedResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SceneUploadQueuedResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ClarificationResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/scene_geometry": {
+      "post": {
+        "tags": [
+          "Videos"
+        ],
+        "operationId": "sceneGeometry",
+        "summary": "Data-only scene layout geometry (cheap, no screenshot). Free.",
+        "description": "Data-only scene layout geometry (cheap, no screenshot). Free.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneGeometryRequest"
+              },
+              "examples": {
+                "by_voice_file": {
+                  "summary": "Audit a scene by voice_file (preferred)",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "voice_file": "XcR0k"
+                  }
+                },
+                "by_text": {
+                  "summary": "Audit a scene by fuzzy narration text",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "by": "text",
+                    "value": "Meta spent 14.3 billion to acquire Scale AI"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene geometry — boxes + violations + warnings in 280×498\npreview coords. On ambiguous text match → `ClarificationResponse`.\n",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SceneGeometryResponse"
                     },
                     {
                       "$ref": "#/components/schemas/ClarificationResponse"
@@ -1304,8 +1608,8 @@
           "Videos"
         ],
         "operationId": "sceneInspector",
-        "summary": "Live browser inspector for an open scene editor (data-first FIRST).",
-        "description": "Live browser inspector for an open scene editor (data-first FIRST).",
+        "summary": "Live browser inspector — expensive last-resort, use AFTER scene_geometry.",
+        "description": "Live browser inspector — expensive last-resort, use AFTER scene_geometry.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2567,7 +2871,7 @@
           "fields": {
             "type": "array",
             "minItems": 1,
-            "description": "Edits to apply. Pick exactly **one family** per call — do not\nmix media, upload overlay, and group rect fields.\n\n**(A) Background media swap** — `mediaUrl` (+ optional\n`mediaType`). Roll-aware: B-roll scenes update\n`mediaUrl`/`brollUrl`; A-roll scenes register as\n`brollUrl`/`user_asset_url` without disturbing the narrator.\n\n**(B) Upload Overlay** — `remotion.upload_overlay`. Send ONE\nfield; `value` is either a string URL or `{url: \"...\"}`. Free,\nagent-supplied image → Remotion spec (NOT Regenerate Overlay\nwhich is paid). Prefer portrait 9:16 transparent PNG (720×1280)\nfor object decomposition.\n\n**(C) Remotion Storyboard group rect** — `remotion.group.rect`.\nSend ONE field; `value` = `{element_id?, x?, y?, w?, h?,\ncoordinate_space: \"canvas\"|\"preview\",\nresize_mode?: \"scale_children\"|\"wrapper_only\"}`. Free layout\nedit. `remotion.object.rect` is disabled (returns 400\n`object_level_edit_disabled`).\n",
+            "description": "Edits to apply. Pick exactly **one family** per call. The only\nintentional multi-family call is `layout.batch`, which composes\nlayout-only children.\n\n**(A) Background media swap** — `mediaUrl` (+ optional\n`mediaType`). Roll-aware.\n\n**(B) Upload Overlay** — `remotion.upload_overlay`. Free, agent-\nsupplied image → Remotion spec (NOT Regenerate, which is paid).\n\n**(C) Remotion object-layer rect** (PREFERRED overlay layout) —\n`remotion.object.rect`. Read `boxes.remotion.object_layer.objects`\nfrom `/v1/scene_geometry` first; pass back `{layout_id, x?, y?,\nw?, h?, coordinate_space:\"preview\"|\"canvas\"}`. Server maps the\nrect onto raw Storyboard objects while keeping the group wrapper\nunchanged. For `one_by_one`, scene_geometry exposes ONE logical\n`*.one_by_one` rect that transforms all timed sequence items\ntogether.\n\n**(D) Remotion group rect** — `remotion.group.rect` (low-level\nwrapper edit; prefer (C) for visible overlay layout).\n`{element_id?, x?, y?, w?, h?, coordinate_space, resize_mode?}`.\n\n**(E) Narrator layout rect** — `overlay.narrator.rect` (or\nfield-by-field `overlay.narrator.x|y|w|h`) in 280×498 preview\ncoords. Preserves narrator metadata + source-space\n`segment.narrator_face`.\n\n**(F) Caption Y layout** — `overlay.caption.y` (number) in\n280×498 preview coords. Only Y; no text / x / w / h / style.\n\n**(G) Layout batch** — `layout.batch` with\n`value:{fields:[...]}` OR multiple layout fields directly.\nAllowed children: `overlay.narrator.*`, `overlay.caption.y`,\n`remotion.object.rect`, `remotion.group.rect`.\n\n**(H) Upload voice** — `voice.upload` (URL string or `{url,\nfilename?, content_type?}`); async; queued.\n\n**(I) Upload narrator video** — `narrator.upload_video` (URL\nstring or `{url, filename?, content_type?}`); async; queued.\n\n**(J) Roll switch** — `roll.active` (`\"A\"|\"B\"`) or\n`roll.switch` (`\"toggle\"`); sync data switch.\n\n**(K) Segment text** — `segment.text` (string or `{text}`);\nsync, rebuilds word timings from existing audio.\n\n**(L) Scene metadata** — pick from `pattern`, `visual`,\n`keyword`, `quote`, `talking_point`, `type`, `sub_mode` (or\n`segment.<name>`/`scene.<name>` forms). `pattern`/`type` are\nvalidated against ai_segment_text allow-lists.\n",
             "items": {
               "type": "object",
               "required": [
@@ -2581,12 +2885,32 @@
                     "mediaUrl",
                     "mediaType",
                     "remotion.upload_overlay",
-                    "remotion.group.rect"
+                    "remotion.object.rect",
+                    "remotion.group.rect",
+                    "overlay.narrator.rect",
+                    "overlay.narrator.x",
+                    "overlay.narrator.y",
+                    "overlay.narrator.w",
+                    "overlay.narrator.h",
+                    "overlay.caption.y",
+                    "layout.batch",
+                    "voice.upload",
+                    "narrator.upload_video",
+                    "roll.active",
+                    "roll.switch",
+                    "segment.text",
+                    "pattern",
+                    "visual",
+                    "keyword",
+                    "quote",
+                    "talking_point",
+                    "type",
+                    "sub_mode"
                   ],
-                  "example": "mediaUrl"
+                  "example": "remotion.object.rect"
                 },
                 "value": {
-                  "description": "Family-dependent. URL string for `mediaUrl` /\n`remotion.upload_overlay`. `\"image\"` or `\"video\"` for\n`mediaType`. Object `{element_id?, x?, y?, w?, h?,\ncoordinate_space, resize_mode?}` for `remotion.group.rect`.\n"
+                  "description": "Family-dependent. URL string for `mediaUrl` /\n`remotion.upload_overlay` / `voice.upload` /\n`narrator.upload_video`. `\"image\"`|`\"video\"` for\n`mediaType`. Object `{layout_id, x?, y?, w?, h?,\ncoordinate_space}` for `remotion.object.rect`. Object\n`{element_id?, x?, y?, w?, h?, coordinate_space,\nresize_mode?}` for `remotion.group.rect`. Object\n`{x, y, w, h, visible?, animation?, borderRadius?}` for\n`overlay.narrator.rect`. Number for individual narrator\naxes and `overlay.caption.y`. Object `{fields:[...]}`\nfor `layout.batch`. `\"A\"`|`\"B\"` for `roll.active`,\n`\"toggle\"` for `roll.switch`. String for `segment.text`\nand metadata fields.\n"
                 }
               }
             }
@@ -2743,6 +3067,489 @@
           "cost": {
             "type": "number",
             "description": "Set on the Upload Overlay branch — always 0 (free path)."
+          },
+          "layout_batch_updated": {
+            "type": "boolean",
+            "description": "True when the call ran the `layout.batch` composer."
+          },
+          "narrator_layout_updated": {
+            "type": "boolean",
+            "description": "True when a narrator rect / axis edit was applied (single-field or as a layout.batch child)."
+          },
+          "caption_layout_updated": {
+            "type": "boolean",
+            "description": "True when an `overlay.caption.y` edit was applied (single-field or as a layout.batch child)."
+          },
+          "remotion_object_updated": {
+            "type": "boolean",
+            "description": "True when `remotion.object.rect` was applied (single-field or as a layout.batch child)."
+          },
+          "remotion_poster_file": {
+            "type": "string",
+            "description": "Canonical `{voice_file}_overlay_poster.png` — derived static overlay poster used by server-side scene_inspector screenshot fallback."
+          },
+          "remotion_poster_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Cache-busted public poster URL (`?v=<mtime>`); empty when state ≠ ready."
+          },
+          "remotion_poster_version": {
+            "type": "string"
+          },
+          "remotion_poster_state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "missing",
+              "disabled"
+            ]
+          },
+          "remotion_poster_exists": {
+            "type": "boolean"
+          },
+          "remotion_poster_warnings": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Warnings emitted while rendering the static overlay poster (e.g. missing assets)."
+          },
+          "roll_switched": {
+            "type": "boolean",
+            "description": "True on the A/B-roll branch."
+          },
+          "active_roll": {
+            "type": "string",
+            "description": "Set on the A/B-roll branch — the new active roll (`\"A\"` or `\"B\"`)."
+          },
+          "show_narrator": {
+            "type": "boolean",
+            "description": "Set on the A/B-roll branch — whether the narrator is shown after the switch."
+          },
+          "message": {
+            "type": "string",
+            "description": "Short human-readable status (e.g. `\"Scene layout updated.\"`)."
+          }
+        }
+      },
+      "SceneUploadQueuedResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "id",
+          "queue_id",
+          "status"
+        ],
+        "description": "Async queued response for the `voice.upload` and\n`narrator.upload_video` branches of `/v1/modify_scene`. The edit is\nnot yet visible — wait for MQTT\n`scene_voice_upload_applied` /\n`scene_narrator_upload_applied`, then call `/v1/video_data` to\nverify.\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": [
+              "scene_voice_upload_queued",
+              "scene_narrator_upload_queued"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "topic_id": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "scene_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "voice_file": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "queue_id": {
+            "type": "string",
+            "description": "e.g. `gs_{topic_id}_{voice_file}` — share with the worker via MQTT."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued"
+            ]
+          },
+          "media_type": {
+            "type": "string",
+            "enum": [
+              "audio",
+              "video"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "applied": {
+            "type": "object",
+            "properties": {
+              "field_name": {
+                "type": "string",
+                "enum": [
+                  "voice.upload",
+                  "narrator.upload_video"
+                ]
+              },
+              "audio_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "video_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "queue_id": {
+                "type": "string"
+              },
+              "bytes": {
+                "type": "integer"
+              },
+              "extension": {
+                "type": "string"
+              },
+              "cost": {
+                "type": "string"
+              },
+              "async": {
+                "type": "boolean",
+                "const": true
+              }
+            }
+          },
+          "segment": {
+            "type": "object",
+            "description": "Snapshot of the resolved segment at queue time."
+          }
+        }
+      },
+      "SceneGeometryRequest": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "description": "Body for POST /v1/scene_geometry. Provide exactly one of:\n  - `voice_file` (preferred shortcut),\n  - `scene_id` (display/order; fallback),\n  - or `by` + `value`.\nWhen neither shortcut is set and `by` is omitted, the request is\nrejected with `invalid_by`.\n",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Topic id from `/v1/video_data` / `/v1/create_video`. Accepts\n`widecast...`, `gubo...`, or current ids.\n",
+            "example": "widecast7c0d4f8a9b1e2d3f"
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "voice_file",
+              "text"
+            ],
+            "description": "How to pick the scene. Prefer `voice_file`. Use `text` only\nwhen the user names a scene by narration; multi-match returns\na `ClarificationResponse`.\n"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "The id / voice_file / narration snippet to inspect."
+          },
+          "voice_file": {
+            "type": "string",
+            "description": "Stable per-scene UID — preferred shortcut (server folds into `by=\"voice_file\"`).",
+            "example": "XcR0k"
+          },
+          "scene_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Current display/order id — fallback only."
+          },
+          "min_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.5,
+            "description": "Only when `by=\"text\"`. Fuzzy-match threshold."
+          }
+        }
+      },
+      "SceneGeometryResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "topic_id",
+          "voice_file",
+          "coordinate_space",
+          "boxes"
+        ],
+        "description": "Data-only scene layout geometry. Every box is in\n**280×498 editor-preview** coordinates unless explicitly suffixed\nwith `_canvas` (Remotion 720×1280 canvas).\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "scene_geometry"
+          },
+          "id": {
+            "type": "string",
+            "description": "topic_id (echoed)."
+          },
+          "topic_id": {
+            "type": "string"
+          },
+          "company_id": {
+            "type": "string"
+          },
+          "scene_id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "voice_file": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "coordinate_space": {
+            "type": "object",
+            "description": "{width: 280, height: 498, unit: editor_preview_px}"
+          },
+          "safe_zones": {
+            "type": "object",
+            "properties": {
+              "dead_top": {
+                "type": "object",
+                "description": "Top 10% reserved."
+              },
+              "dead_bottom": {
+                "type": "object",
+                "description": "Bottom 25% reserved."
+              },
+              "safe_rect": {
+                "type": "object"
+              }
+            }
+          },
+          "scene": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "talking_point": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "pattern": {
+                "type": "string"
+              },
+              "keyword": {
+                "type": "string"
+              },
+              "visual": {
+                "type": "string"
+              },
+              "quote": {
+                "type": "string"
+              },
+              "show_narrator": {
+                "type": "boolean"
+              },
+              "active_roll": {
+                "type": "string"
+              }
+            }
+          },
+          "boxes": {
+            "type": "object",
+            "properties": {
+              "narrator": {
+                "type": "object",
+                "description": "`{rect, visible, face_source, face, face_center,\nface_coordinate_space_note}`. `face` is the displayed face\nbox — converted from source-space `segment.narrator_face`\nthrough the current `overlay.narrator.rect`. Do NOT mutate\n`segment.narrator_face` for layout edits.\n",
+                "properties": {
+                  "rect": {
+                    "type": "object"
+                  },
+                  "visible": {
+                    "type": "boolean"
+                  },
+                  "face_source": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "face": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "face_center": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "face_coordinate_space_note": {
+                    "type": "string"
+                  }
+                }
+              },
+              "caption": {
+                "type": "object",
+                "description": "`{container_rect, text_rect_estimate, visible}`. Read-only\nfor layout decisions; only `overlay.caption.y` is mutable.\n",
+                "properties": {
+                  "container_rect": {
+                    "type": "object"
+                  },
+                  "text_rect_estimate": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "visible": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "remotion": {
+                "type": "object",
+                "description": "Remotion Storyboard boxes.\n  - `object_layer.objects[]` is the **agent-facing**\n    layer: each item has `layout_id`, `rect`,\n    `rect_canvas`, `temporal_policy`, and the update\n    field name to pass back to `/v1/modify_scene`\n    (`remotion.object.rect`).\n  - `groups[]`, `objects[]`, `sequence_objects[]` are\n    lower-level debug data.\n",
+                "properties": {
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "objects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "object_layer": {
+                    "type": "object",
+                    "properties": {
+                      "objects": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "layout_id": {
+                              "type": "string"
+                            },
+                            "rect": {
+                              "type": "object"
+                            },
+                            "rect_canvas": {
+                              "type": "object"
+                            },
+                            "temporal_policy": {
+                              "type": "string"
+                            },
+                            "update_field": {
+                              "type": "string",
+                              "const": "remotion.object.rect"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "sequence_objects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "remotion_spec": {
+            "type": "object",
+            "description": "Metadata for the loaded `{voice_file}_spec.json` — file/url/version/state."
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Collision codes (error/warning/info severity)."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "error_count": {
+                "type": "integer"
+              },
+              "warning_count": {
+                "type": "integer"
+              },
+              "remotion_object_count": {
+                "type": "integer"
+              },
+              "remotion_object_layer_count": {
+                "type": "integer"
+              },
+              "remotion_sequence_object_count": {
+                "type": "integer"
+              },
+              "remotion_group_count": {
+                "type": "integer"
+              },
+              "remotion_temporal_policies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "remotion_geometry_basis": {
+                "type": "string"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },
@@ -3712,7 +4519,7 @@
           },
           "code": {
             "type": "string",
-            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error`.\n"
+            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` | `server_fallback`\n(only for `screenshot_scene_280x498` when no live editor —\nresponse carries a composite assembled from scene thumbnails\n+ `{voice_file}_overlay_poster.png`).\n"
           },
           "request_id": {
             "type": "string"
