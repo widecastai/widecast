@@ -1,5 +1,5 @@
 /**
- * (B) Upload Overlay — agent-supplied PNG → Remotion spec (raster path, FREE)
+ * (B) Upload Overlay — agent-authored SVG → svg2spec (PREFERRED, FREE)
  *
  * Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
  */
@@ -14,7 +14,7 @@ const resp = await client.v1_modify_scene({
   "fields": [
     {
       "field_name": "remotion.upload_overlay",
-      "value": "https://cdn.example.com/overlay-720x1280.png"
+      "value": "https://cdn.example.com/scene-overlay.svg"
     }
   ]
 });

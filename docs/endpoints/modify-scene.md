@@ -4,12 +4,12 @@
 
 > **Agent rule — data-first.** Call [`/v1/video_data`](video-data.md) **first** and use `voice_file` (the stable per-scene UID, also the base of `{voice_file}_spec.json`) as the selector. For **layout edits**, also call [`/v1/scene_geometry`](scene-geometry.md) to read narrator / caption / Remotion object boxes in 280×498 editor-preview coords without rendering anything. `segment.id` is only current display/order metadata and may change after reorder/add/delete.
 
-The endpoint supports **twelve edit branches**, grouped by family. Pick exactly one family per call — the only intentional multi-family call is **`layout.batch`** (G), which composes layout-only children.
+The endpoint supports **thirteen edit branches**, grouped by family. Pick exactly one family per call — the only intentional multi-family call is **`layout.batch`** (G), which composes layout-only children.
 
 | Branch | Use it when | Field family |
 |---|---|---|
 | **(A) Background media swap** | Replace the background image/video on a scene. | `mediaUrl` (+ optional `mediaType`) |
-| **(B) Upload Overlay** | Drop in an agent-supplied image and recompute the Remotion overlay spec. NOT Regenerate Overlay (paid). | `remotion.upload_overlay` |
+| **(B) Upload Overlay** | Drop in an agent-supplied asset (raster image **or** SVG) and recompute the Remotion overlay spec. SVG with `<g data-wc-object>` groups = pixel-perfect deterministic decomposition. NOT Regenerate Overlay (paid). | `remotion.upload_overlay` |
 | **(C) Object-layer rect** *(preferred overlay layout)* | Move / resize a Remotion overlay object — read `boxes.remotion.object_layer.objects` from `/v1/scene_geometry` first. | `remotion.object.rect` |
 | **(D) Storyboard group rect** *(low-level wrapper edit)* | Move / resize the entire Storyboard group; prefer (C) for visible overlay layout. | `remotion.group.rect` |
 | **(E) Narrator rect** | Move / resize the narrator box in legacy 280×498 editor coords. | `overlay.narrator.rect` / `overlay.narrator.x|y|w|h` |
@@ -20,6 +20,7 @@ The endpoint supports **twelve edit branches**, grouped by family. Pick exactly 
 | **(J) A/B-roll switch** | Toggle the active roll without uploading anything. | `roll.active` / `roll.switch` |
 | **(K) Segment text** | Correct narration/caption text while keeping audio timing. | `segment.text` |
 | **(L) Scene metadata** | Update scene planning metadata (`pattern`, `type`, …). | metadata fields |
+| **(M) Remotion add element** *(add-only)* | Append a new text / stat / label / callout / image object to the overlay; follow up with (C) `layout.batch` for placement. | `remotion.add_element` |
 
 <!-- widecast-playground:modify-scene -->
 
@@ -100,7 +101,14 @@ Response includes `applied`, `media_type`, `media_url`, and the full updated `se
 
 ## Branch (B) — Upload Overlay
 
-Free, agent-supplied image → Remotion overlay spec. This is **not** Regenerate Overlay (which is paid because WideCast calls image generation). The pipeline classifies the image (graphic vs realistic), decomposes it into objects, and applies a strict no-AI fallback when decomposition fails.
+Free, agent-supplied **asset** → Remotion overlay spec. This is **not** Regenerate Overlay (which is paid because WideCast calls image generation).
+
+Two upload formats are supported, **chosen by the URL extension**:
+
+| Format | Trigger | Pipeline | Decomposition | When to use |
+|---|---|---|---|---|
+| **SVG** | URL ends `.svg` | `svg2spec` (each `<g data-wc-object>` group → one object) | **Deterministic, pixel-perfect** (NO auto-fit; max diff 2/255 vs original) | Agent authors the overlay programmatically and wants guaranteed decomposition + animation hints in one file. |
+| **Raster** | PNG / JPG / WebP / GIF / etc | `detect.py` classifier → graphic decomposition OR full-frame realistic fallback | Classifier-driven (heuristic) | Existing image file, scanned graphics, designer-provided assets. |
 
 ```jsonc
 {
@@ -115,16 +123,81 @@ Free, agent-supplied image → Remotion overlay spec. This is **not** Regenerate
 
 You can also pass `value: { "url": "https://..." }` if you need to attach future options.
 
-**Grounding rule.** If the agent creates the image first, it MUST be grounded in scene context (`text`, `talking_point`, `visual`, `quote`, `keyword`, `type`) — do not invent unrelated visuals.
+**Grounding rule.** Whichever format you choose, the asset MUST be grounded in scene context (`text`, `talking_point`, `visual`, `quote`, `keyword`, `type`) — do not invent unrelated visuals.
 
-**Image guidance for best decomposition**:
+### 📐 SVG path (PREFERRED for agent-authored overlays)
+
+When the URL ends `.svg` (case-insensitive), WideCast routes through `svg2spec`:
+
+1. Parses the SVG.
+2. Finds every `<g data-wc-object="name">` group (document order).
+3. Rasterizes **each group alone** on a transparent 720×1280 canvas.
+4. Crops to the alpha bbox → base64 PNG → one Storyboard object per group.
+5. Each object is placed at its authored bbox with **NO auto-fit** (pixel-perfect; verified max diff 2/255 vs the original SVG).
+
+**Required**: `viewBox="0 0 720 1280"` (portrait — matches the Remotion canvas).
+
+**Per-group attributes**:
+
+| Attribute | Required? | Description |
+|---|---|---|
+| `data-wc-object="name"` | **yes** | Stable id/name. Groups WITHOUT this are rasterized into the background instead of becoming separate objects. |
+| `data-wc-kind` | no | `"object"` \| `"text"` \| `"bar"` \| `"mark"` \| `"callout"` — inferred from content if missing. |
+| `data-wc-anim` | no | Entry animation: `"slide-up"` \| `"slide-down"` \| `"slide-left"` \| `"slide-right"` \| `"pop"` \| `"grow-x"` \| `"grow-y"` \| `"fade"` (default `"fade"`; bar shapes get `growRight` / `growUp` automatically). |
+| `data-wc-z` | no | Paint/stack order (default = document order). |
+
+**Authoring example** (a stat callout next to an icon):
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280">
+  <g data-wc-object="bg-card" data-wc-kind="object" data-wc-anim="fade">
+    <rect x="60" y="380" width="600" height="240" rx="32" fill="#1e293b"/>
+  </g>
+  <g data-wc-object="icon" data-wc-kind="mark" data-wc-anim="pop" data-wc-z="2">
+    <circle cx="160" cy="500" r="60" fill="#a78bfa"/>
+    <path d="M130 500 l25 25 l45 -50" stroke="#fff" stroke-width="8" fill="none"/>
+  </g>
+  <g data-wc-object="stat-number" data-wc-kind="text" data-wc-anim="slide-up" data-wc-z="3">
+    <text x="260" y="490" font-family="Inter" font-size="64" font-weight="800" fill="#fff">$14.3B</text>
+  </g>
+  <g data-wc-object="stat-label" data-wc-kind="text" data-wc-anim="slide-up" data-wc-z="4">
+    <text x="260" y="560" font-family="Inter" font-size="28" fill="#cbd5e1">Meta → Scale AI</text>
+  </g>
+</svg>
+```
+
+```jsonc
+{
+  "id":    "widecast7c0d4f8a9b1e2d3f",
+  "by":    "voice_file",
+  "value": "XcR0k",
+  "fields": [
+    { "field_name": "remotion.upload_overlay", "value": "https://cdn.example.com/scene-overlay.svg" }
+  ]
+}
+```
+
+**SVG-specific errors**:
+
+| HTTP | `error.code` | When |
+|---|---|---|
+| 422 | `svg2spec_failed` | Parse error / missing viewBox / no `data-wc-object` groups / structural issue (the message carries the underlying svg2spec reason). |
+| 502 | (network) | SVG URL couldn't be downloaded. |
+
+> The SVG path is **strict**: a bad authored file produces a clean 422 with a structural reason, not a silent fallback into another pipeline.
+
+### 🖼 Raster path (default for non-SVG URLs)
+
+Image guidance for best object decomposition:
 
 - Portrait 9:16, preferably **720×1280 transparent PNG**.
 - Flat-background graphic with large, separated foreground objects/text.
 - Strong contrast, readable typography.
 - Avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text — those get classified `realistic` and are kept as ONE full-frame image (not decomposed).
 
-Upload Overlay is an **explicit opt-in to recreate an overlay** even if the scene previously had `remotion_spec="none"`.
+> When in doubt, author SVG — the SVG path has no classifier in the loop, so you get the exact decomposition you authored.
+
+Upload Overlay (either format) is an **explicit opt-in to recreate an overlay** even if the scene previously had `remotion_spec="none"`.
 
 The success response includes `remotion_spec_updated: true`, `remotion_spec_file`, a cache-busted `remotion_spec_url`, `remotion_spec_version`, `remotion_spec_state: "ready"`, plus the agent-supplied `uploaded_overlay_url`, `cost: 0`, and `remotion_poster_url` (a static fallback poster used by `/v1/scene_inspector` when no live browser is available).
 
@@ -446,6 +519,134 @@ Auto-clears: `pattern="narration_only"` clears `quote` + `visual`; `pattern="typ
   ]
 }
 ```
+
+---
+
+## Branch (M) — Remotion add element
+
+Free, synchronous, **add-only**. Appends a new Storyboard group/object to the existing Remotion spec. Does NOT auto-fit, replace, move, or modify existing objects. Returns a new `layout_id` so you can land the element precisely with a follow-up [`layout.batch`](#branch-g--layout-batch-one-persist-one-mqtt) carrying a `remotion.object.rect`.
+
+```jsonc
+{
+  "id":    "widecast7c0d4f8a9b1e2d3f",
+  "by":    "voice_file",
+  "value": "XcR0k",
+  "fields": [
+    {
+      "field_name": "remotion.add_element",
+      "value": {
+        "kind":     "stat",
+        "value":    "$14.3B",
+        "label":    "Meta → Scale AI",
+        "position": "top"
+      }
+    }
+  ]
+}
+```
+
+You can also pass a bare string for the common `kind="text"` case:
+
+```jsonc
+{
+  "fields": [
+    { "field_name": "remotion.add_element", "value": "+14.3B in 12 months" }
+  ]
+}
+```
+
+### Value reference
+
+| Key | Required | Description |
+|---|---|---|
+| `kind` | yes (or derive) | `"text"` \| `"stat"` \| `"label"` \| `"callout"` \| `"image"`. Aliases: `metric`/`number` → `stat`, `badge`/`caption` → `label`. Defaults to `image` when `url`/`image`/`src` is set, else `text`. |
+| `value` | yes for text/stat/callout | Primary text content. |
+| `label` | optional | Secondary text (used by `stat`/`label`). |
+| `url` (`image`, `src` aliases) | yes for `kind="image"` | http(s) image URL. |
+| `position` | optional | `"top"` \| `"bottom"` \| `"left"` \| `"right"` \| `"center"` — placement hint; server picks a sane default rect on that side. |
+| `rect` | optional | Pin an explicit rect: `{x, y, w, h, coordinate_space: "preview" \| "canvas"}` (default `"preview"` = 280×498). Top-level shorthand `x/y/w/h` on the value object is also accepted. |
+| `style_token` | optional | Visual token name (e.g. brand styling slot). |
+| `emphasis` | optional | Style intensity hint. |
+| `entry` | optional | Entry animation (default `"fade"`). |
+| `delay_sec` | optional | Delay before the element appears (default `0`). |
+| `z_index` | optional | Per-object z order inside the new Storyboard group (default `1`). |
+| `element_z_index` | optional | Z order of the new Storyboard group itself (default `900`). |
+
+### Rules
+
+- **Add-only**: never replaces / reorders / moves / mutates existing objects. If you need polished placement, follow up with `layout.batch`.
+- **Send alone**: combining `remotion.add_element` with any other Remotion field (or putting it inside `layout.batch` directly) returns `400 mixed_remotion_fields`.
+- **Requires an enabled spec**: scenes with `segment.remotion_spec="none"` reject the call with `409 remotion_spec_disabled`. Use Upload Overlay (B) first if the user wants the overlay back.
+
+### Response
+
+```jsonc
+{
+  "object":                  "scene_modified",
+  "id":                      "widecast7c0d4f8a9b1e2d3f",
+  "scene_id":                3,
+  "voice_file":              "XcR0k",
+  "applied": {
+    "field_name":  "remotion.add_element",
+    "kind":        "stat",
+    "element_id":  "agent_add_01",
+    "object_id":   "add_stat_1782700000000",
+    "layout_id":   "agent_add_01.add_stat_1782700000000",
+    "rect":        { "x": 24, "y": 60,  "w": 232, "h": 64,  "coordinate_space": "preview" },
+    "rect_canvas": { "x": 61.7, "y": 154.4, "w": 596.6, "h": 164.6, "coordinate_space": "canvas" },
+    "cost":        "free_spec_append",
+    "async":       false,
+    "auto_fit":    false,
+    "follow_up":   "Use layout.batch with remotion.object.rect and the returned layout_id to position this object."
+  },
+  "remotion_element_added": true,
+  "remotion_spec_updated":  true,
+  "remotion_spec_url":      "https://widecast.ai/downloads/<company_id>/<topic_id>/XcR0k_spec.json?v=1782700000",
+  "remotion_poster_url":    "https://widecast.ai/downloads/<company_id>/<topic_id>/XcR0k_overlay_poster.png?v=1782700000",
+  "segment":                { /* updated segment */ }
+}
+```
+
+### Recommended workflow
+
+```python
+# 1. Add the element (default placement)
+result = client.modify_scene(
+    video_id,
+    by="voice_file", value="XcR0k",
+    fields=[{
+        "field_name": "remotion.add_element",
+        "value": {"kind": "stat", "value": "$14.3B", "label": "Meta → Scale AI", "position": "top"},
+    }],
+)
+layout_id = result["applied"]["layout_id"]
+
+# 2. Read the displayed rect + collision violations
+geom = client.scene_geometry(video_id, voice_file="XcR0k", include_diagnostics=True)
+
+# 3. Refine placement with layout.batch (and any sibling layout edits)
+client.modify_scene(
+    video_id,
+    by="voice_file", value="XcR0k",
+    fields=[{
+        "field_name": "remotion.object.rect",
+        "value": {"layout_id": layout_id, "x": 24, "y": 80, "w": 232, "h": 56,
+                  "coordinate_space": "preview"},
+    }],
+)
+```
+
+### Error codes
+
+| `error.code` | HTTP | When |
+|---|---|---|
+| `invalid_remotion_add_element` | 400 | `value` is neither a dict nor a non-empty string. |
+| `invalid_remotion_add_element_kind` | 400 | `kind` is not in the allowed set. |
+| `mixed_remotion_fields` | 400 | Sent alongside other Remotion fields (or inside `layout.batch`). |
+| `remotion_spec_not_found` | 404 | The scene's spec file is missing on disk. |
+| `remotion_spec_disabled` | 409 | `segment.remotion_spec="none"` — use Upload Overlay first. |
+| `missing_voice_file` | 409 | Scene has no `voice_file`; can't resolve the spec filename. |
+| `remotion_spec_parse_failed` / `remotion_spec_invalid` | 409 | Spec file present but unreadable / not a JSON object. |
 
 ---
 

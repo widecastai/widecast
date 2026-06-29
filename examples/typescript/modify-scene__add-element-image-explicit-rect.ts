@@ -1,5 +1,5 @@
 /**
- * (B) Upload Overlay — agent-supplied PNG → Remotion spec (raster path, FREE)
+ * (M) Remotion add element — image with explicit 280×498 preview rect
  *
  * Auto-generated from widecast/docs/playgrounds/modify-scene.yaml.
  */
@@ -13,8 +13,18 @@ const resp = await client.v1_modify_scene({
   "value": "XcR0k",
   "fields": [
     {
-      "field_name": "remotion.upload_overlay",
-      "value": "https://cdn.example.com/overlay-720x1280.png"
+      "field_name": "remotion.add_element",
+      "value": {
+        "kind": "image",
+        "url": "https://cdn.example.com/badge.png",
+        "rect": {
+          "x": 16,
+          "y": 60,
+          "w": 64,
+          "h": 64,
+          "coordinate_space": "preview"
+        }
+      }
     }
   ]
 });

@@ -155,6 +155,9 @@ info:
       object_level_edit_disabled | remotion_spec_disabled |
       remotion_spec_not_found | remotion_spec_parse_failed |
       remotion_spec_invalid | missing_remotion_object_rect |
+      invalid_remotion_add_element | invalid_remotion_add_element_kind |
+      missing_uploaded_overlay_url | invalid_uploaded_overlay_url |
+      svg2spec_failed |
       missing_voice_file | mixed_remotion_fields | ambiguous_text |
       invalid_media_url | modify_failed | persist_failed |
       voice_upload_queue_failed | narrator_video_upload_queue_failed |
@@ -467,12 +470,50 @@ paths:
         `user_asset_url` / `brollUrl`.
 
         **(B) Upload Overlay (`remotion.upload_overlay`).** Free, agent-
-        supplied image → Remotion spec (not Regenerate Overlay, which is
-        paid). Pipeline classifies graphic vs realistic, decomposes into
-        objects, strict no-AI fallback. Ground the image in scene context
+        supplied asset → Remotion spec (not Regenerate Overlay, which is
+        paid). **Two upload formats, chosen by URL extension**:
+
+          - **📐 SVG path (PREFERRED for agent-authored overlays)** —
+            URL ends `.svg` (case-insensitive). WideCast routes through
+            `svg2spec`: parses the SVG, finds every
+            `<g data-wc-object="name">` group, rasterizes EACH group
+            ALONE on a transparent 720×1280 canvas, crops to the alpha
+            bbox, and emits one Storyboard object per group with
+            **pixel-perfect placement (NO auto-fit; max diff 2/255 vs
+            original)**. **Required**: viewBox `0 0 720 1280` (portrait).
+            Per-group attributes:
+
+              * `data-wc-object="name"` — REQUIRED stable id/name;
+                groups without it are rasterized as background.
+              * `data-wc-kind` ∈ {`object`, `text`, `bar`, `mark`,
+                `callout`} — inferred if missing.
+              * `data-wc-anim` ∈ {`slide-up`, `slide-down`,
+                `slide-left`, `slide-right`, `pop`, `grow-x`, `grow-y`,
+                `fade`, …} — default `fade`; bar shapes get
+                `growRight`/`growUp` automatically.
+              * `data-wc-z` — paint/stack order; default = document
+                order.
+
+            Use the SVG path when you want **deterministic
+            decomposition** (no classifier in the loop) plus explicit
+            animation hints in one authored file. SVG-specific errors:
+            HTTP 422 `svg2spec_failed` (parse / viewBox / structure
+            errors with detail message), HTTP 502 (SVG download failed).
+
+          - **🖼 Raster path (default)** — URL extension is PNG / JPG /
+            WebP / GIF / etc. Pipeline classifies the uploaded image as
+            `graphic` vs `realistic`, decomposes graphic images into
+            objects, and falls back to a full-frame single-image overlay
+            for realistic ones (strict no-AI fallback — no Nano Banana,
+            no image generation). For best object-decomposed raster
+            specs: portrait 9:16 transparent PNG (720×1280 preferred) or
+            flat-bg graphic with large separated foreground objects/text,
+            strong contrast, readable typography; avoid photo-realistic
+            backgrounds, heavy gradients, vignettes, tiny dense text.
+
+        Whichever format you use, ground the asset in scene context
         (`text`, `talking_point`, `visual`, `quote`, `keyword`, `type`).
-        Prefer 720×1280 transparent PNG / flat-bg graphic for object
-        decomposition. Explicit opt-in to recreate an overlay even when
+        Explicit opt-in to recreate an overlay even when
         `remotion_spec="none"`. Response includes a cache-busted
         `remotion_spec_url` and `remotion_poster_url` (server-side
         inspector fallback poster).
@@ -573,6 +614,37 @@ paths:
         `pattern="narration_only"` auto-clears quote+visual;
         `pattern="typography_only"` auto-clears visual.
 
+        **(M) Remotion add element (`remotion.add_element`) — FREE,
+        SYNC, ADD-ONLY**. Append a new Storyboard group/object to the
+        existing spec. `value = {kind, value?, label?, url?, position?,
+        rect?, style_token?, emphasis?}` — OR a bare string for
+        `kind="text"`. `kind` ∈ {`text`, `stat`, `label`, `callout`,
+        `image`} (aliases: `metric`/`number`→`stat`,
+        `badge`/`caption`→`label`; defaults to `image` when `url` /
+        `image` / `src` set, else `text`). Optional placement hint
+        `position` ∈ {top, bottom, left, right, center} for the
+        server-picked default rect; OR pin a rect explicitly via
+        `rect: {x, y, w, h, coordinate_space: "preview"|"canvas"}`
+        (default 280×498 preview). Optional `entry` (default `fade`),
+        `delay_sec`, `z_index`, `element_z_index` (default 900). The
+        branch **does NOT auto-fit, replace, move, or modify existing
+        objects** and **must be sent alone** (returns 400
+        `mixed_remotion_fields` if combined with other Remotion fields,
+        and is not allowed inside `layout.batch` directly). Requires an
+        enabled spec — returns 409 `remotion_spec_disabled` for scenes
+        where `segment.remotion_spec="none"`. Response `applied`
+        carries the new `element_id`, `object_id`, and
+        `layout_id` (= `{element_id}.{object_id}`, e.g.
+        `agent_add_01.add_text_1782700000000`) plus `rect` (preview),
+        `rect_canvas` (720×1280), `auto_fit: false`,
+        `cost: "free_spec_append"`, plus a `follow_up` hint. **Standard
+        workflow**: immediately after `remotion.add_element` returns the
+        new `layout_id`, call `/v1/scene_geometry` to read the
+        displayed rect + violations, then send a `layout.batch` carrying
+        a `remotion.object.rect` with that `layout_id` to land the
+        element inside safe zones — the initial placement is a default,
+        not a polished layout.
+
         **`remotion_spec="none"`**: user intentionally disabled the
         overlay on that scene. Layout edits return
         `remotion_spec_disabled`. Do NOT auto-enable — only re-enable via
@@ -609,7 +681,7 @@ paths:
                     - field_name: mediaType
                       value: video
               upload_overlay:
-                summary: (B) Upload Overlay — agent-supplied PNG → Remotion spec
+                summary: (B) Upload Overlay — agent-supplied PNG → Remotion spec (raster path)
                 value:
                   id: widecast7c0d4f8a9b1e2d3f
                   by: voice_file
@@ -617,6 +689,24 @@ paths:
                   fields:
                     - field_name: remotion.upload_overlay
                       value: "https://cdn.example.com/overlay-720x1280.png"
+              upload_overlay_svg:
+                summary: (B) Upload Overlay — agent-authored SVG → svg2spec (PREFERRED for deterministic decomposition)
+                description: |
+                  URL ending `.svg` triggers the svg2spec path. Each
+                  `<g data-wc-object="name">` group inside a 720×1280
+                  viewBox becomes one Storyboard object with
+                  pixel-perfect placement. Optional per-group attributes:
+                  `data-wc-kind` (object / text / bar / mark / callout),
+                  `data-wc-anim` (slide-up / pop / grow-x / fade / …),
+                  `data-wc-z` (paint order). Groups without
+                  `data-wc-object` are rasterized as background.
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.upload_overlay
+                      value: "https://cdn.example.com/scene-overlay.svg"
               group_rect_move:
                 summary: (C) Move the whole Storyboard group up by 120px in canvas coords
                 value:
@@ -774,6 +864,45 @@ paths:
                       value: typography_only
                     - field_name: quote
                       value: "Short headline that lands"
+              add_element_text_bare:
+                summary: (M) Add element — bare-string shortcut for kind=text
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.add_element
+                      value: "+14.3B in 12 months"
+              add_element_stat_position:
+                summary: (M) Add element — stat with position hint (server picks default rect)
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.add_element
+                      value:
+                        kind: stat
+                        value: "$14.3B"
+                        label: "Meta → Scale AI"
+                        position: top
+              add_element_image_explicit_rect:
+                summary: (M) Add element — image, explicit rect in 280×498 preview
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: remotion.add_element
+                      value:
+                        kind: image
+                        url: "https://cdn.example.com/badge.png"
+                        rect:
+                          x: 16
+                          y: 60
+                          w: 64
+                          h: 64
+                          coordinate_space: preview
       responses:
         '200':
           description: |
@@ -2582,6 +2711,14 @@ components:
             `keyword`, `quote`, `talking_point`, `type`, `sub_mode` (or
             `segment.<name>`/`scene.<name>` forms). `pattern`/`type` are
             validated against ai_segment_text allow-lists.
+
+            **(M) Remotion add element** — `remotion.add_element`. Send
+            ONE field, append-only. `value = {kind, value?, label?,
+            url?, position?, rect?, style_token?, emphasis?}` OR a bare
+            string for `kind="text"`. `kind` ∈ {`text`, `stat`, `label`,
+            `callout`, `image`}. Returns a new `layout_id` — follow up
+            with `layout.batch` carrying a matching `remotion.object.rect`
+            for safe-zone placement.
           items:
             type: object
             required: [field_name, value]
@@ -2592,6 +2729,7 @@ components:
                   - mediaUrl
                   - mediaType
                   - remotion.upload_overlay
+                  - remotion.add_element
                   - remotion.object.rect
                   - remotion.group.rect
                   - overlay.narrator.rect
@@ -2628,7 +2766,10 @@ components:
                   axes and `overlay.caption.y`. Object `{fields:[...]}`
                   for `layout.batch`. `"A"`|`"B"` for `roll.active`,
                   `"toggle"` for `roll.switch`. String for `segment.text`
-                  and metadata fields.
+                  and metadata fields. Object `{kind, value?, label?,
+                  url?, position?, rect?, style_token?, emphasis?,
+                  entry?, delay_sec?, z_index?, element_z_index?}` (or
+                  bare string for kind=text) for `remotion.add_element`.
         op:
           type: string
           default: set
@@ -2746,6 +2887,16 @@ components:
         remotion_object_updated:
           type: boolean
           description: True when `remotion.object.rect` was applied (single-field or as a layout.batch child).
+        remotion_element_added:
+          type: boolean
+          description: |
+            True when the (M) `remotion.add_element` branch ran. The
+            `applied` object on this branch carries the new
+            `element_id`, `object_id`, `layout_id` (= `{element_id}.{object_id}`),
+            `rect` (280×498 preview), `rect_canvas` (720×1280),
+            `auto_fit: false`, `cost: "free_spec_append"`, and a
+            `follow_up` hint pointing at the recommended
+            `layout.batch` + `remotion.object.rect` placement step.
         remotion_poster_file:
           type: string
           description: Canonical `{voice_file}_overlay_poster.png` — derived static overlay poster used by server-side scene_inspector screenshot fallback.

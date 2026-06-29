@@ -837,12 +837,38 @@ class Widecast:
               {"field_name": "mediaType", "value": "image"|"video"}?]``.
               Roll-aware.
 
-          **(B) Upload Overlay (FREE; agent-supplied image → spec).**
+          **(B) Upload Overlay (FREE; agent-supplied asset → spec).**
               ``[{"field_name": "remotion.upload_overlay",
-              "value": "<image URL>"}]``. NOT Regenerate Overlay (which
-              is paid). Ground the image in scene context. Prefer a
-              720×1280 transparent PNG or flat-bg graphic for object
-              decomposition.
+              "value": "<URL>"}]``. NOT Regenerate Overlay (which is
+              paid). **Two upload formats, chosen by URL extension**:
+
+              * **📐 SVG path (PREFERRED for agent-authored overlays)** —
+                URL ends ``.svg`` (case-insensitive). WideCast routes
+                through ``svg2spec``: each ``<g data-wc-object="name">``
+                group inside a 720×1280 viewBox becomes one Storyboard
+                object with **pixel-perfect placement (NO auto-fit; max
+                diff 2/255 vs original)**. Per-group attributes:
+                ``data-wc-object`` (REQUIRED stable id; groups without
+                it are rasterized as background), ``data-wc-kind`` ∈
+                {``object``, ``text``, ``bar``, ``mark``, ``callout``}
+                (inferred if missing), ``data-wc-anim`` ∈
+                {``slide-up``, ``slide-down``, ``slide-left``,
+                ``slide-right``, ``pop``, ``grow-x``, ``grow-y``,
+                ``fade``, …} (default ``fade``), ``data-wc-z`` =
+                paint/stack order. **Deterministic decomposition** — no
+                classifier in the loop. SVG errors → 422
+                ``svg2spec_failed`` (parse / viewBox / structure issues);
+                download errors → 502.
+              * **🖼 Raster path (default)** — PNG / JPG / WebP / GIF /
+                etc. Pipeline classifies graphic vs realistic and
+                decomposes graphic images into objects with strict
+                no-AI fallback. For best raster decomposition: portrait
+                9:16 transparent PNG (720×1280) or flat-bg graphic with
+                large separated foreground objects/text.
+
+              Ground the asset in scene context (``text``,
+              ``talking_point``, ``visual``, ``quote``, ``keyword``,
+              ``type``).
 
           **(C) Remotion object-layer rect (PREFERRED overlay layout).**
               First call :meth:`scene_geometry` and read
@@ -914,6 +940,37 @@ class Widecast:
               ``segment.<name>``/``scene.<name>`` forms). ``pattern`` and
               ``type`` are validated against ai_segment_text allow-lists.
 
+          **(M) Remotion add element (FREE, SYNC, ADD-ONLY).**
+              ``[{"field_name": "remotion.add_element",
+              "value": {"kind": "text"|"stat"|"label"|"callout"|"image",
+              "value": "...", "label": "...", "url": "...",
+              "position": "top"|"bottom"|"left"|"right"|"center",
+              "rect": {"x": ..., "y": ..., "w": ..., "h": ...,
+              "coordinate_space": "preview"|"canvas"},
+              "style_token": "...", "emphasis": "...",
+              "entry": "fade", "delay_sec": 0, "z_index": 1,
+              "element_z_index": 900}}]`` — or pass a bare string for
+              ``kind="text"``: ``[{"field_name": "remotion.add_element",
+              "value": "Quick caption"}]``. Appends a new Storyboard
+              group/object to the existing spec; does NOT auto-fit,
+              replace, move, or modify existing objects. Requires an
+              enabled spec (returns 409 ``remotion_spec_disabled``
+              otherwise). Must be sent ALONE (400
+              ``mixed_remotion_fields`` if combined with other Remotion
+              fields, and not allowed inside ``layout.batch``).
+              ``applied`` returns the new ``element_id``, ``object_id``,
+              and ``layout_id`` (= ``{element_id}.{object_id}``, e.g.
+              ``agent_add_01.add_text_1782700000000``) plus ``rect``
+              (preview), ``rect_canvas`` (720×1280),
+              ``auto_fit: False``, ``cost: "free_spec_append"``, plus a
+              ``follow_up`` hint. **Standard workflow**: right after
+              this call, use :meth:`scene_geometry` to read the
+              displayed rect + violations, then issue
+              :meth:`modify_scene` with a ``layout.batch`` carrying a
+              ``remotion.object.rect`` for that ``layout_id`` to land
+              the element inside safe zones — the initial placement is
+              a default, not a polished layout.
+
         Remotion canvas = 720×1280; legacy ``overlay.caption`` /
         ``overlay.narrator`` use 280×498 editor preview coords. Set
         ``coordinate_space`` accordingly.
@@ -931,6 +988,7 @@ class Widecast:
             ``narrator_layout_updated`` /
             ``caption_layout_updated`` /
             ``remotion_object_updated`` /
+            ``remotion_element_added`` /
             ``remotion_poster_url`` /
             ``remotion_poster_warnings`` flags.
           * Async upload branches → ``{"object":

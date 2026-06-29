@@ -1285,10 +1285,28 @@ export class Widecast {
    *  - **(A) Background media swap.** `[{field_name: "mediaUrl",
    *    value: "<URL>"}, {field_name: "mediaType",
    *    value: "image"|"video"}?]`. Roll-aware.
-   *  - **(B) Upload Overlay (FREE; agent-supplied image → spec).**
-   *    `[{field_name: "remotion.upload_overlay", value: "<image URL>"}]`.
-   *    NOT Regenerate Overlay (which is paid). Ground the image in
-   *    scene context.
+   *  - **(B) Upload Overlay (FREE; agent-supplied asset → spec).**
+   *    `[{field_name: "remotion.upload_overlay", value: "<URL>"}]`.
+   *    NOT Regenerate Overlay (which is paid). **Two upload formats,
+   *    chosen by URL extension**:
+   *      * **📐 SVG path (PREFERRED for agent-authored overlays)** —
+   *        URL ends `.svg`. Each `<g data-wc-object="name">` group
+   *        inside a 720×1280 viewBox becomes one Storyboard object
+   *        with pixel-perfect placement (no auto-fit). Per-group
+   *        attributes: `data-wc-object` (REQUIRED stable id;
+   *        unmarked groups become background), `data-wc-kind` ∈
+   *        {`object`, `text`, `bar`, `mark`, `callout`} (inferred if
+   *        missing), `data-wc-anim` ∈ {`slide-up`, `slide-down`,
+   *        `slide-left`, `slide-right`, `pop`, `grow-x`, `grow-y`,
+   *        `fade`, …} (default `fade`; bars get growRight/growUp),
+   *        `data-wc-z` = paint order. Deterministic — no classifier.
+   *        Errors: HTTP 422 `svg2spec_failed`, HTTP 502 (download).
+   *      * **🖼 Raster path (default)** — PNG / JPG / WebP / GIF /
+   *        etc. Classifier-driven decomposition (graphic vs realistic)
+   *        with strict no-AI fallback. Prefer 720×1280 transparent
+   *        PNG or flat-bg graphic for best decomposition.
+   *
+   *    Ground the asset in scene context.
    *  - **(C) Remotion object-layer rect (PREFERRED overlay layout).**
    *    First call `scene_geometry()` and read
    *    `boxes.remotion.object_layer.objects`. Then send
@@ -1328,6 +1346,30 @@ export class Widecast {
    *    `talking_point`, `type`, `sub_mode` (`segment.<name>` /
    *    `scene.<name>` namespaced forms also accepted). `pattern` and
    *    `type` are validated against ai_segment_text allow-lists.
+   *  - **(M) Remotion add element (FREE, SYNC, ADD-ONLY).**
+   *    `[{field_name: "remotion.add_element", value: {kind:
+   *    "text"|"stat"|"label"|"callout"|"image", value?, label?, url?,
+   *    position?: "top"|"bottom"|"left"|"right"|"center", rect?: {x,
+   *    y, w, h, coordinate_space?: "preview"|"canvas"}, style_token?,
+   *    emphasis?, entry?, delay_sec?, z_index?, element_z_index?}}]` —
+   *    or pass a bare string for `kind="text"`. Appends a new
+   *    Storyboard group/object to the existing spec; does NOT
+   *    auto-fit, replace, move, or modify existing objects. Requires
+   *    an enabled spec (returns 409 `remotion_spec_disabled`
+   *    otherwise). **Must be sent alone** (400
+   *    `mixed_remotion_fields` if combined with other Remotion fields
+   *    or used inside `layout.batch`). `applied` returns the new
+   *    `element_id`, `object_id`, `layout_id` (=
+   *    `{element_id}.{object_id}`, e.g.
+   *    `agent_add_01.add_text_1782700000000`), `rect` (preview),
+   *    `rect_canvas` (720×1280), `auto_fit: false`, `cost:
+   *    "free_spec_append"`, plus `follow_up` hint. **Standard
+   *    workflow**: right after this call, use `scene_geometry()` to
+   *    read the displayed rect + violations, then call
+   *    `modify_scene()` with a `layout.batch` carrying a
+   *    `remotion.object.rect` for that `layout_id` to land the element
+   *    inside safe zones — the initial placement is a default, not a
+   *    polished layout.
    *
    *  `segment.remotion_spec == "none"` means the user intentionally
    *  disabled the overlay — agents must NOT auto-edit/re-enable.
@@ -1337,7 +1379,7 @@ export class Widecast {
    *      (`media_*`, `remotion_spec_*`, `remotion_poster_*`,
    *      `layout_batch_updated`, `narrator_layout_updated`,
    *      `caption_layout_updated`, `remotion_object_updated`,
-   *      `roll_switched`, etc).
+   *      `remotion_element_added`, `roll_switched`, etc).
    *    - `"scene_voice_upload_queued"` / `"scene_narrator_upload_queued"`
    *      → async upload queued; `queue_id` set.
    *    - `"clarification"` → ambiguous text match; show `candidates`. */

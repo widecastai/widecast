@@ -61,7 +61,7 @@
 <blockquote>
 <p><strong>Agent rule — data-first.</strong> Call <a href="video-data.md"><code>/v1/video_data</code></a> <strong>first</strong> and use <code>voice_file</code> (the stable per-scene UID, also the base of <code>{voice_file}_spec.json</code>) as the selector. For <strong>layout edits</strong>, also call <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> to read narrator / caption / Remotion object boxes in 280×498 editor-preview coords without rendering anything. <code>segment.id</code> is only current display/order metadata and may change after reorder/add/delete.</p>
 </blockquote>
-<p>The endpoint supports <strong>twelve edit branches</strong>, grouped by family. Pick exactly one family per call — the only intentional multi-family call is <strong><code>layout.batch</code></strong> (G), which composes layout-only children.</p>
+<p>The endpoint supports <strong>thirteen edit branches</strong>, grouped by family. Pick exactly one family per call — the only intentional multi-family call is <strong><code>layout.batch</code></strong> (G), which composes layout-only children.</p>
 <table>
 <thead>
 <tr>
@@ -78,7 +78,7 @@
 </tr>
 <tr>
 <td><strong>(B) Upload Overlay</strong></td>
-<td>Drop in an agent-supplied image and recompute the Remotion overlay spec. NOT Regenerate Overlay (paid).</td>
+<td>Drop in an agent-supplied asset (raster image <strong>or</strong> SVG) and recompute the Remotion overlay spec. SVG with <code>&lt;g data-wc-object&gt;</code> groups = pixel-perfect deterministic decomposition. NOT Regenerate Overlay (paid).</td>
 <td><code>remotion.upload_overlay</code></td>
 </tr>
 <tr>
@@ -131,9 +131,14 @@
 <td>Update scene planning metadata (<code>pattern</code>, <code>type</code>, …).</td>
 <td>metadata fields</td>
 </tr>
+<tr>
+<td><strong>(M) Remotion add element</strong> <em>(add-only)</em></td>
+<td>Append a new text / stat / label / callout / image object to the overlay; follow up with (C) <code>layout.batch</code> for placement.</td>
+<td><code>remotion.add_element</code></td>
+</tr>
 </tbody>
 </table>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-voice-file" id="ex-modify-scene--media-by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — image, by voice_file</h3><p class="wc-pg-example-desc">Most reliable. Roll-aware — B-roll updates mediaUrl/brollUrl; A-roll registers as brollUrl/user_asset_url without disturbing the narrator.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-text" id="ex-modify-scene--media-by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — match by narration text, video</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay" id="ex-modify-scene--upload-overlay"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)</h3><p class="wc-pg-example-desc">NOT Regenerate Overlay (paid). Pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-one-by-one" id="ex-modify-scene--object-rect-one-by-one"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — preferred overlay layout (one_by_one)</h3><p class="wc-pg-example-desc">Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-single" id="ex-modify-scene--object-rect-single"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — move a single overlay text object</h3><p class="wc-pg-example-desc">Per-object layout_id (e.g. main.obj_03_text). Server maps the preview rect onto raw Storyboard offsets/sizes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-move" id="ex-modify-scene--group-rect-move"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — move whole Storyboard group up by 120px (canvas)</h3><p class="wc-pg-example-desc">Low-level wrapper edit — child objects untouched. Canvas (720×1280) is NOT clamped; negative y is allowed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-scale" id="ex-modify-scene--group-rect-scale"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — resize + scale children</h3><p class="wc-pg-example-desc">Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together. `wrapper_only` is advanced.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-rect" id="ex-modify-scene--narrator-rect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(E) Narrator layout rect — 280×498 preview coords</h3><p class="wc-pg-example-desc">Preserves narrator metadata + source-space segment.narrator_face. Marks overlay.narrator.touched=true so auto-fit doesn't overwrite. No media/audio/timeline/Remotion-spec changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="caption-y" id="ex-modify-scene--caption-y"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(F) Caption Y — vertical placement only (280×498)</h3><p class="wc-pg-example-desc">ONLY Y — does not change x/w/h, visibility, config, segment.text, segment.words, audio, duration, or Remotion specs.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-inline" id="ex-modify-scene--layout-batch-inline"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — multiple layout fields directly</h3><p class="wc-pg-example-desc">One persist, one MQTT scene_modified. Allowed children: overlay.narrator.*, overlay.caption.y, remotion.object.rect, remotion.group.rect.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-wrapped" id="ex-modify-scene--layout-batch-wrapped"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — via the explicit `layout.batch` envelope</h3><p class="wc-pg-example-desc">Same composer, alternate request shape. Useful when the orchestrator already knows it's batching.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="voice-upload" id="ex-modify-scene--voice-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(H) Upload Voice — user-supplied audio (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; not Use-AI-Voice. Returns scene_voice_upload_queued + queue_id. Wait for MQTT scene_voice_upload_applied, then call /v1/video_data to verify.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-video-upload" id="ex-modify-scene--narrator-video-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(I) Upload Narrator Video — user-supplied A-roll (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; user-supplied video. If target is B-roll, server preserves the previous background and switches to A-roll on completion.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="roll-switch" id="ex-modify-scene--roll-switch"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(J) A/B-roll switch — show narrator A-roll</h3><p class="wc-pg-example-desc">Sync data switch. Preserves both lanes; swaps the active runtime fields. A→B mirrors the editor's _switched file-family protection.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="segment-text" id="ex-modify-scene--segment-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(K) Segment text correction</h3><p class="wc-pg-example-desc">Rebuilds word timings over existing audio; no duration/timeline change.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="scene-metadata" id="ex-modify-scene--scene-metadata"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(L) Scene metadata — validated pattern + quote</h3><p class="wc-pg-example-desc">pattern is validated against ai_segment_text canonical values; type ∈ {HOOK, STAT, KEY POINT, DATA, FACT, CALL TO ACTION}. pattern='typography_only' auto-clears visual.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/modify_scene</code></div><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-voice-file" id="ex-modify-scene--media-by-voice-file"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — image, by voice_file</h3><p class="wc-pg-example-desc">Most reliable. Roll-aware — B-roll updates mediaUrl/brollUrl; A-roll registers as brollUrl/user_asset_url without disturbing the narrator.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="media-by-text" id="ex-modify-scene--media-by-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(A) Background swap — match by narration text, video</h3><p class="wc-pg-example-desc">Fuzzy match on the narration. May return a clarification — pick a voice_file and retry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay" id="ex-modify-scene--upload-overlay"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-supplied PNG → Remotion spec (raster path, FREE)</h3><p class="wc-pg-example-desc">NOT Regenerate Overlay (paid). Raster path: classifier-driven graphic-vs-realistic decomposition with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="upload-overlay-svg" id="ex-modify-scene--upload-overlay-svg"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(B) Upload Overlay — agent-authored SVG → svg2spec (PREFERRED, FREE)</h3><p class="wc-pg-example-desc">URL ending .svg triggers svg2spec. Required: viewBox 0 0 720 1280. Each `<g data-wc-object="name">` group becomes one Storyboard object with pixel-perfect placement (NO auto-fit). Per-group attrs: data-wc-object (REQUIRED stable id; unmarked groups become background), data-wc-kind ∈ {object,text,bar,mark,callout}, data-wc-anim ∈ {slide-up,slide-down,slide-left,slide-right,pop,grow-x,grow-y,fade,…}, data-wc-z (paint order). Deterministic — no classifier. SVG errors → 422 svg2spec_failed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-one-by-one" id="ex-modify-scene--object-rect-one-by-one"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — preferred overlay layout (one_by_one)</h3><p class="wc-pg-example-desc">Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="object-rect-single" id="ex-modify-scene--object-rect-single"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(C) Object-layer rect — move a single overlay text object</h3><p class="wc-pg-example-desc">Per-object layout_id (e.g. main.obj_03_text). Server maps the preview rect onto raw Storyboard offsets/sizes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-move" id="ex-modify-scene--group-rect-move"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — move whole Storyboard group up by 120px (canvas)</h3><p class="wc-pg-example-desc">Low-level wrapper edit — child objects untouched. Canvas (720×1280) is NOT clamped; negative y is allowed.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="group-rect-scale" id="ex-modify-scene--group-rect-scale"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(D) Group rect — resize + scale children</h3><p class="wc-pg-example-desc">Resize triggers `scale_children`: wrapper + every child object + root background.bbox scale together. `wrapper_only` is advanced.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-rect" id="ex-modify-scene--narrator-rect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(E) Narrator layout rect — 280×498 preview coords</h3><p class="wc-pg-example-desc">Preserves narrator metadata + source-space segment.narrator_face. Marks overlay.narrator.touched=true so auto-fit doesn't overwrite. No media/audio/timeline/Remotion-spec changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="caption-y" id="ex-modify-scene--caption-y"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(F) Caption Y — vertical placement only (280×498)</h3><p class="wc-pg-example-desc">ONLY Y — does not change x/w/h, visibility, config, segment.text, segment.words, audio, duration, or Remotion specs.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-inline" id="ex-modify-scene--layout-batch-inline"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — multiple layout fields directly</h3><p class="wc-pg-example-desc">One persist, one MQTT scene_modified. Allowed children: overlay.narrator.*, overlay.caption.y, remotion.object.rect, remotion.group.rect.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="layout-batch-wrapped" id="ex-modify-scene--layout-batch-wrapped"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(G) Layout batch — via the explicit `layout.batch` envelope</h3><p class="wc-pg-example-desc">Same composer, alternate request shape. Useful when the orchestrator already knows it's batching.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="voice-upload" id="ex-modify-scene--voice-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(H) Upload Voice — user-supplied audio (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; not Use-AI-Voice. Returns scene_voice_upload_queued + queue_id. Wait for MQTT scene_voice_upload_applied, then call /v1/video_data to verify.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="narrator-video-upload" id="ex-modify-scene--narrator-video-upload"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(I) Upload Narrator Video — user-supplied A-roll (ASYNC; queued)</h3><p class="wc-pg-example-desc">Free; user-supplied video. If target is B-roll, server preserves the previous background and switches to A-roll on completion.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="roll-switch" id="ex-modify-scene--roll-switch"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(J) A/B-roll switch — show narrator A-roll</h3><p class="wc-pg-example-desc">Sync data switch. Preserves both lanes; swaps the active runtime fields. A→B mirrors the editor's _switched file-family protection.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="segment-text" id="ex-modify-scene--segment-text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(K) Segment text correction</h3><p class="wc-pg-example-desc">Rebuilds word timings over existing audio; no duration/timeline change.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="scene-metadata" id="ex-modify-scene--scene-metadata"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(L) Scene metadata — validated pattern + quote</h3><p class="wc-pg-example-desc">pattern is validated against ai_segment_text canonical values; type ∈ {HOOK, STAT, KEY POINT, DATA, FACT, CALL TO ACTION}. pattern='typography_only' auto-clears visual.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="add-element-text-bare" id="ex-modify-scene--add-element-text-bare"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(M) Remotion add element — bare-string shortcut for kind=text</h3><p class="wc-pg-example-desc">Add-only: appends a new Storyboard text object. Returns a new layout_id; follow up with layout.batch + remotion.object.rect to land it inside safe zones.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="add-element-stat-position" id="ex-modify-scene--add-element-stat-position"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(M) Remotion add element — stat with position hint</h3><p class="wc-pg-example-desc">kind=stat draws value + label. position picks a server-side default rect on the named side (top/bottom/left/right/center).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/modify-scene.json" data-usecase-id="add-element-image-explicit-rect" id="ex-modify-scene--add-element-image-explicit-rect"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">(M) Remotion add element — image with explicit 280×498 preview rect</h3><p class="wc-pg-example-desc">kind=image places the URL inline. Use rect to pin the position; coordinate_space defaults to 'preview' (280×498).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <blockquote>
 <p><strong><code>segment.remotion_spec == "none"</code></strong> means the user intentionally disabled the overlay on that scene. Layout edits return <code>remotion_spec_disabled</code>. <strong>Do not auto-enable</strong> — restore the overlay only with <strong>Upload Overlay</strong> (B) if the user explicitly asks.</p>
@@ -282,7 +287,35 @@
 <p>Response includes <code>applied</code>, <code>media_type</code>, <code>media_url</code>, and the full updated <code>segment</code>.</p>
 <hr />
 <h2 id="branch-b-upload-overlay">Branch (B) — Upload Overlay</h2>
-<p>Free, agent-supplied image → Remotion overlay spec. This is <strong>not</strong> Regenerate Overlay (which is paid because WideCast calls image generation). The pipeline classifies the image (graphic vs realistic), decomposes it into objects, and applies a strict no-AI fallback when decomposition fails.</p>
+<p>Free, agent-supplied <strong>asset</strong> → Remotion overlay spec. This is <strong>not</strong> Regenerate Overlay (which is paid because WideCast calls image generation).</p>
+<p>Two upload formats are supported, <strong>chosen by the URL extension</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Trigger</th>
+<th>Pipeline</th>
+<th>Decomposition</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SVG</strong></td>
+<td>URL ends <code>.svg</code></td>
+<td><code>svg2spec</code> (each <code>&lt;g data-wc-object&gt;</code> group → one object)</td>
+<td><strong>Deterministic, pixel-perfect</strong> (NO auto-fit; max diff 2/255 vs original)</td>
+<td>Agent authors the overlay programmatically and wants guaranteed decomposition + animation hints in one file.</td>
+</tr>
+<tr>
+<td><strong>Raster</strong></td>
+<td>PNG / JPG / WebP / GIF / etc</td>
+<td><code>detect.py</code> classifier → graphic decomposition OR full-frame realistic fallback</td>
+<td>Classifier-driven (heuristic)</td>
+<td>Existing image file, scanned graphics, designer-provided assets.</td>
+</tr>
+</tbody>
+</table>
 <div class="highlight"><pre><span></span><code>{
   &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
   &quot;by&quot;:    &quot;voice_file&quot;,
@@ -294,15 +327,114 @@
 </code></pre></div>
 
 <p>You can also pass <code>value: { "url": "https://..." }</code> if you need to attach future options.</p>
-<p><strong>Grounding rule.</strong> If the agent creates the image first, it MUST be grounded in scene context (<code>text</code>, <code>talking_point</code>, <code>visual</code>, <code>quote</code>, <code>keyword</code>, <code>type</code>) — do not invent unrelated visuals.</p>
-<p><strong>Image guidance for best decomposition</strong>:</p>
+<p><strong>Grounding rule.</strong> Whichever format you choose, the asset MUST be grounded in scene context (<code>text</code>, <code>talking_point</code>, <code>visual</code>, <code>quote</code>, <code>keyword</code>, <code>type</code>) — do not invent unrelated visuals.</p>
+<h3 id="svg-path-preferred-for-agent-authored-overlays">📐 SVG path (PREFERRED for agent-authored overlays)</h3>
+<p>When the URL ends <code>.svg</code> (case-insensitive), WideCast routes through <code>svg2spec</code>:</p>
+<ol>
+<li>Parses the SVG.</li>
+<li>Finds every <code>&lt;g data-wc-object="name"&gt;</code> group (document order).</li>
+<li>Rasterizes <strong>each group alone</strong> on a transparent 720×1280 canvas.</li>
+<li>Crops to the alpha bbox → base64 PNG → one Storyboard object per group.</li>
+<li>Each object is placed at its authored bbox with <strong>NO auto-fit</strong> (pixel-perfect; verified max diff 2/255 vs the original SVG).</li>
+</ol>
+<p><strong>Required</strong>: <code>viewBox="0 0 720 1280"</code> (portrait — matches the Remotion canvas).</p>
+<p><strong>Per-group attributes</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Required?</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data-wc-object="name"</code></td>
+<td><strong>yes</strong></td>
+<td>Stable id/name. Groups WITHOUT this are rasterized into the background instead of becoming separate objects.</td>
+</tr>
+<tr>
+<td><code>data-wc-kind</code></td>
+<td>no</td>
+<td><code>"object"</code> | <code>"text"</code> | <code>"bar"</code> | <code>"mark"</code> | <code>"callout"</code> — inferred from content if missing.</td>
+</tr>
+<tr>
+<td><code>data-wc-anim</code></td>
+<td>no</td>
+<td>Entry animation: <code>"slide-up"</code> | <code>"slide-down"</code> | <code>"slide-left"</code> | <code>"slide-right"</code> | <code>"pop"</code> | <code>"grow-x"</code> | <code>"grow-y"</code> | <code>"fade"</code> (default <code>"fade"</code>; bar shapes get <code>growRight</code> / <code>growUp</code> automatically).</td>
+</tr>
+<tr>
+<td><code>data-wc-z</code></td>
+<td>no</td>
+<td>Paint/stack order (default = document order).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Authoring example</strong> (a stat callout next to an icon):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;svg</span><span class="w"> </span><span class="na">xmlns=</span><span class="s">&quot;http://www.w3.org/2000/svg&quot;</span><span class="w"> </span><span class="na">viewBox=</span><span class="s">&quot;0 0 720 1280&quot;</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;g</span><span class="w"> </span><span class="na">data-wc-object=</span><span class="s">&quot;bg-card&quot;</span><span class="w"> </span><span class="na">data-wc-kind=</span><span class="s">&quot;object&quot;</span><span class="w"> </span><span class="na">data-wc-anim=</span><span class="s">&quot;fade&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;rect</span><span class="w"> </span><span class="na">x=</span><span class="s">&quot;60&quot;</span><span class="w"> </span><span class="na">y=</span><span class="s">&quot;380&quot;</span><span class="w"> </span><span class="na">width=</span><span class="s">&quot;600&quot;</span><span class="w"> </span><span class="na">height=</span><span class="s">&quot;240&quot;</span><span class="w"> </span><span class="na">rx=</span><span class="s">&quot;32&quot;</span><span class="w"> </span><span class="na">fill=</span><span class="s">&quot;#1e293b&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/g&gt;</span>
+<span class="w">  </span><span class="nt">&lt;g</span><span class="w"> </span><span class="na">data-wc-object=</span><span class="s">&quot;icon&quot;</span><span class="w"> </span><span class="na">data-wc-kind=</span><span class="s">&quot;mark&quot;</span><span class="w"> </span><span class="na">data-wc-anim=</span><span class="s">&quot;pop&quot;</span><span class="w"> </span><span class="na">data-wc-z=</span><span class="s">&quot;2&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;circle</span><span class="w"> </span><span class="na">cx=</span><span class="s">&quot;160&quot;</span><span class="w"> </span><span class="na">cy=</span><span class="s">&quot;500&quot;</span><span class="w"> </span><span class="na">r=</span><span class="s">&quot;60&quot;</span><span class="w"> </span><span class="na">fill=</span><span class="s">&quot;#a78bfa&quot;</span><span class="nt">/&gt;</span>
+<span class="w">    </span><span class="nt">&lt;path</span><span class="w"> </span><span class="na">d=</span><span class="s">&quot;M130 500 l25 25 l45 -50&quot;</span><span class="w"> </span><span class="na">stroke=</span><span class="s">&quot;#fff&quot;</span><span class="w"> </span><span class="na">stroke-width=</span><span class="s">&quot;8&quot;</span><span class="w"> </span><span class="na">fill=</span><span class="s">&quot;none&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/g&gt;</span>
+<span class="w">  </span><span class="nt">&lt;g</span><span class="w"> </span><span class="na">data-wc-object=</span><span class="s">&quot;stat-number&quot;</span><span class="w"> </span><span class="na">data-wc-kind=</span><span class="s">&quot;text&quot;</span><span class="w"> </span><span class="na">data-wc-anim=</span><span class="s">&quot;slide-up&quot;</span><span class="w"> </span><span class="na">data-wc-z=</span><span class="s">&quot;3&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;text</span><span class="w"> </span><span class="na">x=</span><span class="s">&quot;260&quot;</span><span class="w"> </span><span class="na">y=</span><span class="s">&quot;490&quot;</span><span class="w"> </span><span class="na">font-family=</span><span class="s">&quot;Inter&quot;</span><span class="w"> </span><span class="na">font-size=</span><span class="s">&quot;64&quot;</span><span class="w"> </span><span class="na">font-weight=</span><span class="s">&quot;800&quot;</span><span class="w"> </span><span class="na">fill=</span><span class="s">&quot;#fff&quot;</span><span class="nt">&gt;</span>$14.3B<span class="nt">&lt;/text&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/g&gt;</span>
+<span class="w">  </span><span class="nt">&lt;g</span><span class="w"> </span><span class="na">data-wc-object=</span><span class="s">&quot;stat-label&quot;</span><span class="w"> </span><span class="na">data-wc-kind=</span><span class="s">&quot;text&quot;</span><span class="w"> </span><span class="na">data-wc-anim=</span><span class="s">&quot;slide-up&quot;</span><span class="w"> </span><span class="na">data-wc-z=</span><span class="s">&quot;4&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;text</span><span class="w"> </span><span class="na">x=</span><span class="s">&quot;260&quot;</span><span class="w"> </span><span class="na">y=</span><span class="s">&quot;560&quot;</span><span class="w"> </span><span class="na">font-family=</span><span class="s">&quot;Inter&quot;</span><span class="w"> </span><span class="na">font-size=</span><span class="s">&quot;28&quot;</span><span class="w"> </span><span class="na">fill=</span><span class="s">&quot;#cbd5e1&quot;</span><span class="nt">&gt;</span>Meta<span class="w"> </span>→<span class="w"> </span>Scale<span class="w"> </span>AI<span class="nt">&lt;/text&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/g&gt;</span>
+<span class="nt">&lt;/svg&gt;</span>
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;remotion.upload_overlay&quot;, &quot;value&quot;: &quot;https://cdn.example.com/scene-overlay.svg&quot; }
+  ]
+}
+</code></pre></div>
+
+<p><strong>SVG-specific errors</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th><code>error.code</code></th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>422</td>
+<td><code>svg2spec_failed</code></td>
+<td>Parse error / missing viewBox / no <code>data-wc-object</code> groups / structural issue (the message carries the underlying svg2spec reason).</td>
+</tr>
+<tr>
+<td>502</td>
+<td>(network)</td>
+<td>SVG URL couldn't be downloaded.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The SVG path is <strong>strict</strong>: a bad authored file produces a clean 422 with a structural reason, not a silent fallback into another pipeline.</p>
+</blockquote>
+<h3 id="raster-path-default-for-non-svg-urls">🖼 Raster path (default for non-SVG URLs)</h3>
+<p>Image guidance for best object decomposition:</p>
 <ul>
 <li>Portrait 9:16, preferably <strong>720×1280 transparent PNG</strong>.</li>
 <li>Flat-background graphic with large, separated foreground objects/text.</li>
 <li>Strong contrast, readable typography.</li>
 <li>Avoid photo-realistic backgrounds, heavy gradients, vignettes, and tiny dense text — those get classified <code>realistic</code> and are kept as ONE full-frame image (not decomposed).</li>
 </ul>
-<p>Upload Overlay is an <strong>explicit opt-in to recreate an overlay</strong> even if the scene previously had <code>remotion_spec="none"</code>.</p>
+<blockquote>
+<p>When in doubt, author SVG — the SVG path has no classifier in the loop, so you get the exact decomposition you authored.</p>
+</blockquote>
+<p>Upload Overlay (either format) is an <strong>explicit opt-in to recreate an overlay</strong> even if the scene previously had <code>remotion_spec="none"</code>.</p>
 <p>The success response includes <code>remotion_spec_updated: true</code>, <code>remotion_spec_file</code>, a cache-busted <code>remotion_spec_url</code>, <code>remotion_spec_version</code>, <code>remotion_spec_state: "ready"</code>, plus the agent-supplied <code>uploaded_overlay_url</code>, <code>cost: 0</code>, and <code>remotion_poster_url</code> (a static fallback poster used by <code>/v1/scene_inspector</code> when no live browser is available).</p>
 <hr />
 <h2 id="branch-c-remotion-storyboard-object-layer-rect-preferred-overlay-layout">Branch (C) — Remotion Storyboard object-layer rect (preferred overlay layout)</h2>
@@ -626,6 +758,214 @@
 }
 </code></pre></div>
 
+<hr />
+<h2 id="branch-m-remotion-add-element">Branch (M) — Remotion add element</h2>
+<p>Free, synchronous, <strong>add-only</strong>. Appends a new Storyboard group/object to the existing Remotion spec. Does NOT auto-fit, replace, move, or modify existing objects. Returns a new <code>layout_id</code> so you can land the element precisely with a follow-up <a href="#branch-g--layout-batch-one-persist-one-mqtt"><code>layout.batch</code></a> carrying a <code>remotion.object.rect</code>.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;id&quot;:    &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;by&quot;:    &quot;voice_file&quot;,
+  &quot;value&quot;: &quot;XcR0k&quot;,
+  &quot;fields&quot;: [
+    {
+      &quot;field_name&quot;: &quot;remotion.add_element&quot;,
+      &quot;value&quot;: {
+        &quot;kind&quot;:     &quot;stat&quot;,
+        &quot;value&quot;:    &quot;$14.3B&quot;,
+        &quot;label&quot;:    &quot;Meta → Scale AI&quot;,
+        &quot;position&quot;: &quot;top&quot;
+      }
+    }
+  ]
+}
+</code></pre></div>
+
+<p>You can also pass a bare string for the common <code>kind="text"</code> case:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;fields&quot;: [
+    { &quot;field_name&quot;: &quot;remotion.add_element&quot;, &quot;value&quot;: &quot;+14.3B in 12 months&quot; }
+  ]
+}
+</code></pre></div>
+
+<h3 id="value-reference">Value reference</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td>yes (or derive)</td>
+<td><code>"text"</code> | <code>"stat"</code> | <code>"label"</code> | <code>"callout"</code> | <code>"image"</code>. Aliases: <code>metric</code>/<code>number</code> → <code>stat</code>, <code>badge</code>/<code>caption</code> → <code>label</code>. Defaults to <code>image</code> when <code>url</code>/<code>image</code>/<code>src</code> is set, else <code>text</code>.</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>yes for text/stat/callout</td>
+<td>Primary text content.</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>optional</td>
+<td>Secondary text (used by <code>stat</code>/<code>label</code>).</td>
+</tr>
+<tr>
+<td><code>url</code> (<code>image</code>, <code>src</code> aliases)</td>
+<td>yes for <code>kind="image"</code></td>
+<td>http(s) image URL.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td>optional</td>
+<td><code>"top"</code> | <code>"bottom"</code> | <code>"left"</code> | <code>"right"</code> | <code>"center"</code> — placement hint; server picks a sane default rect on that side.</td>
+</tr>
+<tr>
+<td><code>rect</code></td>
+<td>optional</td>
+<td>Pin an explicit rect: <code>{x, y, w, h, coordinate_space: "preview" \| "canvas"}</code> (default <code>"preview"</code> = 280×498). Top-level shorthand <code>x/y/w/h</code> on the value object is also accepted.</td>
+</tr>
+<tr>
+<td><code>style_token</code></td>
+<td>optional</td>
+<td>Visual token name (e.g. brand styling slot).</td>
+</tr>
+<tr>
+<td><code>emphasis</code></td>
+<td>optional</td>
+<td>Style intensity hint.</td>
+</tr>
+<tr>
+<td><code>entry</code></td>
+<td>optional</td>
+<td>Entry animation (default <code>"fade"</code>).</td>
+</tr>
+<tr>
+<td><code>delay_sec</code></td>
+<td>optional</td>
+<td>Delay before the element appears (default <code>0</code>).</td>
+</tr>
+<tr>
+<td><code>z_index</code></td>
+<td>optional</td>
+<td>Per-object z order inside the new Storyboard group (default <code>1</code>).</td>
+</tr>
+<tr>
+<td><code>element_z_index</code></td>
+<td>optional</td>
+<td>Z order of the new Storyboard group itself (default <code>900</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rules">Rules</h3>
+<ul>
+<li><strong>Add-only</strong>: never replaces / reorders / moves / mutates existing objects. If you need polished placement, follow up with <code>layout.batch</code>.</li>
+<li><strong>Send alone</strong>: combining <code>remotion.add_element</code> with any other Remotion field (or putting it inside <code>layout.batch</code> directly) returns <code>400 mixed_remotion_fields</code>.</li>
+<li><strong>Requires an enabled spec</strong>: scenes with <code>segment.remotion_spec="none"</code> reject the call with <code>409 remotion_spec_disabled</code>. Use Upload Overlay (B) first if the user wants the overlay back.</li>
+</ul>
+<h3 id="response">Response</h3>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:                  &quot;scene_modified&quot;,
+  &quot;id&quot;:                      &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;scene_id&quot;:                3,
+  &quot;voice_file&quot;:              &quot;XcR0k&quot;,
+  &quot;applied&quot;: {
+    &quot;field_name&quot;:  &quot;remotion.add_element&quot;,
+    &quot;kind&quot;:        &quot;stat&quot;,
+    &quot;element_id&quot;:  &quot;agent_add_01&quot;,
+    &quot;object_id&quot;:   &quot;add_stat_1782700000000&quot;,
+    &quot;layout_id&quot;:   &quot;agent_add_01.add_stat_1782700000000&quot;,
+    &quot;rect&quot;:        { &quot;x&quot;: 24, &quot;y&quot;: 60,  &quot;w&quot;: 232, &quot;h&quot;: 64,  &quot;coordinate_space&quot;: &quot;preview&quot; },
+    &quot;rect_canvas&quot;: { &quot;x&quot;: 61.7, &quot;y&quot;: 154.4, &quot;w&quot;: 596.6, &quot;h&quot;: 164.6, &quot;coordinate_space&quot;: &quot;canvas&quot; },
+    &quot;cost&quot;:        &quot;free_spec_append&quot;,
+    &quot;async&quot;:       false,
+    &quot;auto_fit&quot;:    false,
+    &quot;follow_up&quot;:   &quot;Use layout.batch with remotion.object.rect and the returned layout_id to position this object.&quot;
+  },
+  &quot;remotion_element_added&quot;: true,
+  &quot;remotion_spec_updated&quot;:  true,
+  &quot;remotion_spec_url&quot;:      &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_spec.json?v=1782700000&quot;,
+  &quot;remotion_poster_url&quot;:    &quot;https://widecast.ai/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/XcR0k_overlay_poster.png?v=1782700000&quot;,
+  &quot;segment&quot;:                { /* updated segment */ }
+}
+</code></pre></div>
+
+<h3 id="recommended-workflow">Recommended workflow</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Add the element (default placement)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">modify_scene</span><span class="p">(</span>
+    <span class="n">video_id</span><span class="p">,</span>
+    <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[{</span>
+        <span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;remotion.add_element&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;stat&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;$14.3B&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Meta → Scale AI&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="s2">&quot;top&quot;</span><span class="p">},</span>
+    <span class="p">}],</span>
+<span class="p">)</span>
+<span class="n">layout_id</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;applied&quot;</span><span class="p">][</span><span class="s2">&quot;layout_id&quot;</span><span class="p">]</span>
+
+<span class="c1"># 2. Read the displayed rect + collision violations</span>
+<span class="n">geom</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_geometry</span><span class="p">(</span><span class="n">video_id</span><span class="p">,</span> <span class="n">voice_file</span><span class="o">=</span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span> <span class="n">include_diagnostics</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># 3. Refine placement with layout.batch (and any sibling layout edits)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">modify_scene</span><span class="p">(</span>
+    <span class="n">video_id</span><span class="p">,</span>
+    <span class="n">by</span><span class="o">=</span><span class="s2">&quot;voice_file&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[{</span>
+        <span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="s2">&quot;remotion.object.rect&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;layout_id&quot;</span><span class="p">:</span> <span class="n">layout_id</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">232</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="mi">56</span><span class="p">,</span>
+                  <span class="s2">&quot;coordinate_space&quot;</span><span class="p">:</span> <span class="s2">&quot;preview&quot;</span><span class="p">},</span>
+    <span class="p">}],</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<h3 id="error-codes">Error codes</h3>
+<table>
+<thead>
+<tr>
+<th><code>error.code</code></th>
+<th>HTTP</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invalid_remotion_add_element</code></td>
+<td>400</td>
+<td><code>value</code> is neither a dict nor a non-empty string.</td>
+</tr>
+<tr>
+<td><code>invalid_remotion_add_element_kind</code></td>
+<td>400</td>
+<td><code>kind</code> is not in the allowed set.</td>
+</tr>
+<tr>
+<td><code>mixed_remotion_fields</code></td>
+<td>400</td>
+<td>Sent alongside other Remotion fields (or inside <code>layout.batch</code>).</td>
+</tr>
+<tr>
+<td><code>remotion_spec_not_found</code></td>
+<td>404</td>
+<td>The scene's spec file is missing on disk.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_disabled</code></td>
+<td>409</td>
+<td><code>segment.remotion_spec="none"</code> — use Upload Overlay first.</td>
+</tr>
+<tr>
+<td><code>missing_voice_file</code></td>
+<td>409</td>
+<td>Scene has no <code>voice_file</code>; can't resolve the spec filename.</td>
+</tr>
+<tr>
+<td><code>remotion_spec_parse_failed</code> / <code>remotion_spec_invalid</code></td>
+<td>409</td>
+<td>Spec file present but unreadable / not a JSON object.</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="responses">Responses</h2>
 <h3 id="200-ok-scene_modified-sync-branches"><code>200 OK</code> — <code>scene_modified</code> (sync branches)</h3>

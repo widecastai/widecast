@@ -104,8 +104,8 @@ use_cases:
         - field_name: "mediaType"
           value: "video"
   - id: upload-overlay
-    title: "(B) Upload Overlay — agent-supplied PNG → Remotion spec (FREE)"
-    description: "NOT Regenerate Overlay (paid). Pipeline classifies graphic vs realistic + decomposes into objects with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type)."
+    title: "(B) Upload Overlay — agent-supplied PNG → Remotion spec (raster path, FREE)"
+    description: "NOT Regenerate Overlay (paid). Raster path: classifier-driven graphic-vs-realistic decomposition with strict no-AI fallback. Prefer a portrait 720×1280 transparent PNG; ground the image in scene context (text/talking_point/visual/quote/keyword/type)."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       by: "voice_file"
@@ -113,6 +113,16 @@ use_cases:
       fields:
         - field_name: "remotion.upload_overlay"
           value: "https://cdn.example.com/overlay-720x1280.png"
+  - id: upload-overlay-svg
+    title: "(B) Upload Overlay — agent-authored SVG → svg2spec (PREFERRED, FREE)"
+    description: "URL ending .svg triggers svg2spec. Required: viewBox 0 0 720 1280. Each `<g data-wc-object=\"name\">` group becomes one Storyboard object with pixel-perfect placement (NO auto-fit). Per-group attrs: data-wc-object (REQUIRED stable id; unmarked groups become background), data-wc-kind ∈ {object,text,bar,mark,callout}, data-wc-anim ∈ {slide-up,slide-down,slide-left,slide-right,pop,grow-x,grow-y,fade,…}, data-wc-z (paint order). Deterministic — no classifier. SVG errors → 422 svg2spec_failed."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.upload_overlay"
+          value: "https://cdn.example.com/scene-overlay.svg"
   - id: object-rect-one-by-one
     title: "(C) Object-layer rect — preferred overlay layout (one_by_one)"
     description: "Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged."
@@ -283,3 +293,45 @@ use_cases:
           value: "typography_only"
         - field_name: "quote"
           value: "Short headline that lands"
+  - id: add-element-text-bare
+    title: "(M) Remotion add element — bare-string shortcut for kind=text"
+    description: "Add-only: appends a new Storyboard text object. Returns a new layout_id; follow up with layout.batch + remotion.object.rect to land it inside safe zones."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.add_element"
+          value: "+14.3B in 12 months"
+  - id: add-element-stat-position
+    title: "(M) Remotion add element — stat with position hint"
+    description: "kind=stat draws value + label. position picks a server-side default rect on the named side (top/bottom/left/right/center)."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.add_element"
+          value:
+            kind: "stat"
+            value: "$14.3B"
+            label: "Meta → Scale AI"
+            position: "top"
+  - id: add-element-image-explicit-rect
+    title: "(M) Remotion add element — image with explicit 280×498 preview rect"
+    description: "kind=image places the URL inline. Use rect to pin the position; coordinate_space defaults to 'preview' (280×498)."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      by: "voice_file"
+      value: "XcR0k"
+      fields:
+        - field_name: "remotion.add_element"
+          value:
+            kind: "image"
+            url: "https://cdn.example.com/badge.png"
+            rect:
+              x: 16
+              y: 60
+              w: 64
+              h: 64
+              coordinate_space: "preview"
