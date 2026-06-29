@@ -273,11 +273,11 @@ export interface SceneInspectorResponse {
   status: "completed" | "unavailable" | "error";
   /** `ok` | `no_live_editor` | `no_active_editor` | `unsupported_action`
    *  | `publisher_missing` | `mqtt_publish_failed` | `browser_error` |
-   *  `server_fallback` (only for `screenshot_scene_280x498` when no live
-   *  editor — response carries a composite assembled from scene
-   *  thumbnails + `{voice_file}_overlay_poster.png`, published to the
-   *  same temporary URL contract) | `screenshot_publish_failed`
-   *  (composed but couldn't be persisted to disk — HTTP 500). */
+   *  `screenshot_publish_failed` (composed but couldn't be persisted to
+   *  disk — HTTP 500). Successful `screenshot_scene_280x498` calls
+   *  ALWAYS return `code: "ok"` — the server-side compositor is now
+   *  the sole screenshot path, so do NOT treat any non-"ok" code as
+   *  success on screenshot. */
   code: string;
   request_id: string;
   action: SceneInspectorAction;
@@ -1372,16 +1372,34 @@ export class Widecast {
    *    `remotion.object.rect` for that `layout_id` to land the element
    *    inside safe zones — the initial placement is a default, not a
    *    polished layout.
+   *  - **(N) Disable overlay (FREE, SYNC, data edit).**
+   *    `[{field_name: "disable_overlay", value: true}]` — aliases:
+   *    `remotion.disable_overlay`, `overlay.disable`,
+   *    `remotion_spec.none`. `value` may be `true`, the string
+   *    `"none"`, or `{enabled: false}`. Sets
+   *    `segment.remotion_spec="none"` (opt-out sentinel) and emits
+   *    MQTT `scene_modified` with `overlay_disabled: true`. Does NOT
+   *    delete `{voice_file}_spec.json` / `{voice_file}_overlay_poster.png`,
+   *    does NOT regenerate, does NOT touch narrator / caption / media
+   *    / timing / layout. Must be sent **alone** (400
+   *    `mixed_remotion_fields` if combined). Idempotent: re-disabling
+   *    returns `applied.idempotent: true`. **Re-enable** via (B)
+   *    Upload Overlay — that path writes a fresh
+   *    `{voice_file}_spec.json` and stamps `remotion_spec` to
+   *    `{voice_file}_spec.json?v={mtime}`. Errors: 400
+   *    `invalid_disable_overlay_value` / `mixed_remotion_fields`, 409
+   *    `missing_voice_file`.
    *
    *  `segment.remotion_spec == "none"` means the user intentionally
-   *  disabled the overlay — agents must NOT auto-edit/re-enable.
+   *  disabled the overlay (via (N) or UI) — agents must NOT
+   *  auto-edit/re-enable.
    *
    *  Inspect `result.object`:
    *    - `"scene_modified"` → sync success; family-dependent fields
    *      (`media_*`, `remotion_spec_*`, `remotion_poster_*`,
    *      `layout_batch_updated`, `narrator_layout_updated`,
    *      `caption_layout_updated`, `remotion_object_updated`,
-   *      `remotion_element_added`, `roll_switched`, etc).
+   *      `remotion_element_added`, `overlay_disabled`, `roll_switched`, etc).
    *    - `"scene_voice_upload_queued"` / `"scene_narrator_upload_queued"`
    *      → async upload queued; `queue_id` set.
    *    - `"clarification"` → ambiguous text match; show `candidates`. */

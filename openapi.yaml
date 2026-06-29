@@ -156,6 +156,7 @@ info:
       remotion_spec_not_found | remotion_spec_parse_failed |
       remotion_spec_invalid | missing_remotion_object_rect |
       invalid_remotion_add_element | invalid_remotion_add_element_kind |
+      invalid_disable_overlay_value |
       missing_uploaded_overlay_url | invalid_uploaded_overlay_url |
       svg2spec_failed |
       missing_voice_file | mixed_remotion_fields | ambiguous_text |
@@ -164,7 +165,7 @@ info:
       script_not_ready | script_parse_failed | scene_geometry_failed |
       unsupported_action |
       publisher_missing | mqtt_publish_failed | no_live_editor |
-      no_active_editor | browser_error | server_fallback |
+      no_active_editor | browser_error |
       screenshot_publish_failed | server_fallback_failed`
     - Headers (every response): `X-Request-Id`, `X-RateLimit-*`,
       `X-WideCast-Version`
@@ -645,10 +646,31 @@ paths:
         element inside safe zones — the initial placement is a default,
         not a polished layout.
 
+        **(N) Disable overlay (`disable_overlay`) — FREE, SYNC, data
+        edit.** `field_name = "disable_overlay"` (aliases:
+        `remotion.disable_overlay`, `overlay.disable`,
+        `remotion_spec.none`). `value` may be `true`, the string
+        `"none"`, or `{enabled:false}`. **What it does**: sets
+        `segment.remotion_spec="none"` (the opt-out sentinel) and emits
+        MQTT `scene_modified` with `overlay_disabled: true`. **What it
+        does NOT do**: it does NOT delete `{voice_file}_spec.json`, does
+        NOT delete `{voice_file}_overlay_poster.png`, does NOT
+        regenerate a replacement, and does NOT touch narrator / caption
+        / media / timing / layout. Must be sent **alone** — combining
+        with other Remotion fields returns 400 `mixed_remotion_fields`.
+        Re-disabling a scene that is already `remotion_spec="none"`
+        returns `applied.idempotent: true`. **Re-enable** by calling
+        (B) Upload Overlay (`remotion.upload_overlay`) or the manual
+        regenerate-overlay flow — those write a fresh
+        `{voice_file}_spec.json` and stamp the segment's `remotion_spec`
+        to `{voice_file}_spec.json?v={mtime}`. Errors: 400
+        `invalid_disable_overlay_value` / `mixed_remotion_fields`,
+        409 `missing_voice_file`.
+
         **`remotion_spec="none"`**: user intentionally disabled the
-        overlay on that scene. Layout edits return
-        `remotion_spec_disabled`. Do NOT auto-enable — only re-enable via
-        Upload Overlay if the user asks.
+        overlay on that scene (via (N) Disable overlay or UI). Layout
+        edits return `remotion_spec_disabled`. Do NOT auto-enable —
+        only re-enable via (B) Upload Overlay if the user asks.
 
         Successful edits publish MQTT realtime so open editors hot-update.
         Final render cost lands when `/v1/export_video` is called again.
@@ -903,6 +925,20 @@ paths:
                           w: 64
                           h: 64
                           coordinate_space: preview
+              disable_overlay:
+                summary: (N) Disable overlay — hide Remotion overlay without deleting the spec
+                description: |
+                  Sets `segment.remotion_spec="none"` (opt-out
+                  sentinel) without deleting `{voice_file}_spec.json`
+                  or the overlay poster. Re-enable later via (B)
+                  Upload Overlay. Must be sent ALONE.
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: XcR0k
+                  fields:
+                    - field_name: disable_overlay
+                      value: true
       responses:
         '200':
           description: |
@@ -2730,6 +2766,14 @@ components:
             `callout`, `image`}. Returns a new `layout_id` — follow up
             with `layout.batch` carrying a matching `remotion.object.rect`
             for safe-zone placement.
+
+            **(N) Disable overlay** — `disable_overlay` (aliases:
+            `remotion.disable_overlay`, `overlay.disable`,
+            `remotion_spec.none`). `value` may be `true`, the string
+            `"none"`, or `{enabled:false}`. Sets
+            `segment.remotion_spec="none"` without deleting the
+            `{voice_file}_spec.json` / overlay-poster files. Must be
+            sent ALONE. Re-enable later via (B) Upload Overlay.
           items:
             type: object
             required: [field_name, value]
@@ -2741,6 +2785,10 @@ components:
                   - mediaType
                   - remotion.upload_overlay
                   - remotion.add_element
+                  - disable_overlay
+                  - remotion.disable_overlay
+                  - overlay.disable
+                  - remotion_spec.none
                   - remotion.object.rect
                   - remotion.group.rect
                   - overlay.narrator.rect
@@ -2908,6 +2956,15 @@ components:
             `auto_fit: false`, `cost: "free_spec_append"`, and a
             `follow_up` hint pointing at the recommended
             `layout.batch` + `remotion.object.rect` placement step.
+        overlay_disabled:
+          type: boolean
+          description: |
+            True when the (N) `disable_overlay` branch ran —
+            `segment.remotion_spec` was set to `"none"` (no
+            `{voice_file}_spec.json` / overlay-poster files deleted).
+            The `applied` object on this branch carries `before` (the
+            prior `remotion_spec` value), `after: "none"`, and
+            `idempotent: true` when the scene was already disabled.
         remotion_poster_file:
           type: string
           description: Canonical `{voice_file}_overlay_poster.png` — derived static overlay poster used by server-side scene_inspector screenshot fallback.
@@ -3899,14 +3956,16 @@ components:
           description: |
             `ok` | `no_live_editor` | `no_active_editor` |
             `unsupported_action` | `publisher_missing` |
-            `mqtt_publish_failed` | `browser_error` | `server_fallback`
-            (legacy fallback marker) | `server_fallback_failed`
-            (couldn't compose a fallback — HTTP 500) |
-            `screenshot_publish_failed` (composed but couldn't be
-            persisted to disk — HTTP 500). Successful
+            `mqtt_publish_failed` | `browser_error` |
+            `server_fallback_failed` (couldn't compose a fallback —
+            HTTP 500) | `screenshot_publish_failed` (composed but
+            couldn't be persisted to disk — HTTP 500). Successful
             `screenshot_scene_280x498` calls return this JSON envelope
-            with `result.screenshot.url` — agent fetches the JPEG with
-            `curl <url>`.
+            with `code: "ok"` and `result.screenshot.url` — agent
+            fetches the JPEG with `curl <url>`. The server-side
+            compositor is now the sole screenshot path, so a
+            successful screenshot is always `code: "ok"` regardless of
+            whether a live editor was elected.
         request_id: { type: string }
         action: { type: string }
         topic_id: { type: string }

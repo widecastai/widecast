@@ -477,6 +477,22 @@
           }
         ]
       }
+    },
+    {
+      "id": "disable-overlay",
+      "title": "(N) Disable overlay — hide Remotion overlay without deleting the spec",
+      "description": "Sets segment.remotion_spec='none' (opt-out sentinel). Does NOT delete {voice_file}_spec.json or the overlay poster. Must be sent ALONE. Re-enable later via (B) Upload Overlay.",
+      "request": {
+        "id": "widecast7c0d4f8a9b1e2d3f",
+        "by": "voice_file",
+        "value": "XcR0k",
+        "fields": [
+          {
+            "field_name": "disable_overlay",
+            "value": true
+          }
+        ]
+      }
     }
   ],
   "_key": "modify-scene",

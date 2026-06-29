@@ -317,14 +317,16 @@ resp = client.scene_inspector(
 )
 
 if resp["status"] == "completed" and resp.get("code") == "ok":
+    # Success — server publishes the JPEG (live-browser path was retired;
+    # compositor is the sole path, so `ok` covers both "live editor was
+    # present" and "server composed from thumbnails+overlay poster").
+    # `result.fallback.used == True` if you need to telemeter which path
+    # produced this frame, but for the agent's purposes the URL is the URL.
     url = resp["result"]["screenshot"]["url"]
     open("scene.jpg", "wb").write(requests.get(url, timeout=10).content)
-    print("saved live screenshot to scene.jpg")
-elif resp.get("code") == "server_fallback":
-    url = resp["result"]["screenshot"]["url"]
-    print("server-composed fallback URL (thumbnails + overlay poster):", url)
+    print("saved screenshot to scene.jpg")
 else:
-    # No live editor + composition failed — fall back to scene_geometry
+    # Composition itself failed (rare) — fall back to scene_geometry data
     geom = client.scene_geometry(data["id"], voice_file=target["voice_file"])
     print("falling back to scene_geometry:", geom["summary"])
 ```

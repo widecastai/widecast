@@ -603,14 +603,16 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
+    <span class="c1"># Success — server publishes the JPEG (live-browser path was retired;</span>
+    <span class="c1"># compositor is the sole path, so `ok` covers both &quot;live editor was</span>
+    <span class="c1"># present&quot; and &quot;server composed from thumbnails+overlay poster&quot;).</span>
+    <span class="c1"># `result.fallback.used == True` if you need to telemeter which path</span>
+    <span class="c1"># produced this frame, but for the agent&#39;s purposes the URL is the URL.</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
     <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;scene.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved live screenshot to scene.jpg&quot;</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;server_fallback&quot;</span><span class="p">:</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;server-composed fallback URL (thumbnails + overlay poster):&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved screenshot to scene.jpg&quot;</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="c1"># No live editor + composition failed — fall back to scene_geometry</span>
+    <span class="c1"># Composition itself failed (rare) — fall back to scene_geometry data</span>
     <span class="n">geom</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_geometry</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">voice_file</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">])</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;falling back to scene_geometry:&quot;</span><span class="p">,</span> <span class="n">geom</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">])</span>
 </code></pre></div>

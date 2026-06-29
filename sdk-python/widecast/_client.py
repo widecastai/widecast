@@ -971,14 +971,37 @@ class Widecast:
               the element inside safe zones — the initial placement is
               a default, not a polished layout.
 
+          **(N) Disable overlay (FREE, SYNC, data edit).**
+              ``[{"field_name": "disable_overlay", "value": True}]``
+              — aliases accepted: ``remotion.disable_overlay``,
+              ``overlay.disable``, ``remotion_spec.none``. ``value``
+              may be ``True``, the string ``"none"``, or
+              ``{"enabled": False}``. **What it does**: sets
+              ``segment.remotion_spec="none"`` (opt-out sentinel) and
+              emits MQTT ``scene_modified`` with
+              ``overlay_disabled: true``. **What it does NOT do**: it
+              does NOT delete ``{voice_file}_spec.json``, does NOT
+              delete ``{voice_file}_overlay_poster.png``, does NOT
+              regenerate a replacement, and does NOT touch narrator /
+              caption / media / timing / layout. Must be sent **alone**
+              (400 ``mixed_remotion_fields`` if combined). Idempotent:
+              re-disabling a scene that is already ``remotion_spec="none"``
+              returns ``applied.idempotent: True``. **Re-enable** via
+              (B) Upload Overlay (``remotion.upload_overlay``) — that
+              path writes a fresh ``{voice_file}_spec.json`` and stamps
+              the segment's ``remotion_spec`` to
+              ``{voice_file}_spec.json?v={mtime}``. Errors: 400
+              ``invalid_disable_overlay_value`` /
+              ``mixed_remotion_fields``, 409 ``missing_voice_file``.
+
         Remotion canvas = 720×1280; legacy ``overlay.caption`` /
         ``overlay.narrator`` use 280×498 editor preview coords. Set
         ``coordinate_space`` accordingly.
 
         ``segment.remotion_spec == "none"`` means the user intentionally
-        disabled the overlay on that scene. Layout edits return
-        ``remotion_spec_disabled``. Use Upload Overlay only if the user
-        explicitly asks to restore the overlay.
+        disabled the overlay on that scene (via (N) Disable overlay or
+        UI). Layout edits return ``remotion_spec_disabled``. Use Upload
+        Overlay only if the user explicitly asks to restore the overlay.
 
         Return — the raw response dict. Shapes:
 
@@ -989,6 +1012,7 @@ class Widecast:
             ``caption_layout_updated`` /
             ``remotion_object_updated`` /
             ``remotion_element_added`` /
+            ``overlay_disabled`` /
             ``remotion_poster_url`` /
             ``remotion_poster_warnings`` flags.
           * Async upload branches → ``{"object":

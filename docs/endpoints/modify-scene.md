@@ -21,10 +21,11 @@ The endpoint supports **thirteen edit branches**, grouped by family. Pick exactl
 | **(K) Segment text** | Correct narration/caption text while keeping audio timing. | `segment.text` |
 | **(L) Scene metadata** | Update scene planning metadata (`pattern`, `type`, …). | metadata fields |
 | **(M) Remotion add element** *(add-only)* | Append a new text / stat / label / callout / image object to the overlay; follow up with (C) `layout.batch` for placement. | `remotion.add_element` |
+| **(N) Disable overlay** | Hide the Remotion overlay on one scene by setting `remotion_spec="none"` (spec/poster files preserved). | `disable_overlay` (aliases: `remotion.disable_overlay` / `overlay.disable` / `remotion_spec.none`) |
 
 <!-- widecast-playground:modify-scene -->
 
-> **`segment.remotion_spec == "none"`** means the user intentionally disabled the overlay on that scene. Layout edits return `remotion_spec_disabled`. **Do not auto-enable** — restore the overlay only with **Upload Overlay** (B) if the user explicitly asks.
+> **`segment.remotion_spec == "none"`** means the user intentionally disabled the overlay on that scene (via Branch **(N)** or UI). Layout edits return `remotion_spec_disabled`. **Do not auto-enable** — restore the overlay only with **Upload Overlay** (B) if the user explicitly asks.
 
 ---
 
@@ -647,6 +648,66 @@ client.modify_scene(
 | `remotion_spec_disabled` | 409 | `segment.remotion_spec="none"` — use Upload Overlay first. |
 | `missing_voice_file` | 409 | Scene has no `voice_file`; can't resolve the spec filename. |
 | `remotion_spec_parse_failed` / `remotion_spec_invalid` | 409 | Spec file present but unreadable / not a JSON object. |
+
+---
+
+## Branch (N) — Disable overlay (free, sync data edit)
+
+Hide the Remotion overlay on one scene by setting `segment.remotion_spec="none"`. **The spec and overlay-poster files on disk are NOT deleted** — this is just an opt-out pointer flip. Re-enable later via Branch **(B) Upload Overlay** (or the manual regenerate-overlay UI flow), which writes a fresh `{voice_file}_spec.json` and stamps `remotion_spec` back to `{voice_file}_spec.json?v={mtime}` so CDN / browser caches fetch the new file.
+
+```jsonc
+{
+  "id":    "widecast7c0d4f8a9b1e2d3f",
+  "by":    "voice_file",
+  "value": "XcR0k",
+  "fields": [
+    { "field_name": "disable_overlay", "value": true }
+  ]
+}
+```
+
+### Field reference
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `field_name` | string | yes | `disable_overlay` (canonical). Aliases accepted: `remotion.disable_overlay`, `overlay.disable`, `remotion_spec.none`. |
+| `value` | boolean \| string \| object | yes | Truthy disables the overlay. Accepted forms: `true`, the string `"none"`, or `{enabled: false}` (also `{enable: false}`, `{disabled: true}`, `{disable: true}`). |
+
+### What this branch does NOT do
+
+- Does **not** delete `{voice_file}_spec.json` on disk.
+- Does **not** delete `{voice_file}_overlay_poster.png`.
+- Does **not** regenerate a replacement overlay.
+- Does **not** touch narrator / caption / media (`mediaUrl`/`mediaType`) / timing / `overlay.narrator.*` / `overlay.caption.y` / `remotion.object.rect` / `remotion.group.rect`.
+- Does **not** change audio, duration, words, or `videoTrim`.
+- Does **not** charge credit.
+
+### Constraints
+
+- **Send alone.** Combining `disable_overlay` (or any of its aliases) with another field returns `400 mixed_remotion_fields`. Not allowed inside `layout.batch`.
+- **Idempotent.** Disabling a scene that's already `remotion_spec="none"` returns `applied.idempotent: true` and is otherwise a no-op.
+
+### Response highlights
+
+- `object: "scene_modified"`.
+- `applied.before` = the previous `remotion_spec` value (e.g. `"XcR0k_spec.json?v=…"` or `"none"`).
+- `applied.after = "none"`.
+- `applied.idempotent` — `true` when the scene was already disabled.
+- `applied.cost = "free_data_edit"`.
+- `overlay_disabled: true` at the top level.
+- `remotion_spec_state` returns to `"disabled"`; `remotion_spec_url` empties.
+
+### Re-enable later
+
+Run Branch **(B) Upload Overlay** with a fresh image / SVG, OR the UI's manual regenerate-overlay flow. Either path writes the spec back to disk and stamps `remotion_spec` to the cache-busted `{voice_file}_spec.json?v={mtime}` so the editor / preview / `/v1/scene_geometry` pick it up immediately.
+
+### Errors
+
+| Code | HTTP | When |
+|---|---|---|
+| `invalid_disable_overlay_value` | 400 | `value` is not in `{true, "none", {enabled:false}, …}`. |
+| `mixed_remotion_fields` | 400 | Sent alongside other fields. |
+| `missing_voice_file` | 409 | Scene has no `voice_file`; can't resolve the spec filename. |
 
 ---
 
