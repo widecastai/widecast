@@ -1670,7 +1670,7 @@ paths:
         any page without a mounted scene preview are ignored for scene-
         bound commands.
 
-        **`screenshot_scene_280x498` returns BINARY JPEG, not JSON.** On
+        **`screenshot_scene_280x498` returns BINARY JPEG by default.** On
         success (live editor capture OR server-fallback composite from
         thumbnails + `{voice_file}_overlay_poster.png`), the HTTP
         response is the raw image:
@@ -1683,9 +1683,29 @@ paths:
             `X-WideCast-Scene-Index`, `Content-Length`,
             `Cache-Control: no-store`. Cap ~8 MB.
 
+        **Opt-in JSON / base64** — pass `return_base64: true` in the
+        request body to bypass the binary response. The route then
+        emits a normal `SceneInspectorResponse` with
+        `result.screenshot` carrying:
+
+          * `data_url` — `data:image/jpeg;base64,…` ready to drop into
+            an `<img src>` or save via `data:` URI parsers.
+          * `base64` — the raw base64 string (no `data:` prefix).
+          * `mime_type` — typically `image/jpeg`.
+          * `width` / `height` — pixel dimensions (280 / 498 by
+            default).
+          * `bytes` — original JPEG byte length (before base64
+            expansion).
+
+        Use this when the agent runtime can't accept binary HTTP
+        bodies (some JSON-only HTTP clients, plain Action callers,
+        sandbox limits). Trade-off: base64 is ~33% larger than the
+        raw JPEG and lives inline in the JSON-RPC text stream —
+        prefer the default binary path when the client supports it.
+
         **All other actions still return JSON
         `SceneInspectorResponse`** as before — only
-        `screenshot_scene_280x498` switches content types.
+        `screenshot_scene_280x498` has the binary / base64 dichotomy.
 
         **No live editor → graceful behaviour**:
           - For non-screenshot actions, the response is HTTP 200 with
@@ -1752,21 +1772,40 @@ paths:
                   action: get_computed_boxes
                   voice_file: XcR0k
               screenshot:
-                summary: Small 280×498 capture (best-effort visual judgment)
+                summary: Small 280×498 capture — default binary image/jpeg response
                 value:
                   id: widecast7c0d4f8a9b1e2d3f
                   action: screenshot_scene_280x498
                   voice_file: XcR0k
                   activate: true
+              screenshot_base64:
+                summary: Small 280×498 capture — opt-in JSON / data-URL response (for JSON-only clients)
+                description: |
+                  `return_base64: true` makes the route return a JSON
+                  `SceneInspectorResponse` with
+                  `result.screenshot.{data_url, base64, mime_type,
+                  width, height, bytes}` instead of raw image/jpeg.
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  action: screenshot_scene_280x498
+                  voice_file: XcR0k
+                  return_base64: true
       responses:
         '200':
           description: |
-            Inspector outcome. Content type depends on the action:
-              * **`screenshot_scene_280x498`** → raw `image/jpeg` bytes.
-                Metadata is in response headers (`X-WideCast-Request-Id`,
-                `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,
-                `X-WideCast-Scene-Index`, `Content-Length`,
-                `Cache-Control: no-store`).
+            Inspector outcome. Content type depends on the action AND
+            the `return_base64` flag:
+              * **`screenshot_scene_280x498`, default** → raw
+                `image/jpeg` bytes. Metadata is in response headers
+                (`X-WideCast-Request-Id`, `X-WideCast-Scene-Id`,
+                `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`,
+                `Content-Length`, `Cache-Control: no-store`).
+              * **`screenshot_scene_280x498` with `return_base64:
+                true`** → JSON `SceneInspectorResponse` carrying
+                `result.screenshot.data_url`,
+                `result.screenshot.base64`,
+                `result.screenshot.mime_type`,
+                `result.screenshot.width` / `height` / `bytes`.
               * **All other actions** → JSON `SceneInspectorResponse`
                 with `status` discriminating:
                   * `"completed"` — elected tab returned a `result`.
@@ -3868,6 +3907,20 @@ components:
         probe_timeout_ms:
           type: integer
           description: Foreground election window. Default ~800ms (server clamps 150-2000ms).
+        return_base64:
+          type: boolean
+          default: false
+          description: |
+            Opt-in JSON / base64 response for
+            `action="screenshot_scene_280x498"` only. Default `false` →
+            the route returns a raw `image/jpeg` HTTP body (metadata in
+            `X-WideCast-*` headers). Set `true` to receive a normal JSON
+            `SceneInspectorResponse` where `result.screenshot` carries
+            both `data_url` (`data:image/jpeg;base64,…`) and raw
+            `base64`, plus `mime_type` / `width` / `height` / `bytes` —
+            useful for agents that can't consume binary HTTP bodies and
+            need the screenshot inline in the JSON envelope. Ignored
+            for all other actions.
         options:
           type: object
           description: Advanced action-specific options.

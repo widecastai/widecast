@@ -260,6 +260,11 @@ export interface SceneInspectorOptions {
   timeout_ms?: number;
   /** Foreground election window in ms. Default ~800ms (clamps 150-2000ms). */
   probe_timeout_ms?: number;
+  /** Only meaningful for `action="screenshot_scene_280x498"`. Default false →
+   *  binary image/jpeg HTTP body. When true → JSON `SceneInspectorResponse`
+   *  with `result.screenshot.{data_url, base64, mime_type, width, height,
+   *  bytes}`. Use when the runtime can't accept binary HTTP bodies. */
+  return_base64?: boolean;
   /** Advanced action-specific options. */
   options?: Record<string, unknown>;
 }
@@ -1779,11 +1784,18 @@ export class Widecast {
    *      `Cache-Control: no-store`); ~8 MB cap.
    *
    *  Because this method JSON-decodes the response, it CANNOT return
-   *  image bytes. **If you need the screenshot from the SDK, call
-   *  `/v1/scene_inspector` over raw HTTP yourself** (e.g.
-   *  `fetch(url, {method:'POST', headers, body})` then
-   *  `response.arrayBuffer()` / `response.blob()`) — pass the same body
-   *  shape. For all other actions this method is the right tool.
+   *  raw image bytes. Two ways to get the screenshot from the SDK:
+   *    1. **Recommended**: pass `{ return_base64: true }` — the server
+   *       returns a JSON `SceneInspectorResponse` whose
+   *       `result.screenshot.{data_url, base64, mime_type, width,
+   *       height, bytes}` carries the image. Drop `data_url` into an
+   *       `<img src>` or decode `base64` to write a file.
+   *    2. **Binary path** (default): call `/v1/scene_inspector` over
+   *       raw HTTP yourself (e.g. `fetch(url, {method:'POST', headers,
+   *       body})` then `response.arrayBuffer()` / `response.blob()`) —
+   *       pass the same body shape. Trade-off: base64 is ~33% larger
+   *       than the raw JPEG; prefer binary when the client supports it.
+   *  For all other actions this method is the right tool.
    *
    *  On screenshot errors the route falls back to a JSON error envelope:
    *  HTTP 500 with `code: "screenshot_binary_missing"` (composed but no
@@ -1841,6 +1853,7 @@ export class Widecast {
     if (opts.seek_seconds !== undefined) body.seek_seconds = opts.seek_seconds;
     if (opts.timeout_ms !== undefined) body.timeout_ms = opts.timeout_ms;
     if (opts.probe_timeout_ms !== undefined) body.probe_timeout_ms = opts.probe_timeout_ms;
+    if (opts.return_base64 !== undefined) body.return_base64 = opts.return_base64;
     if (opts.options !== undefined) body.options = opts.options;
     return await this.#request<SceneInspectorResponse>(
       "POST", "/v1/scene_inspector", body);

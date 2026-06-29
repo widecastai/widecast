@@ -1726,12 +1726,22 @@
                   }
                 },
                 "screenshot": {
-                  "summary": "Small 280×498 capture (best-effort visual judgment)",
+                  "summary": "Small 280×498 capture — default binary image/jpeg response",
                   "value": {
                     "id": "widecast7c0d4f8a9b1e2d3f",
                     "action": "screenshot_scene_280x498",
                     "voice_file": "XcR0k",
                     "activate": true
+                  }
+                },
+                "screenshot_base64": {
+                  "summary": "Small 280×498 capture — opt-in JSON / data-URL response (for JSON-only clients)",
+                  "description": "`return_base64: true` makes the route return a JSON\n`SceneInspectorResponse` with\n`result.screenshot.{data_url, base64, mime_type,\nwidth, height, bytes}` instead of raw image/jpeg.\n",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "action": "screenshot_scene_280x498",
+                    "voice_file": "XcR0k",
+                    "return_base64": true
                   }
                 }
               }
@@ -1740,7 +1750,7 @@
         },
         "responses": {
           "200": {
-            "description": "Inspector outcome. Content type depends on the action:\n  * **`screenshot_scene_280x498`** → raw `image/jpeg` bytes.\n    Metadata is in response headers (`X-WideCast-Request-Id`,\n    `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,\n    `X-WideCast-Scene-Index`, `Content-Length`,\n    `Cache-Control: no-store`).\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
+            "description": "Inspector outcome. Content type depends on the action AND\nthe `return_base64` flag:\n  * **`screenshot_scene_280x498`, default** → raw\n    `image/jpeg` bytes. Metadata is in response headers\n    (`X-WideCast-Request-Id`, `X-WideCast-Scene-Id`,\n    `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`,\n    `Content-Length`, `Cache-Control: no-store`).\n  * **`screenshot_scene_280x498` with `return_base64:\n    true`** → JSON `SceneInspectorResponse` carrying\n    `result.screenshot.data_url`,\n    `result.screenshot.base64`,\n    `result.screenshot.mime_type`,\n    `result.screenshot.width` / `height` / `bytes`.\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4661,6 +4671,11 @@
           "probe_timeout_ms": {
             "type": "integer",
             "description": "Foreground election window. Default ~800ms (server clamps 150-2000ms)."
+          },
+          "return_base64": {
+            "type": "boolean",
+            "default": false,
+            "description": "Opt-in JSON / base64 response for\n`action=\"screenshot_scene_280x498\"` only. Default `false` →\nthe route returns a raw `image/jpeg` HTTP body (metadata in\n`X-WideCast-*` headers). Set `true` to receive a normal JSON\n`SceneInspectorResponse` where `result.screenshot` carries\nboth `data_url` (`data:image/jpeg;base64,…`) and raw\n`base64`, plus `mime_type` / `width` / `height` / `bytes` —\nuseful for agents that can't consume binary HTTP bodies and\nneed the screenshot inline in the JSON envelope. Ignored\nfor all other actions.\n"
           },
           "options": {
             "type": "object",

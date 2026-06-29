@@ -1547,6 +1547,7 @@ class Widecast:
                         seek_seconds: Optional[float] = None,
                         timeout_ms: Optional[int] = None,
                         probe_timeout_ms: Optional[int] = None,
+                        return_base64: Optional[bool] = None,
                         options: Optional[Mapping[str, Any]] = None) -> dict:
         """POST /v1/scene_inspector — live browser inspector for an open
         scene editor of a video. **More expensive than
@@ -1579,12 +1580,24 @@ class Widecast:
             cap.
 
         Because this SDK method JSON-decodes the response, it CANNOT
-        return image bytes. **If you need the screenshot from the SDK,
-        call ``/v1/scene_inspector`` over raw HTTP yourself** (e.g.
-        with ``requests``, ``httpx``, or via the underlying
-        ``self._http`` client) — pass the same body shape, then read
-        ``response.content``. For all other actions this method is the
-        right tool.
+        return raw image bytes. Two ways to get the screenshot from
+        the SDK:
+
+          1. **Recommended**: pass ``return_base64=True`` to switch the
+             server to JSON-mode — the response includes
+             ``result["screenshot"]["data_url"]`` (data-URL), raw
+             ``base64``, ``mime_type``, ``width``, ``height``,
+             ``bytes``. Decode with
+             ``base64.b64decode(d["result"]["screenshot"]["base64"])``
+             or drop the ``data_url`` straight into an ``<img src>``.
+          2. **Binary path** (default): call ``/v1/scene_inspector``
+             over raw HTTP yourself (e.g. with ``requests`` /
+             ``httpx``) — pass the same body shape, then read
+             ``response.content``. Trade-off: base64 is ~33% larger
+             than the raw JPEG; prefer binary when the client
+             supports it.
+
+        For all other actions this method is the right tool.
 
         On screenshot errors (no image bytes, or no fallback could be
         assembled) the route falls back to a JSON error envelope: HTTP
@@ -1625,6 +1638,14 @@ class Widecast:
             seek_seconds:     Seek time for seek_preview / screenshot.
             timeout_ms:       Command timeout (~7000ms default).
             probe_timeout_ms: Election window (~800ms default).
+            return_base64:    Only meaningful for
+                              ``action="screenshot_scene_280x498"``.
+                              Default ``False`` → binary image/jpeg
+                              HTTP body (which this SDK method can't
+                              decode). When ``True`` → JSON response
+                              with ``result["screenshot"]["data_url"]``
+                              + ``base64`` + ``mime_type`` + ``width``
+                              / ``height`` / ``bytes``.
             options:          Advanced action-specific options.
         """
         if not isinstance(video_id, str) or not video_id.strip():
@@ -1656,6 +1677,8 @@ class Widecast:
             body["timeout_ms"] = int(timeout_ms)
         if probe_timeout_ms is not None:
             body["probe_timeout_ms"] = int(probe_timeout_ms)
+        if return_base64 is not None:
+            body["return_base64"] = bool(return_base64)
         if options is not None:
             body["options"] = dict(options)
         return self._request("POST", "/v1/scene_inspector", json_body=body)
