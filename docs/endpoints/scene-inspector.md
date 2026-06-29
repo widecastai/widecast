@@ -19,20 +19,60 @@
 
 > **Presence ≠ usability.** A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.
 
-### 🖼 `screenshot_scene_280x498` — binary JPEG (REST default) / JSON+data-URL (REST `return_base64:true`) / MCP ImageContent (MCP)
+### 🖼 `screenshot_scene_280x498` — temporary public URL (15-minute TTL)
 
-The response shape depends on **which surface the agent uses** and whether `return_base64` is set. All three flows return the same underlying ~280×498 JPEG — only the transport differs.
+The response is a regular JSON `SceneInspectorResponse` whose `result.screenshot` carries a **temporary public URL** — not bytes, not base64. The agent downloads the JPEG with a plain `curl <url>` (no auth header required — the path is served publicly by nginx). Every call publishes a *fresh* unique file (16-hex token), so the URL is never reused across calls — this matches the realtime semantics of inspector data.
 
-#### REST — raw `image/jpeg` bytes
+```jsonc
+// request
+{
+  "id":         "widecast7c0d4f8a9b1e2d3f",
+  "action":     "screenshot_scene_280x498",
+  "voice_file": "XcR0k"
+}
 
-On success (live editor capture OR server-fallback composite from scene thumbnails + `{voice_file}_overlay_poster.png`):
+// response (HTTP 200, Content-Type: application/json)
+{
+  "object":     "scene_inspector_result",
+  "status":     "completed",
+  "code":       "ok",
+  "action":     "screenshot_scene_280x498",
+  "topic_id":   "widecast7c0d4f8a9b1e2d3f",
+  "company_id": "<company_id>",
+  "request_id": "req_…",
+  "result": {
+    "action":      "screenshot_scene_280x498",
+    "scene_id":    3,
+    "voice_file":  "XcR0k",
+    "scene_index": 2,
+    "screenshot": {
+      "url":         "https://origin.widecast.ai/downloads/<co>/<topic>/inspector/XcR0k_5f10e9cc0a384e97.jpg?v=1782700000",
+      "mime_type":   "image/jpeg",
+      "width":       280,
+      "height":      498,
+      "bytes":       20498,
+      "expires_at":  "2026-06-29T13:30:00Z",
+      "ttl_seconds": 900
+    },
+    "warnings":    [],
+    "layers_used": ["background", "remotion_poster", "narrator", "caption"]
+  }
+}
+```
 
-- `Content-Type: image/jpeg`
-- Body = JPEG bytes (NOT JSON, NOT base64, NOT `result.screenshot`)
-- Metadata in response headers: `X-WideCast-Request-Id`, `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`, `Content-Length`, `Cache-Control: no-store`
-- Cap ~8 MB
+**Key invariants**
 
-**Compositor never throws.** Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to `result.warnings[]` and the response still returns `image/jpeg` with whatever could be composited. If even the JPEG encode fails, the server returns a **placeholder JPEG** (dark slate, the scene's `scene_id` + `voice_file` + the first warning drawn on it). The route does NOT collapse to 500 for compositor edge cases — only resource-lookup failures return non-`image/jpeg`:
+| Property | Value |
+|---|---|
+| Authentication | **None** — the URL is served publicly by nginx (same pattern as Remotion specs and `_overlay_poster.png` assets). |
+| Host | **`origin.widecast.ai`** (not `widecast.ai`) — bypasses Cloudflare entirely. CF caches `/downloads/*.jpg` by extension; routing through the origin keeps these 15-min ephemeral assets out of edge cache so a stale URL never gets pinned in CF for ~24h after the file is gone. |
+| Cache | The `?v=<mtime>` suffix is belt-and-suspenders cache-busting; the origin host already skips CDN. |
+| TTL | `ttl_seconds: 900` (15 min). `expires_at` is when the file is no longer guaranteed readable. |
+| Freshness | Every call publishes a NEW file under a fresh 16-hex token — never cached across calls. Inspector data is realtime; reusing a stale screenshot would lie about the current state. |
+| Atomicity | Server writes to `<filename>.tmp`, `fsync`s, then atomic-renames to the final path before responding. The agent's `curl` will NEVER read a half-written file. |
+| Storage path | `/mnt/html/lcw/downloads/<company_id>/<topic_id>/inspector/<voice_file>_<token16>.jpg` (served at the URL above). |
+
+**Compositor never throws.** Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to `result.warnings[]` and the response still publishes a URL. If even the JPEG encode fails, the server publishes a **placeholder JPEG** (dark slate, the scene's `scene_id` + `voice_file` + the first warning drawn on it). Lookup failures return JSON error envelopes:
 
 | HTTP | `error.code` | When |
 |---|---|---|
@@ -40,9 +80,10 @@ On success (live editor capture OR server-fallback composite from scene thumbnai
 | 404 | `scene_not_found` | `scene_id` / `voice_file` didn't match any scene. |
 | 409 | `script_not_ready` | Video still processing or never had a script. |
 | 502 | `script_parse_failed` | Stored video_script is malformed. |
-| 500 | `server_fallback_failed` | Lookup-level Exception not in the above categories (rare; reports `exception_name`). |
+| 500 | `server_fallback_failed` | Lookup-level Exception not in the above categories (rare). |
+| 500 | `screenshot_publish_failed` | Compositor produced bytes but the disk write / rename failed. |
 
-The compositor warning codes that surface in `result.warnings[]` (visible only on the JSON-mode probe responses for non-screenshot actions, or via per-layer logs — the binary JPEG response itself doesn't carry them):
+The compositor warning codes that surface in `result.warnings[]`:
 
 | Warning | Layer | Meaning |
 |---|---|---|
@@ -55,127 +96,58 @@ The compositor warning codes that surface in `result.warnings[]` (visible only o
 | `narrator_order_failed:<ExcName>` | narrator | `_wc_inspector_is_narrator_on_top` threw — defaulted to top. |
 | `narrator_layer_failed:<ExcName>` / `narrator_image_missing_placeholder` | narrator | Draw threw, or narrator URL unreachable → text placeholder. |
 | `caption_layer_failed:<ExcName>` | caption | Caption draw threw. |
-| `jpeg_save_failed:<ExcName>` | output | PIL save threw → placeholder JPEG returned. |
+| `jpeg_save_failed:<ExcName>` | output | PIL save threw → placeholder JPEG published. |
 | `empty_image_bytes` | output | Defensive — should never appear in practice. |
 
-**Client snippet — fetch the JPEG**:
+**Client snippets**
 
 ```bash
-curl -sS -X POST ".../v1/scene_inspector" \
+# 1) request the screenshot — server publishes a fresh URL
+URL=$(curl -sS -X POST ".../v1/scene_inspector" \
   -H "Authorization: Bearer wc_live_REPLACE_ME" \
   -H "Content-Type: application/json" \
   -d '{ "id": "widecast7c0d4f8a9b1e2d3f",
         "action": "screenshot_scene_280x498",
         "voice_file": "XcR0k" }' \
-  --output scene.jpg
+  | jq -r .result.screenshot.url)
+
+# 2) fetch the JPEG — no auth header needed, public URL
+curl -sS -o scene.jpg "$URL"
 ```
-
-```typescript
-const r = await fetch(`${API}/v1/scene_inspector`, {
-  method: "POST",
-  headers: { "Authorization": `Bearer ${KEY}`, "Content-Type": "application/json" },
-  body: JSON.stringify({ id, action: "screenshot_scene_280x498", voice_file }),
-});
-const ct = r.headers.get("content-type") || "";
-if (ct.startsWith("image/jpeg")) {
-  const bytes = await r.arrayBuffer();  // ← raw JPEG
-} else {
-  const err = await r.json();           // ← JSON error envelope
-}
-```
-
-> **SDK note.** The Python (`client.scene_inspector`) and JS (`client.scene_inspector`) methods JSON-decode the response, so they **cannot return raw image bytes** on the default binary path. Either pass `return_base64: true` (next section) or call the endpoint over raw HTTP yourself. All other actions use the SDK methods normally.
-
-#### REST — opt-in JSON / data-URL (`return_base64: true`)
-
-Some agents can't accept binary HTTP bodies (JSON-only HTTP clients, sandboxed runtimes, Action callers). Pass `return_base64: true` in the request body to bypass the binary response and receive a regular JSON `SceneInspectorResponse` instead:
-
-```jsonc
-// request
-{
-  "id": "widecast7c0d4f8a9b1e2d3f",
-  "action": "screenshot_scene_280x498",
-  "voice_file": "XcR0k",
-  "return_base64": true
-}
-
-// response (HTTP 200, Content-Type: application/json)
-{
-  "object":   "scene_inspector_result",
-  "status":   "completed",
-  "code":     "ok",
-  "action":   "screenshot_scene_280x498",
-  "topic_id": "widecast7c0d4f8a9b1e2d3f",
-  "request_id": "req_…",
-  "result": {
-    "action":      "screenshot_scene_280x498",
-    "scene_id":    3,
-    "voice_file":  "XcR0k",
-    "scene_index": 2,
-    "screenshot": {
-      "data_url":  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA…",
-      "base64":    "/9j/4AAQSkZJRgABAQEA…",
-      "mime_type": "image/jpeg",
-      "width":     280,
-      "height":    498,
-      "bytes":     20498
-    },
-    "warnings":      [],
-    "layers_used":   ["background", "remotion_poster", "narrator", "caption"]
-  }
-}
-```
-
-**Use it when**: the runtime can't consume binary HTTP bodies (some HTTP libraries / sandbox limits / strict JSON Action). **Avoid it when**: you can take the default binary path — base64 is ~33% larger than the raw JPEG and lives inline in the JSON-RPC text stream, so the binary path keeps your token / bandwidth cost lower.
 
 ```python
-# Python SDK — JSON-mode
+# Python SDK
+from widecast import Widecast
+import requests
+
+client = Widecast()
 resp = client.scene_inspector(
     "widecast7c0d4f8a9b1e2d3f",
     "screenshot_scene_280x498",
     voice_file="XcR0k",
-    return_base64=True,
 )
-import base64, pathlib
-pathlib.Path("scene.jpg").write_bytes(
-    base64.b64decode(resp["result"]["screenshot"]["base64"]),
-)
+url = resp["result"]["screenshot"]["url"]
+open("scene.jpg", "wb").write(requests.get(url, timeout=10).content)
 ```
 
 ```typescript
-// JS SDK — JSON-mode
+// JS SDK
+import Widecast from "@widecast/sdk";
+
+const client = new Widecast();
 const resp = await client.scene_inspector(
   "widecast7c0d4f8a9b1e2d3f",
   "screenshot_scene_280x498",
-  { voice_file: "XcR0k", return_base64: true },
+  { voice_file: "XcR0k" },
 );
-const img = document.createElement("img");
-img.src = resp.result.screenshot.data_url;
-document.body.appendChild(img);
+const url = resp.result?.screenshot?.url as string;
+const blob = await (await fetch(url)).blob();
 ```
 
-#### MCP — `ImageContent` block (Claude Desktop / Claude.ai / ChatGPT MCP)
+> **MCP transport.** The remote `/mcp/<token>` connector and local `@widecast/mcp-server` both pass the JSON through unchanged — the URL appears in the regular `TextContent` block. A Claude / GPT host then either fetches the URL itself or asks the user / shell to do so. No `ImageContent` block is emitted today.
 
-When an MCP host calls `widecast_scene_inspector` with `action="screenshot_scene_280x498"`, the WideCast MCP layer (both the remote `/mcp/<token>` connector and the local `@widecast/mcp-server` Node process) detects the binary `image/jpeg` response, base64-encodes the bytes, and emits an **MCP `ImageContent` block** per MCP spec 2025-06-18 §6.3:
+> **Historical note.** Prior contracts of this action returned raw `image/jpeg` bytes (or, briefly, an opt-in JSON `result.screenshot.{data_url, base64}` via `return_base64: true`). Both contracts were retired in favour of the URL-publishing path above. The `return_base64` flag is parsed but ignored — old callers don't 400, they just get the new URL contract.
 
-```jsonc
-{
-  "jsonrpc": "2.0",
-  "id": …,
-  "result": {
-    "content": [
-      { "type": "image", "data": "<base64 of the JPEG bytes>", "mimeType": "image/jpeg" }
-    ],
-    "isError": false
-  }
-}
-```
-
-Why: an MCP `ImageContent` block is the **only** image transport that doesn't leak bytes into the model's context as JSON-escaped Unicode. Claude Desktop / Claude.ai / ChatGPT MCP all render `ImageContent` natively (inline image in chat); the bytes are streamed to a sandboxed cache, not into the language model's text stream. **No parsing required, no ` JFIF…` token bloat**, and no "model sees the bytes as escaped text" failure mode.
-
-All other actions still return regular `TextContent` blocks (`{ type: "text", text: "<JSON>" }`) as before — only `screenshot_scene_280x498` switches to `ImageContent`.
-
-> **Historical bug**: older builds of the MCP wrapper unconditionally called `r.json()` on the response. When the server returned `image/jpeg`, the parse failed and the wrapper fell back to a `{"raw": (r.text or "")[:2000]}` envelope — i.e. JPEG bytes UTF-8-decoded into mojibake (`���� JFIF…Lavc59…`) and dumped into a JSON `raw` field. That ate tens of thousands of tokens per call and produced unusable garbage. The current builds detect `Content-Type: image/*` upstream of `r.json()` and emit a proper `ImageContent` block.
 
 ### "No editor open" — graceful behaviour
 
@@ -195,7 +167,7 @@ For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unava
 | `no_live_editor` | No editor tab is currently open for this video (no presence at all). |
 | `no_active_editor` | At least one tab is registered but none responded to the probe in time. |
 
-For **`screenshot_scene_280x498`**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and **still returns binary JPEG** with the same headers as a live-editor capture. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
+For **`screenshot_scene_280x498`**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and **publishes it to the same 15-minute URL contract**. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
 
 Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
 
@@ -210,7 +182,7 @@ Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geome
 | `get_preview_state` | `{playing, paused, scene, time}` for the preview player. | |
 | `get_scene_dom_snapshot` | DOM subtree for the scene (scoped via optional `selector`). | Keep `selector` narrow — broad selectors blow up the payload. |
 | `get_computed_boxes` | `getBoundingClientRect()` for elements in the scene. | **Prefer [`/v1/scene_geometry`](scene-geometry.md) for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON. |
-| `screenshot_scene_280x498` | Small ~280×498 capture for aesthetic / visual judgment. | **Response is `image/jpeg` bytes**, not JSON — see [the binary section above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json). Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification. |
+| `screenshot_scene_280x498` | Small ~280×498 capture for aesthetic / visual judgment. | **Response carries a 15-min public URL** in `result.screenshot.url` — see the section above. Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification. |
 | `activate_scene` | Brings the elected tab to the requested scene. May visibly switch the open editor for that user. | Use sparingly. |
 | `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` | Preview transport controls. | `seek_preview` accepts `seek_seconds`. |
 
@@ -275,13 +247,13 @@ Content-Type: application/json
 }
 ```
 
-### `200 OK` — `image/jpeg` (only for `screenshot_scene_280x498`)
+### `200 OK` — `screenshot_scene_280x498` (URL response)
 
-Response body is raw JPEG bytes. See [the binary section above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json) for headers + client snippets. Server-fallback composites use the same content type — no way to distinguish from headers alone; assume "approximate" when reading `screenshot_scene_280x498` output.
+Response is JSON `SceneInspectorResponse` whose `result.screenshot` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}`. See the full sample + invariants in the section above. Server-fallback composites use the same shape — there's no flag to distinguish a live capture from a composite; assume "approximate" when reading `screenshot_scene_280x498` output.
 
 ### `200 OK` — `unavailable`
 
-See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still returns JPEG bytes (or a 500 JSON error if it cannot).
+See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still publishes a URL (or returns a 500 JSON error if it cannot).
 
 ### `200 OK` — `error` (browser-side failure)
 
@@ -315,23 +287,22 @@ See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns t
 
 ### `500 Internal Server Error` (screenshot-only)
 
-JSON envelope returned when `screenshot_scene_280x498` can't produce bytes:
+JSON envelope returned when `screenshot_scene_280x498` can't be served:
 
 | `error.code` | Meaning |
 |---|---|
-| `screenshot_binary_missing` | Server composed a fallback but no image bytes were produced. |
+| `screenshot_publish_failed` | Compositor produced bytes but the disk write / atomic rename failed (no readable URL to return). |
 | `server_fallback_failed` | Could not compose any fallback screenshot. |
 
 ---
 
 ## SDK examples
 
-> ⚠ The Python (`client.scene_inspector`) and JS (`client.scene_inspector`) methods JSON-decode the response, so they **cannot return image bytes**. For `screenshot_scene_280x498`, call the endpoint over raw HTTP — see the [client snippet above](#-screenshot_scene_280x498-returns-binary-jpeg-not-json).
-
 ### Python — screenshot with graceful server-fallback
 
 ```python
 from widecast import Widecast
+import requests
 
 client = Widecast()
 data = client.video_data("widecast7c0d4f8a9b1e2d3f")
@@ -346,11 +317,14 @@ resp = client.scene_inspector(
 )
 
 if resp["status"] == "completed" and resp.get("code") == "ok":
-    print("live screenshot:", resp["result"])
+    url = resp["result"]["screenshot"]["url"]
+    open("scene.jpg", "wb").write(requests.get(url, timeout=10).content)
+    print("saved live screenshot to scene.jpg")
 elif resp.get("code") == "server_fallback":
-    print("server-composed fallback (thumbnails + overlay poster):", resp["result"])
+    url = resp["result"]["screenshot"]["url"]
+    print("server-composed fallback URL (thumbnails + overlay poster):", url)
 else:
-    # No live editor at all — fall back to scene_geometry
+    # No live editor + composition failed — fall back to scene_geometry
     geom = client.scene_geometry(data["id"], voice_file=target["voice_file"])
     print("falling back to scene_geometry:", geom["summary"])
 ```

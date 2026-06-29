@@ -260,11 +260,6 @@ export interface SceneInspectorOptions {
   timeout_ms?: number;
   /** Foreground election window in ms. Default ~800ms (clamps 150-2000ms). */
   probe_timeout_ms?: number;
-  /** Only meaningful for `action="screenshot_scene_280x498"`. Default false →
-   *  binary image/jpeg HTTP body. When true → JSON `SceneInspectorResponse`
-   *  with `result.screenshot.{data_url, base64, mime_type, width, height,
-   *  bytes}`. Use when the runtime can't accept binary HTTP bodies. */
-  return_base64?: boolean;
   /** Advanced action-specific options. */
   options?: Record<string, unknown>;
 }
@@ -280,7 +275,9 @@ export interface SceneInspectorResponse {
    *  | `publisher_missing` | `mqtt_publish_failed` | `browser_error` |
    *  `server_fallback` (only for `screenshot_scene_280x498` when no live
    *  editor — response carries a composite assembled from scene
-   *  thumbnails + `{voice_file}_overlay_poster.png`). */
+   *  thumbnails + `{voice_file}_overlay_poster.png`, published to the
+   *  same temporary URL contract) | `screenshot_publish_failed`
+   *  (composed but couldn't be persisted to disk — HTTP 500). */
   code: string;
   request_id: string;
   action: SceneInspectorAction;
@@ -1768,39 +1765,45 @@ export class Widecast {
    *  elects ONE healthy foreground/active browser within ~800ms, then
    *  sends the inspector command only to that tab.
    *
-   *  **🖼 `screenshot_scene_280x498` has a binary-image response
-   *  shape**, transport-dependent:
-   *    - **Over MCP** (Claude Desktop / Claude.ai / ChatGPT MCP) the
-   *      WideCast MCP wrapper detects the upstream `image/jpeg`
-   *      response and emits a proper MCP `ImageContent` block
-   *      (`{type:"image", data:"<base64>", mimeType:"image/jpeg"}`)
-   *      per MCP spec 2025-06-18 §6.3 — rendered inline, bytes never
-   *      enter the model's text stream.
-   *    - **Over raw REST** (curl / SDK) the response is
-   *      `Content-Type: image/jpeg` with the JPEG bytes in the body.
-   *      Metadata is in headers (`X-WideCast-Request-Id`,
-   *      `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,
-   *      `X-WideCast-Scene-Index`, `Content-Length`,
-   *      `Cache-Control: no-store`); ~8 MB cap.
+   *  **🖼 `screenshot_scene_280x498` response shape — temporary
+   *  public URL.** The route returns a regular
+   *  `SceneInspectorResponse` whose `result.screenshot` carries:
+   *    - `url` —
+   *      `https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>`.
+   *      Fetch the JPEG bytes with a plain `fetch(url)` (no
+   *      `Authorization` header required — the path is served
+   *      publicly by nginx). The cache-bust `?v=<mtime>` defeats
+   *      CDN cache.
+   *    - `mime_type` — `image/jpeg`.
+   *    - `width` / `height` — pixel dimensions (typically 280 / 498).
+   *    - `bytes` — JPEG byte length on disk.
+   *    - `expires_at` — ISO 8601 UTC; the URL is guaranteed
+   *      readable until this moment.
+   *    - `ttl_seconds` — `900` (15 minutes).
    *
-   *  Because this method JSON-decodes the response, it CANNOT return
-   *  raw image bytes. Two ways to get the screenshot from the SDK:
-   *    1. **Recommended**: pass `{ return_base64: true }` — the server
-   *       returns a JSON `SceneInspectorResponse` whose
-   *       `result.screenshot.{data_url, base64, mime_type, width,
-   *       height, bytes}` carries the image. Drop `data_url` into an
-   *       `<img src>` or decode `base64` to write a file.
-   *    2. **Binary path** (default): call `/v1/scene_inspector` over
-   *       raw HTTP yourself (e.g. `fetch(url, {method:'POST', headers,
-   *       body})` then `response.arrayBuffer()` / `response.blob()`) —
-   *       pass the same body shape. Trade-off: base64 is ~33% larger
-   *       than the raw JPEG; prefer binary when the client supports it.
-   *  For all other actions this method is the right tool.
+   *  Host is `origin.widecast.ai` (not `widecast.ai`) — bypasses
+   *  Cloudflare so 15-min ephemeral URLs never get pinned in CF edge
+   *  cache. The `?v=<mtime>` cache-bust is belt-and-suspenders.
+   *
+   *  Every call publishes a fresh unique file (16-hex token), so
+   *  the URL is never reused across calls — matches the realtime
+   *  semantics of inspector data. The server only responds AFTER
+   *  the JPEG is fsync-ed and atomically renamed, so the URL is
+   *  guaranteed readable when this method returns. Typical usage:
+   *  ```ts
+   *  const d = await client.scene_inspector(
+   *    "widecast7c0d4f8a9b1e2d3f",
+   *    "screenshot_scene_280x498",
+   *    { voice_file: "XcR0k", activate: true },
+   *  );
+   *  const url = d.result?.screenshot?.url as string;
+   *  const blob = await (await fetch(url)).blob();
+   *  ```
    *
    *  On screenshot errors the route falls back to a JSON error envelope:
-   *  HTTP 500 with `code: "screenshot_binary_missing"` (composed but no
-   *  bytes) or `code: "server_fallback_failed"` (couldn't compose a
-   *  fallback).
+   *  HTTP 500 with `code: "screenshot_publish_failed"` (composed but
+   *  couldn't be persisted) or `code: "server_fallback_failed"`
+   *  (couldn't compose a fallback).
    *
    *  **No live editor → graceful behaviour**:
    *    - For non-screenshot actions, the response is `{status:
@@ -1809,8 +1812,9 @@ export class Widecast {
    *      `video_data()` + `scene_geometry()` + `remotion_spec_url`.
    *    - For `screenshot_scene_280x498`, the server composes a
    *      fallback screenshot from scene thumbnails +
-   *      `{voice_file}_overlay_poster.png` and STILL returns JPEG bytes
-   *      — treat as an approximate composite, not a real render.
+   *      `{voice_file}_overlay_poster.png` and publishes it to the
+   *      same 15-minute URL contract — treat fallback screenshots
+   *      as approximate composites, not real renders.
    *
    *  Allowed actions: `list_live_editors` | `list_instances` |
    *  `get_preview_state` | `get_scene_dom_snapshot` |
@@ -1853,7 +1857,6 @@ export class Widecast {
     if (opts.seek_seconds !== undefined) body.seek_seconds = opts.seek_seconds;
     if (opts.timeout_ms !== undefined) body.timeout_ms = opts.timeout_ms;
     if (opts.probe_timeout_ms !== undefined) body.probe_timeout_ms = opts.probe_timeout_ms;
-    if (opts.return_base64 !== undefined) body.return_base64 = opts.return_base64;
     if (opts.options !== undefined) body.options = opts.options;
     return await this.#request<SceneInspectorResponse>(
       "POST", "/v1/scene_inspector", body);

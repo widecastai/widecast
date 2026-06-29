@@ -1547,7 +1547,6 @@ class Widecast:
                         seek_seconds: Optional[float] = None,
                         timeout_ms: Optional[int] = None,
                         probe_timeout_ms: Optional[int] = None,
-                        return_base64: Optional[bool] = None,
                         options: Optional[Mapping[str, Any]] = None) -> dict:
         """POST /v1/scene_inspector — live browser inspector for an open
         scene editor of a video. **More expensive than
@@ -1562,46 +1561,51 @@ class Widecast:
         elects ONE healthy foreground/active browser within ~800ms, then
         sends the inspector command only to that tab.
 
-        **🖼 ``screenshot_scene_280x498`` has a binary-image response
-        shape**, transport-dependent:
+        **🖼 ``screenshot_scene_280x498`` response shape — temporary
+        public URL.** The route returns a regular
+        ``SceneInspectorResponse`` whose ``result["screenshot"]``
+        carries:
 
-          * **Over MCP** (Claude Desktop / Claude.ai / ChatGPT MCP) the
-            WideCast MCP wrapper detects the upstream ``image/jpeg``
-            response and emits a proper MCP ``ImageContent`` block
-            (``{type:"image", data:"<base64>", mimeType:"image/jpeg"}``)
-            per MCP spec 2025-06-18 §6.3 — rendered inline, bytes never
-            enter the model's text stream.
-          * **Over raw REST** (curl / SDK / Action) the response is
-            ``Content-Type: image/jpeg`` with the JPEG bytes in the
-            body. Metadata is in response headers
-            (``X-WideCast-Request-Id``, ``X-WideCast-Scene-Id``,
-            ``X-WideCast-Voice-File``, ``X-WideCast-Scene-Index``,
-            ``Content-Length``, ``Cache-Control: no-store``); ~8 MB
-            cap.
+          * ``url`` —
+            ``https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>``.
+            Fetch the JPEG bytes with a plain HTTP GET (no
+            ``Authorization`` header required — the path is served
+            publicly by nginx). The cache-bust ``?v=<mtime>`` defeats
+            CDN cache.
+          * ``mime_type`` — ``image/jpeg``.
+          * ``width`` / ``height`` — pixel dimensions (typically 280 /
+            498).
+          * ``bytes`` — JPEG byte length on disk.
+          * ``expires_at`` — ISO 8601 UTC; the URL is guaranteed
+            readable until this moment.
+          * ``ttl_seconds`` — ``900`` (15 minutes).
 
-        Because this SDK method JSON-decodes the response, it CANNOT
-        return raw image bytes. Two ways to get the screenshot from
-        the SDK:
+        The host is ``origin.widecast.ai`` (not ``widecast.ai``) — bypasses
+        Cloudflare so 15-min ephemeral URLs never get pinned in CF edge
+        cache. The ``?v=<mtime>`` cache-bust is belt-and-suspenders.
 
-          1. **Recommended**: pass ``return_base64=True`` to switch the
-             server to JSON-mode — the response includes
-             ``result["screenshot"]["data_url"]`` (data-URL), raw
-             ``base64``, ``mime_type``, ``width``, ``height``,
-             ``bytes``. Decode with
-             ``base64.b64decode(d["result"]["screenshot"]["base64"])``
-             or drop the ``data_url`` straight into an ``<img src>``.
-          2. **Binary path** (default): call ``/v1/scene_inspector``
-             over raw HTTP yourself (e.g. with ``requests`` /
-             ``httpx``) — pass the same body shape, then read
-             ``response.content``. Trade-off: base64 is ~33% larger
-             than the raw JPEG; prefer binary when the client
-             supports it.
+        Every call publishes a fresh unique file (16-hex token), so
+        the URL is never reused across calls — matches the realtime
+        semantics of inspector data. The server only responds AFTER
+        the JPEG is fsync-ed and atomically renamed, so the URL is
+        guaranteed readable when this method returns.
 
-        For all other actions this method is the right tool.
+        Typical usage::
 
-        On screenshot errors (no image bytes, or no fallback could be
-        assembled) the route falls back to a JSON error envelope: HTTP
-        500 with ``code="screenshot_binary_missing"`` or
+            d = client.scene_inspector(
+                "widecast7c0d4f8a9b1e2d3f",
+                "screenshot_scene_280x498",
+                voice_file="XcR0k", activate=True,
+            )
+            url = d["result"]["screenshot"]["url"]
+            jpeg = requests.get(url, timeout=10).content
+            with open("scene.jpg", "wb") as f:
+                f.write(jpeg)
+
+        On screenshot errors (no image bytes could be composed, or the
+        composed JPEG could not be persisted) the route returns a JSON
+        error envelope: HTTP 500 with
+        ``code="screenshot_publish_failed"`` or
         ``code="server_fallback_failed"``.
 
         **No live editor → graceful behaviour**:
@@ -1613,9 +1617,9 @@ class Widecast:
             ``remotion_spec_url``.
           * For ``screenshot_scene_280x498``, the server composes a
             fallback screenshot from scene thumbnails +
-            ``{voice_file}_overlay_poster.png`` and STILL returns JPEG
-            bytes — treat as an approximate composite, not a real
-            render.
+            ``{voice_file}_overlay_poster.png`` and publishes it to
+            the same 15-minute URL contract — treat fallback
+            screenshots as approximate composites, not real renders.
 
         Allowed actions:
           ``list_live_editors`` | ``list_instances`` |
@@ -1638,14 +1642,6 @@ class Widecast:
             seek_seconds:     Seek time for seek_preview / screenshot.
             timeout_ms:       Command timeout (~7000ms default).
             probe_timeout_ms: Election window (~800ms default).
-            return_base64:    Only meaningful for
-                              ``action="screenshot_scene_280x498"``.
-                              Default ``False`` → binary image/jpeg
-                              HTTP body (which this SDK method can't
-                              decode). When ``True`` → JSON response
-                              with ``result["screenshot"]["data_url"]``
-                              + ``base64`` + ``mime_type`` + ``width``
-                              / ``height`` / ``bytes``.
             options:          Advanced action-specific options.
         """
         if not isinstance(video_id, str) or not video_id.strip():
@@ -1677,8 +1673,6 @@ class Widecast:
             body["timeout_ms"] = int(timeout_ms)
         if probe_timeout_ms is not None:
             body["probe_timeout_ms"] = int(probe_timeout_ms)
-        if return_base64 is not None:
-            body["return_base64"] = bool(return_base64)
         if options is not None:
             body["options"] = dict(options)
         return self._request("POST", "/v1/scene_inspector", json_body=body)

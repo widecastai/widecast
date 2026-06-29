@@ -61,7 +61,7 @@
 <blockquote>
 <p><strong>Recommended chain</strong>: <a href="video-data.md"><code>/v1/video_data</code></a> → <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Only reach for <code>/v1/scene_inspector</code> when you specifically need browser truth or a live screenshot — e.g. you suspect a CSS / load race after a <code>modify_scene</code> edit, or you want a quick aesthetic gut-check before suggesting another move.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — binary JPEG (default) / ImageContent (MCP)</h3><p class="wc-pg-example-desc">Default response shape, transport-dependent. (a) Over MCP (Claude Desktop / Claude.ai / ChatGPT MCP): the WideCast MCP wrapper emits a proper MCP ImageContent block — {type:'image', data:'<base64>', mimeType:'image/jpeg'} — rendered as an inline image; bytes never enter the model's text stream. (b) Over raw REST: response is `Content-Type: image/jpeg` with JPEG bytes in the body; metadata in headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes on this path — use the screenshot-base64 variant below OR call /v1/scene_inspector over raw HTTP yourself.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot-base64" id="ex-scene-inspector--screenshot-base64"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — opt-in JSON / data-URL (`return_base64:true`)</h3><p class="wc-pg-example-desc">JSON-mode response for clients that can't accept binary HTTP bodies (some JSON-only HTTP libraries, sandboxed runtimes, plain Action callers). Returns SceneInspectorResponse with `result.screenshot.{data_url:'data:image/jpeg;base64,…', base64:'…', mime_type, width, height, bytes}`. Trade-off: base64 is ~33% larger than the raw JPEG and lives inline in the JSON-RPC text stream — prefer the default binary path when the client supports it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/scene_inspector</code></div><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="list-editors" id="ex-scene-inspector--list-editors"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Who has the editor open right now?</h3><p class="wc-pg-example-desc">Presence list of open editor tabs (browser/OS/last_seen). No election — purely discovery.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="computed-boxes" id="ex-scene-inspector--computed-boxes"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📐 Computed boxes for scene XcR0k (preferred structural audit)</h3><p class="wc-pg-example-desc">Returns getBoundingClientRect() for elements in the scene. Cheaper than screenshots and survives resolution changes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/scene-inspector.json" data-usecase-id="screenshot" id="ex-scene-inspector--screenshot"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📸 Small 280×498 screenshot — temporary public URL (15-min TTL)</h3><p class="wc-pg-example-desc">Response is a regular SceneInspectorResponse whose `result.screenshot.url` is a public path the agent fetches with `curl <url>` (no auth header). Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. Every call publishes a fresh unique file (16-hex token) — URLs are never reused across calls, matching the realtime semantics of inspector data. The server only responds after fsync+rename, so the URL is guaranteed readable when this response arrives. Server-fallback composites (no live editor → scene thumbnails + `{voice_file}_overlay_poster.png`) publish to the same URL contract.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="how-it-works">How it works</h2>
@@ -75,17 +75,84 @@
 <blockquote>
 <p><strong>Presence ≠ usability.</strong> A tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.</p>
 </blockquote>
-<h3 id="screenshot_scene_280x498-binary-jpeg-rest-default-jsondata-url-rest-return_base64true-mcp-imagecontent-mcp">🖼 <code>screenshot_scene_280x498</code> — binary JPEG (REST default) / JSON+data-URL (REST <code>return_base64:true</code>) / MCP ImageContent (MCP)</h3>
-<p>The response shape depends on <strong>which surface the agent uses</strong> and whether <code>return_base64</code> is set. All three flows return the same underlying ~280×498 JPEG — only the transport differs.</p>
-<h4 id="rest-raw-imagejpeg-bytes">REST — raw <code>image/jpeg</code> bytes</h4>
-<p>On success (live editor capture OR server-fallback composite from scene thumbnails + <code>{voice_file}_overlay_poster.png</code>):</p>
-<ul>
-<li><code>Content-Type: image/jpeg</code></li>
-<li>Body = JPEG bytes (NOT JSON, NOT base64, NOT <code>result.screenshot</code>)</li>
-<li>Metadata in response headers: <code>X-WideCast-Request-Id</code>, <code>X-WideCast-Scene-Id</code>, <code>X-WideCast-Voice-File</code>, <code>X-WideCast-Scene-Index</code>, <code>Content-Length</code>, <code>Cache-Control: no-store</code></li>
-<li>Cap ~8 MB</li>
-</ul>
-<p><strong>Compositor never throws.</strong> Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to <code>result.warnings[]</code> and the response still returns <code>image/jpeg</code> with whatever could be composited. If even the JPEG encode fails, the server returns a <strong>placeholder JPEG</strong> (dark slate, the scene's <code>scene_id</code> + <code>voice_file</code> + the first warning drawn on it). The route does NOT collapse to 500 for compositor edge cases — only resource-lookup failures return non-<code>image/jpeg</code>:</p>
+<h3 id="screenshot_scene_280x498-temporary-public-url-15-minute-ttl">🖼 <code>screenshot_scene_280x498</code> — temporary public URL (15-minute TTL)</h3>
+<p>The response is a regular JSON <code>SceneInspectorResponse</code> whose <code>result.screenshot</code> carries a <strong>temporary public URL</strong> — not bytes, not base64. The agent downloads the JPEG with a plain <code>curl &lt;url&gt;</code> (no auth header required — the path is served publicly by nginx). Every call publishes a <em>fresh</em> unique file (16-hex token), so the URL is never reused across calls — this matches the realtime semantics of inspector data.</p>
+<div class="highlight"><pre><span></span><code>// request
+{
+  &quot;id&quot;:         &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;action&quot;:     &quot;screenshot_scene_280x498&quot;,
+  &quot;voice_file&quot;: &quot;XcR0k&quot;
+}
+
+// response (HTTP 200, Content-Type: application/json)
+{
+  &quot;object&quot;:     &quot;scene_inspector_result&quot;,
+  &quot;status&quot;:     &quot;completed&quot;,
+  &quot;code&quot;:       &quot;ok&quot;,
+  &quot;action&quot;:     &quot;screenshot_scene_280x498&quot;,
+  &quot;topic_id&quot;:   &quot;widecast7c0d4f8a9b1e2d3f&quot;,
+  &quot;company_id&quot;: &quot;&lt;company_id&gt;&quot;,
+  &quot;request_id&quot;: &quot;req_…&quot;,
+  &quot;result&quot;: {
+    &quot;action&quot;:      &quot;screenshot_scene_280x498&quot;,
+    &quot;scene_id&quot;:    3,
+    &quot;voice_file&quot;:  &quot;XcR0k&quot;,
+    &quot;scene_index&quot;: 2,
+    &quot;screenshot&quot;: {
+      &quot;url&quot;:         &quot;https://origin.widecast.ai/downloads/&lt;co&gt;/&lt;topic&gt;/inspector/XcR0k_5f10e9cc0a384e97.jpg?v=1782700000&quot;,
+      &quot;mime_type&quot;:   &quot;image/jpeg&quot;,
+      &quot;width&quot;:       280,
+      &quot;height&quot;:      498,
+      &quot;bytes&quot;:       20498,
+      &quot;expires_at&quot;:  &quot;2026-06-29T13:30:00Z&quot;,
+      &quot;ttl_seconds&quot;: 900
+    },
+    &quot;warnings&quot;:    [],
+    &quot;layers_used&quot;: [&quot;background&quot;, &quot;remotion_poster&quot;, &quot;narrator&quot;, &quot;caption&quot;]
+  }
+}
+</code></pre></div>
+
+<p><strong>Key invariants</strong></p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication</td>
+<td><strong>None</strong> — the URL is served publicly by nginx (same pattern as Remotion specs and <code>_overlay_poster.png</code> assets).</td>
+</tr>
+<tr>
+<td>Host</td>
+<td><strong><code>origin.widecast.ai</code></strong> (not <code>widecast.ai</code>) — bypasses Cloudflare entirely. CF caches <code>/downloads/*.jpg</code> by extension; routing through the origin keeps these 15-min ephemeral assets out of edge cache so a stale URL never gets pinned in CF for ~24h after the file is gone.</td>
+</tr>
+<tr>
+<td>Cache</td>
+<td>The <code>?v=&lt;mtime&gt;</code> suffix is belt-and-suspenders cache-busting; the origin host already skips CDN.</td>
+</tr>
+<tr>
+<td>TTL</td>
+<td><code>ttl_seconds: 900</code> (15 min). <code>expires_at</code> is when the file is no longer guaranteed readable.</td>
+</tr>
+<tr>
+<td>Freshness</td>
+<td>Every call publishes a NEW file under a fresh 16-hex token — never cached across calls. Inspector data is realtime; reusing a stale screenshot would lie about the current state.</td>
+</tr>
+<tr>
+<td>Atomicity</td>
+<td>Server writes to <code>&lt;filename&gt;.tmp</code>, <code>fsync</code>s, then atomic-renames to the final path before responding. The agent's <code>curl</code> will NEVER read a half-written file.</td>
+</tr>
+<tr>
+<td>Storage path</td>
+<td><code>/mnt/html/lcw/downloads/&lt;company_id&gt;/&lt;topic_id&gt;/inspector/&lt;voice_file&gt;_&lt;token16&gt;.jpg</code> (served at the URL above).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compositor never throws.</strong> Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to <code>result.warnings[]</code> and the response still publishes a URL. If even the JPEG encode fails, the server publishes a <strong>placeholder JPEG</strong> (dark slate, the scene's <code>scene_id</code> + <code>voice_file</code> + the first warning drawn on it). Lookup failures return JSON error envelopes:</p>
 <table>
 <thead>
 <tr>
@@ -118,11 +185,16 @@
 <tr>
 <td>500</td>
 <td><code>server_fallback_failed</code></td>
-<td>Lookup-level Exception not in the above categories (rare; reports <code>exception_name</code>).</td>
+<td>Lookup-level Exception not in the above categories (rare).</td>
+</tr>
+<tr>
+<td>500</td>
+<td><code>screenshot_publish_failed</code></td>
+<td>Compositor produced bytes but the disk write / rename failed.</td>
 </tr>
 </tbody>
 </table>
-<p>The compositor warning codes that surface in <code>result.warnings[]</code> (visible only on the JSON-mode probe responses for non-screenshot actions, or via per-layer logs — the binary JPEG response itself doesn't carry them):</p>
+<p>The compositor warning codes that surface in <code>result.warnings[]</code>:</p>
 <table>
 <thead>
 <tr>
@@ -180,7 +252,7 @@
 <tr>
 <td><code>jpeg_save_failed:&lt;ExcName&gt;</code></td>
 <td>output</td>
-<td>PIL save threw → placeholder JPEG returned.</td>
+<td>PIL save threw → placeholder JPEG published.</td>
 </tr>
 <tr>
 <td><code>empty_image_bytes</code></td>
@@ -189,112 +261,50 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Client snippet — fetch the JPEG</strong>:</p>
-<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/scene_inspector&quot;</span><span class="w"> </span><span class="se">\</span>
+<p><strong>Client snippets</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1) request the screenshot — server publishes a fresh URL</span>
+<span class="nv">URL</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/scene_inspector&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer wc_live_REPLACE_ME&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{ &quot;id&quot;: &quot;widecast7c0d4f8a9b1e2d3f&quot;,</span>
 <span class="s1">        &quot;action&quot;: &quot;screenshot_scene_280x498&quot;,</span>
 <span class="s1">        &quot;voice_file&quot;: &quot;XcR0k&quot; }&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--output<span class="w"> </span>scene.jpg
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.result.screenshot.url<span class="k">)</span>
+
+<span class="c1"># 2) fetch the JPEG — no auth header needed, public URL</span>
+curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span>scene.jpg<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$URL</span><span class="s2">&quot;</span>
 </code></pre></div>
 
-<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="sb">`</span><span class="si">${</span><span class="nx">API</span><span class="si">}</span><span class="sb">/v1/scene_inspector`</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">method</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">headers</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;Authorization&quot;</span><span class="o">:</span><span class="w"> </span><span class="sb">`Bearer </span><span class="si">${</span><span class="nx">KEY</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Content-Type&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;application/json&quot;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">  </span><span class="nx">body</span><span class="o">:</span><span class="w"> </span><span class="kt">JSON.stringify</span><span class="p">({</span><span class="w"> </span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">action</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">voice_file</span><span class="w"> </span><span class="p">}),</span>
-<span class="p">});</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">ct</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">headers</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;content-type&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">;</span>
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">ct</span><span class="p">.</span><span class="nx">startsWith</span><span class="p">(</span><span class="s2">&quot;image/jpeg&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">arrayBuffer</span><span class="p">();</span><span class="w">  </span><span class="c1">// ← raw JPEG</span>
-<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">json</span><span class="p">();</span><span class="w">           </span><span class="c1">// ← JSON error envelope</span>
-<span class="p">}</span>
-</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># Python SDK</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 
-<blockquote>
-<p><strong>SDK note.</strong> The Python (<code>client.scene_inspector</code>) and JS (<code>client.scene_inspector</code>) methods JSON-decode the response, so they <strong>cannot return raw image bytes</strong> on the default binary path. Either pass <code>return_base64: true</code> (next section) or call the endpoint over raw HTTP yourself. All other actions use the SDK methods normally.</p>
-</blockquote>
-<h4 id="rest-opt-in-json-data-url-return_base64-true">REST — opt-in JSON / data-URL (<code>return_base64: true</code>)</h4>
-<p>Some agents can't accept binary HTTP bodies (JSON-only HTTP clients, sandboxed runtimes, Action callers). Pass <code>return_base64: true</code> in the request body to bypass the binary response and receive a regular JSON <code>SceneInspectorResponse</code> instead:</p>
-<div class="highlight"><pre><span></span><code>// request
-{
-  &quot;id&quot;: &quot;widecast7c0d4f8a9b1e2d3f&quot;,
-  &quot;action&quot;: &quot;screenshot_scene_280x498&quot;,
-  &quot;voice_file&quot;: &quot;XcR0k&quot;,
-  &quot;return_base64&quot;: true
-}
-
-// response (HTTP 200, Content-Type: application/json)
-{
-  &quot;object&quot;:   &quot;scene_inspector_result&quot;,
-  &quot;status&quot;:   &quot;completed&quot;,
-  &quot;code&quot;:     &quot;ok&quot;,
-  &quot;action&quot;:   &quot;screenshot_scene_280x498&quot;,
-  &quot;topic_id&quot;: &quot;widecast7c0d4f8a9b1e2d3f&quot;,
-  &quot;request_id&quot;: &quot;req_…&quot;,
-  &quot;result&quot;: {
-    &quot;action&quot;:      &quot;screenshot_scene_280x498&quot;,
-    &quot;scene_id&quot;:    3,
-    &quot;voice_file&quot;:  &quot;XcR0k&quot;,
-    &quot;scene_index&quot;: 2,
-    &quot;screenshot&quot;: {
-      &quot;data_url&quot;:  &quot;data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA…&quot;,
-      &quot;base64&quot;:    &quot;/9j/4AAQSkZJRgABAQEA…&quot;,
-      &quot;mime_type&quot;: &quot;image/jpeg&quot;,
-      &quot;width&quot;:     280,
-      &quot;height&quot;:    498,
-      &quot;bytes&quot;:     20498
-    },
-    &quot;warnings&quot;:      [],
-    &quot;layers_used&quot;:   [&quot;background&quot;, &quot;remotion_poster&quot;, &quot;narrator&quot;, &quot;caption&quot;]
-  }
-}
-</code></pre></div>
-
-<p><strong>Use it when</strong>: the runtime can't consume binary HTTP bodies (some HTTP libraries / sandbox limits / strict JSON Action). <strong>Avoid it when</strong>: you can take the default binary path — base64 is ~33% larger than the raw JPEG and lives inline in the JSON-RPC text stream, so the binary path keeps your token / bandwidth cost lower.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Python SDK — JSON-mode</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
 <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_inspector</span><span class="p">(</span>
     <span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
     <span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span>
     <span class="n">voice_file</span><span class="o">=</span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span>
-    <span class="n">return_base64</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
-<span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;scene.jpg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span>
-    <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;base64&quot;</span><span class="p">]),</span>
-<span class="p">)</span>
+<span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
+<span class="nb">open</span><span class="p">(</span><span class="s2">&quot;scene.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
 </code></pre></div>
 
-<div class="highlight"><pre><span></span><code><span class="c1">// JS SDK — JSON-mode</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// JS SDK</span>
+<span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
 <span class="kd">const</span><span class="w"> </span><span class="nx">resp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">scene_inspector</span><span class="p">(</span>
 <span class="w">  </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="s2">&quot;screenshot_scene_280x498&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">voice_file</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;XcR0k&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">return_base64</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">voice_file</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;XcR0k&quot;</span><span class="w"> </span><span class="p">},</span>
 <span class="p">);</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">img</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">createElement</span><span class="p">(</span><span class="s2">&quot;img&quot;</span><span class="p">);</span>
-<span class="nx">img</span><span class="p">.</span><span class="nx">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">result</span><span class="p">.</span><span class="nx">screenshot</span><span class="p">.</span><span class="nx">data_url</span><span class="p">;</span>
-<span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">appendChild</span><span class="p">(</span><span class="nx">img</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">result</span><span class="o">?</span><span class="p">.</span><span class="nx">screenshot</span><span class="o">?</span><span class="p">.</span><span class="nx">url</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">blob</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="nx">url</span><span class="p">)).</span><span class="nx">blob</span><span class="p">();</span>
 </code></pre></div>
 
-<h4 id="mcp-imagecontent-block-claude-desktop-claudeai-chatgpt-mcp">MCP — <code>ImageContent</code> block (Claude Desktop / Claude.ai / ChatGPT MCP)</h4>
-<p>When an MCP host calls <code>widecast_scene_inspector</code> with <code>action="screenshot_scene_280x498"</code>, the WideCast MCP layer (both the remote <code>/mcp/&lt;token&gt;</code> connector and the local <code>@widecast/mcp-server</code> Node process) detects the binary <code>image/jpeg</code> response, base64-encodes the bytes, and emits an <strong>MCP <code>ImageContent</code> block</strong> per MCP spec 2025-06-18 §6.3:</p>
-<div class="highlight"><pre><span></span><code>{
-  &quot;jsonrpc&quot;: &quot;2.0&quot;,
-  &quot;id&quot;: …,
-  &quot;result&quot;: {
-    &quot;content&quot;: [
-      { &quot;type&quot;: &quot;image&quot;, &quot;data&quot;: &quot;&lt;base64 of the JPEG bytes&gt;&quot;, &quot;mimeType&quot;: &quot;image/jpeg&quot; }
-    ],
-    &quot;isError&quot;: false
-  }
-}
-</code></pre></div>
-
-<p>Why: an MCP <code>ImageContent</code> block is the <strong>only</strong> image transport that doesn't leak bytes into the model's context as JSON-escaped Unicode. Claude Desktop / Claude.ai / ChatGPT MCP all render <code>ImageContent</code> natively (inline image in chat); the bytes are streamed to a sandboxed cache, not into the language model's text stream. <strong>No parsing required, no <code> JFIF…</code> token bloat</strong>, and no "model sees the bytes as escaped text" failure mode.</p>
-<p>All other actions still return regular <code>TextContent</code> blocks (<code>{ type: "text", text: "&lt;JSON&gt;" }</code>) as before — only <code>screenshot_scene_280x498</code> switches to <code>ImageContent</code>.</p>
 <blockquote>
-<p><strong>Historical bug</strong>: older builds of the MCP wrapper unconditionally called <code>r.json()</code> on the response. When the server returned <code>image/jpeg</code>, the parse failed and the wrapper fell back to a <code>{"raw": (r.text or "")[:2000]}</code> envelope — i.e. JPEG bytes UTF-8-decoded into mojibake (<code>���� JFIF…Lavc59…</code>) and dumped into a JSON <code>raw</code> field. That ate tens of thousands of tokens per call and produced unusable garbage. The current builds detect <code>Content-Type: image/*</code> upstream of <code>r.json()</code> and emit a proper <code>ImageContent</code> block.</p>
+<p><strong>MCP transport.</strong> The remote <code>/mcp/&lt;token&gt;</code> connector and local <code>@widecast/mcp-server</code> both pass the JSON through unchanged — the URL appears in the regular <code>TextContent</code> block. A Claude / GPT host then either fetches the URL itself or asks the user / shell to do so. No <code>ImageContent</code> block is emitted today.</p>
+<p><strong>Historical note.</strong> Prior contracts of this action returned raw <code>image/jpeg</code> bytes (or, briefly, an opt-in JSON <code>result.screenshot.{data_url, base64}</code> via <code>return_base64: true</code>). Both contracts were retired in favour of the URL-publishing path above. The <code>return_base64</code> flag is parsed but ignored — old callers don't 400, they just get the new URL contract.</p>
 </blockquote>
 <h3 id="no-editor-open-graceful-behaviour">"No editor open" — graceful behaviour</h3>
 <p>For <strong>non-screenshot actions</strong>, no live editor → HTTP 200 with <code>status: "unavailable"</code>:</p>
@@ -324,7 +334,7 @@
 </tr>
 </tbody>
 </table>
-<p>For <strong><code>screenshot_scene_280x498</code></strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and <strong>still returns binary JPEG</strong> with the same headers as a live-editor capture. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
+<p>For <strong><code>screenshot_scene_280x498</code></strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and <strong>publishes it to the same 15-minute URL contract</strong>. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
 <p>Agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> + <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a>, and when needed fetch the per-scene <code>remotion_spec_url</code>.</p>
 <hr />
 <h2 id="actions">Actions</h2>
@@ -365,7 +375,7 @@
 <tr>
 <td><code>screenshot_scene_280x498</code></td>
 <td>Small ~280×498 capture for aesthetic / visual judgment.</td>
-<td><strong>Response is <code>image/jpeg</code> bytes</strong>, not JSON — see <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">the binary section above</a>. Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification.</td>
+<td><strong>Response carries a 15-min public URL</strong> in <code>result.screenshot.url</code> — see the section above. Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification.</td>
 </tr>
 <tr>
 <td><code>activate_scene</code></td>
@@ -492,10 +502,10 @@
 }
 </code></pre></div>
 
-<h3 id="200-ok-imagejpeg-only-for-screenshot_scene_280x498"><code>200 OK</code> — <code>image/jpeg</code> (only for <code>screenshot_scene_280x498</code>)</h3>
-<p>Response body is raw JPEG bytes. See <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">the binary section above</a> for headers + client snippets. Server-fallback composites use the same content type — no way to distinguish from headers alone; assume "approximate" when reading <code>screenshot_scene_280x498</code> output.</p>
+<h3 id="200-ok-screenshot_scene_280x498-url-response"><code>200 OK</code> — <code>screenshot_scene_280x498</code> (URL response)</h3>
+<p>Response is JSON <code>SceneInspectorResponse</code> whose <code>result.screenshot</code> carries <code>{url, mime_type, width, height, bytes, expires_at, ttl_seconds}</code>. See the full sample + invariants in the section above. Server-fallback composites use the same shape — there's no flag to distinguish a live capture from a composite; assume "approximate" when reading <code>screenshot_scene_280x498</code> output.</p>
 <h3 id="200-ok-unavailable"><code>200 OK</code> — <code>unavailable</code></h3>
-<p>See "No editor open" above. <strong>Note</strong>: <code>screenshot_scene_280x498</code> never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still returns JPEG bytes (or a 500 JSON error if it cannot).</p>
+<p>See "No editor open" above. <strong>Note</strong>: <code>screenshot_scene_280x498</code> never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still publishes a URL (or returns a 500 JSON error if it cannot).</p>
 <h3 id="200-ok-error-browser-side-failure"><code>200 OK</code> — <code>error</code> (browser-side failure)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;: &quot;scene_inspector_result&quot;,
@@ -555,7 +565,7 @@
 </tbody>
 </table>
 <h3 id="500-internal-server-error-screenshot-only"><code>500 Internal Server Error</code> (screenshot-only)</h3>
-<p>JSON envelope returned when <code>screenshot_scene_280x498</code> can't produce bytes:</p>
+<p>JSON envelope returned when <code>screenshot_scene_280x498</code> can't be served:</p>
 <table>
 <thead>
 <tr>
@@ -565,8 +575,8 @@
 </thead>
 <tbody>
 <tr>
-<td><code>screenshot_binary_missing</code></td>
-<td>Server composed a fallback but no image bytes were produced.</td>
+<td><code>screenshot_publish_failed</code></td>
+<td>Compositor produced bytes but the disk write / atomic rename failed (no readable URL to return).</td>
 </tr>
 <tr>
 <td><code>server_fallback_failed</code></td>
@@ -576,11 +586,9 @@
 </table>
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
-<blockquote>
-<p>⚠ The Python (<code>client.scene_inspector</code>) and JS (<code>client.scene_inspector</code>) methods JSON-decode the response, so they <strong>cannot return image bytes</strong>. For <code>screenshot_scene_280x498</code>, call the endpoint over raw HTTP — see the <a href="#-screenshot_scene_280x498-returns-binary-jpeg-not-json">client snippet above</a>.</p>
-</blockquote>
 <h3 id="python-screenshot-with-graceful-server-fallback">Python — screenshot with graceful server-fallback</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">)</span>
@@ -595,11 +603,14 @@
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;live screenshot:&quot;</span><span class="p">,</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
+    <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;scene.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved live screenshot to scene.jpg&quot;</span><span class="p">)</span>
 <span class="k">elif</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;server_fallback&quot;</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;server-composed fallback (thumbnails + overlay poster):&quot;</span><span class="p">,</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">])</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;server-composed fallback URL (thumbnails + overlay poster):&quot;</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="c1"># No live editor at all — fall back to scene_geometry</span>
+    <span class="c1"># No live editor + composition failed — fall back to scene_geometry</span>
     <span class="n">geom</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">scene_geometry</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">voice_file</span><span class="o">=</span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;voice_file&quot;</span><span class="p">])</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;falling back to scene_geometry:&quot;</span><span class="p">,</span> <span class="n">geom</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">])</span>
 </code></pre></div>

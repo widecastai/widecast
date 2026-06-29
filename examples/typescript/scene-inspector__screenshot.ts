@@ -1,5 +1,5 @@
 /**
- * 📸 Small 280×498 screenshot — binary JPEG (default) / ImageContent (MCP)
+ * 📸 Small 280×498 screenshot — temporary public URL (15-min TTL)
  *
  * Auto-generated from widecast/docs/playgrounds/scene-inspector.yaml.
  */

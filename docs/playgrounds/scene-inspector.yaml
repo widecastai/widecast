@@ -79,15 +79,6 @@ fields:
     label: "probe_timeout_ms (default ~800, capped 2000)"
     required: false
     placeholder: "800"
-  - name: return_base64
-    type: select
-    label: "return_base64 (screenshot_scene_280x498 only)"
-    required: false
-    options:
-      - { value: "",     label: "false (default — binary image/jpeg response)" }
-      - { value: "true", label: "true (JSON response with result.screenshot.{data_url, base64, mime_type, width, height, bytes})" }
-    default: ""
-    help: "Set true when the runtime can't accept binary HTTP bodies. Ignored for non-screenshot actions."
 
 poll_after_create:
   enabled: false
@@ -109,18 +100,10 @@ use_cases:
       activate: true
       timeout_ms: 7000
   - id: screenshot
-    title: "📸 Small 280×498 screenshot — binary JPEG (default) / ImageContent (MCP)"
-    description: "Default response shape, transport-dependent. (a) Over MCP (Claude Desktop / Claude.ai / ChatGPT MCP): the WideCast MCP wrapper emits a proper MCP ImageContent block — {type:'image', data:'<base64>', mimeType:'image/jpeg'} — rendered as an inline image; bytes never enter the model's text stream. (b) Over raw REST: response is `Content-Type: image/jpeg` with JPEG bytes in the body; metadata in headers (X-WideCast-Scene-Id/Voice-File/Scene-Index, Content-Length, Cache-Control: no-store). Server composes a fallback from scene thumbnails + {voice_file}_overlay_poster.png when no live editor is available. SDK note: Python/JS .scene_inspector() methods JSON-decode the response so they CANNOT return image bytes on this path — use the screenshot-base64 variant below OR call /v1/scene_inspector over raw HTTP yourself."
+    title: "📸 Small 280×498 screenshot — temporary public URL (15-min TTL)"
+    description: "Response is a regular SceneInspectorResponse whose `result.screenshot.url` is a public path the agent fetches with `curl <url>` (no auth header). Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. Every call publishes a fresh unique file (16-hex token) — URLs are never reused across calls, matching the realtime semantics of inspector data. The server only responds after fsync+rename, so the URL is guaranteed readable when this response arrives. Server-fallback composites (no live editor → scene thumbnails + `{voice_file}_overlay_poster.png`) publish to the same URL contract."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       action: "screenshot_scene_280x498"
       voice_file: "XcR0k"
       activate: true
-  - id: screenshot-base64
-    title: "📸 Small 280×498 screenshot — opt-in JSON / data-URL (`return_base64:true`)"
-    description: "JSON-mode response for clients that can't accept binary HTTP bodies (some JSON-only HTTP libraries, sandboxed runtimes, plain Action callers). Returns SceneInspectorResponse with `result.screenshot.{data_url:'data:image/jpeg;base64,…', base64:'…', mime_type, width, height, bytes}`. Trade-off: base64 is ~33% larger than the raw JPEG and lives inline in the JSON-RPC text stream — prefer the default binary path when the client supports it."
-    request:
-      id: "widecast7c0d4f8a9b1e2d3f"
-      action: "screenshot_scene_280x498"
-      voice_file: "XcR0k"
-      return_base64: true

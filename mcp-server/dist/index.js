@@ -21,8 +21,13 @@ if (!API_KEY) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isTerminal = (s) => s === "completed" || s === "failed";
 async function wc(method, path, body) {
-    // Accept both JSON and image responses — /v1/scene_inspector returns
-    // image/jpeg bytes for action=screenshot_scene_280x498.
+    // DEAD CODE PATH (intentionally retained per direction "có thể sau này
+    // cần mở lại"): the previous /v1/scene_inspector contract returned
+    // image/jpeg bytes for action=screenshot_scene_280x498. The new contract
+    // returns a regular JSON SceneInspectorResponse with a 15-min public URL
+    // (`result.screenshot.url`), so no upstream WideCast endpoint emits
+    // binary image bodies today — the `image/*` branch below never matches.
+    // We still send the Accept header in case the contract ever flips back.
     const headers = { Accept: "application/json, image/*", "User-Agent": `widecast-mcp/${VERSION}` };
     if (API_KEY)
         headers.Authorization = `Bearer ${API_KEY}`;
@@ -687,17 +692,17 @@ const TOOLS = [
         title: "WideCast: Live browser inspector (expensive last-resort; use AFTER scene_geometry)",
         description: "SYNC live browser inspector for an open scene editor of a video. **More expensive than widecast_scene_geometry — use this only when data + geometry are NOT enough**: typically when the agent needs browser truth (mounted DOM, computed boxes, current preview play state) or a small 280×498 visual screenshot for aesthetic judgment. Do NOT use it as the first step if `widecast_scene_geometry` already gives you the boxes you need.\n" +
             "**How it works**: the server broadcasts a tiny MQTT probe to every open editor tab for this video, elects ONE healthy foreground/active browser within ~800ms, then sends the real inspector command only to that tab. widecast_modify_scene realtime broadcasts to all editors separately — this tool's election only affects which tab returns the live inspection. Presence alone is not usability: a tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.\n" +
-            "**🖼 `screenshot_scene_280x498` has a binary-image response shape by default.** Over MCP (this tool): the wrapper detects the upstream `image/jpeg` response and emits a proper MCP **ImageContent** block — `{type:'image', data:'<base64>', mimeType:'image/jpeg'}` per MCP spec 2025-06-18 §6.3. Claude Desktop / Claude.ai / ChatGPT MCP render it as an inline image; the bytes never enter the model's text stream (no JSON-escaped mojibake, no `JFIF…` token bloat). Cap ~8 MB. **All other actions still return regular `TextContent` blocks with JSON `{object:'scene_inspector_result', status, code, result, …}` as before.** **Opt-in JSON / base64**: set `return_base64:true` to receive a regular JSON `SceneInspectorResponse` with `result.screenshot.{data_url, base64, mime_type, width, height, bytes}` instead of binary — mostly useful when the MCP wrapper isn't in the path (raw REST/SDK) and the client can't accept binary HTTP bodies; over MCP the ImageContent block usually wins on token cost. The compositor never throws — single-layer failures surface as codes in `result.warnings[]` (`background_layer_failed:<Exc>`, `poster_composite_failed:<Exc>`, `narrator_layer_failed:<Exc>`, `caption_layer_failed:<Exc>`, `jpeg_save_failed:<Exc>`) while the response still carries image bytes; if even JPEG encode fails the server emits a placeholder JPEG with scene identity drawn on dark slate. Non-binary responses are reserved for resource-lookup failures: 404 `video_not_found`/`scene_not_found`, 409 `script_not_ready`, 502 `script_parse_failed`; 500 `server_fallback_failed` only when the lookup itself throws an unclassified Exception (extremely rare). Plus the normal 400/auth/`unsupported_action`/`publisher_missing` codes. (Raw REST callers — curl / SDK — receive `Content-Type: image/jpeg` and the JPEG bytes in the body, with metadata in `X-WideCast-*` headers; the MCP wrapper is the only path that emits `ImageContent`.)\n" +
+            "**🖼 `screenshot_scene_280x498` response shape**: regular `SceneInspectorResponse` JSON whose `result.screenshot` carries a *temporary public URL* — NOT bytes, NOT base64. Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. The agent fetches the JPEG by `curl <url>` — the URL is public (no auth header needed) and remains valid for ~15 minutes from the call (TTL contract). Every call publishes a fresh unique file (token = 16 hex chars), so the URL is never reused across calls — matches the realtime semantics of inspector data. Host is `origin.widecast.ai` (bypasses Cloudflare so 15-min ephemeral URLs never get pinned in CF edge cache). Cache-bust `?v=<mtime>` is belt-and-suspenders. Server only responds AFTER the JPEG is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent reads the response. The compositor never throws — single-layer failures surface as codes in `result.warnings[]` (`background_layer_failed:<Exc>`, `poster_composite_failed:<Exc>`, `narrator_layer_failed:<Exc>`, `caption_layer_failed:<Exc>`, `jpeg_save_failed:<Exc>`) while the response still carries a published URL; if even JPEG encode fails the server emits a placeholder JPEG with scene identity drawn on dark slate. Error codes (non-200): 404 `video_not_found`/`scene_not_found`, 409 `script_not_ready`, 502 `script_parse_failed`, 500 `server_fallback_failed` (lookup throws) / `screenshot_publish_failed` (disk write fails after compose). Plus the normal 400/auth/`unsupported_action`/`publisher_missing` codes.\n" +
             "**No live editor → graceful behaviour**:\n" +
             "• For non-screenshot actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
-            "• For `screenshot_scene_280x498`, the server composes a fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and still returns BINARY JPEG (response headers carry `X-WideCast-*`; check the response framing — when bytes are returned successfully it's an image regardless of source). Treat fallback screenshots as approximate composites, not real renders.\n" +
+            "• For `screenshot_scene_280x498`, the server composes a fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and publishes it to the same 15-min URL contract. Treat fallback screenshots as approximate composites, not real renders.\n" +
             "**Actions** (`action`):\n" +
             "• `list_live_editors` — presence list of open editor tabs (browser/OS/last_seen) — debug/discovery only.\n" +
             "• `list_instances` — preview instance ids mounted in the elected tab.\n" +
             "• `get_preview_state` — current playing/paused/scene/time in the preview player.\n" +
             "• `get_scene_dom_snapshot` — DOM subtree for a scene (scoped via optional `selector` — keep it narrow).\n" +
             "• `get_computed_boxes` — computed `getBoundingClientRect` for scene elements. **Prefer widecast_scene_geometry for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.\n" +
-            "• `screenshot_scene_280x498` — small JPEG (~280×498). **Response is raw `image/jpeg` bytes** (see above). For pixel-perfect verification, use a renderer / headless-browser pass.\n" +
+            "• `screenshot_scene_280x498` — small JPEG (~280×498). **Response is JSON with a temporary public URL** (see above). Fetch the bytes by `curl <result.screenshot.url>`. For pixel-perfect verification, use a renderer / headless-browser pass.\n" +
             "• `activate_scene` — bring the elected tab to scene N (may visibly switch the editor for that user).\n" +
             "• `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` — preview transport controls.\n" +
             "**No arbitrary JavaScript eval is exposed.** Use `voice_file` as the scene selector wherever possible.",
@@ -730,7 +735,6 @@ const TOOLS = [
                 seek_seconds: { type: "number", description: "Optional seek time for seek_preview or screenshot." },
                 timeout_ms: { type: "integer", description: "Command timeout. Default ~7000ms, capped server-side at 15000ms." },
                 probe_timeout_ms: { type: "integer", description: "Foreground election window. Default ~800ms (server clamps 150-2000ms)." },
-                return_base64: { type: "boolean", description: "Only meaningful for action='screenshot_scene_280x498'. Default false → binary image/jpeg response (this MCP wrapper auto-converts to an ImageContent block). Set true to receive a JSON SceneInspectorResponse with `result.screenshot.{data_url, base64, mime_type, width, height, bytes}` instead. Mainly for REST/SDK callers that can't consume binary HTTP bodies; the MCP wrapper handles the binary path automatically." },
                 options: { type: "object", description: "Advanced action-specific options." },
             },
         },
@@ -740,7 +744,7 @@ const TOOLS = [
             properties: {
                 object: { type: "string", const: "scene_inspector_result" },
                 status: { type: "string", enum: ["completed", "error", "unavailable"] },
-                code: { type: "string", description: "JSON-mode codes (non-screenshot actions, or screenshot errors): ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | server_fallback (legacy fallback marker) | screenshot_binary_missing (composed but no bytes — 500) | server_fallback_failed (couldn't compose fallback — 500). Successful `screenshot_scene_280x498` calls return raw image/jpeg bytes, NOT this JSON envelope." },
+                code: { type: "string", description: "Response codes: ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | server_fallback (legacy fallback marker) | server_fallback_failed (couldn't compose fallback — 500) | screenshot_publish_failed (composed but couldn't be persisted to disk — 500). Successful `screenshot_scene_280x498` calls return this JSON envelope with `result.screenshot.url` (15-min public URL) — agent fetches the JPEG with `curl <url>`." },
                 request_id: { type: "string" },
                 action: { type: "string" },
                 topic_id: { type: "string" },
@@ -1052,16 +1056,13 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 body.timeout_ms = args.timeout_ms;
             if (args.probe_timeout_ms !== undefined)
                 body.probe_timeout_ms = args.probe_timeout_ms;
-            if (args.return_base64 !== undefined)
-                body.return_base64 = args.return_base64;
             if (args.options !== undefined)
                 body.options = args.options;
-            // For action="screenshot_scene_280x498", the REST endpoint returns
-            // image/jpeg bytes — wc() captures them as a binary marker and
-            // toMcpResult() emits an MCP ImageContent block so Claude / GPT can
-            // render the screenshot inline without JSON-parsing the bytes. All
-            // other actions return a JSON SceneInspectorResponse and fall
-            // through to a text block. (See widecast/docs/endpoints/scene-inspector.md.)
+            // For action="screenshot_scene_280x498", the REST endpoint now returns
+            // a regular JSON SceneInspectorResponse whose `result.screenshot.url`
+            // is a public 15-min temporary URL — the agent fetches the JPEG with
+            // `curl <url>` (no auth header needed). All other actions also return
+            // JSON. (See widecast/docs/endpoints/scene-inspector.md.)
             const data = await wc("POST", "/v1/scene_inspector", body);
             return toMcpResult(data);
         }

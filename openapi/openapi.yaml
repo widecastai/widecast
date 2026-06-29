@@ -165,7 +165,7 @@ info:
       unsupported_action |
       publisher_missing | mqtt_publish_failed | no_live_editor |
       no_active_editor | browser_error | server_fallback |
-      screenshot_binary_missing | server_fallback_failed`
+      screenshot_publish_failed | server_fallback_failed`
     - Headers (every response): `X-Request-Id`, `X-RateLimit-*`,
       `X-WideCast-Version`
     - Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)
@@ -1670,42 +1670,36 @@ paths:
         any page without a mounted scene preview are ignored for scene-
         bound commands.
 
-        **`screenshot_scene_280x498` returns BINARY JPEG by default.** On
-        success (live editor capture OR server-fallback composite from
-        thumbnails + `{voice_file}_overlay_poster.png`), the HTTP
-        response is the raw image:
+        **`screenshot_scene_280x498` response shape — temporary public
+        URL.** On success (live editor capture OR server-fallback
+        composite from thumbnails + `{voice_file}_overlay_poster.png`),
+        the HTTP response is a regular JSON `SceneInspectorResponse`
+        whose `result.screenshot` carries a *temporary public URL* —
+        NOT bytes, NOT base64:
 
-          * `Content-Type: image/jpeg`
-          * Body = JPEG bytes (NOT JSON, NOT base64, NOT
-            `result.screenshot`).
-          * Metadata in response headers: `X-WideCast-Request-Id`,
-            `X-WideCast-Scene-Id`, `X-WideCast-Voice-File`,
-            `X-WideCast-Scene-Index`, `Content-Length`,
-            `Cache-Control: no-store`. Cap ~8 MB.
+          * `url` — `https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>`.
+            Fetch the JPEG bytes with `curl <url>`. No
+            `Authorization` header required — the path is served
+            publicly by nginx. The host is ``origin.widecast.ai`` (not
+            ``widecast.ai``) — bypasses Cloudflare so 15-min ephemeral
+            URLs never get pinned in CF edge cache. The cache-bust
+            ``?v=<mtime>`` is belt-and-suspenders.
+          * `mime_type` — `image/jpeg`.
+          * `width` / `height` — pixel dimensions (typically 280 / 498).
+          * `bytes` — JPEG byte length on disk.
+          * `expires_at` — ISO 8601 UTC; the URL is guaranteed
+            readable until this moment.
+          * `ttl_seconds` — `900` (15 minutes).
 
-        **Opt-in JSON / base64** — pass `return_base64: true` in the
-        request body to bypass the binary response. The route then
-        emits a normal `SceneInspectorResponse` with
-        `result.screenshot` carrying:
-
-          * `data_url` — `data:image/jpeg;base64,…` ready to drop into
-            an `<img src>` or save via `data:` URI parsers.
-          * `base64` — the raw base64 string (no `data:` prefix).
-          * `mime_type` — typically `image/jpeg`.
-          * `width` / `height` — pixel dimensions (280 / 498 by
-            default).
-          * `bytes` — original JPEG byte length (before base64
-            expansion).
-
-        Use this when the agent runtime can't accept binary HTTP
-        bodies (some JSON-only HTTP clients, plain Action callers,
-        sandbox limits). Trade-off: base64 is ~33% larger than the
-        raw JPEG and lives inline in the JSON-RPC text stream —
-        prefer the default binary path when the client supports it.
+        Every call publishes a fresh unique file (16-hex token), so
+        the URL is never reused across calls — matches the realtime
+        semantics of inspector data. The server only responds after
+        the JPEG is `fsync`-ed and atomically renamed to its final
+        path, so the URL is guaranteed readable when the agent reads
+        the response (no race).
 
         **All other actions still return JSON
-        `SceneInspectorResponse`** as before — only
-        `screenshot_scene_280x498` has the binary / base64 dichotomy.
+        `SceneInspectorResponse`** as before.
 
         **No live editor → graceful behaviour**:
           - For non-screenshot actions, the response is HTTP 200 with
@@ -1717,18 +1711,15 @@ paths:
             fallback screenshot from scene thumbnails +
             `{voice_file}_overlay_poster.png` (the static overlay poster
             refreshed by spec-changing `/v1/modify_scene` edits) and
-            still returns BINARY JPEG. **The compositor never throws** —
-            each layer (background / poster / narrator / caption / JPEG
-            save) is wrapped independently, and individual failures
-            surface as codes in `result.warnings[]` while the response
-            still carries `image/jpeg` bytes. If even the JPEG encode
-            fails, the server emits a placeholder JPEG with the scene
-            identity drawn on dark slate. Compositor edge cases never
-            collapse to HTTP 500 — only resource-lookup failures
-            (`video_not_found`, `scene_not_found`, `script_not_ready`,
-            `script_parse_failed`) return non-`image/jpeg`. Treat
-            fallback screenshots as approximate composites, not real
-            renders.
+            publishes it to the same 15-minute URL contract. **The
+            compositor never throws** — each layer (background /
+            poster / narrator / caption / JPEG save) is wrapped
+            independently, and individual failures surface as codes
+            in `result.warnings[]` while the response still carries a
+            published URL. If even the JPEG encode fails, the server
+            emits a placeholder JPEG with the scene identity drawn on
+            dark slate. Treat fallback screenshots as approximate
+            composites, not real renders.
 
         **Actions** (`action`):
           * `list_live_editors` — presence list of open editor tabs
@@ -1744,8 +1735,9 @@ paths:
             audits** — it is cheaper, always-available (no browser
             needed), and returns the same boxes plus collision violations
             and safe zones in pure JSON.
-          * `screenshot_scene_280x498` — small JPEG (~280×498). **Returns
-            raw `image/jpeg` bytes** (see above). For pixel-perfect
+          * `screenshot_scene_280x498` — small JPEG (~280×498). **Response
+            is JSON with a 15-minute public URL** (see above). Fetch the
+            bytes with `curl <result.screenshot.url>`. For pixel-perfect
             verification, use a renderer / headless-browser pass.
           * `activate_scene` — bring the elected tab to scene N (may
             visibly switch the editor for that user).
@@ -1772,40 +1764,26 @@ paths:
                   action: get_computed_boxes
                   voice_file: XcR0k
               screenshot:
-                summary: Small 280×498 capture — default binary image/jpeg response
+                summary: Small 280×498 capture — JSON response with 15-minute public URL
+                description: |
+                  Response is a regular `SceneInspectorResponse` whose
+                  `result.screenshot.url` is a public path the agent
+                  fetches with `curl` (no auth header). The URL is
+                  unique per call and valid for 15 minutes.
                 value:
                   id: widecast7c0d4f8a9b1e2d3f
                   action: screenshot_scene_280x498
                   voice_file: XcR0k
                   activate: true
-              screenshot_base64:
-                summary: Small 280×498 capture — opt-in JSON / data-URL response (for JSON-only clients)
-                description: |
-                  `return_base64: true` makes the route return a JSON
-                  `SceneInspectorResponse` with
-                  `result.screenshot.{data_url, base64, mime_type,
-                  width, height, bytes}` instead of raw image/jpeg.
-                value:
-                  id: widecast7c0d4f8a9b1e2d3f
-                  action: screenshot_scene_280x498
-                  voice_file: XcR0k
-                  return_base64: true
       responses:
         '200':
           description: |
-            Inspector outcome. Content type depends on the action AND
-            the `return_base64` flag:
-              * **`screenshot_scene_280x498`, default** → raw
-                `image/jpeg` bytes. Metadata is in response headers
-                (`X-WideCast-Request-Id`, `X-WideCast-Scene-Id`,
-                `X-WideCast-Voice-File`, `X-WideCast-Scene-Index`,
-                `Content-Length`, `Cache-Control: no-store`).
-              * **`screenshot_scene_280x498` with `return_base64:
-                true`** → JSON `SceneInspectorResponse` carrying
-                `result.screenshot.data_url`,
-                `result.screenshot.base64`,
-                `result.screenshot.mime_type`,
-                `result.screenshot.width` / `height` / `bytes`.
+            Inspector outcome. Always JSON `SceneInspectorResponse`:
+              * **`screenshot_scene_280x498`** → JSON carrying
+                `result.screenshot.{url, mime_type, width, height,
+                bytes, expires_at, ttl_seconds}`. The agent fetches
+                the JPEG by `curl <result.screenshot.url>` — the URL
+                is public, fresh per call, and valid 15 minutes.
               * **All other actions** → JSON `SceneInspectorResponse`
                 with `status` discriminating:
                   * `"completed"` — elected tab returned a `result`.
@@ -1816,13 +1794,6 @@ paths:
                     provider error.
           headers: *commonHeaders
           content:
-            image/jpeg:
-              schema:
-                type: string
-                format: binary
-                description: |
-                  Only returned for `action: "screenshot_scene_280x498"`
-                  on success. ~280×498 px JPEG; capped ~8 MB.
             application/json:
               schema: { $ref: '#/components/schemas/SceneInspectorResponse' }
         '400':
@@ -1854,12 +1825,13 @@ paths:
             never-throws-never-500 refactor of the screenshot
             compositor, individual layer failures surface as warning
             codes in `result.warnings[]` while the response still
-            returns `image/jpeg` bytes. Hitting this branch means an
-            unexpected exception path was triggered:
+            carries a published URL. Hitting this branch means an
+            unexpected path was triggered:
               * `server_fallback_failed` — Exception fell outside the
                 lookup classification (extremely rare).
-              * `screenshot_binary_missing` — defensive belt-and-
-                suspenders; should not be reachable in normal builds.
+              * `screenshot_publish_failed` — image was composed but
+                could not be persisted to disk (no readable URL to
+                return).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -3907,20 +3879,6 @@ components:
         probe_timeout_ms:
           type: integer
           description: Foreground election window. Default ~800ms (server clamps 150-2000ms).
-        return_base64:
-          type: boolean
-          default: false
-          description: |
-            Opt-in JSON / base64 response for
-            `action="screenshot_scene_280x498"` only. Default `false` →
-            the route returns a raw `image/jpeg` HTTP body (metadata in
-            `X-WideCast-*` headers). Set `true` to receive a normal JSON
-            `SceneInspectorResponse` where `result.screenshot` carries
-            both `data_url` (`data:image/jpeg;base64,…`) and raw
-            `base64`, plus `mime_type` / `width` / `height` / `bytes` —
-            useful for agents that can't consume binary HTTP bodies and
-            need the screenshot inline in the JSON envelope. Ignored
-            for all other actions.
         options:
           type: object
           description: Advanced action-specific options.
@@ -3939,15 +3897,16 @@ components:
         code:
           type: string
           description: |
-            For non-screenshot actions and screenshot-error envelopes:
             `ok` | `no_live_editor` | `no_active_editor` |
             `unsupported_action` | `publisher_missing` |
             `mqtt_publish_failed` | `browser_error` | `server_fallback`
-            (legacy fallback marker) | `screenshot_binary_missing`
-            (composed but no image bytes — HTTP 500) |
-            `server_fallback_failed` (couldn't compose a fallback — HTTP
-            500). Successful `screenshot_scene_280x498` calls return raw
-            `image/jpeg` bytes — not this JSON envelope.
+            (legacy fallback marker) | `server_fallback_failed`
+            (couldn't compose a fallback — HTTP 500) |
+            `screenshot_publish_failed` (composed but couldn't be
+            persisted to disk — HTTP 500). Successful
+            `screenshot_scene_280x498` calls return this JSON envelope
+            with `result.screenshot.url` — agent fetches the JPEG with
+            `curl <url>`.
         request_id: { type: string }
         action: { type: string }
         topic_id: { type: string }
