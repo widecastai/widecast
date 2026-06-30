@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_disable_overlay_value |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n**Authentication**: every request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -2612,6 +2612,120 @@
           },
           "503": {
             "description": "Skill content temporarily unavailable."
+          }
+        }
+      }
+    },
+    "/v1/skills/editing": {
+      "get": {
+        "tags": [
+          "Skills"
+        ],
+        "operationId": "getEditingSkill",
+        "summary": "Lazy-load the AI-video-editor playbook. Call once with no `module` to fetch the master SKILL.md + a live `available_modules[]` index; call again with `module=<id>` to load a submodule. Auto-expands when new .md files are added under the skill folder.",
+        "description": "Key-free. Returns the WideCast **AI-video-editor** playbook for\nrefining/editing an EXISTING video (per-scene composition,\noverlay, narrator face clearance, background audit, layout,\nthumbnail/CTA endpoints, dead-zone, definition-of-done). This is\nDIFFERENT from `getWritingSkill`, which is for AUTHORING new\nscripts; this skill is for EDITING already-generated scenes.\n\n## Lazy-load contract\n\nThe skill is too large to ship in one response, so it's broken\ninto modules. Call this endpoint **twice or more**:\n\n1. **First call** — omit `module`. Returns the master `SKILL.md`\n   (the INDEX with rules + per-scene Definition of Done + module\n   load map) plus an `available_modules[]` array that is\n   **auto-discovered from the filesystem on every request**.\n   Each entry carries `id` + parsed `title` (first H1) +\n   parsed `summary` (first paragraph) + `size_bytes`.\n2. **Subsequent calls** — when the agent reaches a step that\n   names a module (e.g. \"open `ai_video_editor/10_mechanics`\"),\n   call again with `module=ai_video_editor/10_mechanics` (no\n   `.md` suffix) to load that submodule's content.\n\n## Auto-expansion\n\nDrop a new `.md` file under the skill root\n(`/mnt/html/lcw/skills/video-editing/`, override via env\n`WIDECAST_EDITING_SKILL_ROOT`) and it appears in\n`available_modules[]` on the next request — no code change, no\nmanifest edit. The server uses `os.walk` with `rglob`-style\ntraversal; hidden dirs and non-`.md` files are ignored.\n\n## Module IDs\n\nHierarchical filesystem path WITHOUT the `.md` extension. Each\npath segment must match `^[A-Za-z0-9_-]+$`. Examples:\n`ai_video_editor/10_mechanics`,\n`ai_video_editor/styles/text_axes`. `../` and hidden segments\nare rejected with 400 `invalid_module_id`.\n\n## Freshness\n\n- Server caches per module by file mtime — a deploy that rsyncs\n  new content invalidates the cache automatically; no Flask\n  restart needed.\n- Response carries `Cache-Control: no-store`.\n- The WideCast `/app/*` API path bypasses Cloudflare entirely,\n  so there is no CDN layer to worry about.\n- If a module call returns 404 `module_not_found`, recall with\n  `module` omitted to refresh `available_modules[]`.\n\nPer-module size is capped at 512 KB; oversized files are\ntreated as missing.\n",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Hierarchical module id without the `.md` extension, e.g.\n`ai_video_editor/10_mechanics` or\n`ai_video_editor/styles/text_axes`. Omit to load the master\n`SKILL.md` + the live `available_modules[]` index.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill content. The entry response (no `module`) carries the\nmaster `SKILL.md` content + the live `available_modules[]`\nindex; a module response carries only that submodule's\ncontent. Both shapes share `object`, `name`, `module`,\n`method_format`, `method`, `meta`.\n",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                },
+                "description": "Always `no-store` — module content is live."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "skill"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "video-editing"
+                    },
+                    "module": {
+                      "type": "string",
+                      "description": "Relative path of the file returned: `SKILL.md` for the entry response, `<id>.md` for a submodule."
+                    },
+                    "module_id": {
+                      "type": "string",
+                      "description": "Submodule responses only — module id without `.md`."
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Submodule responses only — parsed first H1, falls back to filename basename."
+                    },
+                    "size_bytes": {
+                      "type": "integer"
+                    },
+                    "method_format": {
+                      "type": "string",
+                      "example": "markdown"
+                    },
+                    "method": {
+                      "type": "string",
+                      "description": "Markdown content of the file (frontmatter stripped)."
+                    },
+                    "available_modules": {
+                      "type": "array",
+                      "description": "Entry response only — auto-discovered from filesystem on every call.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "ai_video_editor/10_mechanics"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Parsed from first H1 of the .md file; falls back to filename basename."
+                          },
+                          "summary": {
+                            "type": "string",
+                            "description": "First non-empty paragraph after the H1 (capped 200 chars)."
+                          },
+                          "size_bytes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "next_action": {
+                      "type": "string"
+                    },
+                    "meta": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_module_id` — the `module` query param contained\ntraversal (`../`) or characters outside `[A-Za-z0-9_-]` in a\npath segment.\n"
+          },
+          "404": {
+            "description": "`module_not_found` — no `.md` file at that path. Recall the\nendpoint with `module` omitted to refresh\n`available_modules[]`.\n"
+          },
+          "503": {
+            "description": "`skill_unavailable` — root directory or `SKILL.md` not\nreadable on disk.\n"
           }
         }
       }

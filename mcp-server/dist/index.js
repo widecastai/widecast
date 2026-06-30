@@ -132,6 +132,25 @@ const TOOLS = [
         },
     },
     {
+        name: "widecast_get_editing_skill",
+        title: "WideCast: Get video-editor skill (lazy-load, auto-expand)",
+        description: "Load the WideCast AI-VIDEO-EDITOR playbook for refining/editing an EXISTING video (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done). DIFFERENT from widecast_get_writing_skill, which is for AUTHORING new scripts; this skill is for EDITING already-generated scenes.\n" +
+            "Triggers across languages: 'edit this video', 'refine the scenes', 'fix scene N', 'review the video', 'improve the overlay', 'fix the thumbnail', 'audit backgrounds', 'redo scene', 'biên tập video', 'chỉnh sửa cảnh', 'sửa scene N', '编辑视频', '剪辑', 'シーン編集', 'ビデオ編集'. Match the editing-task intent across any language.\n" +
+            "**LAZY-LOAD CONTRACT** — call this tool TWICE or more:\n" +
+            "1) **FIRST call with `module` omitted** → returns the master `SKILL.md` (the INDEX with rules + per-scene Definition of Done + the module load map) PLUS an `available_modules[]` list of submodules auto-discovered from disk on every request.\n" +
+            "2) **When you reach a step in SKILL.md that names a module** (e.g. 'open `ai_video_editor/10_mechanics`'), call this tool again with `module='ai_video_editor/10_mechanics'` (no `.md` suffix) to load that submodule's content. Reload each module AT the step that needs it — do NOT work from memory across modules.\n" +
+            "**Module IDs are HIERARCHICAL filesystem paths without the `.md` extension**: `ai_video_editor/10_mechanics`, `ai_video_editor/styles/text_axes`, etc. Each segment must match `^[A-Za-z0-9_-]+$`; `../` and hidden segments are rejected with 400 `invalid_module_id`.\n" +
+            "**Auto-expand** — `available_modules[]` is rebuilt from filesystem on every call (rglob `*.md` under the skill root, excluding `SKILL.md`). When the maintainer drops a new `.md` file under `widecast/skills/video-editing/`, it appears here automatically without any code change. Each entry carries `id` + `title` (parsed from first H1, falls back to filename basename) + `summary` (first paragraph, capped 200 chars) + `size_bytes`, so you can pick by relevance without loading content.\n" +
+            "**Freshness — no cache to worry about**: server caches per module by file mtime; response carries `Cache-Control: no-store`; the WideCast `/app/*` API path bypasses Cloudflare. Content is ALWAYS the latest version on disk. If a module call returns 404 `module_not_found`, the file isn't on disk yet — recall with `module` omitted to refresh `available_modules[]`.\n" +
+            "Key-free. Safe to call repeatedly. Idempotent.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                module: { type: "string", description: "Optional. Hierarchical module id without the `.md` extension, e.g. 'ai_video_editor/10_mechanics' or 'ai_video_editor/styles/text_axes'. Omit (or pass null / empty) to load the master SKILL.md + the live `available_modules[]` index." },
+            },
+        },
+    },
+    {
         name: "widecast_create_video",
         title: "WideCast: Create video",
         description: "REQUIRED CONFIRMATION GATES — the tool enforces these and will reject calls that skip them:\n" +
@@ -879,6 +898,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         if (name === "widecast_get_writing_skill") {
             const fmt = String(args.format ?? "video").trim().toLowerCase();
             const data = await wc("GET", `/v1/skills/writing?format=${encodeURIComponent(fmt)}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_get_editing_skill") {
+            const raw = (args.module ?? "");
+            const mod = String(raw).trim();
+            const path = mod === ""
+                ? "/v1/skills/editing"
+                : `/v1/skills/editing?module=${encodeURIComponent(mod)}`;
+            const data = await wc("GET", path);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         if (name === "widecast_create_video") {

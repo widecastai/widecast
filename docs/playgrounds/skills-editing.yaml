@@ -1,0 +1,62 @@
+# Playground manifest — GET /v1/skills/editing (key-free, lazy-load).
+
+endpoint:
+  method: GET
+  path: /v1/skills/editing
+
+title: Get the AI-video-editor skill (lazy-load + auto-expand)
+description: |
+  Load the WideCast AI-VIDEO-EDITOR playbook for refining/editing an
+  EXISTING video. Different from /v1/skills/writing — that one is for
+  AUTHORING new scripts; this one is for EDITING already-generated
+  scenes.
+
+  **Lazy-load**: call once without `module` → get the master SKILL.md
+  + an auto-discovered `available_modules[]` list. Then call again
+  with `module=<id>` to load a submodule.
+
+  **Auto-expand**: dropping a new `.md` under the skill folder makes
+  it instantly callable here — no code change, no manifest edit. The
+  `available_modules[]` index is rebuilt from filesystem on every
+  request.
+
+  **Freshness**: server caches per-module by mtime, response carries
+  `Cache-Control: no-store`, and the WideCast `/app/*` path bypasses
+  Cloudflare entirely. Always live.
+
+fields:
+  - name: module
+    type: text
+    label: "module (optional — leave blank for the entry SKILL.md + index)"
+    required: false
+    placeholder: "ai_video_editor/10_mechanics"
+    help: "Hierarchical module id without the `.md` extension, e.g. ai_video_editor/10_mechanics or ai_video_editor/styles/text_axes. Omit to load the master SKILL.md + the live available_modules list."
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: entry
+    title: "📚 Load the master SKILL.md + the live module index"
+    description: "Returns SKILL.md content + an `available_modules[]` array auto-discovered from disk. Start here so you know which submodules exist before loading any of them."
+    request: {}
+  - id: load-mechanics
+    title: "⚙️ Load the mechanics submodule"
+    description: "Per-scene data fields + layout coordinates + the modify_scene branch table. Load when starting a scene."
+    request:
+      module: "ai_video_editor/10_mechanics"
+  - id: load-background
+    title: "🖼 Load the background-audit submodule"
+    description: "Grid-vs-real decision + footage search + per-scene background gate. Load when running Gate 4."
+    request:
+      module: "ai_video_editor/20_background"
+  - id: load-typography
+    title: "🅰 Load the typography submodule"
+    description: "Title / label / value rules + readability gates. Load when the overlay has any text."
+    request:
+      module: "ai_video_editor/31_typography"
+  - id: load-style-lib
+    title: "🎨 Load a style library"
+    description: "Style recipes mirrored from the code (chart axes / text axes). Load alongside the matching pattern module."
+    request:
+      module: "ai_video_editor/styles/text_axes"

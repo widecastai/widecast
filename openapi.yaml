@@ -156,7 +156,8 @@ info:
       remotion_spec_not_found | remotion_spec_parse_failed |
       remotion_spec_invalid | missing_remotion_object_rect |
       invalid_remotion_add_element | invalid_remotion_add_element_kind |
-      invalid_disable_overlay_value |
+      invalid_disable_overlay_value | invalid_module_id | module_not_found |
+      skill_unavailable |
       missing_uploaded_overlay_url | invalid_uploaded_overlay_url |
       svg2spec_failed |
       missing_voice_file | mixed_remotion_fields | ambiguous_text |
@@ -2196,6 +2197,127 @@ paths:
           description: Unknown format.
         '503':
           description: Skill content temporarily unavailable.
+
+  /v1/skills/editing:
+    get:
+      tags: [Skills]
+      operationId: getEditingSkill
+      summary: "Lazy-load the AI-video-editor playbook. Call once with no `module` to fetch the master SKILL.md + a live `available_modules[]` index; call again with `module=<id>` to load a submodule. Auto-expands when new .md files are added under the skill folder."
+      description: |
+        Key-free. Returns the WideCast **AI-video-editor** playbook for
+        refining/editing an EXISTING video (per-scene composition,
+        overlay, narrator face clearance, background audit, layout,
+        thumbnail/CTA endpoints, dead-zone, definition-of-done). This is
+        DIFFERENT from `getWritingSkill`, which is for AUTHORING new
+        scripts; this skill is for EDITING already-generated scenes.
+
+        ## Lazy-load contract
+
+        The skill is too large to ship in one response, so it's broken
+        into modules. Call this endpoint **twice or more**:
+
+        1. **First call** — omit `module`. Returns the master `SKILL.md`
+           (the INDEX with rules + per-scene Definition of Done + module
+           load map) plus an `available_modules[]` array that is
+           **auto-discovered from the filesystem on every request**.
+           Each entry carries `id` + parsed `title` (first H1) +
+           parsed `summary` (first paragraph) + `size_bytes`.
+        2. **Subsequent calls** — when the agent reaches a step that
+           names a module (e.g. "open `ai_video_editor/10_mechanics`"),
+           call again with `module=ai_video_editor/10_mechanics` (no
+           `.md` suffix) to load that submodule's content.
+
+        ## Auto-expansion
+
+        Drop a new `.md` file under the skill root
+        (`/mnt/html/lcw/skills/video-editing/`, override via env
+        `WIDECAST_EDITING_SKILL_ROOT`) and it appears in
+        `available_modules[]` on the next request — no code change, no
+        manifest edit. The server uses `os.walk` with `rglob`-style
+        traversal; hidden dirs and non-`.md` files are ignored.
+
+        ## Module IDs
+
+        Hierarchical filesystem path WITHOUT the `.md` extension. Each
+        path segment must match `^[A-Za-z0-9_-]+$`. Examples:
+        `ai_video_editor/10_mechanics`,
+        `ai_video_editor/styles/text_axes`. `../` and hidden segments
+        are rejected with 400 `invalid_module_id`.
+
+        ## Freshness
+
+        - Server caches per module by file mtime — a deploy that rsyncs
+          new content invalidates the cache automatically; no Flask
+          restart needed.
+        - Response carries `Cache-Control: no-store`.
+        - The WideCast `/app/*` API path bypasses Cloudflare entirely,
+          so there is no CDN layer to worry about.
+        - If a module call returns 404 `module_not_found`, recall with
+          `module` omitted to refresh `available_modules[]`.
+
+        Per-module size is capped at 512 KB; oversized files are
+        treated as missing.
+      parameters:
+        - name: module
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            Hierarchical module id without the `.md` extension, e.g.
+            `ai_video_editor/10_mechanics` or
+            `ai_video_editor/styles/text_axes`. Omit to load the master
+            `SKILL.md` + the live `available_modules[]` index.
+      responses:
+        '200':
+          description: |
+            Skill content. The entry response (no `module`) carries the
+            master `SKILL.md` content + the live `available_modules[]`
+            index; a module response carries only that submodule's
+            content. Both shapes share `object`, `name`, `module`,
+            `method_format`, `method`, `meta`.
+          headers:
+            Cache-Control:
+              schema: { type: string, example: "no-store" }
+              description: Always `no-store` — module content is live.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:         { type: string, example: skill }
+                  name:           { type: string, example: video-editing }
+                  module:         { type: string, description: "Relative path of the file returned: `SKILL.md` for the entry response, `<id>.md` for a submodule." }
+                  module_id:      { type: string, description: "Submodule responses only — module id without `.md`." }
+                  title:          { type: string, description: "Submodule responses only — parsed first H1, falls back to filename basename." }
+                  size_bytes:     { type: integer }
+                  method_format:  { type: string, example: markdown }
+                  method:         { type: string, description: "Markdown content of the file (frontmatter stripped)." }
+                  available_modules:
+                    type: array
+                    description: "Entry response only — auto-discovered from filesystem on every call."
+                    items:
+                      type: object
+                      properties:
+                        id:         { type: string, example: "ai_video_editor/10_mechanics" }
+                        title:      { type: string, description: "Parsed from first H1 of the .md file; falls back to filename basename." }
+                        summary:    { type: string, description: "First non-empty paragraph after the H1 (capped 200 chars)." }
+                        size_bytes: { type: integer }
+                  next_action:    { type: string }
+                  meta:           { type: object }
+        '400':
+          description: |
+            `invalid_module_id` — the `module` query param contained
+            traversal (`../`) or characters outside `[A-Za-z0-9_-]` in a
+            path segment.
+        '404':
+          description: |
+            `module_not_found` — no `.md` file at that path. Recall the
+            endpoint with `module` omitted to refresh
+            `available_modules[]`.
+        '503':
+          description: |
+            `skill_unavailable` — root directory or `SKILL.md` not
+            readable on disk.
 
   /v1/skills/video-script-writing:
     get:
