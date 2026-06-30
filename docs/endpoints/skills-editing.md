@@ -160,9 +160,32 @@ Omit `arguments` (or pass `{"module": ""}`) to load the entry.
 ## Adding new modules — what the maintainer does
 
 1. Drop a `.md` file anywhere under `widecast/skills/video-editing/` (root or nested sub-dir, doesn't matter).
-2. Give it a sensible first `# H1` line + a one-line summary paragraph after it. Both are parsed automatically and surfaced in `available_modules[]`.
+2. **Write whatever you want inside.** There is no required format — no required `# H1`, no required summary line, no frontmatter. The server picks `title` and `summary` from whatever content the file has (see "Title & summary auto-extraction" below).
 3. Optionally edit `SKILL.md` to mention the new module in its load map (so agents trying to follow the curated chain know to load it). Not strictly required — agents that scan `available_modules[]` will still find it.
 4. Run `bash deploy_widecast.sh` to rsync the file to the server. No code change, no restart.
+
+### Title & summary auto-extraction
+
+The server runs a tolerant Markdown-aware parser on each module file to populate `available_modules[]`. **You do NOT have to format the file in any specific way.**
+
+**Title fallback chain** (first match wins):
+1. First `# H1` heading.
+2. First `## H2` heading.
+3. First non-empty content line, with leading markdown markers (`# ## - * + 1. > [ ]`) stripped.
+4. The filename basename (e.g. `40_thumbnail_cta`).
+
+**Summary** = the first ~200 chars of meaningful content found AFTER the title line — paragraphs, bullets, sub-headings, blockquotes, even just a bold/italic phrase all qualify. Markdown decoration is stripped (inline code spans, links, emphasis); leading list/quote markers are removed. If there's no content after the title, summary stays empty — agents pick by title alone in that case.
+
+Examples — every shape produces something usable:
+
+| File content shape | Resulting `title` | Resulting `summary` |
+|---|---|---|
+| `# Mechanics`<br>`When and how to move overlay objects without breaking the spec.` | `Mechanics` | `When and how to move overlay objects without breaking the spec.` |
+| `## Background audit`<br>`Grid vs real.` | `Background audit` | `Grid vs real.` |
+| `- thumbnail rules`<br>`- final CTA rules` | `thumbnail rules` | `final CTA rules` |
+| `> Note: this module covers chart axes.` | `Note: this module covers chart axes.` | *(empty)* |
+| `**Quick fact:** _typography rules live here._`<br>`Load before any text overlay.` | `Quick fact: typography rules live here.` | `Load before any text overlay.` |
+| *(empty file)* | filename basename | *(empty)* |
 
 Module ID = relative path from the skill root, with `.md` stripped. E.g.:
 

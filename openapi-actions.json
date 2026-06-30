@@ -2703,11 +2703,11 @@
                           },
                           "title": {
                             "type": "string",
-                            "description": "Parsed from first H1 of the .md file; falls back to filename basename."
+                            "description": "Auto-derived: first H1 → first H2 → first content line (markers stripped) → filename basename."
                           },
                           "summary": {
                             "type": "string",
-                            "description": "First non-empty paragraph after the H1 (capped 200 chars)."
+                            "description": "Auto-derived: first ~200 chars of meaningful content after the title (paragraphs, bullets, sub-headings, quotes — all accepted; markers stripped). Empty when no content follows the title."
                           },
                           "size_bytes": {
                             "type": "integer"

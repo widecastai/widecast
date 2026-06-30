@@ -13,7 +13,7 @@ The video's high-leverage endpoints are special:
 
 1. **Opening poster scene:** the first real scene after the thumbnail, usually scene 2. Platforms often auto-extract this frame as the default video cover, so this scene must look thumbnail-grade even if its `type` is `HOOK`, `KEY POINT`, `DATA`, `FACT`, etc.
 2. **Static thumbnail scene:** the `type="thumbnail"` scene. It is synced immediately after the opening poster scene passes. It should clone the opening poster's visual identity: same selected frame/background plate, same short poster title, same SVG overlay unless the immediate sync screenshot proves a small adjustment is needed.
-3. **Closing CTA scene:** the last non-thumbnail/content scene, especially `type="CALL TO ACTION"`. It is the viewer's final memory and the moment to ask for interaction. Treat it like a closing poster/action card, not a generic explanatory scene.
+3. **Closing CTA scene:** the last non-thumbnail/content scene, especially `type="CALL TO ACTION"`. It is the viewer's final memory and the moment to ask for interaction. Treat it like a closing action poster, not a generic explanatory scene.
 
 The opening poster pair has one job: make a viewer understand the promise/consequence in ~1 second and want to click. The closing CTA has a different job: make the viewer know exactly what to do next in ~1 second.
 
@@ -27,12 +27,29 @@ Do **not** judge these endpoint scenes by the normal scene-overlay standard alon
 4. **Readability:** huge heavy title, bright fill, controlled thin outline/shadow. A thumbnail title may be larger than normal scene titles, and its **letter body must look genuinely thick in the final 280x498 screenshot**.
 5. **Contrast device:** a local scrim/card/gradient behind title is allowed and often useful, but keep it tasteful. It should support the title, not become a giant ad banner.
 6. **Controlled poster decoration:** if the poster still feels flat after the title is thick enough, add a small set of SVG decoration accents (for example a vertical/horizontal bar, title bracket, diagonal slash near the title, tiny alert mark, or thin underline). These accents should create TV-poster energy and guide the eye toward the title/subject, not add new information.
+7. **Endpoint style mandate:** scene 2 / thumbnail / final CTA must look like an endpoint poster, not like an inside-scene card. A plain horizontal text bar, centered rounded card, or normal title-over-panel layout is too generic for endpoints even when readable. Pick one clear endpoint style from the ladder below and make it visible in the final screenshot.
 
 Example for an insurance deductible video:
 
 - Better thumbnail hook: `SAI DEDUCTIBLE?` / `MẤT NGHÌN ĐÔ`
 - Optional tiny subline: `MỖI NĂM`
 - Worse: `CHỌN SAI DEDUCTIBLE MẤT HÀNG NGHÌN ĐÔ/NĂM` as four small muddy lines.
+
+### Endpoint visual style ladder
+
+Pick **one** of these for scene 2, the synced thumbnail, and the final CTA. The agent chooses; do not ask the user.
+
+1. **Dynamic poster typography:** oversized words with staggered baselines, angled/vertical word blocks, strong scale contrast, and a few motion slashes/brackets anchored to the title.
+2. **Magazine-cover thumbnail:** editorial masthead-like headline, one small cover-line/subline, a sticker/seal or side rule, and cover-style framing around the face/subject.
+3. **Kinetic stacked type:** 2-4 short words stacked like a trailer/poster beat, with stepped placement, directional underline bars, or staggered reveal-ready groups.
+4. **Typographic collage:** one giant keyword plus 1-2 smaller supporting words, arranged asymmetrically but still readable in one glance.
+5. **Object-integrated title:** title wraps around or frames the narrator face, product, vehicle, document, or key prop without covering the important part.
+6. **Premium CTA poster:** giant action verb (`SAVE`, `COMMENT`, `DM`, `BOOK`) plus one support line, with a vertical side bar, editorial rule, seal, or bracket. Use this often for the final scene.
+7. **Minimal premium cover:** one huge word/number plus one tiny contextual label, lots of negative space, one elegant accent. Minimal is allowed; generic is not.
+
+Do **not** use the normal inside-scene recipe here: a neat rounded card with horizontal title + subtitle, a row of chips, a balanced info panel, or text centered in a box. Those are acceptable for interior explainer scenes, but endpoint scenes need poster energy.
+
+Endpoint style still obeys all hard gates: face/subject clear, caption clear, safe zone, no dead-zone intrusion, copy correctness, title thickness, secondary text readability, and server-saved proof. Style is not an excuse for clutter.
 
 ---
 
@@ -46,7 +63,7 @@ Run this when you reach the first real scene after the thumbnail. **Before movin
 2. **Show current scene:** pull `screenshot_scene_280x498`, download `result.screenshot.url` locally with `curl`, show it, then evaluate.
 3. **Show the active frame/plate:** download the scene's active `thumbnailUrl`/media plate locally and show it separately. Decide by sight whether this frame can sell the whole video.
 4. **If the frame is weak:** fix the opening scene's plate/frame first. Do not let the static thumbnail become stronger than scene 2; the pair should match.
-5. **Author the poster SVG:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Use this module's short-title, thick-title, and decoration standards. Save/show the local SVG before upload.
+5. **Author the poster SVG:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder (`dynamic poster typography`, `magazine-cover thumbnail`, `kinetic stacked type`, `typographic collage`, `object-integrated title`, `premium CTA poster`, or `minimal premium cover`). Use this module's short-title, thick-title, and decoration standards. Save/show the local SVG before upload.
 6. **Upload/apply to scene 2 first:** use `remotion.upload_overlay` by scene 2's `voice_file`.
 7. **Verify the video-scene version:** pull/show the final scene 2 composite screenshot. It must pass poster readability AND video-scene coexistence: face/subject clear, caption still readable, and the caption does not visually compete with or crowd the poster title.
 8. **If caption conflicts:** revise the poster layout, reserve a caption lane, simplify the poster text, or adjust caption placement when the tool supports it. Do not declare scene 2 PASS while the poster title and caption fight each other.
@@ -66,7 +83,7 @@ Run this when you reach the last non-thumbnail/content scene, and always when `t
 4. **Prefer typography over objects:** final CTA overlays should usually be text-led, not object-heavy. Use 1 short hero CTA line plus, at most, one small support line. A clear typographic call beats a chart/checklist/icon collage at the end.
 5. **A-roll final scene:** if `show_narrator=true` / `active_roll="A"`, the human close wins. Keep the narrator full canvas or large by default. Place the CTA as bold lower-third/chest/side typography that clears eyes, nose, mouth, and caption. Do not shrink the narrator into picture-in-picture for a CTA unless a detail-dense visual is truly indispensable.
 6. **B-roll/faceless final scene:** use a clean centered or lower-third CTA group inside the safe zone. If the background is busy, add a tasteful local scrim/backplate behind the CTA text.
-7. **Author/adjust the CTA overlay:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Use poster-grade title/body thickness, bright fill, thin controlled outline/shadow for the hero CTA, and no visible stroke on small support text.
+7. **Author/adjust the CTA overlay:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder, usually `premium CTA poster`, `dynamic poster typography`, `magazine-cover thumbnail`, or `minimal premium cover`. Use poster-grade title/body thickness, bright fill, thin controlled outline/shadow for the hero CTA, and no visible stroke on small support text.
 8. **Avoid small text clutter:** remove social icons, QR-like marks, tiny handles, tiny labels, or decorative objects unless they are large enough to read at 280x498 and directly support the action. If a handle/URL is needed, it must be large, simple, and not fight the caption.
 9. **Verify:** pull/show the END screenshot. CTA PASS requires: one dominant action, title-grade readability, face/caption clear, no dead-zone object, no cramped support text, and server-saved confirmation.
 
@@ -133,6 +150,7 @@ Layout:
 - A local scrim behind the title is allowed; avoid full-canvas opaque panels that kill the photo.
 - A badge/pill is optional. If it looks like a clickable button or clutters the poster, remove it or turn it into simple open text.
 - Accent strips/underlines must be thin and directional. Do not add multiple warning marks, stickers, badges, arrows, or boxes just to create energy.
+- Avoid normal explainer-card composition at endpoints: no generic rounded card with centered horizontal title, no plain lower-third rectangle with one line of text, no row of small chips as the main design, and no balanced info-panel look. If a backplate/card is needed for contrast, it must be integrated into a poster/magazine composition, not become the design.
 
 ### Poster/CTA decoration standard
 
@@ -173,6 +191,7 @@ Opening poster pair PASS requires all of:
 - Scene 2 and the static thumbnail use the same poster identity: same selected frame family, same short hook/consequence, same SVG unless the immediate thumbnail sync screenshot justified a small clone-specific adjustment.
 - The thumbnail sync happened immediately after scene 2 PASS and before scene 3 started; there is no final thumbnail pass.
 - The title communicates the whole-video promise/consequence in ~1 second.
+- The design uses a named endpoint style from the ladder and looks poster-like, not like a normal inside-scene card/text overlay.
 - The title is huge, bright, **extra thick-bodied**, and readable at feed size. "Readable but still thin" is not enough for a thumbnail.
 - The title does not cover the subject's eyes/nose/mouth or the key product/prop.
 - In scene 2, caption and poster title coexist: no caption/title overlap, no visual crowding, and the caption does not become a second competing headline.
@@ -182,6 +201,7 @@ Opening poster pair PASS requires all of:
 Opening poster pair FAIL triggers:
 
 - Full quote pasted as many small lines.
+- Endpoint design is just a normal card, centered text box, horizontal lower-third bar, or generic title/subtitle layout.
 - Weak/dim text over a bright or busy photo.
 - Title is technically readable but not poster-thick.
 - Title covers the face or key object.
@@ -195,6 +215,7 @@ Final CTA PASS requires all of:
 
 - The current/final screenshot for the CTA scene was downloaded locally and visibly shown before judgment.
 - The scene communicates one clear action in ~1 second.
+- The design uses a named endpoint style from the ladder and looks like a CTA poster, not a normal interior explainer card.
 - The CTA hero text is title-grade: bright, thick-bodied, high contrast, readable at 280x498.
 - If A-roll, narrator face remains the primary human close; CTA typography supports the face instead of replacing it with object clutter.
 - Support text, if any, has no visible stroke/outline and remains readable without zoom.

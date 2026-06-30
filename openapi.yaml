@@ -2227,7 +2227,7 @@ paths:
            call again with `module=ai_video_editor/10_mechanics` (no
            `.md` suffix) to load that submodule's content.
 
-        ## Auto-expansion
+        ## Auto-expansion — zero formatting required
 
         Drop a new `.md` file under the skill root
         (`/mnt/html/lcw/skills/video-editing/`, override via env
@@ -2235,6 +2235,23 @@ paths:
         `available_modules[]` on the next request — no code change, no
         manifest edit. The server uses `os.walk` with `rglob`-style
         traversal; hidden dirs and non-`.md` files are ignored.
+
+        **Per-module `title` and `summary` are auto-derived from the
+        file's content** with a tolerant fallback chain — the
+        maintainer does NOT have to write a specific H1, summary line,
+        or frontmatter:
+
+        - **Title** = first `# H1` → else first `## H2` → else first
+          non-empty content line (markdown markers `# ## - * + 1. >
+          [ ]` stripped) → else filename basename.
+        - **Summary** = first ~200 chars of meaningful text AFTER the
+          title (paragraphs, bullets, sub-headings, blockquotes, even
+          a single bold/italic phrase all qualify; markdown decoration
+          is stripped).
+
+        If the file has only bullets, only a quote, only one line, or
+        even nothing at all, the loader still extracts something
+        usable (worst case: title = filename basename, summary empty).
 
         ## Module IDs
 
@@ -2299,8 +2316,8 @@ paths:
                       type: object
                       properties:
                         id:         { type: string, example: "ai_video_editor/10_mechanics" }
-                        title:      { type: string, description: "Parsed from first H1 of the .md file; falls back to filename basename." }
-                        summary:    { type: string, description: "First non-empty paragraph after the H1 (capped 200 chars)." }
+                        title:      { type: string, description: "Auto-derived: first H1 → first H2 → first content line (markers stripped) → filename basename." }
+                        summary:    { type: string, description: "Auto-derived: first ~200 chars of meaningful content after the title (paragraphs, bullets, sub-headings, quotes — all accepted; markers stripped). Empty when no content follows the title." }
                         size_bytes: { type: integer }
                   next_action:    { type: string }
                   meta:           { type: object }

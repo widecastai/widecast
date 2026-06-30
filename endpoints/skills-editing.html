@@ -250,10 +250,60 @@ curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;ht
 <h2 id="adding-new-modules-what-the-maintainer-does">Adding new modules — what the maintainer does</h2>
 <ol>
 <li>Drop a <code>.md</code> file anywhere under <code>widecast/skills/video-editing/</code> (root or nested sub-dir, doesn't matter).</li>
-<li>Give it a sensible first <code># H1</code> line + a one-line summary paragraph after it. Both are parsed automatically and surfaced in <code>available_modules[]</code>.</li>
+<li><strong>Write whatever you want inside.</strong> There is no required format — no required <code># H1</code>, no required summary line, no frontmatter. The server picks <code>title</code> and <code>summary</code> from whatever content the file has (see "Title &amp; summary auto-extraction" below).</li>
 <li>Optionally edit <code>SKILL.md</code> to mention the new module in its load map (so agents trying to follow the curated chain know to load it). Not strictly required — agents that scan <code>available_modules[]</code> will still find it.</li>
 <li>Run <code>bash deploy_widecast.sh</code> to rsync the file to the server. No code change, no restart.</li>
 </ol>
+<h3 id="title-summary-auto-extraction">Title &amp; summary auto-extraction</h3>
+<p>The server runs a tolerant Markdown-aware parser on each module file to populate <code>available_modules[]</code>. <strong>You do NOT have to format the file in any specific way.</strong></p>
+<p><strong>Title fallback chain</strong> (first match wins):
+1. First <code># H1</code> heading.
+2. First <code>## H2</code> heading.
+3. First non-empty content line, with leading markdown markers (<code># ## - * + 1. &gt; [ ]</code>) stripped.
+4. The filename basename (e.g. <code>40_thumbnail_cta</code>).</p>
+<p><strong>Summary</strong> = the first ~200 chars of meaningful content found AFTER the title line — paragraphs, bullets, sub-headings, blockquotes, even just a bold/italic phrase all qualify. Markdown decoration is stripped (inline code spans, links, emphasis); leading list/quote markers are removed. If there's no content after the title, summary stays empty — agents pick by title alone in that case.</p>
+<p>Examples — every shape produces something usable:</p>
+<table>
+<thead>
+<tr>
+<th>File content shape</th>
+<th>Resulting <code>title</code></th>
+<th>Resulting <code>summary</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code># Mechanics</code><br><code>When and how to move overlay objects without breaking the spec.</code></td>
+<td><code>Mechanics</code></td>
+<td><code>When and how to move overlay objects without breaking the spec.</code></td>
+</tr>
+<tr>
+<td><code>## Background audit</code><br><code>Grid vs real.</code></td>
+<td><code>Background audit</code></td>
+<td><code>Grid vs real.</code></td>
+</tr>
+<tr>
+<td><code>- thumbnail rules</code><br><code>- final CTA rules</code></td>
+<td><code>thumbnail rules</code></td>
+<td><code>final CTA rules</code></td>
+</tr>
+<tr>
+<td><code>&gt; Note: this module covers chart axes.</code></td>
+<td><code>Note: this module covers chart axes.</code></td>
+<td><em>(empty)</em></td>
+</tr>
+<tr>
+<td><code>**Quick fact:** _typography rules live here._</code><br><code>Load before any text overlay.</code></td>
+<td><code>Quick fact: typography rules live here.</code></td>
+<td><code>Load before any text overlay.</code></td>
+</tr>
+<tr>
+<td><em>(empty file)</em></td>
+<td>filename basename</td>
+<td><em>(empty)</em></td>
+</tr>
+</tbody>
+</table>
 <p>Module ID = relative path from the skill root, with <code>.md</code> stripped. E.g.:</p>
 <table>
 <thead>
