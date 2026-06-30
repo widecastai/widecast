@@ -30,7 +30,7 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - About to **act on a screenshot / found media you have not SHOWN** locally → save + show it first (Critical Rules 0/11).
 
-- About to **upload an overlay** you have not shown locally → show the local SVG first (Critical Rule 4).
+- About to spend time **rendering/converting an overlay preview** before upload → STOP. Only show a pre-upload overlay preview if the runtime already has a cheap direct display/conversion path; otherwise upload/apply the overlay and verify via the post-upload composite screenshot (Critical Rule 4).
 
 - About to **ask the user to choose/approve an option during runtime** → STOP. Use the decision protocol in Critical Rule 2a, choose the best option yourself, act, and only report the decision/proof. Do not turn uncertainty into a user question.
 

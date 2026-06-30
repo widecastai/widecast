@@ -55,7 +55,7 @@ Endpoint style still obeys all hard gates: face/subject clear, caption clear, sa
 
 ## 40.1. Opening poster pair workflow
 
-Run this when you reach the first real scene after the thumbnail. **Before moving to scene 3, sync the static thumbnail with the same poster SVG and verify it.** There is no final thumbnail pass at the end of the video unless the user explicitly asks for thumbnail-only debugging.
+Run this when you reach the first real scene after the thumbnail. **Before moving to scene 3, sync the static thumbnail with the same poster overlay and verify it.** There is no final thumbnail pass at the end of the video unless the user explicitly asks for thumbnail-only debugging.
 
 ### A. First real scene / opening poster scene
 
@@ -63,12 +63,12 @@ Run this when you reach the first real scene after the thumbnail. **Before movin
 2. **Show current scene:** pull `screenshot_scene_280x498`, download `result.screenshot.url` locally with `curl`, show it, then evaluate.
 3. **Show the active frame/plate:** download the scene's active `thumbnailUrl`/media plate locally and show it separately. Decide by sight whether this frame can sell the whole video.
 4. **If the frame is weak:** fix the opening scene's plate/frame first. Do not let the static thumbnail become stronger than scene 2; the pair should match.
-5. **Author the poster SVG:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder (`dynamic poster typography`, `magazine-cover thumbnail`, `kinetic stacked type`, `typographic collage`, `object-integrated title`, `premium CTA poster`, or `minimal premium cover`). Use this module's short-title, thick-title, and decoration standards. Save/show the local SVG before upload.
+5. **Author the poster overlay:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder (`dynamic poster typography`, `magazine-cover thumbnail`, `kinetic stacked type`, `typographic collage`, `object-integrated title`, `premium CTA poster`, or `minimal premium cover`). Use this module's short-title, thick-title, and decoration standards. Show a cheap local overlay preview only if already available; otherwise skip pre-upload preview and verify from the post-upload composite screenshot.
 6. **Upload/apply to scene 2 first:** use `remotion.upload_overlay` by scene 2's `voice_file`.
 7. **Verify the video-scene version:** pull/show the final scene 2 composite screenshot. It must pass poster readability AND video-scene coexistence: face/subject clear, caption still readable, and the caption does not visually compete with or crowd the poster title.
 8. **If caption conflicts:** revise the poster layout, reserve a caption lane, simplify the poster text, or adjust caption placement when the tool supports it. Do not declare scene 2 PASS while the poster title and caption fight each other.
-9. **Save the poster identity:** record the selected frame/plate URL and the uploaded SVG URL; these become the source of truth for the static thumbnail scene.
-10. **Immediate thumbnail sync before scene 3:** identify the `type="thumbnail"` scene by stable `voice_file`, then apply the same uploaded poster SVG URL with `remotion.upload_overlay`. If the thumbnail background plate is not already scene 2's chosen frame/`thumbnailUrl`, set/check that too when the edit branch is available. Pull `screenshot_scene_280x498`, download `result.screenshot.url` locally with `curl`, show it, and evaluate the synced thumbnail. Re-pull `video_data`/`scene_geometry` to confirm the thumbnail scene now points to the synced spec/overlay. **Do not start scene 3 until this sync is server-saved and visually verified.**
+9. **Save the poster identity:** record the selected frame/plate URL and the uploaded overlay URL; these become the source of truth for the static thumbnail scene.
+10. **Immediate thumbnail sync before scene 3:** identify the `type="thumbnail"` scene by stable `voice_file`, then apply the same uploaded poster overlay URL with `remotion.upload_overlay`. If the thumbnail background plate is not already scene 2's chosen frame/`thumbnailUrl`, set/check that too when the edit branch is available. Pull `screenshot_scene_280x498`, download `result.screenshot.url` locally with `curl`, show it, and evaluate the synced thumbnail. Re-pull `video_data`/`scene_geometry` to confirm the thumbnail scene now points to the synced spec/overlay. **Do not start scene 3 until this sync is server-saved and visually verified.**
 11. **No final thumbnail pass:** after this immediate sync gate passes, thumbnail is done for the run. At the end of the video, do not re-open or re-check the thumbnail unless the user explicitly asks.
 
 ---
@@ -165,7 +165,7 @@ Decorations are allowed on the opening poster pair and final CTA because these a
 - If using an icon, it must be instantly legible at 280x498 and topic-relevant. Prefer a simple warning triangle, dollar mark, shield, car, document, or check/cross mark.
 - Decoration can be bright, but it must not make the title less readable. If an accent touches or crowds the title, move it outside or lower opacity.
 - Decoration is still a real overlay object: before upload, preflight every decoration group's bbox against the overlay safe box (`x=36..684`, `y=128..960` on the 720x1280 canvas). A bar/slash/spark that sits in the top notch or bottom caption reserve is a FAIL even if it is "only decorative"; move it inward before uploading.
-- Decoration must visibly register in the final 280x498 screenshot, not only in the local SVG preview. If bars/slashes/underlines disappear after compositing/compression, thicken or brighten them; if that makes the poster crowded, remove them.
+- Decoration must visibly register in the final 280x498 screenshot, not only in any pre-upload overlay preview. If bars/slashes/underlines disappear after compositing/compression, thicken or brighten them; if that makes the poster crowded, remove them.
 - Title-adjacent bars/slashes are often safer than decoration over the face. Use edge bars, corner brackets, or underlines around the title block before placing marks near a human subject.
 - Decoration is a post-pass after copy, title thickness, plate choice, and face preservation are already solved.
 

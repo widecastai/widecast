@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Cyan Hologram Interface Overlay Sample</title>
+  <defs>
+    <filter id="holoGlow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>text { font-family: "Roboto Mono", "Courier New", monospace; }</style>
+  </defs>
+  <g data-wc-object="holo_frame" data-wc-kind="mark" data-wc-anim="fade" filter="url(#holoGlow)" opacity="0.9">
+    <rect x="82" y="150" width="556" height="762" rx="18" fill="#082F49" opacity="0.15" stroke="#67E8F9" stroke-width="3"/>
+    <path d="M112 244H608M112 742H608M176 150V912M544 150V912" stroke="#67E8F9" stroke-width="2" opacity="0.68"/>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-down" filter="url(#holoGlow)">
+    <text x="116" y="250" font-size="44" font-weight="900" fill="#E0F2FE">CYAN_HOLOGRAM</text>
+    <text x="116" y="324" font-size="64" font-weight="900" fill="#67E8F9">SCAN READY</text>
+  </g>
+  <g data-wc-object="radar" data-wc-kind="object" data-wc-anim="zoom" filter="url(#holoGlow)">
+    <circle cx="360" cy="540" r="122" fill="none" stroke="#67E8F9" stroke-width="3"/>
+    <circle cx="360" cy="540" r="72" fill="none" stroke="#67E8F9" stroke-width="2"/>
+    <path d="M360 540L464 474" stroke="#67E8F9" stroke-width="5"/>
+    <circle cx="438" cy="490" r="10" fill="#E0F2FE"/>
+  </g>
+  <g data-wc-object="readout" data-wc-kind="text" data-wc-anim="slide-up">
+    <rect x="118" y="718" width="484" height="110" fill="#082F49" opacity="0.75" stroke="#67E8F9" stroke-width="2"/>
+    <text x="146" y="764" font-size="28" font-weight="900" fill="#67E8F9">STATUS: CLEAR SIGNAL</text>
+    <text x="146" y="806" font-size="26" font-weight="800" fill="#BAE6FD">technical, precise, cool</text>
+  </g>
+</svg>

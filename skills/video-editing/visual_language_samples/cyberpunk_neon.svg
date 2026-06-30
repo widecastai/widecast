@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Cyberpunk Neon Overlay Sample</title>
+  <defs>
+    <filter id="neonGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>text { font-family: "Roboto Condensed", Inter, Arial, sans-serif; }</style>
+  </defs>
+  <g data-wc-object="neon_frame" data-wc-kind="mark" data-wc-anim="fade" filter="url(#neonGlow)">
+    <path d="M70 174H650V370M650 906H70V710" fill="none" stroke="#22D3EE" stroke-width="5"/>
+    <path d="M112 224H608M112 856H608" stroke="#FF2BD6" stroke-width="4"/>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-right" filter="url(#neonGlow)">
+    <text x="94" y="332" font-size="82" font-weight="900" fill="#E0F2FE" stroke="#0F172A" stroke-width="4">NEON</text>
+    <text x="94" y="420" font-size="82" font-weight="900" fill="#FF2BD6" stroke="#0F172A" stroke-width="4">ALERT</text>
+  </g>
+  <g data-wc-object="scan_card" data-wc-kind="text" data-wc-anim="slide-up">
+    <rect x="96" y="528" width="528" height="160" fill="#0B1026" opacity="0.9" stroke="#22D3EE" stroke-width="3"/>
+    <text x="128" y="588" font-size="30" font-weight="900" fill="#22D3EE">SYSTEM SIGNAL</text>
+    <text x="128" y="652" font-size="54" font-weight="900" fill="#FFFFFF">Anomaly found</text>
+  </g>
+  <g data-wc-object="data_chips" data-wc-kind="text" data-wc-anim="pop">
+    <rect x="108" y="760" width="204" height="62" fill="#FF2BD6"/>
+    <text x="136" y="802" font-size="28" font-weight="900" fill="#FFFFFF">FAST CUTS</text>
+    <rect x="344" y="760" width="246" height="62" fill="#22D3EE"/>
+    <text x="374" y="802" font-size="28" font-weight="900" fill="#0F172A">HIGH ENERGY</text>
+  </g>
+</svg>

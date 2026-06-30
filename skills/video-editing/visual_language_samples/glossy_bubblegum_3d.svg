@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Glossy Bubblegum 3D Overlay Sample</title>
+  <defs>
+    <radialGradient id="bubblePink" cx="35%" cy="25%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.24" stop-color="#FBCFE8"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </radialGradient>
+    <radialGradient id="bubbleCyan" cx="35%" cy="25%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.28" stop-color="#BAE6FD"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </radialGradient>
+    <filter id="bubbleShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#831843" flood-opacity="0.22"/>
+    </filter>
+    <style>text { font-family: "Arial Black", Inter, Arial, sans-serif; }</style>
+  </defs>
+  <g data-wc-object="bubbles" data-wc-kind="object" data-wc-anim="pop" filter="url(#bubbleShadow)">
+    <circle cx="216" cy="260" r="112" fill="url(#bubblePink)"/>
+    <circle cx="494" cy="330" r="132" fill="url(#bubbleCyan)"/>
+    <circle cx="552" cy="668" r="78" fill="url(#bubblePink)"/>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-up" filter="url(#bubbleShadow)">
+    <text x="94" y="520" font-size="72" fill="#FFFFFF" stroke="#831843" stroke-width="6" paint-order="stroke">GLOSSY</text>
+    <text x="94" y="604" font-size="72" fill="#FFFFFF" stroke="#155E75" stroke-width="6" paint-order="stroke">BUBBLES</text>
+  </g>
+  <g data-wc-object="tagline" data-wc-kind="text" data-wc-anim="fade">
+    <rect x="104" y="744" width="512" height="90" rx="45" fill="#FFFFFF" opacity="0.92"/>
+    <text x="146" y="800" font-size="34" font-weight="900" fill="#831843">fun, soft, glossy, social</text>
+  </g>
+</svg>

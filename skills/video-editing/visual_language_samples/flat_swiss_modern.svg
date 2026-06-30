@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Flat Swiss Modern Overlay Sample</title>
+  <defs>
+    <style>
+      text { font-family: Inter, Arial, sans-serif; }
+      .tiny { font-size: 26px; letter-spacing: 0; }
+      .label { font-size: 34px; font-weight: 800; }
+      .title { font-size: 86px; font-weight: 900; }
+    </style>
+  </defs>
+  <g data-wc-object="grid_ticks" data-wc-kind="mark" data-wc-anim="fade" opacity="0.55">
+    <path d="M72 168H648M72 292H648M72 416H648M72 540H648M72 664H648M72 788H648M72 912H648" stroke="#D6E3E4" stroke-width="2"/>
+    <path d="M72 168V912M216 168V912M360 168V912M504 168V912M648 168V912" stroke="#E8F0F0" stroke-width="2"/>
+  </g>
+  <g data-wc-object="eyebrow" data-wc-kind="text" data-wc-anim="slide-right" data-wc-z="2">
+    <rect x="72" y="144" width="188" height="52" fill="#111827"/>
+    <text x="96" y="179" class="tiny" fill="#F9FAFB" font-weight="800">MODERN</text>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-up" data-wc-z="3">
+    <text x="72" y="292" class="title" fill="#101820">CLEAR</text>
+    <text x="72" y="384" class="title" fill="#101820">SYSTEMS</text>
+  </g>
+  <g data-wc-object="accent_rule" data-wc-kind="bar" data-wc-anim="grow-x" data-wc-z="2">
+    <rect x="72" y="420" width="384" height="18" fill="#00D18F"/>
+    <rect x="470" y="420" width="70" height="18" fill="#111827"/>
+  </g>
+  <g data-wc-object="stat_block_1" data-wc-kind="text" data-wc-anim="slide-up" data-wc-z="2">
+    <text x="72" y="560" font-size="126" font-weight="900" fill="#111827">72%</text>
+    <text x="82" y="610" class="label" fill="#00A97A">faster signal</text>
+  </g>
+  <g data-wc-object="stat_block_2" data-wc-kind="text" data-wc-anim="slide-up" data-wc-z="2">
+    <rect x="390" y="510" width="258" height="116" fill="#F2F7F6"/>
+    <text x="416" y="558" class="label" fill="#111827">NO NOISE</text>
+    <text x="416" y="602" class="tiny" fill="#475569">grid, scale, contrast</text>
+  </g>
+  <g data-wc-object="bottom_summary" data-wc-kind="text" data-wc-anim="fade" data-wc-z="2">
+    <path d="M72 790H648" stroke="#111827" stroke-width="5"/>
+    <text x="72" y="858" font-size="46" font-weight="900" fill="#111827">Flat design wins by order.</text>
+    <text x="72" y="908" class="tiny" fill="#334155">No glow. No clutter. Strong hierarchy.</text>
+  </g>
+</svg>

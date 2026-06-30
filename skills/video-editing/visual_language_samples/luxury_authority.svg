@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Luxury Authority Overlay Sample</title>
+  <defs>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop offset="0" stop-color="#B8872F"/>
+      <stop offset="0.45" stop-color="#F4D28A"/>
+      <stop offset="1" stop-color="#A67624"/>
+    </linearGradient>
+    <filter id="quietShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .serif { font-family: Georgia, "DejaVu Serif", serif; }
+      .sans { font-family: Inter, Arial, sans-serif; }
+    </style>
+  </defs>
+  <g data-wc-object="gold_frame" data-wc-kind="mark" data-wc-anim="fade">
+    <path d="M88 170H632M88 912H632" stroke="url(#gold)" stroke-width="4"/>
+    <path d="M88 170V252M632 170V252M88 830V912M632 830V912" stroke="url(#gold)" stroke-width="4"/>
+  </g>
+  <g data-wc-object="title_luxury" data-wc-kind="text" data-wc-anim="slide-up">
+    <text x="92" y="320" class="serif" font-size="82" font-weight="700" fill="#111827">Quiet</text>
+    <text x="92" y="410" class="serif" font-size="82" font-weight="700" fill="#111827">Authority</text>
+    <rect x="96" y="444" width="250" height="8" fill="url(#gold)"/>
+  </g>
+  <g data-wc-object="authority_card" data-wc-kind="text" data-wc-anim="fade" filter="url(#quietShadow)">
+    <rect x="108" y="548" width="504" height="198" rx="14" fill="#111827" opacity="0.94"/>
+    <text x="144" y="620" class="sans" font-size="30" font-weight="800" fill="#F4D28A">TRUST STANDARD</text>
+    <text x="144" y="690" class="serif" font-size="52" font-weight="700" fill="#FFFFFF">Less noise.</text>
+    <text x="144" y="736" class="sans" font-size="28" font-weight="700" fill="#CBD5E1">More confidence.</text>
+  </g>
+  <g data-wc-object="luxury_footer" data-wc-kind="text" data-wc-anim="slide-up">
+    <text x="108" y="858" class="sans" font-size="31" font-weight="800" fill="#111827">Use for finance, legal, advisory, premium trust.</text>
+  </g>
+</svg>

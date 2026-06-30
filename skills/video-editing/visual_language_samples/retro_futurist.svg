@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Retro Futurist Overlay Sample</title>
+  <defs>
+    <linearGradient id="sunset" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#FF7A59"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <style>text { font-family: "Roboto Condensed", Arial, sans-serif; }</style>
+  </defs>
+  <g data-wc-object="retro_sun" data-wc-kind="object" data-wc-anim="zoom">
+    <circle cx="360" cy="310" r="154" fill="url(#sunset)"/>
+    <path d="M218 292H502M226 336H494M248 380H472M282 424H438" stroke="#0F172A" stroke-width="10"/>
+  </g>
+  <g data-wc-object="grid_floor" data-wc-kind="mark" data-wc-anim="fade" opacity="0.8">
+    <path d="M78 760H642M112 828H608M148 896H572" stroke="#22D3EE" stroke-width="3"/>
+    <path d="M360 684L96 928M360 684L250 928M360 684L360 928M360 684L470 928M360 684L624 928" stroke="#22D3EE" stroke-width="3"/>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-up">
+    <text x="90" y="570" font-size="78" font-weight="900" fill="#FFFFFF" stroke="#312E81" stroke-width="5" paint-order="stroke">RETRO</text>
+    <text x="90" y="650" font-size="78" font-weight="900" fill="#FDE68A" stroke="#312E81" stroke-width="5" paint-order="stroke">FUTURE</text>
+  </g>
+  <g data-wc-object="badge" data-wc-kind="text" data-wc-anim="pop">
+    <rect x="112" y="724" width="286" height="66" rx="33" fill="#0F172A" stroke="#22D3EE" stroke-width="4"/>
+    <text x="142" y="768" font-size="30" font-weight="900" fill="#A7F3D0">nostalgia + tech</text>
+  </g>
+</svg>

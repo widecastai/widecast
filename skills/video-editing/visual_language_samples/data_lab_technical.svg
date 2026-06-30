@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Data Lab Technical Overlay Sample</title>
+  <defs>
+    <style>text { font-family: "Roboto Mono", "Courier New", monospace; }</style>
+  </defs>
+  <g data-wc-object="lab_grid" data-wc-kind="mark" data-wc-anim="fade" opacity="0.75">
+    <path d="M72 160H648M72 240H648M72 320H648M72 400H648M72 480H648M72 560H648M72 640H648M72 720H648M72 800H648M72 880H648" stroke="#B6E3FF" stroke-width="2"/>
+    <path d="M120 128V928M200 128V928M280 128V928M360 128V928M440 128V928M520 128V928M600 128V928" stroke="#D7F0FF" stroke-width="2"/>
+  </g>
+  <g data-wc-object="terminal_title" data-wc-kind="text" data-wc-anim="slide-down">
+    <rect x="74" y="154" width="572" height="96" fill="#0B1220"/>
+    <circle cx="114" cy="202" r="11" fill="#EF4444"/>
+    <circle cx="148" cy="202" r="11" fill="#F59E0B"/>
+    <circle cx="182" cy="202" r="11" fill="#10B981"/>
+    <text x="220" y="212" font-size="30" font-weight="800" fill="#93C5FD">analysis.run()</text>
+  </g>
+  <g data-wc-object="headline" data-wc-kind="text" data-wc-anim="slide-right">
+    <text x="86" y="362" font-size="62" font-weight="900" fill="#0F172A">DATA</text>
+    <text x="86" y="430" font-size="62" font-weight="900" fill="#2563EB">PROVES IT</text>
+  </g>
+  <g data-wc-object="chart" data-wc-kind="bar" data-wc-anim="grow-x">
+    <rect x="92" y="540" width="120" height="42" fill="#60A5FA"/>
+    <rect x="92" y="610" width="260" height="42" fill="#2563EB"/>
+    <rect x="92" y="680" width="420" height="42" fill="#1D4ED8"/>
+    <text x="532" y="714" font-size="30" font-weight="900" fill="#0F172A">3.5x</text>
+  </g>
+  <g data-wc-object="footer" data-wc-kind="text" data-wc-anim="fade">
+    <text x="92" y="848" font-size="28" font-weight="800" fill="#334155">technical, precise, evidence-first</text>
+  </g>
+</svg>

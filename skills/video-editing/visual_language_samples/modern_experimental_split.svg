@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280">
+  <title>Modern Experimental Split Overlay Sample</title>
+  <defs>
+    <style>text { font-family: Inter, Arial, sans-serif; }</style>
+    <filter id="splitShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="12" flood-color="#111827" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <g data-wc-object="split_planes" data-wc-kind="object" data-wc-anim="slide-right">
+    <path d="M70 160H430L330 512H70Z" fill="#101820"/>
+    <path d="M314 214H650V564H212Z" fill="#E8FF3D" opacity="0.96"/>
+    <path d="M110 620H642L566 908H72Z" fill="#F8FAFC" stroke="#101820" stroke-width="5"/>
+  </g>
+  <g data-wc-object="title" data-wc-kind="text" data-wc-anim="slide-up" filter="url(#splitShadow)">
+    <text x="102" y="300" font-size="78" font-weight="900" fill="#FFFFFF">NEW</text>
+    <text x="102" y="386" font-size="78" font-weight="900" fill="#FFFFFF">ANGLE</text>
+    <text x="336" y="456" font-size="58" font-weight="900" fill="#101820">BREAK</text>
+    <text x="336" y="520" font-size="58" font-weight="900" fill="#101820">THE GRID</text>
+  </g>
+  <g data-wc-object="info_strip" data-wc-kind="text" data-wc-anim="fade">
+    <text x="126" y="728" font-size="38" font-weight="900" fill="#101820">Experimental modern</text>
+    <text x="126" y="782" font-size="30" font-weight="800" fill="#475569">asymmetry, contrast, graphic tension</text>
+    <rect x="126" y="822" width="260" height="14" fill="#FF3366"/>
+  </g>
+</svg>

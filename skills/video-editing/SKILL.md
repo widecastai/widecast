@@ -54,7 +54,8 @@ The **Module id** column is what you pass to `widecast_get_editing_skill(module=
 | Before declaring `Scene N: PASS` — scan §7 against the scene | **`ai_video_editor/05_quality_qa_priority`** |
 | Reading scene data · coordinates · the 13 `modify_scene` branches · A-roll layout priority ladder · how to look (screenshot) | **`ai_video_editor/10_mechanics`** |
 | Deciding the background (grid vs real) · searching · evaluating · applying footage | **`ai_video_editor/20_background`** |
-| About to (re)build or apply ANY overlay (SVG model, rebuild threshold, `data-wc-*`, reuse-a-photo, verify) | **`ai_video_editor/30_overlay_core`** — FIRST for any overlay |
+| About to (re)build or apply ANY overlay (internal vector model, rebuild threshold, `data-wc-*`, reuse-a-photo, verify) | **`ai_video_editor/30_overlay_core`** — FIRST for any overlay |
+| Choosing the overlay's design language (style direction, not QA standard) | **`ai_video_editor/styles/design_languages`** |
 | Overlay has TEXT (title/label/value/quote) | **`ai_video_editor/31_typography`** + **`ai_video_editor/styles/text_axes`** |
 | Pattern is a CHART (`single_metric`/`bar_chart`/`proportion_chart`/`trend_chart`/`structural_diagram`) | **`ai_video_editor/32_charts`** + **`ai_video_editor/styles/chart_axes`** |
 | Pattern is OTHER (`map_chart`/`comparison_table`/`timeline_events`/`checklist_tips`/`quote_card`/`illustration`/`hybrid_vertical`/`real_entity`/`typography_only`/`narration_only`) | **`ai_video_editor/33_patterns`** |
@@ -70,13 +71,13 @@ If you see an available module whose `title`/`summary` matches a step that this 
 
 Load the module for the full text + nuance. These headlines are reminders, not the rules themselves.
 
-0. **Visual evidence gate.** Every image used as evidence — screenshots (`scene_inspector` → `curl` `result.screenshot.url` → local file), found media, generated images, agent-authored SVG — must be saved locally and SHOWN visibly to the user BEFORE the agent judges/edits/uploads from it.
+0. **Visual evidence gate.** Every image used as evidence — screenshots (`scene_inspector` → `curl` `result.screenshot.url` → local file), found media, generated images, and cheap local overlay previews when available — must be saved locally and SHOWN visibly to the user BEFORE the agent judges/edits/uploads from it. Overlay previews are opportunistic; the mandatory overlay truth is the post-upload composite screenshot.
 1. **Name the field, never guess.** Selector = `voice_file` (not `id`). After every `modify_scene`, re-pull `video_data`/`scene_geometry` to confirm saved.
 2. **Runtime = autonomous, end-to-end.** Work scene 2 → last content scene in ONE pass. Never pause to ask. No `A or B?` questions to the user.
 2a. **Decision protocol — choose, don't defer.** Priority: content correctness → face preservation → readability → safe-zone/caption → aesthetic → minimal edit.
 2b. **WideCast edit trigger = full autonomous run.** "edit this video" + a WideCast URL/`topic_id` = full audit + fix. Never ask scope.
 3. **Decide by SIGHT, not by `pattern`.** Visual calls need a local-shown screenshot. `scene_geometry` never substitutes for looking.
-4. **Overlay = transparent SVG, local-shown, hosted, then uploaded.** Safe box x∈[36,684], y∈[128,960]. Show local SVG before upload.
+4. **Overlay = transparent internal vector, hosted, uploaded, then screenshot-verified.** Safe box x∈[36,684], y∈[128,960]. Show a local overlay preview only when the environment already supports it cheaply; never expose the internal format to normal users.
 5. **ONE atom = ONE object** (`<g data-wc-object>`). Atomize, never clump. Co-appear via shared `data-wc-delay`.
 6. **Font: HEAVY family** (e.g. `"<Family> Black"`). One font + accent per video; vary between videos.
 6a. **Overlay copy correctness is its own gate.** Every visible string proofread; typos/grammar/wrong currency/wrong term = FAIL.
@@ -109,7 +110,7 @@ If you're about to do any of these, STOP and do the prerequisite first:
 - (re)build overlay → load the whole chain `30_overlay_core` + `31`/`32`/`33` + `styles/*`
 - visual call from `scene_geometry` alone → STOP, pull screenshot first
 - act on a screenshot you have not SHOWN locally → show it first
-- upload an overlay you have not shown locally → show local SVG first
+- about to spend time rendering/converting an overlay preview → only do it if the environment already supports it cheaply; otherwise skip pre-upload preview and verify via the post-upload composite screenshot
 - ask the user to choose/approve during runtime → STOP, decide yourself
 - declare `Scene N: PASS` without scanning 9 DoD gates + §7 → run the scan
 - declare PASS without naming Gate 5 verdict (`PASS keep` / `PASS grid-by-design` / `FIXED + PASS`) → STOP
