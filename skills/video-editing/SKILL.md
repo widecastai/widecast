@@ -84,10 +84,11 @@ So the maintainer can drop a file that's only bullets, only a quote, only a sing
 12. **Every scene = a BACKGROUND audit AND an overlay review — two separate passes; never skip the background** (it is its own gate, not part of the overlay check). Gate 4 uses TWO local-visible evidence images: the START composite screenshot (render truth) AND the active background/media plate (`thumbnailUrl`/fallback media thumbnail) shown separately so the agent can tell which marks belong to the background vs the overlay/caption. And **every screenshot/media plate you pull is saved/downloaded locally and SHOWN visibly to the user before you act on it**. **No visible local evidence = no visual judgment.** Complete the **per-scene Definition of Done (§3)** before advancing to the next scene.
 12a. **Endpoint scenes: scene 2 + thumbnail + final CTA.** The first real scene after the thumbnail (usually `id=2`) is special regardless of `type`/`pattern`: `Read` `40_thumbnail_cta.md` and treat its first-frame composition like a thumbnail/poster, because platforms may auto-extract that frame as the default cover. Use a short whole-video hook/consequence title, poster-thick typography, strong face/subject preservation, and controlled SVG decoration. It must feel like dynamic poster typography / magazine-cover thumbnail / another named endpoint style, not a normal centered card, horizontal text bar, or inside-scene title panel. **Immediately after scene 2 PASS, before starting scene 3, sync the static thumbnail scene:** apply the same uploaded poster SVG URL to `type="thumbnail"` by `voice_file`, pull/show the thumbnail screenshot, and confirm it saved with `video_data`/`scene_geometry`. This sync is a gate; do not continue to scene 3 until it is done. **Do not re-check thumbnail at the end** unless the user explicitly asks; the thumbnail and scene 2 should already be intentionally matched. When reaching the last non-thumbnail/content scene, especially `type="CALL TO ACTION"`, `Read` `40_thumbnail_cta.md` again and treat it as a closing CTA endpoint: one clear action, typography stronger than objects, narrator-primary if A-roll, and poster-grade composition rather than normal explainer-card composition.
 12b. **Gate 4 requires a printed BACKGROUND PROOF, not a vibe check.** The agent must print/fill the exact `Gate 4 BACKGROUND PROOF` template in §3 for every content scene before Gate 5 starts. A scene cannot be called PASS, and the run cannot be called done, unless every content scene has a `Gate 4 BACKGROUND PROOF` row with `Verdict: PASS keep`, `Verdict: PASS grid-by-design`, or `Verdict: FIXED + PASS`. If the proof is missing, answer "background audit not complete" and run Gate 4; do not summarize the scene as done.
-12c. **Attention-drift / Gate Resume Scan — a detour is NOT a completed scene or run.** Any issue can pull the agent away from the original checklist: wrong term, typo, missing number/symbol, background replacement, geo/currency mismatch, overlay rebuild, covered face, caption collision, thumbnail sync, tool/debug problem, or a small fix applied across many scenes. After the detour is fixed, run a **Gate Resume Scan** before summarizing or moving on: re-open the current scene checklist, identify the earliest unchecked or invalidated gate, and continue from there. If the detour touched multiple scenes, resume at the earliest scene/gate whose PASS is no longer proven. No gate is exempt: Gate 1 text, Gate 2 role, Gate 3 START evidence, Gate 4 background proof, Gate 5 overlay proof, Gate 6 layout, Gate 7 dead-zone, Gate 8 END evidence, and Gate 9 server-saved confirmation can all be missed after drift.
-12d. **Pre-summary completion scan — no big task left behind.** Before writing any final summary, completion report, Telegram completion message, or export question, scan the run-level checklist, not memory: every content scene must have `Scene N: PASS`; every scene must have Gate 1–9 checked; every Background Audit Ledger row must be filled; scene 2 thumbnail sync must be complete; final CTA endpoint handling must be complete for the last content scene; any `[ACTION REQUIRED]` item must be surfaced. If any major workstream is incomplete (especially background audit/replacement, endpoint scene handling, or server-saved verification), do the missing work first. Fixing a small defect across all scenes does NOT mean the video is done.
+12c. **Attention-drift / Gate Resume Scan — a detour is NOT a completed scene or run.** Any issue can pull the agent away from the original checklist: wrong term, typo, missing number/symbol, background replacement, geo/currency mismatch, overlay rebuild, covered face, caption collision, thumbnail sync, tool/debug problem, or a small fix applied across many scenes. After the detour is fixed, run a **Gate Resume Scan** before summarizing or moving on: re-open the current scene checklist, identify the earliest unchecked or invalidated gate, and continue from there. If the detour touched multiple scenes, resume at the earliest scene/gate whose PASS is no longer proven. No gate is exempt: Gate 1 text, Gate 2 role, Gate 3 START evidence, Gate 4 background proof, Gate 5 overlay proof, Gate 6 layout, Gate 7 dead-zone, Gate 8 END evidence, Gate 9 server-saved confirmation, and Gate 10 module coverage can all be missed after drift.
+12d. **Pre-summary completion scan — no big task left behind.** Before writing any final summary, completion report, Telegram completion message, or export question, scan the run-level checklist, not memory: every content scene must have `Scene N: PASS`; every scene must have Gate 1–10 checked; every scene/run must have a passing **MODULE COVERAGE GATE**; every Background Audit Ledger row must be filled; scene 2 thumbnail sync must be complete; final CTA endpoint handling must be complete for the last content scene; any `[ACTION REQUIRED]` item must be surfaced. If any major workstream is incomplete (especially background audit/replacement, endpoint scene handling, module loading, or server-saved verification), do the missing work first. Fixing a small defect across all scenes does NOT mean the video is done.
 13. **This master is an INDEX — `Read` the named module BEFORE doing each step, every time (a required ACTION, see "HOW TO USE" above).** You cannot do a step from the index alone; not opening the module = skipping that step's rules. (This is the literal cause of a missed background audit: the agent never opened `20_background.md`.) **Re-`Read` it each time you reach the step, even if read earlier this session; a resumed run reloads, never works from memory.**
-14. **Announce the per-scene task list at the START, report progress at each gate, and re-state the ✓/✗ checklist at the END** (§3) — so the user can audit your plan, your current position, and any gaps. Announce, don't pause. **End every scene with an explicit `Scene N: PASS`/`FAIL` verdict — say PASS only after scanning all 9 DoD gates + §7 and confirming each; never advance without a stated PASS.**
+13a. **Module Coverage Gate — missing playbook = not done.** Gate 10 requires the agent to prove the required playbooks were loaded for the run/scene: `00_ENTRYPOINT.md`, `10_mechanics.md`, `20_background.md`, `30_overlay_core.md`, `31_typography.md`, `32_charts.md`, `33_patterns.md`, and `40_thumbnail_cta.md` when applicable. Missing a required file means the scene/video is incomplete. But loading a file once is not completion: Gate 10 only proves coverage; each gate still requires its own evidence/proof/verdict.
+14. **Announce the per-scene task list at the START, report progress at each gate, and re-state the ✓/✗ checklist at the END** (§3) — so the user can audit your plan, your current position, and any gaps. Announce, don't pause. **End every scene with an explicit `Scene N: PASS`/`FAIL` verdict — say PASS only after scanning all 10 DoD gates + §7 and confirming each; never advance without a stated PASS.**
 
 ---
 
@@ -107,8 +108,9 @@ Each line is an interrupt on what you are *about to* do. If it matches, STOP, do
 - About to **act on a screenshot / found media you have not SHOWN** locally → save + show it first (rules 0/11).
 - About to **upload an overlay** you have not shown locally → show the local SVG first (rule 4).
 - About to **ask the user to choose/approve an option during runtime** → STOP. Use the decision protocol in Critical Rule 2a, choose the best option yourself, act, and only report the decision/proof. Do not turn uncertainty into a user question.
-- About to **declare `Scene N: PASS`** without scanning all 9 DoD gates + §7 (incl. dead-zone) → run the scan first; PASS is earned by the scan.
+- About to **declare `Scene N: PASS`** without scanning all 10 DoD gates + §7 (incl. module coverage + dead-zone) → run the scan first; PASS is earned by the scan.
 - About to **declare `Scene N: PASS`** but the end checklist cannot name the Gate 4 verdict (`PASS keep`, `PASS grid-by-design`, or `FIXED + PASS`) → STOP. The background audit is missing even if overlay/layout passed.
+- About to **declare `Scene N: PASS` / final handoff** but the `MODULE COVERAGE GATE` has any missing required module → STOP. Load the missing module at the correct step, resume the earliest invalidated gate, then re-scan.
 - About to **move to the next scene** with no stated `PASS`/`FAIL` verdict → declare the verdict first. No verdict = scene not done.
 - About to **write a final summary / completion report / Telegram completion message / export question** → STOP and run the Pre-summary completion scan (Critical Rule 12d). If any scene/gate/ledger row is incomplete, do that work first instead of summarizing.
 - About to **final-handoff a video** without a complete per-scene background-audit ledger for every content scene → STOP. Say "background audit not complete" and run the missing Gate 4 rows before hand-off/export.
@@ -166,11 +168,12 @@ Every scene must pass through the following steps.
 > 7. ☐ **DEAD-ZONE check** — no overlay object/text in `dead_top`/`dead_bottom` (verify step, `30_overlay_core.md` §5.5).
 > 8. ☐ **END screenshot** pulled with MCP `screenshot_scene_280x498` → `result.screenshot.url` **downloaded locally with `curl` + SHOWN visibly to the user** → **only then evaluated** → confirms: face clear, hero/title text is bright/prominent, **every secondary label/value/card line is readable without zoom and has visible inner padding from its chip/card/bar border**, all visible overlay text is typo-free/grammar-correct/domain-correct, no dark/muddy/blurred text, no text-on-text or badge-over-label collision, no text touching/grazing/clipping/lapping a border, nothing in a dead zone, caption fits, background fits. If no edit was made, the already-shown START screenshot may serve as the final look only when the agent explicitly says "no edit, START screenshot is the END evidence"; otherwise pull and show a fresh END screenshot.
 > 9. ☐ **Server-saved** — re-pulled `video_data`/`scene_geometry` to confirm every edit persisted.
+> 10. ☐ **MODULE COVERAGE GATE** — print the module coverage proof below and PASS only if every required playbook for this scene/run was loaded at the correct step, or explicitly marked N/A with a reason.
 >
-> All nine checked → next scene. **Show ≠ pause:** present each screenshot, then keep working — the only stop is the very end of the video (§2). **Scene transition gate:** if the user has not visibly seen the final local screenshot evidence for this scene, the scene is NOT done and the agent must not start the next scene.
+> All ten checked → next scene. **Show ≠ pause:** present each screenshot, then keep working — the only stop is the very end of the video (§2). **Scene transition gate:** if the user has not visibly seen the final local screenshot evidence for this scene, the scene is NOT done and the agent must not start the next scene.
 >
 > **⭐ ANNOUNCE THE PLAN + REPORT PROGRESS (mandatory, so the user can audit you).** The user must be able to see, at any moment, **which steps you will do, which you are on, and which remain.** So:
-> - **At the START of each scene**, post the **task list for THIS scene as a VERTICAL checklist** (one DoD gate per line). This is the plan the user audits up front. **Do NOT compress the 9 gates into one inline sentence** — inline checklists are easy for agents to skim past and hard for humans to audit.
+> - **At the START of each scene**, post the **task list for THIS scene as a VERTICAL checklist** (one DoD gate per line). This is the plan the user audits up front. **Do NOT compress the 10 gates into one inline sentence** — inline checklists are easy for agents to skim past and hard for humans to audit.
 > - **As you work**, announce each gate as you enter/finish it ("→ Gate 4: auditing background…" then "✓ Gate 4 done"). Don't silently jump between gates.
 > - **At the END of the scene**, repeat the checklist with ✓/✗ and a one-line note per gate, so the user sees exactly what was done and whether anything was skipped, BEFORE you move on.
 > - **Announce ≠ pause** — report and keep working; do not wait for a reply (§2). Skipping the announcement (working silently) is a process error: the user cannot audit what they cannot see.
@@ -188,6 +191,7 @@ Every scene must pass through the following steps.
 >   ☐ Gate 7 — Dead-zone check
 >   ☐ Gate 8 — END/final screenshot shown
 >   ☐ Gate 9 — Server-saved confirmation
+>   ☐ Gate 10 — Module coverage
 >   ```
 > - Gate 4 background proof — print this **during Gate 4 and before any Gate 5 overlay work**. This is the mechanical guard against skipping the background pass:
 >   ```text
@@ -256,18 +260,32 @@ Every scene must pass through the following steps.
 >   Screenshot check: <PASS|FAIL> — every secondary label/value/card line matches the approved copy, has no visible typo/grammar/diacritic/domain error, is readable at 280×498 without zoom, has no visible outline/stroke, is not dark/muddy, is not overlapped/covered by another text/object, and has visible breathing room from its chip/card/bar border
 >   Verdict: <PASS secondary text | REVISE labels/layout/rebuild overlay>
 >   ```
+> - Gate 10 module coverage proof — print this **before declaring Scene PASS and again before final video hand-off**:
+>   ```text
+>   MODULE COVERAGE GATE:
+>   ☑ 00_ENTRYPOINT.md — loaded for run kickoff
+>   ☑ 10_mechanics.md — loaded for this scene's data/layout/screenshot mechanics
+>   ☑ 20_background.md — loaded before Gate 4 background audit for this scene
+>   ☑ 30_overlay_core.md — loaded before Gate 5 overlay review/rebuild for this scene
+>   ☑ 31_typography.md — loaded because overlay has text OR N/A: <reason>
+>   ☑ 32_charts.md — loaded because chart/diagram pattern=<pattern> OR N/A: <reason>
+>   ☑ 33_patterns.md — loaded because non-chart pattern=<pattern> OR N/A: <reason>
+>   ☑ 40_thumbnail_cta.md — loaded because scene 2/thumbnail/final CTA endpoint OR N/A: <reason>
+>   Verdict: <PASS module coverage | FAIL — load missing module and resume earliest invalidated gate>
+>   ```
+>   **Missing required module = Gate 10 FAIL.** Loading a module once at the beginning does **not** mean the gate/work is complete; it only satisfies the coverage line. The actual gate still requires its proof, evidence, edit decision, and PASS verdict.
 > - Progress (each gate): `→ Gate K: <doing…>` then `✓ Gate K: <result>`
-> - Scene end (verdict): `Scene N: PASS — ✓1…✓9` **or** `Scene N: FAIL — ✗K <what's missing>; fixing.`
+> - Scene end (verdict): `Scene N: PASS — ✓1…✓10` **or** `Scene N: FAIL — ✗K <what's missing>; fixing.`
 > - Human must act (record A-roll / final hand-off): a standalone `**[ACTION REQUIRED]**` block (see HOW TO USE markers).
 >
 > **⭐ PASS / FAIL VERDICT — declare it before EVERY scene hand-off; it is the gate to the next scene.** You may advance to the next scene ONLY after you state an explicit verdict:
-> - To say **"Scene N: PASS"** you must FIRST **scan all 9 DoD gates above AND the §7 Quality Standard**, and confirm **every** one is met. PASS is *earned by the scan* — never declared from memory or assumption.
+> - To say **"Scene N: PASS"** you must FIRST **scan all 10 DoD gates above AND the §7 Quality Standard**, and confirm **every** one is met. PASS is *earned by the scan* — never declared from memory or assumption.
 > - The PASS scan must include the local-visible screenshot evidence: "START shown: yes" and "END/final shown: yes". If either is missing, PASS is forbidden.
 > - If any gate / §7 item is unmet → **"Scene N: FAIL — [list the failing gates]"**, fix them, then **re-scan and re-declare**. Loop until PASS.
 > - **Never advance on a FAIL, and never advance with no verdict at all** (an un-verdicted scene = not done). The verdict line + its gate-by-gate ✓ is the last thing you post for a scene before starting the next.
 
 > **⭐ FINAL VIDEO HAND-OFF — after the last content scene passes.**
-> - First run the **Pre-summary completion scan** (Critical Rule 12d): every content scene has `Scene N: PASS`, Gate 1–9 checked, Background Audit Ledger complete, scene 2 thumbnail sync complete, final CTA endpoint handling complete for the last content scene, and no unhandled `[ACTION REQUIRED]` item hidden.
+> - First run the **Pre-summary completion scan** (Critical Rule 12d): every content scene has `Scene N: PASS`, Gate 1–10 checked, Module Coverage Gate PASS, Background Audit Ledger complete, scene 2 thumbnail sync complete, final CTA endpoint handling complete for the last content scene, and no unhandled `[ACTION REQUIRED]` item hidden.
 > - If the scan finds missing major work, do that work now. Do not write a "done" summary as a substitute for completing it.
 > - Do **not** revisit the thumbnail; it was completed by the immediate post-scene-2 sync gate.
 > - Pull/keep the `review_url` for the video.
@@ -335,7 +353,7 @@ The goal is to understand what idea the scene is trying to convey, whether the c
 
 ## 7. Quality Standard for a Passing Scene
 
-> This is the bar the per-scene **PASS verdict (§3)** is checked against: to declare **`Scene N: PASS`** you must confirm **every** item below **AND** all 9 DoD gates (§3) are met. Any miss → `FAIL`, fix, re-scan.
+> This is the bar the per-scene **PASS verdict (§3)** is checked against: to declare **`Scene N: PASS`** you must confirm **every** item below **AND** all 10 DoD gates (§3) are met. Any miss → `FAIL`, fix, re-scan.
 
 A scene is considered passing when:
 
@@ -354,6 +372,7 @@ A scene is considered passing when:
 - the scene plays its correct role in the whole-video flow
 - **the modules required for the work actually done were `Read` this step** (background pass → `20`; endpoint scene → `40_thumbnail_cta.md`; overlay → `30` + `31_typography.md` whenever the overlay contains any text + the matching content module/style lib) — a step done "from memory" without opening its module does not count as PASS
 - **if an SVG was authored/rebuilt, the Gate 5 MODULE LOAD PROOF was printed before drawing and included every required module** — a beautiful SVG created without the proof still fails the process gate, because future agents need auditable evidence that they loaded the right playbook pieces
+- **Gate 10 MODULE COVERAGE GATE passed** — `00_ENTRYPOINT.md`, `10_mechanics.md`, `20_background.md`, `30_overlay_core.md`, `31_typography.md`, `32_charts.md`, `33_patterns.md`, and `40_thumbnail_cta.md` are either loaded where required or explicitly N/A with reasons
 
 ## 8. Video-Level QA After Editing All Scenes
 
@@ -415,10 +434,11 @@ Before sending any reply, silently confirm — and fix any "no" before replying:
 - Am I making visual calls from a SCREENSHOT, not from `scene_geometry` alone?
 - Am I on the per-scene DoD — which gate am I on, and did I announce progress?
 - If I'm ending a scene: did I scan the checklist + §7 and state `Scene N: PASS` / `FAIL`?
+- Did I run the `MODULE COVERAGE GATE`, and does it show no missing required playbook?
 - Did I avoid jumping any gate (background pass · overlay LOAD CHAIN · dead-zone · verdict-before-next-scene)?
 - Field discipline: `voice_file` selector, and did I re-pull to confirm the edit saved?
 - If I just finished any detour/fix/debug path: did I run the Gate Resume Scan and continue from the earliest unchecked or invalidated gate instead of summarizing?
-- If I am about to summarize/hand off/export/notify completion: did I run the Pre-summary completion scan, and are all scenes PASS with a complete Background Audit Ledger, scene 2 thumbnail sync, and final CTA endpoint handling?
+- If I am about to summarize/hand off/export/notify completion: did I run the Pre-summary completion scan, and are all scenes PASS with a complete Module Coverage Gate, Background Audit Ledger, scene 2 thumbnail sync, and final CTA endpoint handling?
 - If the human must act, did I use a standalone `[ACTION REQUIRED]` block?
 
 This list is intentionally redundant with the Critical Rules / Jump-Prevention / DoD — **the redundancy is the point** (it is why misses are rare).
