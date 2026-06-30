@@ -2211,21 +2211,43 @@ paths:
         DIFFERENT from `getWritingSkill`, which is for AUTHORING new
         scripts; this skill is for EDITING already-generated scenes.
 
-        ## Lazy-load contract
+        ## Lazy-load contract — multi-module
 
-        The skill is too large to ship in one response, so it's broken
-        into modules. Call this endpoint **twice or more**:
+        The skill is too large to ship in one response, and master
+        `SKILL.md` is intentionally a small (~13 KB) INDEX so it never
+        hits a per-tool-call output cap. Every detail (critical rules,
+        jump-prevention triggers, DoD gates + templates, principles,
+        workflow, quality bar) lives in separate modules.
 
-        1. **First call** — omit `module`. Returns the master `SKILL.md`
-           (the INDEX with rules + per-scene Definition of Done + module
-           load map) plus an `available_modules[]` array that is
-           **auto-discovered from the filesystem on every request**.
-           Each entry carries `id` + parsed `title` (first H1) +
-           parsed `summary` (first paragraph) + `size_bytes`.
-        2. **Subsequent calls** — when the agent reaches a step that
-           names a module (e.g. "open `ai_video_editor/10_mechanics`"),
-           call again with `module=ai_video_editor/10_mechanics` (no
-           `.md` suffix) to load that submodule's content.
+        1. **First call** — omit `module`. Returns the master
+           `SKILL.md` + an `available_modules[]` array (auto-discovered
+           from the filesystem on every request) + an always-returned
+           `contract` field (~1.5 KB).
+        2. **Run kickoff — ALWAYS load the 5 core modules**:
+           `ai_video_editor/01_critical_rules`,
+           `ai_video_editor/02_jump_prevention`,
+           `ai_video_editor/03_dod_gates`,
+           `ai_video_editor/04_principles_workflow`,
+           `ai_video_editor/05_quality_qa_priority`.
+        3. **Per scene** — load `ai_video_editor/10_mechanics` at scene
+           start, then load each gate's named module when you reach
+           that gate: `30_overlay_core` + `31_typography` (when overlay
+           has text) + `31`/`32`/`33` by pattern + `styles/*` for Gate
+           4 overlay; `20_background` for Gate 5 background audit;
+           `40_thumbnail_cta` for scene 2 / thumbnail sync / final
+           CTA.
+
+        ## Always-returned `contract` field
+
+        Every response carries a short (~1.5 KB) `contract` field with
+        the cross-cutting rules: selector = `voice_file`, autonomous
+        end-to-end run, screenshot evidence, SVG overlay rules, 9-gate
+        DoD, lazy-load contract. **This field is ordered first and
+        intentionally small so it survives any runtime truncation of
+        `method`**. The agent reads `contract` first, then loads the
+        modules it needs. `meta.contract_length` and `meta.method_length`
+        let the agent detect truncation by comparing received string
+        lengths.
 
         ## Auto-expansion — zero formatting required
 
@@ -2307,8 +2329,9 @@ paths:
                   module_id:      { type: string, description: "Submodule responses only — module id without `.md`." }
                   title:          { type: string, description: "Submodule responses only — parsed first H1, falls back to filename basename." }
                   size_bytes:     { type: integer }
+                  contract:       { type: string, description: "Always-returned cross-cutting rules (~1.5 KB) — read this FIRST. It survives runtime truncation of `method` even when a host caps per-tool-call output." }
                   method_format:  { type: string, example: markdown }
-                  method:         { type: string, description: "Markdown content of the file (frontmatter stripped)." }
+                  method:         { type: string, description: "Markdown content of the file (frontmatter stripped). May be truncated by your runtime's per-tool-call output cap." }
                   available_modules:
                     type: array
                     description: "Entry response only — auto-discovered from filesystem on every call."

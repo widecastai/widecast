@@ -1,5 +1,5 @@
 /**
- * 🎨 Load a style library
+ * 🎨 Per-scene — style recipe library
  *
  * Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
  */

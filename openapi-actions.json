@@ -2683,13 +2683,17 @@
                     "size_bytes": {
                       "type": "integer"
                     },
+                    "contract": {
+                      "type": "string",
+                      "description": "Always-returned cross-cutting rules (~1.5 KB) — read this FIRST. It survives runtime truncation of `method` even when a host caps per-tool-call output."
+                    },
                     "method_format": {
                       "type": "string",
                       "example": "markdown"
                     },
                     "method": {
                       "type": "string",
-                      "description": "Markdown content of the file (frontmatter stripped)."
+                      "description": "Markdown content of the file (frontmatter stripped). May be truncated by your runtime's per-tool-call output cap."
                     },
                     "available_modules": {
                       "type": "array",

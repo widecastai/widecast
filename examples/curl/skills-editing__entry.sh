@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 📚 Load the master SKILL.md + the live module index
+# 📚 Load the master SKILL.md + the live module index + the contract
 # Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
 
 curl -X GET "https://widecast.ai/app/dashboard/v1/skills/editing" \

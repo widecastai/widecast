@@ -1,5 +1,5 @@
 """
-🅰 Load the typography submodule
+🅰 Per-scene — typography rules
 
 Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
 """

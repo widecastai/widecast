@@ -1,5 +1,5 @@
 /**
- * ⚙️ Load the mechanics submodule
+ * ⚙️ Per-scene — mechanics (data + layout coords + branch table)
  *
  * Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
  */

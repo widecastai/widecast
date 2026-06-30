@@ -21,37 +21,77 @@
   "use_cases": [
     {
       "id": "entry",
-      "title": "📚 Load the master SKILL.md + the live module index",
-      "description": "Returns SKILL.md content + an `available_modules[]` array auto-discovered from disk. Start here so you know which submodules exist before loading any of them.",
+      "title": "📚 Load the master SKILL.md + the live module index + the contract",
+      "description": "Returns SKILL.md content + an `available_modules[]` array auto-discovered from disk + an always-returned `contract` field (~1.5 KB cross-cutting rules that survive any runtime truncation). Start here so you know which submodules exist before loading any of them.",
       "request": {}
     },
     {
+      "id": "load-critical-rules",
+      "title": "⭐ Kickoff core 1/5 — 14 critical rules + self-audit",
+      "description": "Load at run kickoff. The 14 numbered critical rules that hold across every scene (visual evidence gate, autonomous run, name-the-field, decide-by-sight, …) + the self-audit checklist run before every reply.",
+      "request": {
+        "module": "ai_video_editor/01_critical_rules"
+      }
+    },
+    {
+      "id": "load-jump-prevention",
+      "title": "⛔ Kickoff core 2/5 — jump-prevention interrupts",
+      "description": "Load at run kickoff. \"About to do X → STOP, do Y first\" interrupt list to catch the agent before common skips.",
+      "request": {
+        "module": "ai_video_editor/02_jump_prevention"
+      }
+    },
+    {
+      "id": "load-dod-gates",
+      "title": "✅ Kickoff core 3/5 — DoD gates + all template blocks",
+      "description": "Load at run kickoff (or at scene start). 9-gate per-scene Definition of Done + every template block (Gate 4 module-load / title / secondary-text proofs, Gate 5 BACKGROUND PROOF, Gate 6 screenshot checks, Gate 9 MODULE COVERAGE GATE).",
+      "request": {
+        "module": "ai_video_editor/03_dod_gates"
+      }
+    },
+    {
+      "id": "load-principles-workflow",
+      "title": "📖 Kickoff core 4/5 — principles + whole-video workflow + reminders",
+      "description": "Load at run kickoff. §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 long-form reminders.",
+      "request": {
+        "module": "ai_video_editor/04_principles_workflow"
+      }
+    },
+    {
+      "id": "load-quality-qa-priority",
+      "title": "🎯 Kickoff core 5/5 — quality standard + video-level QA + priority",
+      "description": "Load before declaring `Scene N: PASS` and after every scene. §7 Quality Standard, §8 video-level QA pass, §9 priority order for gate conflicts.",
+      "request": {
+        "module": "ai_video_editor/05_quality_qa_priority"
+      }
+    },
+    {
       "id": "load-mechanics",
-      "title": "⚙️ Load the mechanics submodule",
-      "description": "Per-scene data fields + layout coordinates + the modify_scene branch table. Load when starting a scene.",
+      "title": "⚙️ Per-scene — mechanics (data + layout coords + branch table)",
+      "description": "Load at the start of every scene. Per-scene data fields, coordinate spaces, the 13 `modify_scene` branches, A-roll layout scenarios, screenshot mechanics.",
       "request": {
         "module": "ai_video_editor/10_mechanics"
       }
     },
     {
       "id": "load-background",
-      "title": "🖼 Load the background-audit submodule",
-      "description": "Grid-vs-real decision + footage search + per-scene background gate. Load when running Gate 4.",
+      "title": "🖼 Per-scene — background audit",
+      "description": "Grid-vs-real decision + footage search + Gate 5 background-pass rules. Load at Gate 5.",
       "request": {
         "module": "ai_video_editor/20_background"
       }
     },
     {
       "id": "load-typography",
-      "title": "🅰 Load the typography submodule",
-      "description": "Title / label / value rules + readability gates. Load when the overlay has any text.",
+      "title": "🅰 Per-scene — typography rules",
+      "description": "Title / label / value rules + readability gates. Load whenever the overlay has any text.",
       "request": {
         "module": "ai_video_editor/31_typography"
       }
     },
     {
       "id": "load-style-lib",
-      "title": "🎨 Load a style library",
+      "title": "🎨 Per-scene — style recipe library",
       "description": "Style recipes mirrored from the code (chart axes / text axes). Load alongside the matching pattern module.",
       "request": {
         "module": "ai_video_editor/styles/text_axes"

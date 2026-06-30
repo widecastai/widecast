@@ -1,5 +1,5 @@
 """
-🖼 Load the background-audit submodule
+🖼 Per-scene — background audit
 
 Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
 """

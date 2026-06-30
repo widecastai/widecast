@@ -8,12 +8,27 @@ This is the **lazy-load** companion to [`/v1/skills/writing`](skills-editing.md)
 
 ---
 
-## Lazy-load contract
+## Lazy-load contract — multi-module
 
-Call this endpoint **twice or more**:
+Master `SKILL.md` is intentionally a small (~13 KB) INDEX so it never hits a per-tool-call output cap. Every detail (critical rules, jump-prevention triggers, DoD gates + templates, principles, workflow, quality bar) lives in separate modules. Call this endpoint **many times per run**:
 
-1. **First call — `module` omitted.** Returns the master `SKILL.md` (the INDEX with rules + per-scene Definition of Done + module load map) PLUS an `available_modules[]` array that is **auto-discovered from the filesystem on every request**.
-2. **Subsequent calls — `module=<id>`.** When the agent reaches a step in `SKILL.md` that names a module (e.g. "open `ai_video_editor/10_mechanics`"), call again with `module=ai_video_editor/10_mechanics` (no `.md` suffix) to load that submodule's content. Reload each module AT the step that needs it — do NOT work from memory across modules.
+1. **First call — `module` omitted.** Returns `SKILL.md` + an `available_modules[]` array (auto-discovered from the filesystem on every request) + an always-returned `contract` field (~1.5 KB).
+2. **Run kickoff — ALWAYS load the 5 core modules** in addition to `SKILL.md`:
+   - `ai_video_editor/01_critical_rules` — 14 cross-scene rules + the self-audit checklist run before each reply.
+   - `ai_video_editor/02_jump_prevention` — "about to do X → STOP, do Y first" interrupt list.
+   - `ai_video_editor/03_dod_gates` — per-scene Definition of Done (9 gates) + every template block (Gate 4 module-load proof, Gate 4 title proof, Gate 4 secondary text proof, Gate 5 background proof, Gate 6 screenshot checks, Gate 9 module coverage).
+   - `ai_video_editor/04_principles_workflow` — §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 reminders.
+   - `ai_video_editor/05_quality_qa_priority` — §7 Quality Standard, §8 video-level QA, §9 priority order for gate conflicts.
+3. **Per-scene calls** — at scene start load `ai_video_editor/10_mechanics`, then each gate's named module when you reach that gate. Reload modules at each step — do NOT work from memory.
+
+## Always-returned `contract` field
+
+Every response (entry, SKILL-as-module, submodule) carries a short (~1.5 KB) `contract` field listing the cross-cutting rules: selector = `voice_file`, autonomous end-to-end run, screenshot evidence, SVG overlay rules, 9-gate DoD, lazy-load contract. **This field is ordered first in the response body so it survives any runtime truncation of `method`** — even if the agent host caps output at a low number of tokens, `contract` reaches the model intact.
+
+The agent should:
+- Read `contract` FIRST.
+- Compare `meta.contract_length` and `meta.method_length` to the actual received string lengths to detect truncation.
+- If `method` is truncated, recall the tool for the specific module needed; don't try to reconstruct the missing content from memory.
 
 ## Auto-expansion (zero-config)
 
