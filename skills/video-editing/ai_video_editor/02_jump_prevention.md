@@ -22,7 +22,9 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - Just finished any **detour/fix** (wrong term, typo, missing number/symbol, bad overlay word, covered face, wrong thumbnail, background swap, geo mismatch, layout tweak, tool/debug issue, or cross-scene small fix) and feel ready to summarize/handoff/move on → STOP. Run the Gate Resume Scan from Critical Rule 12c (`ai_video_editor/01_critical_rules`) and continue from the earliest unchecked or invalidated gate; a fix is not a scene/run verdict.
 
-- About to **(re)build or apply an overlay** → first load the whole LOAD CHAIN: `ai_video_editor/30_overlay_core` + the matching `31`/`32`/`33` + its `styles/*`. Stopping at `30_overlay_core` = flat / off-pattern.
+- About to **(re)build, apply, or approve an overlay on A-roll** (`show_narrator=true`) without a printed Gate 4 A-ROLL LAYOUT PRIORITY PROOF → STOP. Load `ai_video_editor/10_mechanics`, run the full-canvas-first ladder inside Gate 4, and decide the overlay/narrator tradeoff before drawing/uploading/accepting the overlay.
+
+- About to **(re)build or apply an overlay** → first load the whole LOAD CHAIN: `ai_video_editor/30_overlay_core` + `ai_video_editor/10_mechanics` when A-roll + the matching `31`/`32`/`33` + its `styles/*`. Stopping at `30_overlay_core` = flat / off-pattern.
 
 - About to **make ANY visual call** (grid-vs-real, regenerate-or-leave, readable?) from `scene_geometry` alone → STOP: pull the screenshot, save + show it locally, judge from the IMAGE. Geometry never substitutes for looking.
 

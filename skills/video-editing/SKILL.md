@@ -33,7 +33,7 @@ The 5 modules below carry the rules + workflow that apply across the whole run. 
 
 1. **`ai_video_editor/01_critical_rules`** — 14 critical rules that hold across every scene + the self-audit checklist run before each reply.
 2. **`ai_video_editor/02_jump_prevention`** — "about to do X → STOP, do Y first" interrupt list.
-3. **`ai_video_editor/03_dod_gates`** — per-scene Definition of Done (9 gates) + every template block (Gate 4 module-load proof, Gate 4 title proof, Gate 4 secondary text proof, Gate 5 background proof, Gate 6 screenshot checks, Gate 9 module coverage).
+3. **`ai_video_editor/03_dod_gates`** — per-scene Definition of Done (9 gates) + every template block (Gate 4 module-load proof, Gate 4 A-roll layout priority proof, Gate 4 title proof, Gate 4 secondary text proof, Gate 5 background proof, Gate 6 screenshot checks, Gate 9 module coverage).
 4. **`ai_video_editor/04_principles_workflow`** — §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 reminders.
 5. **`ai_video_editor/05_quality_qa_priority`** — §7 Quality Standard, §8 video-level QA, §9 priority order for gate conflicts.
 
@@ -128,7 +128,7 @@ Print this 9-gate checklist VERTICALLY at the start of every scene; tick ✓/✗
 1. ☐ **Text / STT** checked in whole-video context, fixed if wrong.
 2. ☐ **Role** understood — `type` · `pattern`/`sub_mode` · `visual` · `quote` · `talking_point`.
 3. ☐ **BEFORE screenshot** pulled, downloaded with `curl`, SHOWN locally, THEN evaluated.
-4. ☐ **Overlay reviewed/rebuilt** — load `30_overlay_core` first + endpoint/typography/content modules + style lib; print Gate 4 MODULE LOAD PROOF + TITLE GATE PROOF + SECONDARY TEXT GATE PROOF.
+4. ☐ **Overlay reviewed/rebuilt** — load `30_overlay_core` first + endpoint/typography/content modules + style lib; for A-roll print Gate 4 A-ROLL LAYOUT PRIORITY PROOF before overlay decisions; print Gate 4 MODULE LOAD PROOF + TITLE GATE PROOF + SECONDARY TEXT GATE PROOF.
 5. ☐ **Background audited** — load `20_background` first; print Gate 5 BACKGROUND PROOF with two local-visible images.
 6. ☐ **Final composition tuned** — layout + safe zone + dead-zone + face clearance + caption + balance.
 7. ☐ **AFTER screenshot** pulled, downloaded, SHOWN locally, evaluated for all of above.

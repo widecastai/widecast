@@ -124,11 +124,11 @@ The narrator's body may partially overlap an overlay in some layouts, but the fa
 
 ### Step 4: Choose the A-Roll Layout Priority
 
-If the scene is A-roll (`show_narrator=true`, i.e. `active_roll="A"`), the agent MUST run the priority ladder below before any A-roll layout edit (adjusted via `overlay.narrator.rect` + `remotion.object.rect`, 280×498 space). For normal scenes, a currently-small narrator / picture-in-picture layout is NOT automatically acceptable. The agent must first test whether the narrator can stay full canvas.
+If the scene is A-roll (`show_narrator=true`, i.e. `active_roll="A"`), the agent MUST run the priority ladder below during **Gate 4 overlay review/rebuild**, before deciding to leave, rebuild, upload, apply, or layout-fix the overlay (adjusted via `overlay.narrator.rect` + `remotion.object.rect`, 280×498 space). This is not a post-hoc Gate 6 cleanup. For normal scenes, a currently-small narrator / picture-in-picture layout is NOT automatically acceptable. The agent must first test whether the narrator can stay full canvas.
 
 This ladder is for normal A-roll scenes. Special endpoint / trust / CTA scenes keep their stricter rules below.
 
-> **⭐ REQUIRED A-ROLL LAYOUT DECLARATION — before ANY A-roll layout edit.** After the BEFORE screenshot has been saved locally and shown to the user, explicitly state:
+> **⭐ REQUIRED GATE 4 A-ROLL LAYOUT DECLARATION — before ANY A-roll overlay decision or layout edit.** After the BEFORE screenshot has been saved locally and shown to the user, explicitly state:
 > - `scene_class`: `normal` / `special_endpoint_or_trust`
 > - `narrator_role`: `primary` / `secondary`
 > - `overlay_role`: `support` / `main_subject`
@@ -136,7 +136,7 @@ This ladder is for normal A-roll scenes. Special endpoint / trust / CTA scenes k
 > - chosen priority number (`1`–`4`)
 > - why each higher-priority option failed, if choosing priority 2–4
 >
-> If the agent chooses priority 4 without proving priorities 1–3 failed, Gate 6 fails. Do not accept an existing shrunken narrator layout just because it is already on screen.
+> If the agent chooses priority 4 without proving priorities 1–3 failed, Gate 4 fails and Gate 6 cannot pass. Do not accept an existing shrunken narrator layout just because it is already on screen.
 >
 > For **CTA, contact, trust, intro, outro, testimonial, or direct-address scenes**, the narrator is normally `primary`; prefer priorities **1–3** and keep the narrator large. **Priority 4 is forbidden for CTA/contact/trust scenes unless the overlay is detail-dense and truly the main subject** (e.g. a document, UI, chart, comparison table, product screenshot, or technical process diagram). Shrinking the narrator into a small picture-in-picture because it satisfies geometry is a defect, not a pass.
 >
