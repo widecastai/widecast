@@ -1,8 +1,8 @@
 # 40 · Thumbnail + CTA scenes — opening poster, static cover, closing action
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `ai_video_editor_guideline_v2_en.md`. **Load this when:** you are handling the first real scene after the thumbnail (usually scene 2 / the opening poster scene), its immediate static thumbnail sync, OR the last content/CTA scene.
+> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** you are handling the first real scene after the thumbnail (usually scene 2 / the opening poster scene), its immediate static thumbnail sync, OR the last content/CTA scene.
 > Cross-refs: screenshot truth + geometry → `10_mechanics.md`; background plate evidence → `20_background.md`; SVG overlay rules → `30_overlay_core.md`; poster typography → `31_typography.md` + `styles/text_axes.md`.
 
 ---
@@ -81,7 +81,7 @@ Run this when you reach the last non-thumbnail/content scene, and always when `t
 2. **Show current scene:** pull `screenshot_scene_280x498`, download `result.screenshot.url` locally with `curl`, show it, then evaluate the closing frame.
 3. **Decide the CTA role:** the scene must end with one clear action. Examples: `COMMENT`, `FOLLOW`, `SAVE`, `BOOK A CALL`, `DM ME`, `GET A QUOTE`, `REVIEW YOUR POLICY`, `TALK TO AN EXPERT`. Do not use a vague title like `KẾT LUẬN` when the viewer should act.
 4. **Prefer typography over objects:** final CTA overlays should usually be text-led, not object-heavy. Use 1 short hero CTA line plus, at most, one small support line. A clear typographic call beats a chart/checklist/icon collage at the end.
-5. **A-roll final scene:** if `show_narrator=true` / `active_roll="A"`, the human close wins. Keep the narrator full canvas or large by default. Place the CTA as bold lower-third/chest/side typography that clears eyes, nose, mouth, and caption. Do not shrink the narrator into picture-in-picture for a CTA unless a detail-dense visual is truly indispensable.
+5. **A-roll final scene:** if `show_narrator=true` / `active_roll="A"`, the human close wins. Keep the narrator full canvas or large by default. Place the CTA as bold lower-third/chest/side typography that clears eyes, nose, mouth, and caption. Do not shrink the narrator into a fallback picture-in-picture layout for a CTA unless a detail-dense visual is truly indispensable and the higher-priority full-canvas/shifted-full-canvas layouts have been rejected.
 6. **B-roll/faceless final scene:** use a clean centered or lower-third CTA group inside the safe zone. If the background is busy, add a tasteful local scrim/backplate behind the CTA text.
 7. **Author/adjust the CTA overlay:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder, usually `premium CTA poster`, `dynamic poster typography`, `magazine-cover thumbnail`, or `minimal premium cover`. Use poster-grade title/body thickness, bright fill, thin controlled outline/shadow for the hero CTA, and no visible stroke on small support text.
 8. **Avoid small text clutter:** remove social icons, QR-like marks, tiny handles, tiny labels, or decorative objects unless they are large enough to read at 280x498 and directly support the action. If a handle/URL is needed, it must be large, simple, and not fight the caption.

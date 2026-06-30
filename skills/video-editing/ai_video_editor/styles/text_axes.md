@@ -5,7 +5,7 @@
 
 # Text style library — taxonomy → SVG recipe
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
 This is the **diversity vocabulary for TEXT** (titles, labels, values, quotes). The native Canvas typography renderer already mixes these axes across 142 curated presets — but when YOU author an overlay as SVG you must reproduce the look yourself. Below: every axis value with a **concrete SVG recipe**. Do not ship flat-only text.
 

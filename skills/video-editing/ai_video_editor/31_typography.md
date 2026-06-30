@@ -1,8 +1,8 @@
 # 31 · Typography — make text & title POP, and pick a diverse text look
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `ai_video_editor_guideline_v2_en.md`. **Load this when:** the overlay has TEXT (title/label/value/quote) — i.e. almost always. Decide prominence, weight, size, highlight, and the per-video text LOOK.
+> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** the overlay has TEXT (title/label/value/quote) — i.e. almost always. Decide prominence, weight, size, highlight, and the per-video text LOOK.
 > Cross-refs: look catalog + SVG recipes per look → `styles/text_axes.md`; core SVG rules → `30_overlay_core.md`.
 
 ---

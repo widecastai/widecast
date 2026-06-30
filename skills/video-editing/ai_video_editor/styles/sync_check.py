@@ -9,14 +9,33 @@ the text taxonomy (4 values); the two markdown SYNC lines are matched against
 whichever code list they equal."""
 import os, re, json, sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-def rd(p): return open(os.path.join(ROOT, p), encoding="utf-8").read()
+SKILL_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+def find_code_root():
+    required = [
+        "image_prompt_kit.py",
+        "typography_canvas.py",
+        os.path.join("gubo-remotion-player", "text_styles_lib", "manifest.json"),
+    ]
+    cur = SKILL_ROOT
+    while True:
+        if all(os.path.exists(os.path.join(cur, p)) for p in required):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return SKILL_ROOT
+        cur = parent
+
+CODE_ROOT = find_code_root()
+
+def rd_skill(p): return open(os.path.join(SKILL_ROOT, p), encoding="utf-8").read()
+def rd_code(p): return open(os.path.join(CODE_ROOT, p), encoding="utf-8").read()
 
 def names(var, src):
     m = re.search(var + r"\s*=\s*\[(.*?)\n\]", src, re.S)
     return re.findall(r'"name"\s*:\s*"([^"]+)"', m.group(1)) if m else []
 
-ipk = rd("image_prompt_kit.py"); tc = rd("typography_canvas.py")
+ipk = rd_code("image_prompt_kit.py"); tc = rd_code("typography_canvas.py")
 
 # canonical lists from code (keys = the SYNC keys used in the markdown)
 code = {
@@ -37,10 +56,10 @@ for k in ("depth", "fill", "typefaceKey", "casing"):
 structure_chart = names("STRUCTURE", ipk)          # 6 chart structures
 structure_text = typo.get("structure", [])         # 4 text structures
 code["TEXT_PRESETS_COUNT"] = len(json.load(open(
-    os.path.join(ROOT, "gubo-remotion-player/text_styles_lib/manifest.json"))))
+    os.path.join(CODE_ROOT, "gubo-remotion-player/text_styles_lib/manifest.json"))))
 
 # claimed lists from the two markdown mirrors
-md = rd("ai_video_editor/styles/text_axes.md") + "\n" + rd("ai_video_editor/styles/chart_axes.md")
+md = rd_skill("ai_video_editor/styles/text_axes.md") + "\n" + rd_skill("ai_video_editor/styles/chart_axes.md")
 sync = re.findall(r'SYNC(?:_PALETTES|_SET|_COUNT)?:\s*([A-Za-z_]+)\s*=\s*([^\n>]+?)\s*-->', md)
 claimed = {}
 struct_claims = []

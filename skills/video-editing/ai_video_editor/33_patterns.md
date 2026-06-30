@@ -1,8 +1,8 @@
 # 33 · Other patterns — map / table / timeline / checklist / quote / illustration / hybrid / real_entity / typography_only / narration_only
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `ai_video_editor_guideline_v2_en.md`. **Load this when:** the scene pattern is NOT a chart and NOT pure typography — i.e. one of the patterns listed above.
+> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** the scene pattern is NOT a chart and NOT pure typography — i.e. one of the patterns listed above.
 > Cross-refs: photo reuse (illustration/hybrid/real_entity) → §5.4 in `30_overlay_core.md`; chart half of hybrid → `32_charts.md`; text rules → `31_typography.md`.
 
 ---

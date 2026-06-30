@@ -5,7 +5,7 @@
 
 # Chart/graphic style library — taxonomy → SVG recipe
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
 The diversity vocabulary for **objects/shapes** in charts & diagrams (bars, donut arcs, nodes, pins, cards, icons). The native AI-image pipeline mixes 6 axes (~13,000 combos) — reproduce the chosen look in SVG. **Stop shipping flat-solid only.**
 

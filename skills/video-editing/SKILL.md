@@ -52,7 +52,7 @@ The **Module id** column is what you pass to `widecast_get_editing_skill(module=
 | About to take any action you might jump past | **`ai_video_editor/02_jump_prevention`** |
 | Start of every scene — print the DoD plan + gate templates | **`ai_video_editor/03_dod_gates`** |
 | Before declaring `Scene N: PASS` — scan §7 against the scene | **`ai_video_editor/05_quality_qa_priority`** |
-| Reading scene data · coordinates · the 13 `modify_scene` branches · A-roll layout scenarios · how to look (screenshot) | **`ai_video_editor/10_mechanics`** |
+| Reading scene data · coordinates · the 13 `modify_scene` branches · A-roll layout priority ladder · how to look (screenshot) | **`ai_video_editor/10_mechanics`** |
 | Deciding the background (grid vs real) · searching · evaluating · applying footage | **`ai_video_editor/20_background`** |
 | About to (re)build or apply ANY overlay (SVG model, rebuild threshold, `data-wc-*`, reuse-a-photo, verify) | **`ai_video_editor/30_overlay_core`** — FIRST for any overlay |
 | Overlay has TEXT (title/label/value/quote) | **`ai_video_editor/31_typography`** + **`ai_video_editor/styles/text_axes`** |

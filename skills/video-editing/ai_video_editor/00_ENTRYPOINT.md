@@ -7,7 +7,7 @@ Version: `modular-1.1`. Use this as the kickoff prompt for an editing run (manua
 ```text
 Run an AI video-editor pass on this WideCast video.
 
-1. `Read` ai_video_editor_guideline_v2_en.md (the MASTER INDEX) first — its LOAD MAP, CRITICAL RULES, JUMP-PREVENTION, the per-scene Definition of Done (§3), and SELF-AUDIT govern everything.
+1. `Read` SKILL.md (the MASTER INDEX) first — its LOAD MAP, CRITICAL RULES, JUMP-PREVENTION, the per-scene Definition of Done (§3), and SELF-AUDIT govern everything.
 2. Do NOT rely on memory. At each step `Read` the module the LOAD MAP names — every time, even if read earlier this session, and even on a resumed/continued run. Opening a module is a required ACTION.
 3. Pull `video_data` once; build the full script for context (§1–§2). Determine `faceless` and find the thumbnail. Initialize a **Background Audit Ledger** with one blank row per content scene; a blank row means the run is not complete.
 4. Work ONE scene at a time, scene 2 → last content scene, in one continuous pass. The thumbnail is synced immediately after scene 2 and is NOT revisited at the end.

@@ -1,8 +1,8 @@
 # 32 · Charts — single_metric / bar / proportion / trend / structural, diversified
 
-_Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_editor_guideline_v2_en.md`)._
+_Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `ai_video_editor_guideline_v2_en.md`. **Load this when:** the scene pattern is single_metric, bar_chart, proportion_chart, trend_chart, or structural_diagram.
+> **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** the scene pattern is single_metric, bar_chart, proportion_chart, trend_chart, or structural_diagram.
 > Cross-refs: style recipes (3D/glossy/metallic/pattern-fill/…) → `styles/chart_axes.md`; core SVG rules → `30_overlay_core.md`; general drawing rules also in `30_overlay_core.md`.
 
 ---

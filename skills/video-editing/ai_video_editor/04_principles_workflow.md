@@ -50,7 +50,7 @@ Example: in a video about insurance or estate planning, STT might write `Living 
 - Don't edit `text` just because the sentence sounds odd; you must rely on context.
 - Don't pick a beautiful visual that's wrong on content.
 - Don't make the overlay too small just to keep the narrator large; don't make the narrator so small the face becomes worthless.
-- For UI/document/chart/laptop/code, a large overlay may be right, but on **A-roll** it is still scenario #5 (last resort): after the local-shown BEFORE screenshot, declare `narrator_role`/`overlay_role`, reject scenarios 1–4 with reasons, and keep CTA/contact/trust/direct-address scenes narrator-primary unless a detail-dense overlay truly must dominate.
+- For UI/document/chart/laptop/code, a large overlay may be right, but on **A-roll** it is still priority 4 (last resort): after the local-shown BEFORE screenshot, declare `narrator_role`/`overlay_role`, run the full-canvas narrator gate first, reject priorities 1–3 with concrete reasons, and keep CTA/contact/trust/direct-address scenes narrator-primary unless a detail-dense overlay truly must dominate.
 - For A-roll, the narrator's face is a no-cover zone; DON'T edit `narrator_face`, adjust via `overlay.narrator.rect`.
 - For B-roll (`photo_with_people`/`photo_no_people`), the visual must directly serve the sentence being spoken.
 - Most scenes get a real background; grid is the capped exception (≤3/video). Don't force footage where the overlay fully carries the message — but don't default whole pattern-categories to grid either; decide by sight (`ai_video_editor/20_background`).
