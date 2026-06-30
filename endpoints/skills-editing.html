@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Get editing skill — `GET /v1/skills/editing` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, free, key-free.** Loads the WideCast **AI-video-editor** playbook (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done) — for refining/editing an EXISTING video.">
+  <meta name="description" content="**Synchronous, free, key-free.** Returns instructions for downloading the WideCast **AI-video-editor** playbook zip and reading its `SKILL.md` from local disk. The skill itself covers per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, and the 9-gate Definition of Done — for refining/editing an EXISTING video.">
   <link rel="canonical" href="https://widecast.ai/endpoints/skills-editing.html">
 
   <meta property="og:title" content="Get editing skill — `GET /v1/skills/editing` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, free, key-free.** Loads the WideCast **AI-video-editor** playbook (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done) — for refining/editing an EXISTING video.">
+  <meta property="og:description" content="**Synchronous, free, key-free.** Returns instructions for downloading the WideCast **AI-video-editor** playbook zip and reading its `SKILL.md` from local disk. The skill itself covers per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, and the 9-gate Definition of Done — for refining/editing an EXISTING video.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/skills-editing.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Get editing skill — `GET /v1/skills/editing` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, free, key-free.** Loads the WideCast **AI-video-editor** playbook (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done) — for refining/editing an EXISTING video.">
+  <meta name="twitter:description" content="**Synchronous, free, key-free.** Returns instructions for downloading the WideCast **AI-video-editor** playbook zip and reading its `SKILL.md` from local disk. The skill itself covers per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, and the 9-gate Definition of Done — for refining/editing an EXISTING video.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,31 +57,67 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="get-editing-skill-get-v1skillsediting">Get editing skill — <code>GET /v1/skills/editing</code></h1>
-<p><strong>Synchronous, free, key-free.</strong> Loads the WideCast <strong>AI-video-editor</strong> playbook (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done) — for refining/editing an EXISTING video.</p>
-<p>This is the <strong>lazy-load</strong> companion to <a href="skills-editing.md"><code>/v1/skills/writing</code></a>: the writing skill is one self-contained markdown per format, but the editing skill is too large to ship in one response, so it's split into a master <code>SKILL.md</code> + an auto-discovered tree of submodules. The agent loads one module at a time as it reaches the step that needs it.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/skills/editing</code></div><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="entry" id="ex-skills-editing--entry"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📚 Load the master SKILL.md + the live module index + the contract</h3><p class="wc-pg-example-desc">Returns SKILL.md content + an `available_modules[]` array auto-discovered from disk + an always-returned `contract` field (~1.5 KB cross-cutting rules that survive any runtime truncation). Start here so you know which submodules exist before loading any of them.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-critical-rules" id="ex-skills-editing--load-critical-rules"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">⭐ Kickoff core 1/5 — 14 critical rules + self-audit</h3><p class="wc-pg-example-desc">Load at run kickoff. The 14 numbered critical rules that hold across every scene (visual evidence gate, autonomous run, name-the-field, decide-by-sight, …) + the self-audit checklist run before every reply.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-jump-prevention" id="ex-skills-editing--load-jump-prevention"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">⛔ Kickoff core 2/5 — jump-prevention interrupts</h3><p class="wc-pg-example-desc">Load at run kickoff. "About to do X → STOP, do Y first" interrupt list to catch the agent before common skips.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-dod-gates" id="ex-skills-editing--load-dod-gates"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✅ Kickoff core 3/5 — DoD gates + all template blocks</h3><p class="wc-pg-example-desc">Load at run kickoff (or at scene start). 9-gate per-scene Definition of Done + every template block (Gate 4 module-load / title / secondary-text proofs, Gate 5 BACKGROUND PROOF, Gate 6 screenshot checks, Gate 9 MODULE COVERAGE GATE).</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-principles-workflow" id="ex-skills-editing--load-principles-workflow"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📖 Kickoff core 4/5 — principles + whole-video workflow + reminders</h3><p class="wc-pg-example-desc">Load at run kickoff. §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 long-form reminders.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-quality-qa-priority" id="ex-skills-editing--load-quality-qa-priority"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎯 Kickoff core 5/5 — quality standard + video-level QA + priority</h3><p class="wc-pg-example-desc">Load before declaring `Scene N: PASS` and after every scene. §7 Quality Standard, §8 video-level QA pass, §9 priority order for gate conflicts.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-mechanics" id="ex-skills-editing--load-mechanics"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">⚙️ Per-scene — mechanics (data + layout coords + branch table)</h3><p class="wc-pg-example-desc">Load at the start of every scene. Per-scene data fields, coordinate spaces, the 13 `modify_scene` branches, A-roll layout scenarios, screenshot mechanics.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-background" id="ex-skills-editing--load-background"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🖼 Per-scene — background audit</h3><p class="wc-pg-example-desc">Grid-vs-real decision + footage search + Gate 5 background-pass rules. Load at Gate 5.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-typography" id="ex-skills-editing--load-typography"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🅰 Per-scene — typography rules</h3><p class="wc-pg-example-desc">Title / label / value rules + readability gates. Load whenever the overlay has any text.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="load-style-lib" id="ex-skills-editing--load-style-lib"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎨 Per-scene — style recipe library</h3><p class="wc-pg-example-desc">Style recipes mirrored from the code (chart axes / text axes). Load alongside the matching pattern module.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<p><strong>Synchronous, free, key-free.</strong> Returns instructions for downloading the WideCast <strong>AI-video-editor</strong> playbook zip and reading its <code>SKILL.md</code> from local disk. The skill itself covers per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, and the 9-gate Definition of Done — for refining/editing an EXISTING video.</p>
+<p>This is DIFFERENT from <a href="skills-writing.md"><code>/v1/skills/writing</code></a> (which is for AUTHORING new scripts); this skill is for EDITING already-generated scenes.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/skills/editing</code></div><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="download-skill" id="ex-skills-editing--download-skill"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📦 Get the download instructions for the editing skill zip</h3><p class="wc-pg-example-desc">Returns the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs the commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
-<h2 id="lazy-load-contract-multi-module">Lazy-load contract — multi-module</h2>
-<p>Master <code>SKILL.md</code> is intentionally a small (~13 KB) INDEX so it never hits a per-tool-call output cap. Every detail (critical rules, jump-prevention triggers, DoD gates + templates, principles, workflow, quality bar) lives in separate modules. Call this endpoint <strong>many times per run</strong>:</p>
+<h2 id="delivery-mode-download-zip-experiment-2026-06-30">Delivery mode: download-zip (experiment, 2026-06-30)</h2>
+<p>The endpoint no longer returns skill content inline. Instead the response is a 4-step download instruction:</p>
 <ol>
-<li><strong>First call — <code>module</code> omitted.</strong> Returns <code>SKILL.md</code> + an <code>available_modules[]</code> array (auto-discovered from the filesystem on every request) + an always-returned <code>contract</code> field (~1.5 KB).</li>
-<li><strong>Run kickoff — ALWAYS load the 5 core modules</strong> in addition to <code>SKILL.md</code>:</li>
-<li><code>ai_video_editor/01_critical_rules</code> — 14 cross-scene rules + the self-audit checklist run before each reply.</li>
-<li><code>ai_video_editor/02_jump_prevention</code> — "about to do X → STOP, do Y first" interrupt list.</li>
-<li><code>ai_video_editor/03_dod_gates</code> — per-scene Definition of Done (9 gates) + every template block (Gate 4 module-load proof, Gate 4 title proof, Gate 4 secondary text proof, Gate 5 background proof, Gate 6 screenshot checks, Gate 9 module coverage).</li>
-<li><code>ai_video_editor/04_principles_workflow</code> — §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 reminders.</li>
-<li><code>ai_video_editor/05_quality_qa_priority</code> — §7 Quality Standard, §8 video-level QA, §9 priority order for gate conflicts.</li>
-<li><strong>Per-scene calls</strong> — at scene start load <code>ai_video_editor/10_mechanics</code>, then each gate's named module when you reach that gate. Reload modules at each step — do NOT work from memory.</li>
+<li><code>mkdir -p ./.widecast-skill-video-editing &amp;&amp; cd ./.widecast-skill-video-editing</code></li>
+<li><code>curl -fsSL &lt;result.download.zip_url&gt; -o video-editing.zip</code></li>
+<li>(optional) <code>shasum -a 256 video-editing.zip</code> matches <code>result.download.sha256</code></li>
+<li><code>unzip -o video-editing.zip</code></li>
 </ol>
-<h2 id="always-returned-contract-field">Always-returned <code>contract</code> field</h2>
-<p>Every response (entry, SKILL-as-module, submodule) carries a short (~1.5 KB) <code>contract</code> field listing the cross-cutting rules: selector = <code>voice_file</code>, autonomous end-to-end run, screenshot evidence, SVG overlay rules, 9-gate DoD, lazy-load contract. <strong>This field is ordered first in the response body so it survives any runtime truncation of <code>method</code></strong> — even if the agent host caps output at a low number of tokens, <code>contract</code> reaches the model intact.</p>
-<p>The agent should:
-- Read <code>contract</code> FIRST.
-- Compare <code>meta.contract_length</code> and <code>meta.method_length</code> to the actual received string lengths to detect truncation.
-- If <code>method</code> is truncated, recall the tool for the specific module needed; don't try to reconstruct the missing content from memory.</p>
-<h2 id="auto-expansion-zero-config">Auto-expansion (zero-config)</h2>
-<p>Drop a new <code>.md</code> file under the skill root (default <code>/mnt/html/lcw/skills/video-editing/</code>, override via env <code>WIDECAST_EDITING_SKILL_ROOT</code>) and it appears in <code>available_modules[]</code> on the next request — <strong>no code change, no manifest edit, no Flask restart</strong>. The server walks the tree with <code>os.walk</code> + filters to <code>.md</code>; hidden dirs and non-<code>.md</code> files are ignored. Per-module <code>title</code> (first H1) + <code>summary</code> (first paragraph) are auto-parsed.</p>
+<p>Then <code>Read('./.widecast-skill-video-editing/video-editing/SKILL.md')</code> (or <code>cat</code> via bash if your host's Read tool can't reach unzipped files) and follow its LOAD MAP — each step names a sub-module that you read from disk.</p>
+<p><strong>Why this mode</strong>: agent step-adherence (background audit, screenshot show-local, gate verdicts, module reload) is measurably better when the playbook is read from a local file than from a tool result. Local-file path forces full reading and re-reading at each step; tool-result path tends to be skimmed once. The skill content on disk is identical to the previous inline-content mode (master <code>SKILL.md</code> + 5 core modules + per-scene modules + style libs) — only the delivery mechanism changed.</p>
+<p><strong>Server config</strong>: flip back to inline-content with env <code>WIDECAST_EDITING_DELIVERY_MODE=inline_content</code> + Flask restart. Default is <code>download_zip</code>.</p>
+<hr />
+<h2 id="host-requirements">Host requirements</h2>
+<p>Your runtime MUST have:</p>
+<ul>
+<li>A local shell tool (<code>bash</code>/<code>run_command</code>/equivalent)</li>
+<li><code>curl</code> (or any HTTPS downloader)</li>
+<li><code>unzip</code></li>
+<li>A file-reading tool — <code>Read('&lt;path&gt;')</code> if your host supports it, <code>cat &lt;path&gt;</code> via bash if Read is restricted to project files, or your equivalent <code>view_file</code>/<code>view_image</code>.</li>
+</ul>
+<p>If your host has <strong>none of these</strong> (a pure JSON-only chat surface with no shell), you cannot follow the full skill in this mode. Fall back to the <code>contract</code> field (always returned, ~1.5 KB) for the cross-cutting rules and tell the user the editing skill needs a desktop+shell host (Claude Desktop, Codex CLI, local agent runtime).</p>
+<p><strong>Cross-FS note</strong>: on some hosts (Claude.ai web, certain cloud agents) the bash sandbox FS is separate from the file-tool FS — your <code>Read</code> tool may not see the unzipped files even though <code>ls</code> in bash does. In that case use <code>cat</code>/<code>head</code> via bash to read each file. Content identical, only the access tool differs.</p>
+<hr />
+<h2 id="request">Request</h2>
+<div class="highlight"><pre><span></span><code><span class="err">GET /v1/skills/editing</span>
+</code></pre></div>
+
+<p>No auth, no params. (The <code>module</code> param from previous inline-content mode is still accepted but ignored — every call returns the same download instruction.)</p>
+<h2 id="response-http-200">Response — HTTP 200</h2>
+<div class="highlight"><pre><span></span><code>{
+  &quot;object&quot;:        &quot;skill&quot;,
+  &quot;name&quot;:          &quot;video-editing&quot;,
+  &quot;delivery_mode&quot;: &quot;download_zip&quot;,
+  &quot;contract&quot;: &quot;&lt;~1.5 KB cross-cutting rules — selector=voice_file, autonomous run, screenshot evidence, SVG overlay rules, DoD gates, lazy-load contract. Read this FIRST; survives any truncation&gt;&quot;,
+  &quot;download&quot;: {
+    &quot;zip_url&quot;:     &quot;https://origin.widecast.ai/skills/video-editing.zip?v=1782800000&quot;,
+    &quot;sha256&quot;:      &quot;3dd0beb2…&quot;,
+    &quot;size_bytes&quot;:  102030,
+    &quot;filename&quot;:    &quot;video-editing.zip&quot;,
+    &quot;work_dir&quot;:    &quot;./.widecast-skill-video-editing&quot;,
+    &quot;entry_file&quot;:  &quot;./.widecast-skill-video-editing/video-editing/SKILL.md&quot;
+  },
+  &quot;instructions&quot;: &quot;MANDATORY 4-step setup… (full text — mkdir/curl/verify/unzip)&quot;,
+  &quot;next_action&quot;:  &quot;Run the 4 setup commands NOW, then Read(&#39;.../SKILL.md&#39;). Do not declare any scene PASS without having loaded the modules from disk first.&quot;,
+  &quot;meta&quot;: {
+    &quot;request_id&quot;:         &quot;req_…&quot;,
+    &quot;widecast_version&quot;:   &quot;X.Y.Z&quot;,
+    &quot;delivery_mode&quot;:      &quot;download_zip&quot;,
+    &quot;contract_length&quot;:    1811,
+    &quot;skill_root_local&quot;:   &quot;/mnt/html/lcw/skills/video-editing&quot;,
+    &quot;experiment_note&quot;:    &quot;Flip back with WIDECAST_EDITING_DELIVERY_MODE=inline_content.&quot;
+  }
+}
+</code></pre></div>
+
+<p><strong>Key invariants</strong></p>
 <table>
 <thead>
 <tr>
@@ -91,124 +127,48 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Module discovery</strong></td>
-<td><code>rglob *.md</code> under the skill root on every request, excluding <code>SKILL.md</code> itself.</td>
+<td>Auth on download URL</td>
+<td><strong>None</strong> — <code>origin.widecast.ai/skills/*.zip</code> is public; agent's <code>curl</code> works without headers.</td>
 </tr>
 <tr>
-<td><strong>Module IDs</strong></td>
-<td>Hierarchical filesystem path without <code>.md</code>. Segments must match <code>^[A-Za-z0-9_-]+$</code>. Example: <code>ai_video_editor/styles/text_axes</code>.</td>
+<td>Host</td>
+<td><code>origin.widecast.ai</code> — bypasses Cloudflare entirely. CF caches <code>.zip</code> by extension; routing through origin keeps the agent on the live build.</td>
 </tr>
 <tr>
-<td><strong>Path safety</strong></td>
-<td><code>os.path.realpath()</code> must remain under the resolved root. <code>../</code>, hidden dirs, symlink escape → 400 <code>invalid_module_id</code>.</td>
+<td>Cache-bust</td>
+<td><code>?v=&lt;mtime&gt;</code> per request. Every deploy → new mtime → new URL → guaranteed fresh content.</td>
 </tr>
 <tr>
-<td><strong>Per-module cache</strong></td>
-<td>mtime-based; deploy that rsyncs new content invalidates automatically. No Flask restart.</td>
+<td>TTL</td>
+<td>Permanent (until next deploy overwrites). Deploy refreshes mtime; cache invalidates.</td>
 </tr>
 <tr>
-<td><strong>CDN</strong></td>
-<td>The WideCast <code>/app/*</code> path bypasses Cloudflare entirely. There is no CDN layer to purge.</td>
-</tr>
-<tr>
-<td><strong>Response header</strong></td>
-<td><code>Cache-Control: no-store</code> — content is always live.</td>
-</tr>
-<tr>
-<td><strong>Size cap</strong></td>
-<td>512 KB per module file. Oversized files treated as missing.</td>
+<td>Sha256</td>
+<td>Computed server-side, mtime-cached. Verify with <code>shasum -a 256</code> (macOS) or <code>sha256sum</code> (Linux).</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="request-entry-module-omitted">Request — entry (module omitted)</h2>
-<div class="highlight"><pre><span></span><code><span class="err">GET /v1/skills/editing</span>
-</code></pre></div>
-
-<p>No auth required, no <code>format</code> param. (For the writing skill the format enum is required; for editing there's only one skill so it's implied.)</p>
-<h3 id="response-entry-shape">Response — entry shape</h3>
-<div class="highlight"><pre><span></span><code>{
-  &quot;object&quot;:         &quot;skill&quot;,
-  &quot;name&quot;:           &quot;video-editing&quot;,
-  &quot;module&quot;:         &quot;SKILL.md&quot;,
-  &quot;method_format&quot;:  &quot;markdown&quot;,
-  &quot;method&quot;:         &quot;&lt;full SKILL.md, YAML frontmatter stripped&gt;&quot;,
-  &quot;available_modules&quot;: [
-    {
-      &quot;id&quot;:         &quot;ai_video_editor/10_mechanics&quot;,
-      &quot;title&quot;:      &quot;Mechanics — placement, animation, z-order&quot;,
-      &quot;summary&quot;:    &quot;When and how to move overlay objects without breaking…&quot;,
-      &quot;size_bytes&quot;: 8420
-    },
-    {
-      &quot;id&quot;:         &quot;ai_video_editor/20_background&quot;,
-      &quot;title&quot;:      &quot;Background audit — grid vs real footage&quot;,
-      &quot;summary&quot;:    &quot;Decide grid-vs-real by sight from the START screenshot…&quot;,
-      &quot;size_bytes&quot;: 9180
-    },
-    {
-      &quot;id&quot;:         &quot;ai_video_editor/styles/text_axes&quot;,
-      &quot;title&quot;:      &quot;Text style axes&quot;,
-      &quot;summary&quot;:    &quot;Diverse text looks: gradient, glossy, 3D, metallic, bevel…&quot;,
-      &quot;size_bytes&quot;: 3140
-    }
-    /* …auto-discovered from disk; grows as new .md files are added… */
-  ],
-  &quot;next_action&quot;:   &quot;Read SKILL.md above first to understand the per-scene Definition of Done. When you reach a step that names a module (e.g. &#39;Read ai_video_editor/10_mechanics.md&#39;), call widecast_get_editing_skill(module=&#39;ai_video_editor/10_mechanics&#39;) to load that module&#39;s content.&quot;,
-  &quot;meta&quot;: {
-    &quot;request_id&quot;:         &quot;req_5f10e9cc0a384e979f8a00e8&quot;,
-    &quot;widecast_version&quot;:   &quot;X.Y.Z&quot;,
-    &quot;skill_root&quot;:         &quot;/mnt/html/lcw/skills/video-editing&quot;,
-    &quot;freshness&quot;:          &quot;no-store; per-module mtime cache; auto-discovered&quot;
-  }
-}
-</code></pre></div>
-
-<hr />
-<h2 id="request-submodule">Request — submodule</h2>
-<div class="highlight"><pre><span></span><code><span class="err">GET /v1/skills/editing?module=ai_video_editor/10_mechanics</span>
-</code></pre></div>
-
-<h3 id="response-submodule-shape">Response — submodule shape</h3>
-<div class="highlight"><pre><span></span><code>{
-  &quot;object&quot;:        &quot;skill&quot;,
-  &quot;name&quot;:          &quot;video-editing&quot;,
-  &quot;module&quot;:        &quot;ai_video_editor/10_mechanics.md&quot;,
-  &quot;module_id&quot;:     &quot;ai_video_editor/10_mechanics&quot;,
-  &quot;title&quot;:         &quot;Mechanics — placement, animation, z-order&quot;,
-  &quot;size_bytes&quot;:    8420,
-  &quot;method_format&quot;: &quot;markdown&quot;,
-  &quot;method&quot;:        &quot;&lt;file content, frontmatter stripped&gt;&quot;,
-  &quot;meta&quot;: {
-    &quot;request_id&quot;:       &quot;req_…&quot;,
-    &quot;widecast_version&quot;: &quot;X.Y.Z&quot;
-  }
-}
-</code></pre></div>
-
-<blockquote>
-<p>No <code>available_modules[]</code> on submodule responses — call the endpoint with <code>module</code> omitted to refresh the index.</p>
-</blockquote>
-<hr />
-<h2 id="field-reference">Field reference</h2>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Required</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>module</code></td>
-<td>string</td>
-<td>no</td>
-<td>Hierarchical module id without the <code>.md</code> extension, e.g. <code>ai_video_editor/10_mechanics</code> or <code>ai_video_editor/styles/text_axes</code>. Omit (or pass empty) to load the master <code>SKILL.md</code> + the live <code>available_modules[]</code> index.</td>
-</tr>
-</tbody>
-</table>
+<h2 id="addingediting-modules-maintainer-workflow">Adding/editing modules — maintainer workflow</h2>
+<p>Drop a new <code>.md</code> file anywhere under <code>widecast/skills/video-editing/</code> (root or <code>ai_video_editor/</code> or <code>ai_video_editor/styles/</code>) → run <code>bash deploy_widecast.sh</code>. The deploy script:</p>
+<ol>
+<li><strong>Step [0]</strong> runs <code>python3 widecast/docs/build.py</code>, which calls <code>_zip_skills()</code> — <code>rglob</code>s every <code>.md/.txt/.json/.yaml/.yml</code> under each skill folder and rebuilds <code>widecast/skills/video-editing.zip</code>.</li>
+<li><strong>Step [1c]</strong> rsync's the entire <code>skills/</code> tree (including the new zip) to <code>/mnt/html/lcw/skills/</code>.</li>
+<li><strong>Server side</strong>, on the NEXT request, <code>_wc_editing_zip_meta()</code> notices the new mtime → re-computes sha256 → response carries the new URL (<code>?v=&lt;new mtime&gt;</code>) + new sha256. <strong>No Flask restart needed for content updates.</strong></li>
+</ol>
+<p>Flask restart is only required when you change <code>dashboard2.py</code> itself (env var add, route logic change, helper rename) or when you flip the delivery-mode env var.</p>
+<h3 id="file-naming">File naming</h3>
+<ul>
+<li>Module files should be <code>.md</code></li>
+<li>Any file extension other than <code>.md/.txt/.json/.yaml/.yml</code> is excluded from the zip (so <code>sync_check.py</code>, <code>.DS_Store</code>, images, etc are silently skipped).</li>
+<li>Master entry must remain at <code>widecast/skills/video-editing/SKILL.md</code> — the zip's <code>unzip</code> step creates <code>video-editing/</code> then <code>SKILL.md</code> at root.</li>
+</ul>
+<h3 id="content-guidance">Content guidance</h3>
+<ul>
+<li>Write <code># H1</code> at top of each file — the agent can pick by browsing <code>ls</code> output + <code>head -5</code> to find the relevant module.</li>
+<li>The master <code>SKILL.md</code> should still maintain its LOAD MAP table so agents have a curated default chain.</li>
+<li>No required format beyond standard markdown — the server doesn't parse module metadata in download-zip mode (auto-discovery is local, agent does the discovery).</li>
+</ul>
 <hr />
 <h2 id="errors">Errors</h2>
 <table>
@@ -221,145 +181,48 @@
 </thead>
 <tbody>
 <tr>
-<td>400</td>
-<td><code>invalid_module_id</code></td>
-<td><code>module</code> contained traversal (<code>../</code>), a hidden segment (<code>.foo</code>), or characters outside <code>[A-Za-z0-9_-]</code>.</td>
-</tr>
-<tr>
-<td>404</td>
-<td><code>module_not_found</code></td>
-<td>No <code>.md</code> file at that path on disk. Recall with <code>module</code> omitted to refresh <code>available_modules[]</code> and pick from there.</td>
-</tr>
-<tr>
 <td>503</td>
-<td><code>skill_unavailable</code></td>
-<td>Root directory or <code>SKILL.md</code> not readable on disk (deploy out of sync, env var pointing somewhere wrong). The error message includes the resolved root path.</td>
+<td><code>skill_zip_unavailable</code></td>
+<td><code>video-editing.zip</code> not readable on disk. Server build/deploy out of sync — re-run <code>bash deploy_widecast.sh</code>.</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="client-snippets">Client snippets</h2>
-<h3 id="curl-load-entry-one-module">curl — load entry + one module</h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># 1) load entry (module omitted) — get SKILL.md + available_modules</span>
-curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;https://widecast.ai/app/dashboard/v1/skills/editing&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;{module, modules: (.available_modules | map(.id))}&#39;</span>
-
-<span class="c1"># 2) load a specific module</span>
-curl<span class="w"> </span>-sS<span class="w"> </span><span class="s2">&quot;https://widecast.ai/app/dashboard/v1/skills/editing?module=ai_video_editor/10_mechanics&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;{module, title, size_bytes}&#39;</span>
-</code></pre></div>
-
 <h3 id="mcp">MCP</h3>
-<p>The remote MCP wrapper and the local <code>@widecast/mcp-server</code> both expose this as <strong><code>widecast_get_editing_skill</code></strong>. The <code>module</code> arg maps 1:1.</p>
-<div class="highlight"><pre><span></span><code>{
-  &quot;name&quot;: &quot;widecast_get_editing_skill&quot;,
-  &quot;arguments&quot;: { &quot;module&quot;: &quot;ai_video_editor/10_mechanics&quot; }
-}
+<div class="highlight"><pre><span></span><code>{ &quot;name&quot;: &quot;widecast_get_editing_skill&quot;, &quot;arguments&quot;: {} }
 </code></pre></div>
 
-<p>Omit <code>arguments</code> (or pass <code>{"module": ""}</code>) to load the entry.</p>
+<p>The MCP wrapper passes through the JSON response unchanged. The agent runs the 4 setup commands then reads <code>SKILL.md</code> from disk.</p>
+<h3 id="curl-bash-any-host-with-shell">curl + bash (any host with shell)</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1) call the endpoint, capture response</span>
+<span class="nv">RESP</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>https://widecast.ai/app/dashboard/v1/skills/editing<span class="k">)</span>
+
+<span class="c1"># 2) extract download URL + sha256</span>
+<span class="nv">ZIP_URL</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESP</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.download.zip_url<span class="k">)</span>
+<span class="nv">SHA256</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESP</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span>.download.sha256<span class="k">)</span>
+
+<span class="c1"># 3) download + verify + unzip</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span>./.widecast-skill-video-editing<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>./.widecast-skill-video-editing
+curl<span class="w"> </span>-fsSL<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$ZIP_URL</span><span class="s2">&quot;</span><span class="w"> </span>-o<span class="w"> </span>video-editing.zip
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SHA256</span><span class="s2">  video-editing.zip&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>shasum<span class="w"> </span>-a<span class="w"> </span><span class="m">256</span><span class="w"> </span>-c
+
+unzip<span class="w"> </span>-o<span class="w"> </span>video-editing.zip
+
+<span class="c1"># 4) read SKILL.md</span>
+cat<span class="w"> </span>video-editing/SKILL.md
+</code></pre></div>
+
 <hr />
-<h2 id="adding-new-modules-what-the-maintainer-does">Adding new modules — what the maintainer does</h2>
-<ol>
-<li>Drop a <code>.md</code> file anywhere under <code>widecast/skills/video-editing/</code> (root or nested sub-dir, doesn't matter).</li>
-<li><strong>Write whatever you want inside.</strong> There is no required format — no required <code># H1</code>, no required summary line, no frontmatter. The server picks <code>title</code> and <code>summary</code> from whatever content the file has (see "Title &amp; summary auto-extraction" below).</li>
-<li>Optionally edit <code>SKILL.md</code> to mention the new module in its load map (so agents trying to follow the curated chain know to load it). Not strictly required — agents that scan <code>available_modules[]</code> will still find it.</li>
-<li>Run <code>bash deploy_widecast.sh</code> to rsync the file to the server. No code change, no restart.</li>
-</ol>
-<h3 id="title-summary-auto-extraction">Title &amp; summary auto-extraction</h3>
-<p>The server runs a tolerant Markdown-aware parser on each module file to populate <code>available_modules[]</code>. <strong>You do NOT have to format the file in any specific way.</strong></p>
-<p><strong>Title fallback chain</strong> (first match wins):
-1. First <code># H1</code> heading.
-2. First <code>## H2</code> heading.
-3. First non-empty content line, with leading markdown markers (<code># ## - * + 1. &gt; [ ]</code>) stripped.
-4. The filename basename (e.g. <code>40_thumbnail_cta</code>).</p>
-<p><strong>Summary</strong> = the first ~200 chars of meaningful content found AFTER the title line — paragraphs, bullets, sub-headings, blockquotes, even just a bold/italic phrase all qualify. Markdown decoration is stripped (inline code spans, links, emphasis); leading list/quote markers are removed. If there's no content after the title, summary stays empty — agents pick by title alone in that case.</p>
-<p>Examples — every shape produces something usable:</p>
-<table>
-<thead>
-<tr>
-<th>File content shape</th>
-<th>Resulting <code>title</code></th>
-<th>Resulting <code>summary</code></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code># Mechanics</code><br><code>When and how to move overlay objects without breaking the spec.</code></td>
-<td><code>Mechanics</code></td>
-<td><code>When and how to move overlay objects without breaking the spec.</code></td>
-</tr>
-<tr>
-<td><code>## Background audit</code><br><code>Grid vs real.</code></td>
-<td><code>Background audit</code></td>
-<td><code>Grid vs real.</code></td>
-</tr>
-<tr>
-<td><code>- thumbnail rules</code><br><code>- final CTA rules</code></td>
-<td><code>thumbnail rules</code></td>
-<td><code>final CTA rules</code></td>
-</tr>
-<tr>
-<td><code>&gt; Note: this module covers chart axes.</code></td>
-<td><code>Note: this module covers chart axes.</code></td>
-<td><em>(empty)</em></td>
-</tr>
-<tr>
-<td><code>**Quick fact:** _typography rules live here._</code><br><code>Load before any text overlay.</code></td>
-<td><code>Quick fact: typography rules live here.</code></td>
-<td><code>Load before any text overlay.</code></td>
-</tr>
-<tr>
-<td><em>(empty file)</em></td>
-<td>filename basename</td>
-<td><em>(empty)</em></td>
-</tr>
-</tbody>
-</table>
-<p>Module ID = relative path from the skill root, with <code>.md</code> stripped. E.g.:</p>
-<table>
-<thead>
-<tr>
-<th>File on disk</th>
-<th>Module id</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>widecast/skills/video-editing/ai_video_editor/10_mechanics.md</code></td>
-<td><code>ai_video_editor/10_mechanics</code></td>
-</tr>
-<tr>
-<td><code>widecast/skills/video-editing/ai_video_editor/styles/text_axes.md</code></td>
-<td><code>ai_video_editor/styles/text_axes</code></td>
-</tr>
-<tr>
-<td><code>widecast/skills/video-editing/60_audio.md</code> <em>(new — drops in at root)</em></td>
-<td><code>60_audio</code></td>
-</tr>
-</tbody>
-</table>
-<p>Non-<code>.md</code> files (<code>sync_check.py</code>, <code>.DS_Store</code>, images) are ignored automatically.</p>
-<hr />
-<h2 id="when-to-use-which-skill-endpoint">When to use which skill endpoint</h2>
-<table>
-<thead>
-<tr>
-<th>Goal</th>
-<th>Endpoint</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Write a new video script / blog post / social caption</td>
-<td><strong><a href="skills-editing.md"><code>/v1/skills/writing</code></a></strong> (<code>format=video|blog|social</code>)</td>
-</tr>
-<tr>
-<td>Edit / refine / audit an existing video's scenes</td>
-<td><strong><code>/v1/skills/editing</code></strong> (this endpoint)</td>
-</tr>
-</tbody>
-</table>
+<h2 id="reverting-to-inline-content-mode">Reverting to inline-content mode</h2>
+<p>If the download-zip experiment doesn't deliver the expected step-adherence improvement, flip back instantly:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># On the server:</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">WIDECAST_EDITING_DELIVERY_MODE</span><span class="o">=</span>inline_content
+<span class="c1"># Then restart Flask (e.g. systemd / pm2 / docker exec):</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>wc-dashboard<span class="w">  </span><span class="c1"># or whatever runs dashboard2.py</span>
+</code></pre></div>
+
+<p>The previous code path (multi-module inline content with <code>available_modules[]</code> index + per-module <code>?module=&lt;id&gt;</code> lazy-load) is retained as the fallback — flipping the env unbreaks it instantly without re-deploying.</p>
     </article>
   </main>
 

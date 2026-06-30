@@ -8,10 +8,49 @@ info:
     into AI-generated short-form videos: scenes + voice + B-roll, ready for
     review in the scene editor.
 
-    **Authentication**: every request needs an API key, passed as
+    ## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)
+
+    Two skills define the FULL scope of WideCast workflows. **Load the relevant
+    one BEFORE any other endpoint call** — they are key-free, idempotent, and
+    cheap (~1 call). Skipping them is the single most common cause of
+    weak/incomplete output.
+
+    1. **Edit/audit an EXISTING video.** When the user gives a WideCast
+       scene-editor URL (`record2.html#scene_editor?topic_id=…` on
+       widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /
+       current id) AND signals an editing intent ("edit this video", "refine
+       the scenes", "fix scene N", "review/audit the video", "improve
+       overlay", "fix thumbnail", "audit backgrounds", "redo scene",
+       "biên tập video", "chỉnh sửa cảnh", "sửa scene", "编辑视频",
+       "剪辑", "シーン編集", "ビデオ編集") — **call `GET /v1/skills/editing`
+       FIRST before any other endpoint**, including before `/v1/video_data`.
+       Do NOT ask the user what to edit — the skill defines scope = full
+       audit + fix. After the response arrives, follow its instructions
+       (currently a 4-step download + Read flow that loads SKILL.md from
+       disk).
+
+    2. **Author a NEW video / blog / social caption.** When the user wants
+       a new piece ("make a video", "write a script", "turn this into a
+       video", "write a blog", "viết bài", "做视频", etc.) — call
+       `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.
+       The skill returns a 5-step method + the full method markdown.
+
+    3. Every response from `/v1/video_data`, `/v1/scene_geometry`,
+       `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`
+       field as a backup signal — if you see it, you have not loaded the
+       skill yet and should do so before continuing.
+
+    4. When in doubt about intent, prefer loading the skill (cheap) over
+       asking the user (slow + breaks autonomous-run contract).
+
+    ## Authentication
+
+    Every request needs an API key, passed as
     `Authorization: Bearer wc_live_*`. Generate keys in the dashboard
     (Setup Center → API Keys). Each call to `/v1/create_video` consumes
     credits from your account; usage (calls + credits) is tracked per key.
+    **Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`
+    are key-free.
 
     ## Two input flows (`source`) × two completion gates (`output_type`)
 
@@ -2149,17 +2188,60 @@ paths:
           Threads / Facebook / TikTok). Triggers: 'write a tweet',
           'LinkedIn post', 'IG caption', 'viết caption'.
 
-        The three formats share research + inline-media discipline but
-        their output shape differs (spoken script vs SEO prose vs
-        platform-native caption), so each format returns its own ordered
-        5-step `must_apply_now` checklist plus the full `SKILL.md` as
-        markdown (`method`).
+        ## ⚠ Download-zip delivery mode (experiment, 2026-06-30)
 
-        Lets a model that connects via MCP / GPT Action receive the method
-        without the user having to upload a Skill / Knowledge file into
-        the host (Claude / ChatGPT / Gemini Gem / etc.). Call once per
-        conversation, before drafting content or calling `createVideo` /
-        `createContent`.
+        The endpoint does **not** return skill content inline. Instead
+        the response is a 4-step download instruction (per format):
+
+        1. `mkdir -p ./.widecast-skill-<format-folder> && cd ./.widecast-skill-<format-folder>`
+           (folder name follows `result.download.work_dir`)
+        2. `curl -fsSL <result.download.zip_url> -o <filename>.zip`
+        3. (optional) `shasum -a 256 <filename>.zip` matches
+           `result.download.sha256`
+        4. `unzip -o <filename>.zip`
+
+        Then `Read('<work_dir>/<format-folder>/SKILL.md')` and follow
+        its LOAD MAP. For `format='video'`, sub-modules are `method` /
+        `formats` / `hooks` / `ctas` / `research_visuals` / `handoff`.
+        For `format='blog'` and `format='social'`, the skill is a single
+        SKILL.md today.
+
+        Per-format zips (hosted at `origin.widecast.ai`, CF-bypassed):
+        * `video-script-writing.zip` (~30 KB)
+        * `blog-writing.zip` (~5 KB)
+        * `social-post-writing.zip` (~3 KB)
+
+        **Why this mode**: agent step-adherence (research-first,
+        fictional-frame factual-core, image vetting, hand-off order) is
+        measurably better when content is read from a local file than
+        from a tool result. The skill content on disk is identical to
+        previous inline-content mode — only the delivery mechanism
+        changed.
+
+        ## Always-returned `contract` field
+
+        Every response carries a short (~1.4 KB) `contract` field with
+        the cross-cutting rules. Read it FIRST as the safety net for
+        cross-cutting rules.
+
+        ## Host requirements
+
+        Local shell + `curl` + `unzip` + a file-reading tool. On hosts
+        where bash sandbox FS is separate from the file-tool FS, use
+        `cat` via bash.
+
+        ## Maintainer workflow
+
+        Drop `.md` under `widecast/skills/<format>-writing/` (or in the
+        format root for blog/social), then `bash deploy_widecast.sh`.
+        No Flask restart needed for content-only changes; server mtime-
+        caches the zip.
+
+        ## Reverting to inline-content mode
+
+        Set env `WIDECAST_WRITING_DELIVERY_MODE=inline_content` +
+        restart Flask. Inline path with `available_modules[]` +
+        per-module `?module=<id>` lazy-load is retained as fallback.
       parameters:
         - name: format
           in: query
@@ -2254,109 +2336,106 @@ paths:
         DIFFERENT from `getWritingSkill`, which is for AUTHORING new
         scripts; this skill is for EDITING already-generated scenes.
 
-        ## Lazy-load contract — multi-module
+        ## ⚠ Download-zip delivery mode (experiment, 2026-06-30)
 
-        The skill is too large to ship in one response, and master
-        `SKILL.md` is intentionally a small (~13 KB) INDEX so it never
-        hits a per-tool-call output cap. Every detail (critical rules,
-        jump-prevention triggers, DoD gates + templates, principles,
-        workflow, quality bar) lives in separate modules.
+        The endpoint does **not** return skill content inline. Instead
+        the response is a 4-step download instruction:
 
-        1. **First call** — omit `module`. Returns the master
-           `SKILL.md` + an `available_modules[]` array (auto-discovered
-           from the filesystem on every request) + an always-returned
-           `contract` field (~1.5 KB).
-        2. **Run kickoff — ALWAYS load the 5 core modules**:
-           `ai_video_editor/01_critical_rules`,
-           `ai_video_editor/02_jump_prevention`,
-           `ai_video_editor/03_dod_gates`,
-           `ai_video_editor/04_principles_workflow`,
-           `ai_video_editor/05_quality_qa_priority`.
-        3. **Per scene** — load `ai_video_editor/10_mechanics` at scene
-           start, then load each gate's named module when you reach
-           that gate: `30_overlay_core` + `31_typography` (when overlay
-           has text) + `31`/`32`/`33` by pattern + `styles/*` for Gate
-           4 overlay; `20_background` for Gate 5 background audit;
-           `40_thumbnail_cta` for scene 2 / thumbnail sync / final
-           CTA.
+        1. `mkdir -p ./.widecast-skill-video-editing && cd ./.widecast-skill-video-editing`
+        2. `curl -fsSL <result.download.zip_url> -o video-editing.zip`
+        3. (optional) `shasum -a 256 video-editing.zip` matches
+           `result.download.sha256`
+        4. `unzip -o video-editing.zip`
+
+        Then `Read('./.widecast-skill-video-editing/video-editing/SKILL.md')`
+        and follow its LOAD MAP. The skill content on disk is
+        identical to the previous inline-content mode (master
+        `SKILL.md` ~14 KB INDEX + 5 core modules
+        `01_critical_rules` / `02_jump_prevention` / `03_dod_gates` /
+        `04_principles_workflow` / `05_quality_qa_priority` +
+        per-scene modules + style libs).
+
+        **Why this mode**: agent step-adherence (background audit,
+        screenshot show-local, gate verdicts, module reload) is
+        measurably better when the playbook is read from a local file
+        than from a tool result. Local-file path forces full reading
+        + re-reading at each step; tool-result path tends to be
+        skimmed once.
 
         ## Always-returned `contract` field
 
         Every response carries a short (~1.5 KB) `contract` field with
-        the cross-cutting rules: selector = `voice_file`, autonomous
+        the cross-cutting rules — selector = `voice_file`, autonomous
         end-to-end run, screenshot evidence, SVG overlay rules, 9-gate
-        DoD, lazy-load contract. **This field is ordered first and
-        intentionally small so it survives any runtime truncation of
-        `method`**. The agent reads `contract` first, then loads the
-        modules it needs. `meta.contract_length` and `meta.method_length`
-        let the agent detect truncation by comparing received string
-        lengths.
+        DoD, lazy-load contract. **Read `contract` first as the safety
+        net**, then run the download + read SKILL.md from disk.
 
-        ## Auto-expansion — zero formatting required
+        ## Host requirements
 
-        Drop a new `.md` file under the skill root
-        (`/mnt/html/lcw/skills/video-editing/`, override via env
-        `WIDECAST_EDITING_SKILL_ROOT`) and it appears in
-        `available_modules[]` on the next request — no code change, no
-        manifest edit. The server uses `os.walk` with `rglob`-style
-        traversal; hidden dirs and non-`.md` files are ignored.
+        Your runtime MUST have a local shell + `curl` + `unzip` + a
+        file-reading tool (`Read('<path>')` if your host reads
+        arbitrary files; `cat <path>` via bash if `Read` is restricted
+        to project files). On hosts where the bash sandbox FS is
+        separate from the file-tool FS, use `cat` via bash — content
+        identical, only the access tool differs.
 
-        **Per-module `title` and `summary` are auto-derived from the
-        file's content** with a tolerant fallback chain — the
-        maintainer does NOT have to write a specific H1, summary line,
-        or frontmatter:
+        ## Maintainer workflow
 
-        - **Title** = first `# H1` → else first `## H2` → else first
-          non-empty content line (markdown markers `# ## - * + 1. >
-          [ ]` stripped) → else filename basename.
-        - **Summary** = first ~200 chars of meaningful text AFTER the
-          title (paragraphs, bullets, sub-headings, blockquotes, even
-          a single bold/italic phrase all qualify; markdown decoration
-          is stripped).
+        - Drop a new `.md` file under `widecast/skills/video-editing/`
+          (root or `ai_video_editor/` or `ai_video_editor/styles/`).
+        - Run `bash deploy_widecast.sh` — the build script
+          auto-rebuilds `video-editing.zip` via `_zip_skills()`.
+        - **No Flask restart needed for content-only updates** — the
+          server's `_wc_editing_zip_meta()` mtime-caches the zip; new
+          mtime → new sha256 → new `?v=<mtime>` URL. Agent's next call
+          downloads the fresh zip automatically.
+        - Restart Flask only when `dashboard2.py` itself changes (env
+          var, route logic, helper rename) or when the delivery-mode
+          env flag flips.
 
-        If the file has only bullets, only a quote, only one line, or
-        even nothing at all, the loader still extracts something
-        usable (worst case: title = filename basename, summary empty).
+        ## Reverting to inline-content mode
 
-        ## Module IDs
+        Set env `WIDECAST_EDITING_DELIVERY_MODE=inline_content` +
+        restart Flask. The previous multi-module inline-content code
+        path (with `available_modules[]` + per-module `?module=<id>`
+        lazy-load) is retained as fallback.
+
+        ## Module IDs (inline-content mode only)
 
         Hierarchical filesystem path WITHOUT the `.md` extension. Each
         path segment must match `^[A-Za-z0-9_-]+$`. Examples:
         `ai_video_editor/10_mechanics`,
         `ai_video_editor/styles/text_axes`. `../` and hidden segments
-        are rejected with 400 `invalid_module_id`.
+        are rejected with 400 `invalid_module_id`. **In download_zip
+        mode (the default), the `module` query param is parsed but
+        ignored** — every call returns the same download instruction.
 
         ## Freshness
 
-        - Server caches per module by file mtime — a deploy that rsyncs
-          new content invalidates the cache automatically; no Flask
-          restart needed.
+        - Download URL is cache-busted with `?v=<mtime>` per request;
+          new deploy → new mtime → new URL → fresh content.
         - Response carries `Cache-Control: no-store`.
-        - The WideCast `/app/*` API path bypasses Cloudflare entirely,
+        - Zip hosted at `origin.widecast.ai` (Cloudflare-bypassed),
           so there is no CDN layer to worry about.
-        - If a module call returns 404 `module_not_found`, recall with
-          `module` omitted to refresh `available_modules[]`.
-
-        Per-module size is capped at 512 KB; oversized files are
-        treated as missing.
       parameters:
         - name: module
           in: query
           required: false
           schema: { type: string }
           description: |
-            Hierarchical module id without the `.md` extension, e.g.
-            `ai_video_editor/10_mechanics` or
-            `ai_video_editor/styles/text_axes`. Omit to load the master
-            `SKILL.md` + the live `available_modules[]` index.
+            (inline-content mode only) Hierarchical module id without
+            the `.md` extension, e.g. `ai_video_editor/10_mechanics`.
+            **In download_zip mode (the default), this param is parsed
+            but ignored** — every call returns the same download
+            instruction.
       responses:
         '200':
           description: |
-            Skill content. The entry response (no `module`) carries the
-            master `SKILL.md` content + the live `available_modules[]`
-            index; a module response carries only that submodule's
-            content. Both shapes share `object`, `name`, `module`,
-            `method_format`, `method`, `meta`.
+            Skill content. In download_zip mode (default), the response
+            carries a `download` block + `instructions` + always-on
+            `contract`. In inline-content mode (fallback), it carries
+            the master `SKILL.md` + `available_modules[]` index +
+            `contract`.
           headers:
             Cache-Control:
               schema: { type: string, example: "no-store" }
@@ -3074,6 +3153,10 @@ components:
         across the three edit families (media / upload_overlay /
         group_rect); fields not relevant to the family are omitted.
       properties:
+        skill_required:
+          $ref: '#/components/schemas/SkillRequiredHint'
+          description: |
+            Backup signal — see SkillRequiredHint. Tells the agent to load the editing skill BEFORE continuing.
         object: { type: string, const: scene_modified }
         id: { type: string, description: "topic_id (same as the request)." }
         topic_id: { type: string }
@@ -3324,6 +3407,10 @@ components:
         are only present when the request included
         `include_diagnostics: true`.
       properties:
+        skill_required:
+          $ref: '#/components/schemas/SkillRequiredHint'
+          description: |
+            Backup signal — see SkillRequiredHint. Tells the agent to load the editing skill BEFORE continuing.
         object: { type: string, const: scene_geometry }
         id: { type: string, description: topic_id (echoed). }
         topic_id: { type: string }
@@ -4068,10 +4155,41 @@ components:
           type: array
           items: { type: string }
 
+    SkillRequiredHint:
+      type: object
+      description: |
+        Backup signal stamped on every successful JSON response from the 4
+        edit-flow endpoints (`/v1/video_data`, `/v1/scene_geometry`,
+        `/v1/scene_inspector`, `/v1/modify_scene`). Tells the agent: "you
+        reached this endpoint without first loading the editing skill — do
+        so now." Skip it only if you have ALREADY loaded
+        `GET /v1/skills/editing` earlier in the session. Idempotent;
+        emitting on every call is cheap, and the agent learns once.
+      properties:
+        name:
+          type: string
+          example: video-editing
+        load_via_tool:
+          type: string
+          description: "MCP tool name to call (when running via MCP)."
+          example: widecast_get_editing_skill
+        load_via_rest:
+          type: string
+          description: "REST endpoint to call (when running via HTTP/SDK)."
+          example: "GET /v1/skills/editing"
+        reason:
+          type: string
+        user_intent_hint:
+          type: string
+
     VideoDataResponse:
       type: object
       required: [object, id, topic_id, aspect_ratio, total_segments, segments, review_url, request_id]
       properties:
+        skill_required:
+          $ref: '#/components/schemas/SkillRequiredHint'
+          description: |
+            Backup signal — see SkillRequiredHint. Tells the agent to load the editing skill BEFORE continuing.
         object: { type: string, const: video_data }
         id: { type: string }
         topic_id: { type: string }
@@ -4152,6 +4270,10 @@ components:
         Outcome of a live inspector call. `status` discriminates the
         downstream branches an agent should take.
       properties:
+        skill_required:
+          $ref: '#/components/schemas/SkillRequiredHint'
+          description: |
+            Backup signal — see SkillRequiredHint. Tells the agent to load the editing skill BEFORE continuing.
         object: { type: string, const: scene_inspector_result }
         status:
           type: string

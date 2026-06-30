@@ -1,87 +1,47 @@
-# Playground manifest — GET /v1/skills/editing (key-free, lazy-load).
+# Playground manifest — GET /v1/skills/editing (key-free, download-zip mode).
 
 endpoint:
   method: GET
   path: /v1/skills/editing
 
-title: Get the AI-video-editor skill (lazy-load + auto-expand)
+title: Get the AI-video-editor skill (download-zip + Read local)
 description: |
   Load the WideCast AI-VIDEO-EDITOR playbook for refining/editing an
   EXISTING video. Different from /v1/skills/writing — that one is for
   AUTHORING new scripts; this one is for EDITING already-generated
   scenes.
 
-  **Lazy-load**: call once without `module` → get the master SKILL.md
-  + an auto-discovered `available_modules[]` list. Then call again
-  with `module=<id>` to load a submodule.
+  **Delivery mode**: download_zip (experiment, 2026-06-30). The
+  response is a 4-step instruction: mkdir + curl + verify + unzip,
+  then Read `./.widecast-skill-video-editing/video-editing/SKILL.md`
+  from local disk and follow its LOAD MAP. The skill content is
+  identical to previous inline-content mode (master INDEX + 5 core
+  modules + per-scene modules + style libs).
 
-  **Auto-expand**: dropping a new `.md` under the skill folder makes
-  it instantly callable here — no code change, no manifest edit. The
-  `available_modules[]` index is rebuilt from filesystem on every
-  request.
+  **Always-returned `contract` field** (~1.5 KB cross-cutting rules)
+  survives even if the agent cannot complete the download — it is
+  the safety net.
 
-  **Freshness**: server caches per-module by mtime, response carries
-  `Cache-Control: no-store`, and the WideCast `/app/*` path bypasses
-  Cloudflare entirely. Always live.
+  **Host requirements**: local shell + curl + unzip + a file-reading
+  tool (`Read`/`cat`/view_file). If your host has none of these, you
+  cannot follow the full skill in this mode.
 
-fields:
-  - name: module
-    type: text
-    label: "module (optional — leave blank for the entry SKILL.md + index)"
-    required: false
-    placeholder: "ai_video_editor/10_mechanics"
-    help: "Hierarchical module id without the `.md` extension, e.g. ai_video_editor/10_mechanics or ai_video_editor/styles/text_axes. Omit to load the master SKILL.md + the live available_modules list."
+  **Adding/editing modules**: drop `.md` files under
+  `widecast/skills/video-editing/` → `bash deploy_widecast.sh` (no
+  Flask restart needed for content updates). Server picks up new
+  zip mtime automatically on next request.
+
+  **Reverting**: server env `WIDECAST_EDITING_DELIVERY_MODE=inline_content`
+  + Flask restart → falls back to multi-module inline-content mode
+  (with `available_modules[]` + per-module `?module=<id>` lazy-load).
+
+fields: []
 
 poll_after_create:
   enabled: false
 
 use_cases:
-  - id: entry
-    title: "📚 Load the master SKILL.md + the live module index + the contract"
-    description: "Returns SKILL.md content + an `available_modules[]` array auto-discovered from disk + an always-returned `contract` field (~1.5 KB cross-cutting rules that survive any runtime truncation). Start here so you know which submodules exist before loading any of them."
+  - id: download-skill
+    title: "📦 Get the download instructions for the editing skill zip"
+    description: "Returns the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs the commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP."
     request: {}
-  - id: load-critical-rules
-    title: "⭐ Kickoff core 1/5 — 14 critical rules + self-audit"
-    description: "Load at run kickoff. The 14 numbered critical rules that hold across every scene (visual evidence gate, autonomous run, name-the-field, decide-by-sight, …) + the self-audit checklist run before every reply."
-    request:
-      module: "ai_video_editor/01_critical_rules"
-  - id: load-jump-prevention
-    title: "⛔ Kickoff core 2/5 — jump-prevention interrupts"
-    description: "Load at run kickoff. \"About to do X → STOP, do Y first\" interrupt list to catch the agent before common skips."
-    request:
-      module: "ai_video_editor/02_jump_prevention"
-  - id: load-dod-gates
-    title: "✅ Kickoff core 3/5 — DoD gates + all template blocks"
-    description: "Load at run kickoff (or at scene start). 9-gate per-scene Definition of Done + every template block (Gate 4 module-load / title / secondary-text proofs, Gate 5 BACKGROUND PROOF, Gate 6 screenshot checks, Gate 9 MODULE COVERAGE GATE)."
-    request:
-      module: "ai_video_editor/03_dod_gates"
-  - id: load-principles-workflow
-    title: "📖 Kickoff core 4/5 — principles + whole-video workflow + reminders"
-    description: "Load at run kickoff. §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 long-form reminders."
-    request:
-      module: "ai_video_editor/04_principles_workflow"
-  - id: load-quality-qa-priority
-    title: "🎯 Kickoff core 5/5 — quality standard + video-level QA + priority"
-    description: "Load before declaring `Scene N: PASS` and after every scene. §7 Quality Standard, §8 video-level QA pass, §9 priority order for gate conflicts."
-    request:
-      module: "ai_video_editor/05_quality_qa_priority"
-  - id: load-mechanics
-    title: "⚙️ Per-scene — mechanics (data + layout coords + branch table)"
-    description: "Load at the start of every scene. Per-scene data fields, coordinate spaces, the 13 `modify_scene` branches, A-roll layout scenarios, screenshot mechanics."
-    request:
-      module: "ai_video_editor/10_mechanics"
-  - id: load-background
-    title: "🖼 Per-scene — background audit"
-    description: "Grid-vs-real decision + footage search + Gate 5 background-pass rules. Load at Gate 5."
-    request:
-      module: "ai_video_editor/20_background"
-  - id: load-typography
-    title: "🅰 Per-scene — typography rules"
-    description: "Title / label / value rules + readability gates. Load whenever the overlay has any text."
-    request:
-      module: "ai_video_editor/31_typography"
-  - id: load-style-lib
-    title: "🎨 Per-scene — style recipe library"
-    description: "Style recipes mirrored from the code (chart axes / text axes). Load alongside the matching pattern module."
-    request:
-      module: "ai_video_editor/styles/text_axes"
