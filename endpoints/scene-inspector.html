@@ -106,9 +106,7 @@
       &quot;bytes&quot;:       20498,
       &quot;expires_at&quot;:  &quot;2026-06-29T13:30:00Z&quot;,
       &quot;ttl_seconds&quot;: 900
-    },
-    &quot;warnings&quot;:    [],
-    &quot;layers_used&quot;: [&quot;background&quot;, &quot;remotion_poster&quot;, &quot;narrator&quot;, &quot;caption&quot;]
+    }
   }
 }
 </code></pre></div>
@@ -152,7 +150,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Compositor never throws.</strong> Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to <code>result.warnings[]</code> and the response still publishes a URL. If even the JPEG encode fails, the server publishes a <strong>placeholder JPEG</strong> (dark slate, the scene's <code>scene_id</code> + <code>voice_file</code> + the first warning drawn on it). Lookup failures return JSON error envelopes:</p>
+<p><strong>Lookup / publish failures return JSON error envelopes:</strong></p>
 <table>
 <thead>
 <tr>
@@ -184,83 +182,12 @@
 </tr>
 <tr>
 <td>500</td>
-<td><code>server_fallback_failed</code></td>
-<td>Lookup-level Exception not in the above categories (rare).</td>
-</tr>
-<tr>
-<td>500</td>
 <td><code>screenshot_publish_failed</code></td>
 <td>Compositor produced bytes but the disk write / rename failed.</td>
 </tr>
 </tbody>
 </table>
-<p>The compositor warning codes that surface in <code>result.warnings[]</code>:</p>
-<table>
-<thead>
-<tr>
-<th>Warning</th>
-<th>Layer</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>background_layer_failed:&lt;ExcName&gt;</code></td>
-<td>background</td>
-<td>Couldn't load any thumbnail — using dark slate placeholder.</td>
-</tr>
-<tr>
-<td><code>background_missing</code> / <code>background_load_failed:&lt;ExcName&gt;</code> / <code>background_too_large</code></td>
-<td>background</td>
-<td>Per-step diagnostics from <code>_wc_inspector_load_image</code>.</td>
-</tr>
-<tr>
-<td><code>remotion_spec_local_file_missing</code></td>
-<td>poster</td>
-<td><code>{voice_file}_spec.json</code> not on disk; can't build poster.</td>
-</tr>
-<tr>
-<td><code>remotion_poster_generated_on_demand</code></td>
-<td>poster</td>
-<td>Built poster lazily during this call.</td>
-</tr>
-<tr>
-<td><code>remotion_poster_generate_failed:&lt;reasons&gt;</code></td>
-<td>poster</td>
-<td><code>finalize_remotion_spec_assets</code> failed.</td>
-</tr>
-<tr>
-<td><code>poster_layer_failed:&lt;ExcName&gt;</code> / <code>poster_composite_failed:&lt;ExcName&gt;</code></td>
-<td>poster</td>
-<td>Load or alpha-composite threw.</td>
-</tr>
-<tr>
-<td><code>narrator_order_failed:&lt;ExcName&gt;</code></td>
-<td>narrator</td>
-<td><code>_wc_inspector_is_narrator_on_top</code> threw — defaulted to top.</td>
-</tr>
-<tr>
-<td><code>narrator_layer_failed:&lt;ExcName&gt;</code> / <code>narrator_image_missing_placeholder</code></td>
-<td>narrator</td>
-<td>Draw threw, or narrator URL unreachable → text placeholder.</td>
-</tr>
-<tr>
-<td><code>caption_layer_failed:&lt;ExcName&gt;</code></td>
-<td>caption</td>
-<td>Caption draw threw.</td>
-</tr>
-<tr>
-<td><code>jpeg_save_failed:&lt;ExcName&gt;</code></td>
-<td>output</td>
-<td>PIL save threw → placeholder JPEG published.</td>
-</tr>
-<tr>
-<td><code>empty_image_bytes</code></td>
-<td>output</td>
-<td>Defensive — should never appear in practice.</td>
-</tr>
-</tbody>
-</table>
+<p>The compositor is opaque to clients — internal diagnostics (which layers ran, which warnings the renderer emitted) used to leak through <code>result.warnings[]</code>, <code>result.layers_used</code>, <code>result.used_assets</code>, <code>result.narrator_on_top</code>, <code>result.narrator_area_ratio</code>, and a top-level <code>fallback</code> block. Those have all been removed in 2026-06 — agents read the screenshot URL, not the renderer's working notes.</p>
 <p><strong>Client snippets</strong></p>
 <div class="highlight"><pre><span></span><code><span class="c1"># 1) request the screenshot — server publishes a fresh URL</span>
 <span class="nv">URL</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-sS<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;.../v1/scene_inspector&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -311,8 +238,7 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:   &quot;scene_inspector_result&quot;,
   &quot;status&quot;:   &quot;unavailable&quot;,
-  &quot;code&quot;:     &quot;no_live_editor&quot;,    // or &quot;no_active_editor&quot;
-  &quot;fallback&quot;: { &quot;available&quot;: true, &quot;suggested&quot;: &quot;Use /v1/video_data + /v1/scene_geometry&quot; }
+  &quot;code&quot;:     &quot;no_live_editor&quot;     // or &quot;no_active_editor&quot;
 }
 </code></pre></div>
 
@@ -334,8 +260,8 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 </tr>
 </tbody>
 </table>
-<p>For <strong><code>screenshot_scene_280x498</code></strong>, the server composes a fallback screenshot from scene thumbnails + the static <code>{voice_file}_overlay_poster.png</code> (the overlay poster refreshed by spec-changing <a href="modify-scene.md"><code>/v1/modify_scene</code></a> edits) and <strong>publishes it to the same 15-minute URL contract</strong>. Treat fallback screenshots as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
-<p>Agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> + <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a>, and when needed fetch the per-scene <code>remotion_spec_url</code>.</p>
+<p>For <strong><code>screenshot_scene_280x498</code></strong>, the server always falls through to its compositor and <strong>publishes the JPEG to the same 15-minute URL contract</strong> regardless of whether a live editor was present — there is no separate <code>unavailable</code> envelope for screenshots. Treat screenshots taken without a live editor as <strong>approximate composites, not real renders</strong> — use a renderer / headless-browser pass for pixel-perfect verification.</p>
+<p>For non-screenshot actions, agents should fall back to <a href="video-data.md"><code>/v1/video_data</code></a> + <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a>, and when needed fetch the per-scene <code>remotion_spec_url</code>.</p>
 <hr />
 <h2 id="actions">Actions</h2>
 <table>
@@ -503,9 +429,9 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 </code></pre></div>
 
 <h3 id="200-ok-screenshot_scene_280x498-url-response"><code>200 OK</code> — <code>screenshot_scene_280x498</code> (URL response)</h3>
-<p>Response is JSON <code>SceneInspectorResponse</code> whose <code>result.screenshot</code> carries <code>{url, mime_type, width, height, bytes, expires_at, ttl_seconds}</code>. See the full sample + invariants in the section above. Server-fallback composites use the same shape — there's no flag to distinguish a live capture from a composite; assume "approximate" when reading <code>screenshot_scene_280x498</code> output.</p>
+<p>Response is JSON <code>SceneInspectorResponse</code> whose <code>result.screenshot</code> carries <code>{url, mime_type, width, height, bytes, expires_at, ttl_seconds}</code>. See the full sample + invariants in the section above. There's no flag to distinguish a live capture from a server composite; assume "approximate" when reading <code>screenshot_scene_280x498</code> output.</p>
 <h3 id="200-ok-unavailable"><code>200 OK</code> — <code>unavailable</code></h3>
-<p>See "No editor open" above. <strong>Note</strong>: <code>screenshot_scene_280x498</code> never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still publishes a URL (or returns a 500 JSON error if it cannot).</p>
+<p>See "No editor open" above. <strong>Note</strong>: <code>screenshot_scene_280x498</code> never returns this envelope — when no live editor is available, the server falls through to its compositor and still publishes a URL (or returns a 500 JSON error if it cannot).</p>
 <h3 id="200-ok-error-browser-side-failure"><code>200 OK</code> — <code>error</code> (browser-side failure)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;: &quot;scene_inspector_result&quot;,
@@ -578,10 +504,6 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 <td><code>screenshot_publish_failed</code></td>
 <td>Compositor produced bytes but the disk write / atomic rename failed (no readable URL to return).</td>
 </tr>
-<tr>
-<td><code>server_fallback_failed</code></td>
-<td>Could not compose any fallback screenshot.</td>
-</tr>
 </tbody>
 </table>
 <hr />
@@ -603,11 +525,9 @@ curl<span class="w"> </span>-sS<span class="w"> </span>-o<span class="w"> </span
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;completed&quot;</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
-    <span class="c1"># Success — server publishes the JPEG (live-browser path was retired;</span>
-    <span class="c1"># compositor is the sole path, so `ok` covers both &quot;live editor was</span>
-    <span class="c1"># present&quot; and &quot;server composed from thumbnails+overlay poster&quot;).</span>
-    <span class="c1"># `result.fallback.used == True` if you need to telemeter which path</span>
-    <span class="c1"># produced this frame, but for the agent&#39;s purposes the URL is the URL.</span>
+    <span class="c1"># Success — compositor is the sole screenshot path, so `code: &quot;ok&quot;`</span>
+    <span class="c1"># covers both &quot;live editor was present&quot; and &quot;server composed from</span>
+    <span class="c1"># thumbnails + overlay poster&quot;. Agent just reads the URL.</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;screenshot&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">]</span>
     <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;scene.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved screenshot to scene.jpg&quot;</span><span class="p">)</span>

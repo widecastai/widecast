@@ -53,9 +53,7 @@ The response is a regular JSON `SceneInspectorResponse` whose `result.screenshot
       "bytes":       20498,
       "expires_at":  "2026-06-29T13:30:00Z",
       "ttl_seconds": 900
-    },
-    "warnings":    [],
-    "layers_used": ["background", "remotion_poster", "narrator", "caption"]
+    }
   }
 }
 ```
@@ -72,7 +70,7 @@ The response is a regular JSON `SceneInspectorResponse` whose `result.screenshot
 | Atomicity | Server writes to `<filename>.tmp`, `fsync`s, then atomic-renames to the final path before responding. The agent's `curl` will NEVER read a half-written file. |
 | Storage path | `/mnt/html/lcw/downloads/<company_id>/<topic_id>/inspector/<voice_file>_<token16>.jpg` (served at the URL above). |
 
-**Compositor never throws.** Each layer (background / Remotion overlay poster / narrator / caption / JPEG save) is wrapped independently — a single failing layer adds a code to `result.warnings[]` and the response still publishes a URL. If even the JPEG encode fails, the server publishes a **placeholder JPEG** (dark slate, the scene's `scene_id` + `voice_file` + the first warning drawn on it). Lookup failures return JSON error envelopes:
+**Lookup / publish failures return JSON error envelopes:**
 
 | HTTP | `error.code` | When |
 |---|---|---|
@@ -80,24 +78,9 @@ The response is a regular JSON `SceneInspectorResponse` whose `result.screenshot
 | 404 | `scene_not_found` | `scene_id` / `voice_file` didn't match any scene. |
 | 409 | `script_not_ready` | Video still processing or never had a script. |
 | 502 | `script_parse_failed` | Stored video_script is malformed. |
-| 500 | `server_fallback_failed` | Lookup-level Exception not in the above categories (rare). |
 | 500 | `screenshot_publish_failed` | Compositor produced bytes but the disk write / rename failed. |
 
-The compositor warning codes that surface in `result.warnings[]`:
-
-| Warning | Layer | Meaning |
-|---|---|---|
-| `background_layer_failed:<ExcName>` | background | Couldn't load any thumbnail — using dark slate placeholder. |
-| `background_missing` / `background_load_failed:<ExcName>` / `background_too_large` | background | Per-step diagnostics from `_wc_inspector_load_image`. |
-| `remotion_spec_local_file_missing` | poster | `{voice_file}_spec.json` not on disk; can't build poster. |
-| `remotion_poster_generated_on_demand` | poster | Built poster lazily during this call. |
-| `remotion_poster_generate_failed:<reasons>` | poster | `finalize_remotion_spec_assets` failed. |
-| `poster_layer_failed:<ExcName>` / `poster_composite_failed:<ExcName>` | poster | Load or alpha-composite threw. |
-| `narrator_order_failed:<ExcName>` | narrator | `_wc_inspector_is_narrator_on_top` threw — defaulted to top. |
-| `narrator_layer_failed:<ExcName>` / `narrator_image_missing_placeholder` | narrator | Draw threw, or narrator URL unreachable → text placeholder. |
-| `caption_layer_failed:<ExcName>` | caption | Caption draw threw. |
-| `jpeg_save_failed:<ExcName>` | output | PIL save threw → placeholder JPEG published. |
-| `empty_image_bytes` | output | Defensive — should never appear in practice. |
+The compositor is opaque to clients — internal diagnostics (which layers ran, which warnings the renderer emitted) used to leak through `result.warnings[]`, `result.layers_used`, `result.used_assets`, `result.narrator_on_top`, `result.narrator_area_ratio`, and a top-level `fallback` block. Those have all been removed in 2026-06 — agents read the screenshot URL, not the renderer's working notes.
 
 **Client snippets**
 
@@ -157,8 +140,7 @@ For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unava
 {
   "object":   "scene_inspector_result",
   "status":   "unavailable",
-  "code":     "no_live_editor",    // or "no_active_editor"
-  "fallback": { "available": true, "suggested": "Use /v1/video_data + /v1/scene_geometry" }
+  "code":     "no_live_editor"     // or "no_active_editor"
 }
 ```
 
@@ -167,9 +149,9 @@ For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unava
 | `no_live_editor` | No editor tab is currently open for this video (no presence at all). |
 | `no_active_editor` | At least one tab is registered but none responded to the probe in time. |
 
-For **`screenshot_scene_280x498`**, the server composes a fallback screenshot from scene thumbnails + the static `{voice_file}_overlay_poster.png` (the overlay poster refreshed by spec-changing [`/v1/modify_scene`](modify-scene.md) edits) and **publishes it to the same 15-minute URL contract**. Treat fallback screenshots as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
+For **`screenshot_scene_280x498`**, the server always falls through to its compositor and **publishes the JPEG to the same 15-minute URL contract** regardless of whether a live editor was present — there is no separate `unavailable` envelope for screenshots. Treat screenshots taken without a live editor as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
 
-Agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
+For non-screenshot actions, agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
 
 ---
 
@@ -249,11 +231,11 @@ Content-Type: application/json
 
 ### `200 OK` — `screenshot_scene_280x498` (URL response)
 
-Response is JSON `SceneInspectorResponse` whose `result.screenshot` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}`. See the full sample + invariants in the section above. Server-fallback composites use the same shape — there's no flag to distinguish a live capture from a composite; assume "approximate" when reading `screenshot_scene_280x498` output.
+Response is JSON `SceneInspectorResponse` whose `result.screenshot` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}`. See the full sample + invariants in the section above. There's no flag to distinguish a live capture from a server composite; assume "approximate" when reading `screenshot_scene_280x498` output.
 
 ### `200 OK` — `unavailable`
 
-See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to a fallback composite and still publishes a URL (or returns a 500 JSON error if it cannot).
+See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to its compositor and still publishes a URL (or returns a 500 JSON error if it cannot).
 
 ### `200 OK` — `error` (browser-side failure)
 
@@ -292,7 +274,6 @@ JSON envelope returned when `screenshot_scene_280x498` can't be served:
 | `error.code` | Meaning |
 |---|---|
 | `screenshot_publish_failed` | Compositor produced bytes but the disk write / atomic rename failed (no readable URL to return). |
-| `server_fallback_failed` | Could not compose any fallback screenshot. |
 
 ---
 
@@ -317,11 +298,9 @@ resp = client.scene_inspector(
 )
 
 if resp["status"] == "completed" and resp.get("code") == "ok":
-    # Success — server publishes the JPEG (live-browser path was retired;
-    # compositor is the sole path, so `ok` covers both "live editor was
-    # present" and "server composed from thumbnails+overlay poster").
-    # `result.fallback.used == True` if you need to telemeter which path
-    # produced this frame, but for the agent's purposes the URL is the URL.
+    # Success — compositor is the sole screenshot path, so `code: "ok"`
+    # covers both "live editor was present" and "server composed from
+    # thumbnails + overlay poster". Agent just reads the URL.
     url = resp["result"]["screenshot"]["url"]
     open("scene.jpg", "wb").write(requests.get(url, timeout=10).content)
     print("saved screenshot to scene.jpg")

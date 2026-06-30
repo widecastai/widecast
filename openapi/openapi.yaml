@@ -1600,14 +1600,36 @@ paths:
       summary: Read structured scene data (data-first audit/edit entry point).
       description: |
         Synchronous, free. **First step for data-first scene audit/edit** —
-        call this before `/v1/modify_scene` or `/v1/scene_inspector`. Returns
-        full annotated segment dicts in `segments`.
+        call this before `/v1/modify_scene` or `/v1/scene_inspector`.
 
-        To keep MCP payloads usable the API trims per-segment `words` timing
-        arrays, top-level `captions`, and internal preview-cache fields
-        (`savedVideos`, `savedImages`, `_previewInstanceId`,
-        `_remotionSpecFetching`, `_forceNarratorRefit`). UI routes still get
-        full data; this is the agent-safe slim view.
+        **URL-RESPONSE CONTRACT** (default `delivery_mode="download_url"`):
+        the HTTP response is a small JSON envelope; the full video_data tree
+        (annotated `segments[]`, `scene_identity`, `global_settings`,
+        Remotion spec metadata) is published to a temporary public JSON file
+        on `origin.widecast.ai` and the envelope carries `data.url` +
+        `data.bytes` + `data.expires_at` + `data.ttl_seconds=900` (15-min
+        TTL) plus a 3-step `instructions` block. The agent must
+        `mkdir -p ./.widecast-video-data && cd ./.widecast-video-data` +
+        `curl -fsSL '<data.url>' -o video_data.json` + Read locally — the
+        full tree is NOT inlined in the HTTP response. This bypasses MCP
+        per-tool-call output caps that previously truncated 50–300 KB
+        payloads mid-JSON. Every call publishes a NEW unique file (token =
+        16 hex chars), so URLs are never reused — matches the realtime
+        semantics of video data. Host is `origin.widecast.ai` (CF-bypassed)
+        + `?v=<mtime>` cache-bust. Server only responds AFTER the JSON is
+        fsynced + atomically renamed to its final path, so the URL is
+        guaranteed readable when the agent fetches it (no race). Operators
+        can flip to legacy inline mode via env flag
+        `WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content` — in that mode
+        the HTTP response carries the full tree inline as before.
+
+        The published JSON file shape is the same as the legacy inline
+        response. To keep MCP payloads usable the API trims per-segment
+        `words` timing arrays, top-level `captions`, and internal
+        preview-cache fields (`savedVideos`, `savedImages`,
+        `_previewInstanceId`, `_remotionSpecFetching`,
+        `_forceNarratorRefit`). UI routes still get full data; this is the
+        agent-safe slim view.
 
         **Scene identity rule** (also returned as `scene_identity` in the
         response): use `voice_file` as the stable per-scene UID.
@@ -1715,6 +1737,13 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: |
+            `video_data_publish_failed` — the response tree was assembled
+            but could not be persisted to disk (no readable URL to return).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '502':
           description: |
             `script_parse_failed` — stored video_script is malformed.
@@ -1783,19 +1812,10 @@ paths:
             presence) or `"no_active_editor"` (presence but unresponsive).
             Fall back to `/v1/video_data` + `/v1/scene_geometry` +
             fetching `remotion_spec_url`.
-          - For `screenshot_scene_280x498`, the server composes a
-            fallback screenshot from scene thumbnails +
-            `{voice_file}_overlay_poster.png` (the static overlay poster
-            refreshed by spec-changing `/v1/modify_scene` edits) and
-            publishes it to the same 15-minute URL contract. **The
-            compositor never throws** — each layer (background /
-            poster / narrator / caption / JPEG save) is wrapped
-            independently, and individual failures surface as codes
-            in `result.warnings[]` while the response still carries a
-            published URL. If even the JPEG encode fails, the server
-            emits a placeholder JPEG with the scene identity drawn on
-            dark slate. Treat fallback screenshots as approximate
-            composites, not real renders.
+          - `screenshot_scene_280x498` is always served via the same
+            15-minute URL contract whether or not a live editor was
+            elected; treat screenshots without a live editor as
+            approximate composites, not real renders.
 
         **Actions** (`action`):
           * `list_live_editors` — presence list of open editor tabs
@@ -1897,17 +1917,8 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '500':
           description: |
-            Defensive belt-and-suspenders only. After the
-            never-throws-never-500 refactor of the screenshot
-            compositor, individual layer failures surface as warning
-            codes in `result.warnings[]` while the response still
-            carries a published URL. Hitting this branch means an
-            unexpected path was triggered:
-              * `server_fallback_failed` — Exception fell outside the
-                lookup classification (extremely rare).
-              * `screenshot_publish_failed` — image was composed but
-                could not be persisted to disk (no readable URL to
-                return).
+            `screenshot_publish_failed` — image was composed but could
+            not be persisted to disk (no readable URL to return).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -4184,7 +4195,27 @@ components:
 
     VideoDataResponse:
       type: object
-      required: [object, id, topic_id, aspect_ratio, total_segments, segments, review_url, request_id]
+      required: [object, id, topic_id, delivery_mode, data, instructions, review_url, request_id]
+      description: |
+        **URL-RESPONSE ENVELOPE.** Default delivery mode is
+        `download_url`: the server publishes the full video_data tree to
+        a temporary public JSON file on `origin.widecast.ai` and the
+        response carries `data.url` + size + 15-min TTL + a 3-step
+        `instructions` block. The agent must `curl <data.url> -o
+        video_data.json` and Read locally; the full tree is NOT inlined
+        in this response. This bypasses MCP per-tool-call output caps
+        that previously truncated 50–300 KB payloads mid-JSON. Every
+        call publishes a NEW unique file (token = 16 hex chars) so URLs
+        are never reused — matches the realtime semantics of video
+        data. Host is `origin.widecast.ai` (CF-bypassed) +
+        `?v=<mtime>` cache-bust. Server only responds AFTER the JSON is
+        fsynced + atomically renamed, so the URL is guaranteed
+        readable. The published JSON file shape is unchanged: top-level
+        `object`/`id`/`topic_id`/`aspect_ratio`/`title`/`language`/
+        `total_segments`/`total_duration`/`scene_identity`/`segments[]`/
+        `global_settings`/`review_url`/`request_id`. Operators can flip
+        to legacy inline mode with env flag
+        `WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content`.
       properties:
         skill_required:
           $ref: '#/components/schemas/SkillRequiredHint'
@@ -4193,20 +4224,33 @@ components:
         object: { type: string, const: video_data }
         id: { type: string }
         topic_id: { type: string }
-        aspect_ratio:
+        delivery_mode:
           type: string
-          enum: [portrait, landscape, square]
-        title: { type: string }
-        language: { type: string }
-        total_segments: { type: integer }
-        total_duration:
-          type: number
-          description: Sum of `duration` across segments (seconds).
-        scene_identity: { $ref: '#/components/schemas/SceneIdentityGuide' }
-        segments:
-          type: array
-          items: { $ref: '#/components/schemas/VideoDataSegment' }
-        global_settings: { $ref: '#/components/schemas/VideoDataGlobalSettings' }
+          enum: [download_url, inline_content]
+          description: |
+            `download_url` (default) → `data` carries a URL pointer; agent fetches the JSON file.
+            `inline_content` → legacy mode (set via env flag); the full video_data tree is inlined.
+        data:
+          type: object
+          required: [url, mime_type, bytes, expires_at, ttl_seconds]
+          description: Pointer to the published JSON file. Set when `delivery_mode="download_url"`.
+          properties:
+            url:
+              type: string
+              format: uri
+              description: Public `origin.widecast.ai` URL with `?v=<mtime>` cache-bust.
+            mime_type: { type: string, const: application/json }
+            bytes: { type: integer }
+            expires_at:
+              type: string
+              format: date-time
+              description: ISO-8601 UTC timestamp — ~15 min after publish.
+            ttl_seconds: { type: integer, const: 900 }
+        instructions:
+          type: string
+          description: 3-step setup the agent should follow (mkdir + curl + Read).
+        next_action: { type: string }
+        meta: { type: object }
         review_url:
           type: string
           format: uri
@@ -4284,15 +4328,14 @@ components:
             `ok` | `no_live_editor` | `no_active_editor` |
             `unsupported_action` | `publisher_missing` |
             `mqtt_publish_failed` | `browser_error` |
-            `server_fallback_failed` (couldn't compose a fallback —
-            HTTP 500) | `screenshot_publish_failed` (composed but
-            couldn't be persisted to disk — HTTP 500). Successful
+            `screenshot_publish_failed` (composed but couldn't be
+            persisted to disk — HTTP 500). Successful
             `screenshot_scene_280x498` calls return this JSON envelope
             with `code: "ok"` and `result.screenshot.url` — agent
             fetches the JPEG with `curl <url>`. The server-side
-            compositor is now the sole screenshot path, so a
-            successful screenshot is always `code: "ok"` regardless of
-            whether a live editor was elected.
+            compositor is the sole screenshot path, so a successful
+            screenshot is always `code: "ok"` regardless of whether a
+            live editor was elected.
         request_id: { type: string }
         action: { type: string }
         topic_id: { type: string }
@@ -4307,9 +4350,6 @@ components:
           type: array
           items: { type: object }
           description: Set only when `action="list_live_editors"`.
-        fallback:
-          type: object
-          description: Set when `status="unavailable"` — describes the data-first fallback path.
 
     CollectIdeasRequest:
       type: object

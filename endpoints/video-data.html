@@ -10,17 +10,17 @@
   <base href="../">
 
   <title>Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs</title>
-  <meta name="description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
+  <meta name="description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns the full annotated scene tree (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
   <link rel="canonical" href="https://widecast.ai/endpoints/video-data.html">
 
   <meta property="og:title" content="Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs">
-  <meta property="og:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
+  <meta property="og:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns the full annotated scene tree (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://widecast.ai/endpoints/video-data.html">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Read a video's structured scene data — `POST /v1/video_data` · WideCast Docs">
-  <meta name="twitter:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
+  <meta name="twitter:description" content="**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns the full annotated scene tree (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,10 +57,11 @@
   <main class="wc-main">
     <article class="wc-article">
       <h1 id="read-a-videos-structured-scene-data-post-v1video_data">Read a video's structured scene data — <code>POST /v1/video_data</code></h1>
-<p><strong>Synchronous, free. First step for data-first scene audit/edit</strong> — call this <strong>before</strong> <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> / <a href="modify-scene.md"><code>/v1/modify_scene</code></a> / <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>. Returns full annotated segment dicts (current <code>mediaUrl</code>, narrator config, Remotion spec metadata) for a <code>topic_id</code>.</p>
+<p><strong>Synchronous, free. First step for data-first scene audit/edit</strong> — call this <strong>before</strong> <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> / <a href="modify-scene.md"><code>/v1/modify_scene</code></a> / <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>. Returns the full annotated scene tree (current <code>mediaUrl</code>, narrator config, Remotion spec metadata) for a <code>topic_id</code>.</p>
 <blockquote>
 <p><strong>Recommended chain</strong>: <code>video_data</code> → <a href="scene-geometry.md"><code>/v1/scene_geometry</code></a> (cheap layout audit) → <a href="modify-scene.md"><code>/v1/modify_scene</code></a>. Use <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a> only as an expensive last resort when you need browser truth or a live screenshot.</p>
-<p><strong>Internal poster diagnostics are stripped by default.</strong> Per-segment <code>remotion_poster_file</code> / <code>remotion_poster_url</code> / <code>remotion_poster_version</code> / <code>remotion_poster_state</code> / <code>remotion_poster_exists</code> / <code>remotion_poster_warnings</code> (and their copies inside <code>agent_meta.remotion_spec</code>) describe the server-side <code>{voice_file}_overlay_poster.png</code> used by <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a> fallback — agents don't act on them. Pass <code>include_diagnostics: true</code> to surface them for server / debug audits.</p>
+<p><strong>URL-RESPONSE CONTRACT (default <code>delivery_mode="download_url"</code>).</strong> The HTTP response is a small JSON envelope; the full video_data tree (annotated <code>segments[]</code>, <code>scene_identity</code>, <code>global_settings</code>, Remotion spec metadata) is published to a temporary public JSON file on <code>origin.widecast.ai</code> and the envelope carries <code>data.url</code> + <code>data.bytes</code> + <code>data.expires_at</code> + <code>data.ttl_seconds=900</code> (15-min TTL) plus a 3-step <code>instructions</code> block. <strong>The agent must <code>curl &lt;data.url&gt; -o video_data.json</code> and Read locally</strong> — the full tree is NOT inlined in the HTTP response. This bypasses MCP per-tool-call output caps that previously truncated 50–300 KB payloads mid-JSON. Every call publishes a NEW unique file (token = 16 hex chars), so URLs are never reused — matches the realtime semantics of video data. Host is <code>origin.widecast.ai</code> (CF-bypassed) + <code>?v=&lt;mtime&gt;</code> cache-bust. Server only responds AFTER the JSON is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent fetches it (no race). Operators can flip back to legacy inline mode via env flag <code>WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content</code>.</p>
+<p><strong>Internal poster diagnostics are stripped by default.</strong> Per-segment <code>remotion_poster_file</code> / <code>remotion_poster_url</code> / <code>remotion_poster_version</code> / <code>remotion_poster_state</code> / <code>remotion_poster_exists</code> / <code>remotion_poster_warnings</code> (and their copies inside <code>agent_meta.remotion_spec</code>) describe the server-side <code>{voice_file}_overlay_poster.png</code> used by <a href="scene-inspector.md"><code>/v1/scene_inspector</code></a>. Pass <code>include_diagnostics: true</code> to surface them for server / debug audits.</p>
 </blockquote>
 <p>The endpoint mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data matches what the user sees in <code>https://widecast.ai/#scene_editor?topic_id=…</code> exactly.</p>
 <p>To keep MCP payloads usable, the API trims per-segment <code>words</code> timing arrays, top-level <code>captions</code>, plus internal preview-cache fields (<code>savedVideos</code>, <code>savedImages</code>, <code>_previewInstanceId</code>, <code>_remotionSpecFetching</code>, <code>_forceNarratorRefit</code>). UI routes still get full data; this is the agent-safe slim view.</p>
@@ -154,7 +155,35 @@
 </tbody>
 </table>
 <hr />
-<h2 id="response-200-ok">Response — <code>200 OK</code></h2>
+<h2 id="response-200-ok-default-download_url-mode">Response — <code>200 OK</code> (default <code>download_url</code> mode)</h2>
+<div class="highlight"><pre><span></span><code>// HTTP response envelope — small, fits any MCP runtime.
+{
+  &quot;object&quot;:         &quot;video_data&quot;,
+  &quot;id&quot;:             &quot;widecastABCDEFGHIJKL&quot;,
+  &quot;topic_id&quot;:       &quot;widecastABCDEFGHIJKL&quot;,
+  &quot;delivery_mode&quot;:  &quot;download_url&quot;,
+  &quot;skill_required&quot;: &quot;load_widecast_editing_skill_first&quot;,
+  &quot;review_url&quot;:     &quot;https://widecast.ai/#scene_editor?topic_id=widecastABCDEFGHIJKL&quot;,
+  &quot;data&quot;: {
+    &quot;url&quot;:         &quot;https://origin.widecast.ai/downloads/&lt;co&gt;/widecastABCDEFGHIJKL/video_data/3f0a8b2c91d4e57f.json?v=1782900123&quot;,
+    &quot;mime_type&quot;:   &quot;application/json&quot;,
+    &quot;bytes&quot;:       182394,
+    &quot;expires_at&quot;:  &quot;2026-06-30T18:32:03Z&quot;,
+    &quot;ttl_seconds&quot;: 900
+  },
+  &quot;instructions&quot;:   &quot;FETCH THE VIDEO DATA NOW (3-step setup): 1) mkdir -p ./.widecast-video-data &amp;&amp; cd ./.widecast-video-data  2) curl -fsSL &#39;&lt;data.url&gt;&#39; -o video_data.json  3) Read(&#39;./.widecast-video-data/video_data.json&#39;)&quot;,
+  &quot;next_action&quot;:    &quot;fetch_and_read_video_data_json&quot;,
+  &quot;meta&quot;: {
+    &quot;delivery_mode&quot;:   &quot;download_url&quot;,
+    &quot;request_id&quot;:      &quot;req_abcd…&quot;,
+    &quot;freshness&quot;:       &quot;fresh-per-call (token unique, ?v=mtime cache-bust)&quot;,
+    &quot;experiment_note&quot;: &quot;Flip back with WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content.&quot;
+  },
+  &quot;request_id&quot;:     &quot;req_abcd…&quot;
+}
+</code></pre></div>
+
+<h3 id="published-json-file-content-fetch-from-dataurl">Published JSON file content (fetch from <code>data.url</code>)</h3>
 <div class="highlight"><pre><span></span><code>{
   &quot;object&quot;:         &quot;video_data&quot;,
   &quot;id&quot;:             &quot;widecastABCDEFGHIJKL&quot;,
@@ -362,6 +391,11 @@
 <td>Stored video_script is malformed. Contact support with <code>request_id</code>.</td>
 </tr>
 <tr>
+<td><code>video_data_publish_failed</code></td>
+<td>500</td>
+<td>Response tree was assembled but could not be persisted to disk. Retry with the same <code>video_id</code>; if it persists, contact support with <code>request_id</code>.</td>
+</tr>
+<tr>
 <td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
 <td>401</td>
 <td>Auth.</td>
@@ -371,10 +405,16 @@
 <hr />
 <h2 id="sdk-examples">SDK examples</h2>
 <h3 id="python-data-first-audit-then-edit">Python — data-first audit then edit</h3>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 
 <span class="n">client</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">()</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">)</span>
+<span class="n">envelope</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">)</span>
+
+<span class="c1"># URL-response mode (default): fetch the published JSON file.</span>
+<span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;url&quot;</span><span class="p">])</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]:</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scene </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;scene_index&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
@@ -395,14 +435,19 @@
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nx">Widecast</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@widecast/sdk&quot;</span><span class="p">;</span>
 
 <span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Widecast</span><span class="p">();</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">envelope</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">video_data</span><span class="p">(</span><span class="s2">&quot;widecastABCDEFGHIJKL&quot;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="nx">envelope</span><span class="p">.</span><span class="nx">data</span><span class="o">!</span><span class="p">.</span><span class="nx">url</span><span class="p">)).</span><span class="nx">json</span><span class="p">();</span>
 <span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">seg</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">segments</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`Scene </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">scene_index</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="kr">type</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">duration</span><span class="o">?</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">1</span><span class="p">)</span><span class="si">}</span><span class="sb">s voice_file=</span><span class="si">${</span><span class="nx">seg</span><span class="p">.</span><span class="nx">voice_file</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<h3 id="mcp">MCP</h3>
+<h3 id="mcp-agent-recipe">MCP / agent recipe</h3>
 <div class="highlight"><pre><span></span><code>{ &quot;name&quot;: &quot;widecast_video_data&quot;, &quot;arguments&quot;: { &quot;video_id&quot;: &quot;widecastABCDEFGHIJKL&quot; } }
+// → envelope contains data.url; agent must:
+//     mkdir -p ./.widecast-video-data &amp;&amp; cd ./.widecast-video-data
+//     curl -fsSL &#39;&lt;data.url&gt;&#39; -o video_data.json
+//     Read(&#39;./.widecast-video-data/video_data.json&#39;)
 // → inspect segments; pick voice_file; then call widecast_modify_scene with by=&quot;voice_file&quot;.
 </code></pre></div>
     </article>

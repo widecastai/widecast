@@ -1,10 +1,12 @@
 # Read a video's structured scene data — `POST /v1/video_data`
 
-**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns full annotated segment dicts (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.
+**Synchronous, free. First step for data-first scene audit/edit** — call this **before** [`/v1/scene_geometry`](scene-geometry.md) / [`/v1/modify_scene`](modify-scene.md) / [`/v1/scene_inspector`](scene-inspector.md). Returns the full annotated scene tree (current `mediaUrl`, narrator config, Remotion spec metadata) for a `topic_id`.
 
 > **Recommended chain**: `video_data` → [`/v1/scene_geometry`](scene-geometry.md) (cheap layout audit) → [`/v1/modify_scene`](modify-scene.md). Use [`/v1/scene_inspector`](scene-inspector.md) only as an expensive last resort when you need browser truth or a live screenshot.
 
-> **Internal poster diagnostics are stripped by default.** Per-segment `remotion_poster_file` / `remotion_poster_url` / `remotion_poster_version` / `remotion_poster_state` / `remotion_poster_exists` / `remotion_poster_warnings` (and their copies inside `agent_meta.remotion_spec`) describe the server-side `{voice_file}_overlay_poster.png` used by [`/v1/scene_inspector`](scene-inspector.md) fallback — agents don't act on them. Pass `include_diagnostics: true` to surface them for server / debug audits.
+> **URL-RESPONSE CONTRACT (default `delivery_mode="download_url"`).** The HTTP response is a small JSON envelope; the full video_data tree (annotated `segments[]`, `scene_identity`, `global_settings`, Remotion spec metadata) is published to a temporary public JSON file on `origin.widecast.ai` and the envelope carries `data.url` + `data.bytes` + `data.expires_at` + `data.ttl_seconds=900` (15-min TTL) plus a 3-step `instructions` block. **The agent must `curl <data.url> -o video_data.json` and Read locally** — the full tree is NOT inlined in the HTTP response. This bypasses MCP per-tool-call output caps that previously truncated 50–300 KB payloads mid-JSON. Every call publishes a NEW unique file (token = 16 hex chars), so URLs are never reused — matches the realtime semantics of video data. Host is `origin.widecast.ai` (CF-bypassed) + `?v=<mtime>` cache-bust. Server only responds AFTER the JSON is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent fetches it (no race). Operators can flip back to legacy inline mode via env flag `WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content`.
+
+> **Internal poster diagnostics are stripped by default.** Per-segment `remotion_poster_file` / `remotion_poster_url` / `remotion_poster_version` / `remotion_poster_state` / `remotion_poster_exists` / `remotion_poster_warnings` (and their copies inside `agent_meta.remotion_spec`) describe the server-side `{voice_file}_overlay_poster.png` used by [`/v1/scene_inspector`](scene-inspector.md). Pass `include_diagnostics: true` to surface them for server / debug audits.
 
 The endpoint mirrors the same engine the dashboard's scene editor uses on open — A/B-roll rebalance + ensure background music + persist if changed — so the data matches what the user sees in `https://widecast.ai/#scene_editor?topic_id=…` exactly.
 
@@ -61,7 +63,37 @@ Content-Type: application/json
 
 ---
 
-## Response — `200 OK`
+## Response — `200 OK` (default `download_url` mode)
+
+```jsonc
+// HTTP response envelope — small, fits any MCP runtime.
+{
+  "object":         "video_data",
+  "id":             "widecastABCDEFGHIJKL",
+  "topic_id":       "widecastABCDEFGHIJKL",
+  "delivery_mode":  "download_url",
+  "skill_required": "load_widecast_editing_skill_first",
+  "review_url":     "https://widecast.ai/#scene_editor?topic_id=widecastABCDEFGHIJKL",
+  "data": {
+    "url":         "https://origin.widecast.ai/downloads/<co>/widecastABCDEFGHIJKL/video_data/3f0a8b2c91d4e57f.json?v=1782900123",
+    "mime_type":   "application/json",
+    "bytes":       182394,
+    "expires_at":  "2026-06-30T18:32:03Z",
+    "ttl_seconds": 900
+  },
+  "instructions":   "FETCH THE VIDEO DATA NOW (3-step setup): 1) mkdir -p ./.widecast-video-data && cd ./.widecast-video-data  2) curl -fsSL '<data.url>' -o video_data.json  3) Read('./.widecast-video-data/video_data.json')",
+  "next_action":    "fetch_and_read_video_data_json",
+  "meta": {
+    "delivery_mode":   "download_url",
+    "request_id":      "req_abcd…",
+    "freshness":       "fresh-per-call (token unique, ?v=mtime cache-bust)",
+    "experiment_note": "Flip back with WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content."
+  },
+  "request_id":     "req_abcd…"
+}
+```
+
+### Published JSON file content (fetch from `data.url`)
 
 ```jsonc
 {
@@ -196,6 +228,7 @@ Content-Type: application/json
 | `video_not_found` | 404 | No video with this id on the account. |
 | `script_not_ready` | 409 | Video is still processing or never had a script generated. Poll [`/v1/status`](create-video.md) until `status=="completed"`. |
 | `script_parse_failed` | 502 | Stored video_script is malformed. Contact support with `request_id`. |
+| `video_data_publish_failed` | 500 | Response tree was assembled but could not be persisted to disk. Retry with the same `video_id`; if it persists, contact support with `request_id`. |
 | `missing_api_key` / `invalid_api_key` | 401 | Auth. |
 
 ---
@@ -205,10 +238,16 @@ Content-Type: application/json
 ### Python — data-first audit then edit
 
 ```python
+import json
+import urllib.request
 from widecast import Widecast
 
 client = Widecast()
-data = client.video_data("widecastABCDEFGHIJKL")
+envelope = client.video_data("widecastABCDEFGHIJKL")
+
+# URL-response mode (default): fetch the published JSON file.
+with urllib.request.urlopen(envelope["data"]["url"]) as resp:
+    data = json.load(resp)
 
 for seg in data["segments"]:
     print(f"Scene {seg['scene_index']} ({seg['type']}, {seg['duration']:.1f}s)")
@@ -231,15 +270,20 @@ client.modify_scene(
 import Widecast from "@widecast/sdk";
 
 const client = new Widecast();
-const data = await client.video_data("widecastABCDEFGHIJKL");
+const envelope = await client.video_data("widecastABCDEFGHIJKL");
+const data = await (await fetch(envelope.data!.url)).json();
 for (const seg of data.segments) {
   console.log(`Scene ${seg.scene_index} ${seg.type} ${seg.duration?.toFixed(1)}s voice_file=${seg.voice_file}`);
 }
 ```
 
-### MCP
+### MCP / agent recipe
 
 ```jsonc
 { "name": "widecast_video_data", "arguments": { "video_id": "widecastABCDEFGHIJKL" } }
+// → envelope contains data.url; agent must:
+//     mkdir -p ./.widecast-video-data && cd ./.widecast-video-data
+//     curl -fsSL '<data.url>' -o video_data.json
+//     Read('./.widecast-video-data/video_data.json')
 // → inspect segments; pick voice_file; then call widecast_modify_scene with by="voice_file".
 ```

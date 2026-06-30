@@ -190,11 +190,20 @@ paste into `script_text` as an inline `![alt](url)` for images, or
 `curl <get_url>` to fetch a document body before passing it as
 blog_text / script_text. Server cap 500 MB.
 </p><section class="wc-pg-example" data-cfg="playgrounds/upload-asset.json" data-usecase-id="upload-asset" id="ex-upload-asset--upload-asset"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📎 Upload an asset (audio / video / image / document)</h3><p class="wc-pg-example-desc">Pick any audio (mp3 / wav / m4a), video (mp4 / mov / webm), image (jpg / png / webp), or document (html / pdf / md) file ≤ 500 MB. Click **Run** — the response carries a 24-hour public S3 URL you can pass into /v1/create_video as `audio_url` / `video_url`, paste into `script_text` as an inline `![alt](url)` for images, or `curl` the URL to read a document body for blog_text / script_text.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></section><section class='wc-pg-endpoint' id='ep-video-data'><header class='wc-pg-endpoint-head'><span class='wc-method wc-method-post'>POST</span><code class='wc-pg-endpoint-path'>/v1/video_data</code><h2 class='wc-pg-endpoint-title'>Read structured scene data (data-first audit/edit entry point)</h2></header><p class='wc-pg-endpoint-desc'>Synchronous, free. First step for data-first scene audit/edit — call
-this BEFORE /v1/modify_scene or /v1/scene_inspector. Returns full
-annotated segment dicts with stable-identity fields, Remotion spec
-metadata, and coordinate-space hints (720×1280 canvas vs 280×498
-legacy editor preview). `voice_file` is the stable per-scene UID;
-`segment.id` is only current display/order.
+this BEFORE /v1/modify_scene or /v1/scene_inspector. URL-RESPONSE
+CONTRACT: the HTTP response is a small envelope; the full video_data
+tree is published to a temporary public JSON file on
+`origin.widecast.ai` and the envelope carries `data.url` + size +
+15-min TTL + a 3-step `instructions` block. The agent fetches the JSON
+file with `curl <data.url>` and reads it locally — the full tree is
+NOT inlined. Bypasses MCP per-tool-call output caps that previously
+truncated 50–300 KB payloads mid-JSON. Every call publishes a NEW
+unique file so URLs are never reused (matches realtime semantics).
+The published JSON file content is the same as the legacy inline
+response: annotated segment dicts with stable-identity fields,
+Remotion spec metadata, and coordinate-space hints (720×1280 canvas
+vs 280×498 legacy editor preview). `voice_file` is the stable
+per-scene UID; `segment.id` is only current display/order.
 </p><section class="wc-pg-example" data-cfg="playgrounds/video-data.json" data-usecase-id="read-video" id="ex-video-data--read-video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📜 Audit a video — list every scene + Remotion spec status</h3><p class="wc-pg-example-desc">Default response. Paste a topic_id (the id returned by /v1/create_video) to see scene_identity, every scene's voice_file (stable UID), current mediaUrl/mediaType, narrator config, and remotion_spec_url (cache-busted) + remotion_spec_state (ready/missing/disabled). Spec content is NOT inlined — fetch remotion_spec_url only when state is ready and you need object boxes.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/video-data.json" data-usecase-id="with-diagnostics" id="ex-video-data--with-diagnostics"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔬 Server/debug audit — include remotion_poster_*</h3><p class="wc-pg-example-desc">Opt back into the diagnostic poster keys per-segment (file, url, version, state, exists, warnings). For server/debug audits only — agents don't act on these.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></section><section class='wc-pg-endpoint' id='ep-videos'><header class='wc-pg-endpoint-head'><span class='wc-method wc-method-get'>GET</span><code class='wc-pg-endpoint-path'>/v1/videos</code><h2 class='wc-pg-endpoint-title'>List recent videos</h2></header><p class='wc-pg-endpoint-desc'>Read-only, free. Lists the account's recent videos/scripts (20 per page).
 </p><section class="wc-pg-example" data-cfg="playgrounds/videos.json" data-usecase-id="recent" id="ex-videos--recent"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Recent videos</h3><p class="wc-pg-example-desc">List the most recent videos. Increase `from_record` to page.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></section>
   </main>

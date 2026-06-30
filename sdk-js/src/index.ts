@@ -207,24 +207,45 @@ export interface VideoDataGlobalSettings {
   brand?: Record<string, unknown>;
 }
 
-/** Response of client.video_data(). */
+/**
+ *  Response of client.video_data().
+ *
+ *  **URL-RESPONSE ENVELOPE.** Default delivery mode is `download_url`:
+ *  the server publishes the full video_data tree to a temporary public
+ *  JSON file on `origin.widecast.ai` and the response carries
+ *  `data.url` + size + 15-min TTL + a 3-step `instructions` block. The
+ *  caller must `fetch(data.url)` to read the full tree — it is NOT
+ *  inlined in this object. The published JSON file shape is the same
+ *  as the legacy inline response (top-level `object` / `id` /
+ *  `topic_id` / `aspect_ratio` / `title` / `language` /
+ *  `total_segments` / `total_duration` / `scene_identity` /
+ *  `segments[]` / `global_settings`). Operators can flip back to
+ *  legacy inline mode with env flag
+ *  `WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content`.
+ */
 export interface VideoDataResponse {
   object: "video_data";
   id: string;
   topic_id: string;
-  aspect_ratio: "portrait" | "landscape" | "square";
-  title: string;
-  language: string;
-  total_segments: number;
-  total_duration: number;
-  /** Machine-readable explanation of voice_file vs id stability. */
-  scene_identity?: {
-    stable_scene_id_field: "voice_file";
-    order_field: "id";
-    notes?: string[];
+  /** `"download_url"` (default) or `"inline_content"` (legacy env flag). */
+  delivery_mode?: "download_url" | "inline_content";
+  /** Hint to load the editing skill first. */
+  skill_required?: string;
+  /** Pointer to the published JSON file (when delivery_mode="download_url"). */
+  data?: {
+    /** Public `origin.widecast.ai` URL with `?v=<mtime>` cache-bust. */
+    url: string;
+    mime_type: "application/json";
+    bytes: number;
+    /** ISO-8601 UTC; ~15 min from publish. */
+    expires_at: string;
+    /** Always 900 (15 min). */
+    ttl_seconds: 900;
   };
-  segments: VideoDataSegment[];
-  global_settings: VideoDataGlobalSettings;
+  /** 3-step setup the agent should follow (mkdir + curl + Read locally). */
+  instructions?: string;
+  next_action?: string;
+  meta?: Record<string, unknown>;
   /** Editor URL — opens the scene editor for this video. */
   review_url: string;
   request_id: string;
@@ -1654,9 +1675,28 @@ export class Widecast {
    *  `scene_inspector()` only as an expensive last resort when you need
    *  browser truth / a small live screenshot).
    *
-   *  Returns full annotated segment dicts. Per-segment `words`, top-level
-   *  `captions`, and internal preview-cache fields are trimmed to keep
-   *  the MCP payload usable.
+   *  **URL-RESPONSE CONTRACT** (default `delivery_mode="download_url"`):
+   *  the returned object is a small envelope — the full video_data tree
+   *  (annotated `segments[]`, `scene_identity`, `global_settings`,
+   *  Remotion spec metadata) is NOT inlined. Instead the server
+   *  publishes the tree to a temporary public JSON file on
+   *  `origin.widecast.ai` and the envelope carries `data.url` +
+   *  `data.bytes` + `data.expires_at` + `data.ttl_seconds=900` (15-min
+   *  TTL) plus a 3-step `instructions` block. The caller fetches the
+   *  JSON file with `fetch(data.url)`. This bypasses MCP per-tool-call
+   *  output caps that previously truncated 50–300 KB payloads
+   *  mid-JSON. Every call publishes a NEW unique file (token = 16 hex
+   *  chars), so URLs are never reused — matches the realtime semantics
+   *  of video data. Host is `origin.widecast.ai` (CF-bypassed) +
+   *  `?v=<mtime>` cache-bust. Server only responds AFTER the JSON is
+   *  fsynced + atomically renamed to its final path, so the URL is
+   *  guaranteed readable when the caller fetches it (no race).
+   *  Operators can flip to legacy inline mode with env flag
+   *  `WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content`.
+   *
+   *  The published JSON file shape is the same as the legacy inline
+   *  response. Per-segment `words`, top-level `captions`, and internal
+   *  preview-cache fields are trimmed to keep the MCP payload usable.
    *
    *  **Scene identity rule** (also embedded as `scene_identity` in the
    *  response): use `voice_file` as the stable per-scene UID.
@@ -1690,7 +1730,9 @@ export class Widecast {
    *
    *  Throws `code="video_not_found"` (404) when the id doesn't exist on
    *  the account, or `code="script_not_ready"` (409) when the video is
-   *  still processing — poll `wait_for_video()` first.
+   *  still processing — poll `wait_for_video()` first. Throws
+   *  `code="video_data_publish_failed"` (500) if the response tree
+   *  could not be persisted to disk.
    */
   async video_data(
     videoId: string,

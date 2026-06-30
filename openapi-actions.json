@@ -1696,6 +1696,16 @@
               }
             }
           },
+          "500": {
+            "description": "`video_data_publish_failed` — the response tree was assembled\nbut could not be persisted to disk (no readable URL to return).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "502": {
             "description": "`script_parse_failed` — stored video_script is malformed.\nContact support with the request_id.\n",
             "content": {
@@ -1816,7 +1826,7 @@
             }
           },
           "500": {
-            "description": "Defensive belt-and-suspenders only. After the\nnever-throws-never-500 refactor of the screenshot\ncompositor, individual layer failures surface as warning\ncodes in `result.warnings[]` while the response still\ncarries a published URL. Hitting this branch means an\nunexpected path was triggered:\n  * `server_fallback_failed` — Exception fell outside the\n    lookup classification (extremely rare).\n  * `screenshot_publish_failed` — image was composed but\n    could not be persisted to disk (no readable URL to\n    return).\n",
+            "description": "`screenshot_publish_failed` — image was composed but could\nnot be persisted to disk (no readable URL to return).\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -4764,12 +4774,13 @@
           "object",
           "id",
           "topic_id",
-          "aspect_ratio",
-          "total_segments",
-          "segments",
+          "delivery_mode",
+          "data",
+          "instructions",
           "review_url",
           "request_id"
         ],
+        "description": "**URL-RESPONSE ENVELOPE.** Default delivery mode is\n`download_url`: the server publishes the full video_data tree to\na temporary public JSON file on `origin.widecast.ai` and the\nresponse carries `data.url` + size + 15-min TTL + a 3-step\n`instructions` block. The agent must `curl <data.url> -o\nvideo_data.json` and Read locally; the full tree is NOT inlined\nin this response. This bypasses MCP per-tool-call output caps\nthat previously truncated 50–300 KB payloads mid-JSON. Every\ncall publishes a NEW unique file (token = 16 hex chars) so URLs\nare never reused — matches the realtime semantics of video\ndata. Host is `origin.widecast.ai` (CF-bypassed) +\n`?v=<mtime>` cache-bust. Server only responds AFTER the JSON is\nfsynced + atomically renamed, so the URL is guaranteed\nreadable. The published JSON file shape is unchanged: top-level\n`object`/`id`/`topic_id`/`aspect_ratio`/`title`/`language`/\n`total_segments`/`total_duration`/`scene_identity`/`segments[]`/\n`global_settings`/`review_url`/`request_id`. Operators can flip\nto legacy inline mode with env flag\n`WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content`.\n",
         "properties": {
           "skill_required": {
             "$ref": "#/components/schemas/SkillRequiredHint",
@@ -4785,38 +4796,57 @@
           "topic_id": {
             "type": "string"
           },
-          "aspect_ratio": {
+          "delivery_mode": {
             "type": "string",
             "enum": [
-              "portrait",
-              "landscape",
-              "square"
-            ]
+              "download_url",
+              "inline_content"
+            ],
+            "description": "`download_url` (default) → `data` carries a URL pointer; agent fetches the JSON file.\n`inline_content` → legacy mode (set via env flag); the full video_data tree is inlined.\n"
           },
-          "title": {
-            "type": "string"
-          },
-          "language": {
-            "type": "string"
-          },
-          "total_segments": {
-            "type": "integer"
-          },
-          "total_duration": {
-            "type": "number",
-            "description": "Sum of `duration` across segments (seconds)."
-          },
-          "scene_identity": {
-            "$ref": "#/components/schemas/SceneIdentityGuide"
-          },
-          "segments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VideoDataSegment"
+          "data": {
+            "type": "object",
+            "required": [
+              "url",
+              "mime_type",
+              "bytes",
+              "expires_at",
+              "ttl_seconds"
+            ],
+            "description": "Pointer to the published JSON file. Set when `delivery_mode=\"download_url\"`.",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Public `origin.widecast.ai` URL with `?v=<mtime>` cache-bust."
+              },
+              "mime_type": {
+                "type": "string",
+                "const": "application/json"
+              },
+              "bytes": {
+                "type": "integer"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601 UTC timestamp — ~15 min after publish."
+              },
+              "ttl_seconds": {
+                "type": "integer",
+                "const": 900
+              }
             }
           },
-          "global_settings": {
-            "$ref": "#/components/schemas/VideoDataGlobalSettings"
+          "instructions": {
+            "type": "string",
+            "description": "3-step setup the agent should follow (mkdir + curl + Read)."
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object"
           },
           "review_url": {
             "type": "string",
@@ -4928,7 +4958,7 @@
           },
           "code": {
             "type": "string",
-            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` |\n`server_fallback_failed` (couldn't compose a fallback —\nHTTP 500) | `screenshot_publish_failed` (composed but\ncouldn't be persisted to disk — HTTP 500). Successful\n`screenshot_scene_280x498` calls return this JSON envelope\nwith `code: \"ok\"` and `result.screenshot.url` — agent\nfetches the JPEG with `curl <url>`. The server-side\ncompositor is now the sole screenshot path, so a\nsuccessful screenshot is always `code: \"ok\"` regardless of\nwhether a live editor was elected.\n"
+            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` |\n`screenshot_publish_failed` (composed but couldn't be\npersisted to disk — HTTP 500). Successful\n`screenshot_scene_280x498` calls return this JSON envelope\nwith `code: \"ok\"` and `result.screenshot.url` — agent\nfetches the JPEG with `curl <url>`. The server-side\ncompositor is the sole screenshot path, so a successful\nscreenshot is always `code: \"ok\"` regardless of whether a\nlive editor was elected.\n"
           },
           "request_id": {
             "type": "string"
@@ -4956,10 +4986,6 @@
               "type": "object"
             },
             "description": "Set only when `action=\"list_live_editors\"`."
-          },
-          "fallback": {
-            "type": "object",
-            "description": "Set when `status=\"unavailable\"` — describes the data-first fallback path."
           }
         }
       },

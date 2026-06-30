@@ -1367,11 +1367,31 @@ class Widecast:
         :meth:`scene_inspector` only as an expensive last resort when you
         need browser truth / a small live screenshot).
 
-        Returns full annotated segment dicts. To keep MCP payloads usable,
-        per-segment ``words`` timing arrays, top-level ``captions``, and
-        internal preview-cache fields (``savedVideos``, ``savedImages``,
-        ``_previewInstanceId``, ``_remotionSpecFetching``,
-        ``_forceNarratorRefit``) are trimmed.
+        **URL-RESPONSE CONTRACT** (default
+        ``delivery_mode="download_url"``): the returned dict is a small
+        envelope — the full video_data tree (annotated segments,
+        scene_identity, global_settings, Remotion spec metadata) is
+        **NOT** inlined. Instead the server publishes the tree to a
+        temporary public JSON file on ``origin.widecast.ai`` and the
+        envelope carries ``data["url"]`` + ``data["bytes"]`` +
+        ``data["expires_at"]`` + ``data["ttl_seconds"]`` (15 min) plus a
+        3-step ``instructions`` block. The caller fetches the JSON file
+        with ``urllib.request`` / ``requests`` / ``curl``. This bypasses
+        MCP per-tool-call output caps that previously truncated 50–300 KB
+        payloads mid-JSON. Every call publishes a NEW unique file (token
+        = 16 hex chars), so URLs are never reused — matches the realtime
+        semantics of video data. Host is ``origin.widecast.ai``
+        (CF-bypassed) + ``?v=<mtime>`` cache-bust. Server only responds
+        AFTER the JSON is fsynced + atomically renamed to its final
+        path, so the URL is guaranteed readable when the caller fetches
+        it. Operators can flip to legacy inline mode with env flag
+        ``WIDECAST_VIDEO_DATA_DELIVERY_MODE=inline_content``.
+
+        The published JSON file shape is the same as the legacy inline
+        response. To keep MCP payloads usable, per-segment ``words``
+        timing arrays, top-level ``captions``, and internal preview-cache
+        fields (``savedVideos``, ``savedImages``, ``_previewInstanceId``,
+        ``_remotionSpecFetching``, ``_forceNarratorRefit``) are trimmed.
 
         **Internal poster diagnostics are stripped by default.**
         Per-segment ``remotion_poster_file``, ``remotion_poster_url``,
@@ -1428,6 +1448,8 @@ class Widecast:
         the id doesn't exist on the account, or
         ``InvalidRequestError(code="script_not_ready", 409)`` when the
         video is still processing — poll :meth:`wait_for_video` first.
+        Raises ``APIError(code="video_data_publish_failed", 500)`` if the
+        response tree could not be persisted to disk.
         """
         if not isinstance(video_id, str) or not video_id.strip():
             raise InvalidRequestError(

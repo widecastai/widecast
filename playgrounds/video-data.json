@@ -4,7 +4,7 @@
     "path": "/v1/video_data"
   },
   "title": "Read structured scene data (data-first audit/edit entry point)",
-  "description": "Synchronous, free. First step for data-first scene audit/edit — call\nthis BEFORE /v1/modify_scene or /v1/scene_inspector. Returns full\nannotated segment dicts with stable-identity fields, Remotion spec\nmetadata, and coordinate-space hints (720×1280 canvas vs 280×498\nlegacy editor preview). `voice_file` is the stable per-scene UID;\n`segment.id` is only current display/order.\n",
+  "description": "Synchronous, free. First step for data-first scene audit/edit — call\nthis BEFORE /v1/modify_scene or /v1/scene_inspector. URL-RESPONSE\nCONTRACT: the HTTP response is a small envelope; the full video_data\ntree is published to a temporary public JSON file on\n`origin.widecast.ai` and the envelope carries `data.url` + size +\n15-min TTL + a 3-step `instructions` block. The agent fetches the JSON\nfile with `curl <data.url>` and reads it locally — the full tree is\nNOT inlined. Bypasses MCP per-tool-call output caps that previously\ntruncated 50–300 KB payloads mid-JSON. Every call publishes a NEW\nunique file so URLs are never reused (matches realtime semantics).\nThe published JSON file content is the same as the legacy inline\nresponse: annotated segment dicts with stable-identity fields,\nRemotion spec metadata, and coordinate-space hints (720×1280 canvas\nvs 280×498 legacy editor preview). `voice_file` is the stable\nper-scene UID; `segment.id` is only current display/order.\n",
   "fields": [
     {
       "name": "video_id",

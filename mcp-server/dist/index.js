@@ -582,9 +582,10 @@ const TOOLS = [
     {
         name: "widecast_video_data",
         title: "WideCast: Read structured scene data (data-first audit/edit entry point)",
-        description: "Read structured video/scene data for a topic_id. SYNC, FREE. **First step for data-first scene audit/edit** — call this before widecast_scene_geometry / widecast_modify_scene / widecast_scene_inspector. The recommended chain is: **video_data → scene_geometry (for layout decisions) → modify_scene** (or use scene_inspector only as an expensive last resort when you need browser truth / a small live screenshot). " +
-            "Returns full annotated segment dicts in `segments`. To keep MCP payloads usable, the API trims per-segment `words` timing arrays, top-level `captions`, plus internal preview-cache fields (`savedVideos`, `savedImages`, `_previewInstanceId`, `_remotionSpecFetching`, `_forceNarratorRefit`). UI routes still get full data; this is the agent-safe slim view. " +
-            "**Scene identity rule** (also returned as `scene_identity` in the response): use `voice_file` as the stable per-scene UID — `segment.id` is only display/order metadata and can change after reorder/add/delete. The Remotion spec for a scene is `{voice_file}_spec.json`.\n" +
+        description: "Read structured video/scene data for a topic_id. SYNC, FREE. **First step for data-first scene audit/edit** — call this before widecast_scene_geometry / widecast_modify_scene / widecast_scene_inspector. The recommended chain is: **video_data → scene_geometry (for layout decisions) → modify_scene** (or use scene_inspector only as an expensive last resort when you need browser truth / a small live screenshot).\n" +
+            "**URL-RESPONSE CONTRACT** — the tool response is a small envelope; the actual video_data tree is published to a temporary public JSON file on `origin.widecast.ai` and the envelope carries `data.url` + `data.bytes` + `data.expires_at` + `data.ttl_seconds=900` (15 min) plus a 3-step `instructions` block telling the agent to `mkdir -p ./.widecast-video-data && cd ./.widecast-video-data` + `curl -fsSL '<url>' -o video_data.json` + `Read('./.widecast-video-data/video_data.json')`. This bypasses MCP per-tool-call output caps that otherwise truncate 50–300 KB payloads mid-JSON. Every call publishes a NEW unique file (token = 16 hex chars), so URLs are never reused — matches the realtime semantics of video data. Host is `origin.widecast.ai` (CF-bypassed) + cache-bust `?v=<mtime>`. Server only responds AFTER the JSON is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent fetches it.\n" +
+            "The published JSON file is the same shape as before. To keep MCP payloads usable, the API trims per-segment `words` timing arrays, top-level `captions`, plus internal preview-cache fields (`savedVideos`, `savedImages`, `_previewInstanceId`, `_remotionSpecFetching`, `_forceNarratorRefit`). UI routes still get full data; this is the agent-safe slim view. " +
+            "**Scene identity rule** (also returned as `scene_identity` in the published JSON): use `voice_file` as the stable per-scene UID — `segment.id` is only display/order metadata and can change after reorder/add/delete. The Remotion spec for a scene is `{voice_file}_spec.json`.\n" +
             "**Per-segment fields agents care about**:\n" +
             "• `voice_file` — stable scene UID (use for modify/inspect).\n" +
             "• `id` / `order_id` / `scene_index` — current order; UNSTABLE.\n" +
@@ -601,7 +602,7 @@ const TOOLS = [
             "**Remotion spec is NOT inlined** — it can contain large base64 images that blow MCP payload budget. Fetch `remotion_spec_url` only when `remotion_spec_state='ready'` and you actually need object-level overlay boxes.\n" +
             "**Internal poster diagnostics are stripped by default**: per-segment `remotion_poster_file` / `remotion_poster_url` / `remotion_poster_version` / `remotion_poster_state` / `remotion_poster_exists` / `remotion_poster_warnings` (and their copies inside `agent_meta.remotion_spec`) are removed from the default response — they describe the server-side `{voice_file}_overlay_poster.png` used by scene_inspector fallback, not anything an agent needs to act on. Pass `include_diagnostics:true` to opt back in for server/debug audits.\n" +
             "Mirrors the same engine the dashboard's scene editor uses on open (rebalance A/B rolls + ensure music + persist if changed), so the data matches what the user sees in `#scene_editor?topic_id=…` exactly. " +
-            "Errors: 404 `video_not_found`, 409 `script_not_ready` (video still processing — poll widecast_wait_for_video first).",
+            "Errors: 404 `video_not_found`, 409 `script_not_ready` (video still processing — poll widecast_wait_for_video first), 500 `video_data_publish_failed` (disk write fails after compose).",
         inputSchema: {
             type: "object",
             required: ["video_id"],
@@ -623,47 +624,24 @@ const TOOLS = [
                 object: { type: "string", const: "video_data" },
                 id: { type: "string" },
                 topic_id: { type: "string" },
-                aspect_ratio: { type: "string" },
-                title: { type: "string" },
-                language: { type: "string" },
-                total_segments: { type: "number" },
-                total_duration: { type: "number" },
-                scene_identity: { type: "object", description: "Machine-readable explanation of voice_file vs id." },
-                segments: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        additionalProperties: true,
-                        properties: {
-                            id: { type: ["string", "number"] },
-                            order_id: { type: ["string", "number", "null"] },
-                            voice_file: { type: "string" },
-                            scene_uid: { type: "string", description: "= voice_file. Stable scene UID." },
-                            scene_index: { type: "integer" },
-                            type: { type: "string" },
-                            text: { type: "string" },
-                            talking_point: { type: "string" },
-                            visual: { type: "string" },
-                            quote: { type: "string" },
-                            keyword: { type: "string" },
-                            duration: { type: "number" },
-                            mediaUrl: { type: "string" },
-                            mediaType: { type: "string" },
-                            thumbnailUrl: { type: "string" },
-                            videoTrim: { type: "object" },
-                            overlay: { type: "object", description: "Legacy overlay block — `caption` + `narrator` rects in 280×498 editor coordinates." },
-                            remotion_spec: { type: ["string", "null"], description: "Per-scene Remotion spec filename token. 'none' = user disabled overlay for this scene." },
-                            remotion_spec_file: { type: "string", description: "{voice_file}_spec.json" },
-                            remotion_spec_url: { type: "string", description: "Cache-busted public spec URL; empty when state='disabled' or 'missing'." },
-                            remotion_spec_version: { type: "string" },
-                            remotion_spec_exists: { type: "boolean" },
-                            remotion_spec_state: { type: "string", enum: ["ready", "missing", "disabled"] },
-                            agent_meta: { type: "object" },
-                        },
-                    },
-                },
-                global_settings: { type: "object", description: "Slim subset — aspectRatio, voice_type, avatar_type only." },
+                delivery_mode: { type: "string", enum: ["download_url", "inline_content"], description: "Default 'download_url'. Server returns the small envelope; the full tree is fetched from `data.url`. 'inline_content' is the legacy mode behind the WIDECAST_VIDEO_DATA_DELIVERY_MODE env flag." },
+                skill_required: { type: "string", description: "Hint to load the editing skill first." },
                 review_url: { type: "string", format: "uri" },
+                data: {
+                    type: "object",
+                    description: "Pointer to the published JSON. Agent must `curl <url> -o video_data.json` then Read locally.",
+                    properties: {
+                        url: { type: "string", description: "Public origin.widecast.ai URL with ?v=<mtime> cache-bust." },
+                        mime_type: { type: "string", const: "application/json" },
+                        bytes: { type: "integer" },
+                        expires_at: { type: "string", description: "ISO-8601 UTC timestamp; ~15 min from publish." },
+                        ttl_seconds: { type: "integer", const: 900 },
+                    },
+                    required: ["url", "mime_type", "bytes", "expires_at", "ttl_seconds"],
+                },
+                instructions: { type: "string", description: "3-step setup: mkdir + curl + Read." },
+                next_action: { type: "string" },
+                meta: { type: "object" },
                 request_id: { type: "string" },
             },
         },
@@ -730,10 +708,10 @@ const TOOLS = [
         title: "WideCast: Live browser inspector (expensive last-resort; use AFTER scene_geometry)",
         description: "SYNC live browser inspector for an open scene editor of a video. **More expensive than widecast_scene_geometry — use this only when data + geometry are NOT enough**: typically when the agent needs browser truth (mounted DOM, computed boxes, current preview play state) or a small 280×498 visual screenshot for aesthetic judgment. Do NOT use it as the first step if `widecast_scene_geometry` already gives you the boxes you need.\n" +
             "**How it works**: the server broadcasts a tiny MQTT probe to every open editor tab for this video, elects ONE healthy foreground/active browser within ~800ms, then sends the real inspector command only to that tab. widecast_modify_scene realtime broadcasts to all editors separately — this tool's election only affects which tab returns the live inspection. Presence alone is not usability: a tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.\n" +
-            "**🖼 `screenshot_scene_280x498` response shape**: regular `SceneInspectorResponse` JSON whose `result.screenshot` carries a *temporary public URL* — NOT bytes, NOT base64. Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. The agent fetches the JPEG by `curl <url>` — the URL is public (no auth header needed) and remains valid for ~15 minutes from the call (TTL contract). Every call publishes a fresh unique file (token = 16 hex chars), so the URL is never reused across calls — matches the realtime semantics of inspector data. Host is `origin.widecast.ai` (bypasses Cloudflare so 15-min ephemeral URLs never get pinned in CF edge cache). Cache-bust `?v=<mtime>` is belt-and-suspenders. Server only responds AFTER the JPEG is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent reads the response. The compositor never throws — single-layer failures surface as codes in `result.warnings[]` (`background_layer_failed:<Exc>`, `poster_composite_failed:<Exc>`, `narrator_layer_failed:<Exc>`, `caption_layer_failed:<Exc>`, `jpeg_save_failed:<Exc>`) while the response still carries a published URL; if even JPEG encode fails the server emits a placeholder JPEG with scene identity drawn on dark slate. Error codes (non-200): 404 `video_not_found`/`scene_not_found`, 409 `script_not_ready`, 502 `script_parse_failed`, 500 `server_fallback_failed` (lookup throws) / `screenshot_publish_failed` (disk write fails after compose). Plus the normal 400/auth/`unsupported_action`/`publisher_missing` codes.\n" +
+            "**🖼 `screenshot_scene_280x498` response shape**: regular `SceneInspectorResponse` JSON whose `result.screenshot` carries a *temporary public URL* — NOT bytes, NOT base64. Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. The agent fetches the JPEG by `curl <url>` — the URL is public (no auth header needed) and remains valid for ~15 minutes from the call (TTL contract). Every call publishes a fresh unique file (token = 16 hex chars), so the URL is never reused across calls — matches the realtime semantics of inspector data. Host is `origin.widecast.ai` (bypasses Cloudflare so 15-min ephemeral URLs never get pinned in CF edge cache). Cache-bust `?v=<mtime>` is belt-and-suspenders. Server only responds AFTER the JPEG is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent reads the response. Error codes (non-200): 404 `video_not_found`/`scene_not_found`, 409 `script_not_ready`, 502 `script_parse_failed`, 500 `screenshot_publish_failed` (disk write fails after compose). Plus the normal 400/auth/`unsupported_action`/`publisher_missing` codes.\n" +
             "**No live editor → graceful behaviour**:\n" +
             "• For non-screenshot actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
-            "• For `screenshot_scene_280x498`, the server composes a fallback screenshot from scene thumbnails plus `{voice_file}_overlay_poster.png` and publishes it to the same 15-min URL contract. Treat fallback screenshots as approximate composites, not real renders.\n" +
+            "• `screenshot_scene_280x498` is always served via the same 15-min URL contract regardless of whether a live editor is mounted; treat the image as approximate when no live editor was available.\n" +
             "**Actions** (`action`):\n" +
             "• `list_live_editors` — presence list of open editor tabs (browser/OS/last_seen) — debug/discovery only.\n" +
             "• `list_instances` — preview instance ids mounted in the elected tab.\n" +
@@ -782,7 +760,7 @@ const TOOLS = [
             properties: {
                 object: { type: "string", const: "scene_inspector_result" },
                 status: { type: "string", enum: ["completed", "error", "unavailable"] },
-                code: { type: "string", description: "Response codes: ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | server_fallback_failed (couldn't compose fallback — 500) | screenshot_publish_failed (composed but couldn't be persisted to disk — 500). Successful `screenshot_scene_280x498` calls always return this JSON envelope with `code: \"ok\"` and `result.screenshot.url` (15-min public URL). The server-side compositor is the sole screenshot path, so a successful screenshot is always `code: \"ok\"` — agent fetches the JPEG with `curl <url>`." },
+                code: { type: "string", description: "Response codes: ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | screenshot_publish_failed (composed but couldn't be persisted to disk — 500). Successful `screenshot_scene_280x498` calls always return this JSON envelope with `code: \"ok\"` and `result.screenshot.url` (15-min public URL)." },
                 request_id: { type: "string" },
                 action: { type: "string" },
                 topic_id: { type: "string" },
@@ -790,7 +768,6 @@ const TOOLS = [
                 selected_browser: { type: "object", description: "Tab metadata for the elected browser (only set when status='completed')." },
                 result: { type: "object", description: "Action-specific result payload from the browser." },
                 editors: { type: "array", items: { type: "object" }, description: "Set only when action='list_live_editors'." },
-                fallback: { type: "object", description: "Set when status='unavailable' — describes the data-first fallback path." },
             },
         },
     },
