@@ -80,9 +80,9 @@ Two kinds; pick by whether motion matters.
 
 ⚠️ **Background ALWAYS uses `modify_scene` branch (A) `mediaUrl` (+`mediaType`). NEVER use branch (I) `narrator.upload_video` for a background** — that field is the A-roll NARRATOR's face video; putting a background there switches the scene to an A-roll narrator. Two different fields — never confuse them.
 
-### 4.2. Evaluate the CURRENT scene — START composite + active background/media plate
+### 4.2. Evaluate the CURRENT scene — BEFORE composite + active background/media plate
 
-To judge the current background (and the whole scene), pull the **START composite screenshot** (`scene_inspector` / `widecast_scene_inspector` → `screenshot_scene_280x498`, §6), read `result.screenshot.url`, download it to a local file with `curl -L -s -o <local>.jpg "<url>"`, show it visibly in chat, and only then evaluate it. It composites the scene **as it actually renders** — background + narrator + overlay + caption — so it tells you whether the background is actually visible in the final scene.
+To judge the current background (and the whole scene), use the already shown **BEFORE composite screenshot** when available, or pull one now (`scene_inspector` / `widecast_scene_inspector` → `screenshot_scene_280x498`, §6), read `result.screenshot.url`, download it to a local file with `curl -L -s -o <local>.jpg "<url>"`, show it visibly in chat, and only then evaluate it. It composites the scene **as it actually renders** — background + narrator + overlay + caption — so it tells you whether the background is actually visible in the final scene.
 
 Then pull the **active background/media plate** separately, download it locally, show it visibly, and only then analyze it. This is required because the composite screenshot can make agents misattribute a background object (e.g. a wallet/card graphic) as an overlay, or wrongly think an overlay is hiding the background.
 
@@ -147,7 +147,7 @@ This section describes the operational loop for reviewing and replacing the back
 1. Pull the entire video data first.
 2. For each target scene, save a baseline: `voice_file`, `id`, `text`, `talking_point`, `keyword`, `visual`, `type`, `pattern`, `sub_mode`, the current `mediaUrl`, `mediaType`, the current thumbnail. Note that `originalMediaUrl`/`originalThumbnailUrl` are already available as a restore point.
 3. Identify the target scenes: usually from `id=2` (after the thumbnail scene) to the last scene. Skip a scene only when the user explicitly asks.
-4. Create a **Background Audit Ledger** with a blank row for every target scene. Required columns: `scene`, `voice_file`, `composite_local_path`, `active_plate_local_path`, `geo_context_required`, `geo_verdict`, `decision`, `action`, `verdict`. Do not fill visual judgments during preparation; fill each row only inside that scene's Gate 4 after local-visible evidence has been shown.
+4. Create a **Background Audit Ledger** with a blank row for every target scene. Required columns: `scene`, `voice_file`, `composite_local_path`, `active_plate_local_path`, `geo_context_required`, `geo_verdict`, `decision`, `action`, `verdict`. Do not fill visual judgments during preparation; fill each row only inside that scene's Gate 5 after local-visible evidence has been shown.
 5. Audit each scene per §4.1 — decide grid vs a real background **by sight + topic vibe, not by the pattern label**; grid is the capped exception (≤3/video, §4.1a). A scene is not background-audited until its ledger row has a PASS/FIXED verdict.
 
 ### 11.2. Grid placeholder
@@ -161,8 +161,8 @@ Sending `modify_scene` (A) with the grid for one scene makes the editor auto-scr
 ### 11.3. The per-scene loop (in order)
 
 0. **BYPASS CHECKS — check FIRST.**
-   - **Force-grid / active grid:** if `segment.force_grid === true`, `stock_fallback_reason` ends in `_force_grid`, or the active media is already a grid background, the background is **grid by design** → **skip B–H entirely** (no `search_broll`, no real-footage content evaluation, no replace). This does **not** skip Gate 4 proof: still use the local-shown START composite + active plate, print `Gate 4 BACKGROUND PROOF`, update the Background Audit Ledger, and mark `Verdict: PASS grid-by-design` when the grid cap/shared-grid rule is satisfied. Then go straight to the overlay work.
-   - **Full-canvas A-roll:** if the narrator fills/occludes the frame, the narrator is the active visual → **do not evaluate the hidden fallback/background plate for content**. Still show the composite + active plate for auditability, print `Gate 4 BACKGROUND PROOF`, set `Decision: A-roll narrator is the visual`, `Action: no background action because A-roll narrator fills frame`, and continue.
+   - **Force-grid / active grid:** if `segment.force_grid === true`, `stock_fallback_reason` ends in `_force_grid`, or the active media is already a grid background, the background is **grid by design** → **skip B–H entirely** (no `search_broll`, no real-footage content evaluation, no replace). This does **not** skip Gate 5 proof: still use the local-shown BEFORE composite + active plate, print `Gate 5 BACKGROUND PROOF`, update the Background Audit Ledger, and mark `Verdict: PASS grid-by-design` when the grid cap/shared-grid rule is satisfied. Then go straight to Gate 6 final composition.
+   - **Full-canvas A-roll:** if the narrator fills/occludes the frame, the narrator is the active visual → **do not evaluate the hidden fallback/background plate for content**. Still show the composite + active plate for auditability, print `Gate 5 BACKGROUND PROOF`, set `Decision: A-roll narrator is the visual`, `Action: no background action because A-roll narrator fills frame`, and continue.
 
 A. **Activate the scene with a grid request.** `modify_scene` branch (A), `by="voice_file"`, `value=scene.voice_file`, field `mediaUrl=GRID`, `mediaType="video"`. The editor auto-scrolls/activates the scene.
 
@@ -171,9 +171,9 @@ B. **Decide grid or a real background — by sight + topic vibe, not by `pattern
    - Special (`narration_only`/`real_entity`): handle per §4.1; `real_entity` image search is the agent's own (§5.0), no WideCast image API.
    - Photo-led scene (`photo_with_people`/`photo_no_people`): continue to B2–I.
 
-B2. **(real-background scene) Check the current background first** — from the **local-shown START screenshot + local-shown active background/media plate** (§4.2), evaluate what the asset is and how it actually renders under the overlay/caption. Then print the master `Gate 4 BACKGROUND PROOF` template and update the Background Audit Ledger row for this scene. If it already fits, keep it, mark the row `Verdict: PASS keep`, and move to the next gate. Only proceed to C if it doesn't fit.
+B2. **(real-background scene) Check the current background first** — from the **local-shown BEFORE screenshot + local-shown active background/media plate** (§4.2), evaluate what the asset is and how it actually renders under the overlay/caption. Then print the master `Gate 5 BACKGROUND PROOF` template and update the Background Audit Ledger row for this scene. If it already fits, keep it, mark the row `Verdict: PASS keep`, and move to Gate 6 final composition. Only proceed to C if it doesn't fit.
 
-B3. **Hard stop before overlay.** Gate 5 is blocked until the current scene has a filled ledger row and a printed proof verdict: `PASS keep`, `PASS grid-by-design`, or `FIXED + PASS`. If the proof is missing, the correct status is `Scene N: FAIL — Gate 4 incomplete; fixing`, not PASS.
+B3. **Hard stop before final composition.** Gate 6 is blocked until the current scene has a filled ledger row and a printed proof verdict: `PASS keep`, `PASS grid-by-design`, or `FIXED + PASS`. If the proof is missing, the correct status is `Scene N: FAIL — Gate 5 incomplete; fixing`, not PASS.
 
 C. **State the keyword/context.** One short sentence explaining what keyword you'll search and why, based on `text`/`talking_point`. If §4.1c is on, include the target country/state/city/currency in the search phrase or explain why a neutral no-geo-cue visual is safer. (For a demo/recording, write this sentence in English.)
 
@@ -211,7 +211,7 @@ J. **Move to the next scene**, repeat.
 - Pasting raw HTML or just pasting an external thumbnail URL.
 - Always putting the chosen clip at #1.
 - Defaulting whole pattern-categories to grid (or, the opposite, forcing footage where the overlay fully carries it) instead of deciding by sight; exceeding the ≤3-scene grid cap.
-- Judging the background from only one image. The START screenshot is render truth, but the active background/media plate is required to separate background content from overlay/caption/narrator. Conversely, never judge from the thumbnail/plate alone because it may be hidden or altered in the composite.
+- Judging the background from only one image. The BEFORE screenshot is render truth, but the active background/media plate is required to separate background content from overlay/caption/narrator. Conversely, never judge from the thumbnail/plate alone because it may be hidden or altered in the composite.
 - Re-setting the old clip/`originalMediaUrl` without evaluating context.
 - Painting a **full-canvas background inside the overlay SVG** (it hides the scene video) instead of leaving it transparent.
 - Low-contrast overlay text with **no outline/chip** (it sinks into the footage), or not wrapping each object in a `data-wc-object` group (wrong or missing animation).

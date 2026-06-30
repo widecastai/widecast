@@ -17,7 +17,7 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_edi
 >
 > **⭐ MODULE LOAD PROOF — hard gate before SVG authoring.** Before you write a new SVG or rebuild an existing overlay, print the master template:
 > ```text
-> Gate 5 MODULE LOAD PROOF:
+> Gate 4 MODULE LOAD PROOF:
 > ☑ 30_overlay_core.md — SVG/object/upload rules
 > ☑ 40_thumbnail_cta.md — endpoint scene rules (required only for scene 2/opening poster, thumbnail sync, or final CTA)
 > ☑ 31_typography.md — title/label/readability rules (required because overlay has text)
@@ -25,11 +25,11 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_edi
 > ☑ styles/<text_axes.md | chart_axes.md> — style recipe library
 > Decision: <leave existing overlay | rebuild SVG | layout-only fix>
 > ```
-> If a required line is missing, **STOP**. Load the missing module first. Do not draw, upload, or mark Gate 5 PASS until the proof is complete and visible in the chat/log.
+> If a required line is missing, **STOP**. Load the missing module first. Do not draw, upload, or mark Gate 4 PASS until the proof is complete and visible in the chat/log.
 >
 > **⭐ TITLE GATE PROOF — hard gate after draft, before upload.** Loading `31_typography.md` is not enough. If the SVG/overlay has a title or hero text, print this proof and revise on any FAIL:
 > ```text
-> Gate 5 TITLE GATE PROOF:
+> Gate 4 TITLE GATE PROOF:
 > Title copy: "<exact title text>"
 > Takeaway source: <quote/talking_point words it encodes>
 > Copy correctness check: <PASS|FAIL> — no typo/grammar/diacritic/casing/number/symbol/proper-noun/domain-term error; phrasing is natural for the scene language
@@ -39,7 +39,7 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_edi
 > Local SVG check: <PASS|FAIL> — saved local SVG was shown before upload and appears title-led
 > Verdict: <PASS to upload | REVISE title before upload>
 > ```
-> Any FAIL blocks upload. Fix the SVG/title, show the revised local SVG, and repeat the gate. After upload, the saved/shown composite screenshot must still pass the final title check before Gate 5/6 can PASS:
+> Any FAIL blocks upload. Fix the SVG/title, show the revised local SVG, and repeat the gate. After upload, the saved/shown composite screenshot must still pass the final title check before Gate 4/6 can PASS:
 > ```text
 > Gate 6 TITLE SCREENSHOT CHECK:
 > Composite screenshot shown: <yes|no>
@@ -49,7 +49,7 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`ai_video_edi
 >
 > **⭐ SECONDARY TEXT/LABEL GATE — separate from title.** Title readability and label readability are two different gates. A title can PASS while the card text, chart labels, values, badges, or callouts FAIL. For every non-title text/value/label/card line, print and pass this before upload:
 > ```text
-> Gate 5 SECONDARY TEXT GATE PROOF:
+> Gate 4 SECONDARY TEXT GATE PROOF:
 > Text inventory: <exact non-title strings: values, labels, card text, badge text, callouts>
 > Copy correctness check: <PASS|FAIL> — every string is typo-free, grammar-correct, domain-correct, and preserves required numbers/currency/%/proper nouns/diacritics
 > Size floor check: <PASS|FAIL> — each non-title text is >= ~30px on the 720 canvas OR deliberately simplified/removed; nothing depends on zoom
@@ -90,13 +90,13 @@ You author the overlay as a **transparent SVG** (§5); `upload_overlay` sends th
 > 2. **Each thing that should animate on its own = its own `<g data-wc-object>` group** (§5.1).
 > 3. **≥5% outer padding on all four canvas sides** — nothing touches the scene edge (content box **x ∈ [36, 684], y ∈ [128, 960]**). This is only the OUTER margin; text inside cards/chips/bars also needs its own INNER padding.
 >
-> **⭐ TEXT-CONTAINER PADDING RULE — high aesthetic gate.** A bordered chip/card/pill is **optional**, not mandatory. Decide internally: can the label/value sit cleanly as open text on a quiet area, inside the chart panel, or on a subtle no-border backplate? Use a bordered container only when it clearly improves contrast or grouping. If you do place text inside a chip, card, badge, bar, pill, table cell, or panel, it must have visible interior padding on all sides. Minimum target on the 720×1280 SVG canvas: **24–32px horizontal padding** and **14–20px vertical padding** around the rendered text bbox; for hero pills/cards, use more. In the 280×498 screenshot this should still look like real air, not a hairline gap. If a word touches/grazes the border, sits on a stroke, gets clipped by rounded corners, or looks crowded even though readable, Gate 5/6 FAILS. Fix by removing the unnecessary border/container, widening the container, shortening/splitting the label, reducing only secondary font size slightly while staying above the mobile floor, moving objects, or rebuilding the SVG. Do not approve "readable but cramped."
+> **⭐ TEXT-CONTAINER PADDING RULE — high aesthetic gate.** A bordered chip/card/pill is **optional**, not mandatory. Decide internally: can the label/value sit cleanly as open text on a quiet area, inside the chart panel, or on a subtle no-border backplate? Use a bordered container only when it clearly improves contrast or grouping. If you do place text inside a chip, card, badge, bar, pill, table cell, or panel, it must have visible interior padding on all sides. Minimum target on the 720×1280 SVG canvas: **24–32px horizontal padding** and **14–20px vertical padding** around the rendered text bbox; for hero pills/cards, use more. In the 280×498 screenshot this should still look like real air, not a hairline gap. If a word touches/grazes the border, sits on a stroke, gets clipped by rounded corners, or looks crowded even though readable, Gate 4/6 FAILS. Fix by removing the unnecessary border/container, widening the container, shortening/splitting the label, reducing only secondary font size slightly while staying above the mobile floor, moving objects, or rebuilding the SVG. Do not approve "readable but cramped."
 
 ### 5.0. WHEN to (re)build an overlay — the threshold (method is always SVG)
 
 Before touching a scene's overlay, decide WHETHER to rebuild — don't default to "regenerate".
 
-> **⭐ OVERLAY COPY CORRECTNESS GATE — before layout/dead-zone can PASS.** Inventory every visible text string in the overlay (title, labels, values, badges, card text, CTA, callouts, chart labels, handles/URLs). Proofread them against the full script, `quote`, `talking_point`, `visual`, and domain context. Any typo, grammar issue, missing Vietnamese diacritic, wrong casing, wrong number/currency/%/symbol, wrong proper noun, wrong industry term, or awkward machine-written phrasing = Gate 5/8 FAIL. Do not let a clean dead-zone/layout result hide bad copy.
+> **⭐ OVERLAY COPY CORRECTNESS GATE — before final composition can PASS.** Inventory every visible text string in the overlay (title, labels, values, badges, card text, CTA, callouts, chart labels, handles/URLs). Proofread them against the full script, `quote`, `talking_point`, `visual`, and domain context. Any typo, grammar issue, missing Vietnamese diacritic, wrong casing, wrong number/currency/%/symbol, wrong proper noun, wrong industry term, or awkward machine-written phrasing = Gate 4/7 FAIL. Do not let a clean dead-zone/layout result hide bad copy.
 
 > **⭐ THE AGENT DECIDES — autonomously. The user is NOT present at runtime.** This playbook is only the rails; every decision belongs to the running agent. The user delegated the whole job and reviews only the FINISHED video — so **never block on a question** ("do you want…?", "which one should I use?", "should I rebuild?"), never present options for approval, and never wait for input that won't come. Pick the best action using the master decision protocol, act, and surface anything noteworthy in the final hand-off.
 

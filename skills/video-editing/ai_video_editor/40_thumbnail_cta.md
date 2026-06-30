@@ -85,7 +85,7 @@ Run this when you reach the last non-thumbnail/content scene, and always when `t
 6. **B-roll/faceless final scene:** use a clean centered or lower-third CTA group inside the safe zone. If the background is busy, add a tasteful local scrim/backplate behind the CTA text.
 7. **Author/adjust the CTA overlay:** load `30_overlay_core.md`, `31_typography.md`, and `styles/text_axes.md`. Choose one endpoint style from the ladder, usually `premium CTA poster`, `dynamic poster typography`, `magazine-cover thumbnail`, or `minimal premium cover`. Use poster-grade title/body thickness, bright fill, thin controlled outline/shadow for the hero CTA, and no visible stroke on small support text.
 8. **Avoid small text clutter:** remove social icons, QR-like marks, tiny handles, tiny labels, or decorative objects unless they are large enough to read at 280x498 and directly support the action. If a handle/URL is needed, it must be large, simple, and not fight the caption.
-9. **Verify:** pull/show the END screenshot. CTA PASS requires: one dominant action, title-grade readability, face/caption clear, no dead-zone object, no cramped support text, and server-saved confirmation.
+9. **Verify:** pull/show the AFTER screenshot. CTA PASS requires: one dominant action, title-grade readability, face/caption clear, no dead-zone object, no cramped support text, and server-saved confirmation.
 
 CTA title patterns:
 
