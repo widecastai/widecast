@@ -923,9 +923,25 @@ const TOOLS = [
   },
 ];
 
+// MCP server-level instructions — per MCP spec 2025-06-18, optional top-level
+// field on InitializeResult. Compliant hosts inject this into the model's
+// context at session start. We use it to break the chicken-and-egg of "the
+// rule to load the skill lives INSIDE the skill" — by naming the trigger
+// phrases + the tool to call at the OUTER layer, the agent sees the
+// requirement before it ever sees a skill response.
+const WIDECAST_MCP_INSTRUCTIONS = `WideCast MCP — required pre-call rules (read once at session start):
+
+1) **Edit/audit an EXISTING video.** When the user provides a WideCast scene-editor URL (\`record2.html#scene_editor?topic_id=…\` on widecast.ai) OR a \`topic_id\` (looks like \`widecast…\` / \`gubo…\` / current id) AND signals an editing intent (any of these — match across languages: "edit this video", "refine the scenes", "fix scene N", "review/audit the video", "improve overlay", "fix thumbnail", "audit backgrounds", "redo scene", "biên tập video", "chỉnh sửa cảnh", "sửa scene", "编辑视频", "剪辑", "シーン編集", "ビデオ編集"): **call \`widecast_get_editing_skill\` FIRST before any other tool, including before \`widecast_video_data\`**. Do NOT ask the user what to edit — the skill itself defines scope = full audit + fix. After the skill response arrives, follow its instructions (currently a 4-step download + Read flow that loads SKILL.md from disk).
+
+2) **Author a NEW video script / blog / social caption.** When the user wants to create a new video ("make a video", "write a script", "turn this into a video", "làm video", "做视频"), **call \`widecast_get_writing_skill(format='video')\` FIRST**. Same rule for \`format='blog'\` (article / blog post / long-form) and \`format='social'\` (X / LinkedIn / IG / Threads caption). The skill returns a 5-step method + the full method markdown.
+
+3) Both skill tools are KEY-FREE, IDEMPOTENT, and cheap (~1 tool call). Loading the right skill is the prerequisite for everything else WideCast offers — \`widecast_create_video\`, \`widecast_modify_scene\`, \`widecast_video_data\`, etc. all assume the agent has loaded the relevant skill.
+
+4) When in doubt about intent, prefer loading the skill (cheap) over asking the user (slow + breaks autonomous-run contract).`;
+
 const server = new Server(
   { name: "widecast-mcp", version: VERSION, title: "WideCast" } as any,
-  { capabilities: { tools: {} } },
+  { capabilities: { tools: {} }, instructions: WIDECAST_MCP_INSTRUCTIONS } as any,
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
