@@ -2,6 +2,8 @@
 
 Version: `modular-2.0` · This file is the **MASTER INDEX**. It is intentionally small so every host/MCP runtime can deliver it without hitting per-tool-call output caps. Every detail — rules, jump-prevention triggers, DoD gate templates, principles, workflow, quality bar, priority order — lives in **separate modules** under `ai_video_editor/`. Reach a step → open the matching module → then act.
 
+The goal of the AI video editor is to edit each scene so that the final video has **correct content, a clear face, clear text, the right visuals, good layout, and consistent quality from beginning to end.**
+
 > **Overarching principle — name the field, do not guess.** Stick to the exact field name in the data: `show_narrator=true` (not "the scene has a narrator"), `overlay.<sub>.visible=true` (not "it has an overlay"). All geometry (safe zone, narrator face, overlay position) is precomputed — call `scene_geometry` instead of estimating coordinates.
 
 ---
@@ -16,6 +18,14 @@ This file is an INDEX, not the manual. **Opening a module is a REQUIRED ACTION**
 - **Anthropic Skill upload transport** (`video-editing.zip` mounted locally) — use the host's local `Read` tool with the path relative to skill root: `Read("ai_video_editor/01_critical_rules.md")`.
 
 **Stable rule across both transports:** reach a step → open the module → act. Memory of a module loaded earlier does NOT replace re-loading it. Both transports are cheap.
+
+> **This is exactly how the background audit gets skipped:** an agent reads the master, treats a scene as "an overlay geometry task", and never opens `20_background` — so the whole background/B-roll branch silently disappears. **The fix is mechanical: reach a step → open its module → then act.** If you did not open the module, you have not done the step.
+
+**Stable TEXT markers** (icons render differently across AI apps — the TEXT is the source of truth): use these literal markers; an emoji (⭐ ✓ → ○ !) MAY decorate but never replaces the text:
+
+- `[ACTION REQUIRED]` — a standalone block whenever the human must do something (record A-roll, approve, run a command, final hand-off).
+- `Scene N: PASS` / `Scene N: FAIL — …` — the per-scene verdict.
+- `No action required.` — when a hand-off needs nothing from the human.
 
 ### Run kickoff — load these 5 core modules FIRST, before scene 1
 

@@ -2177,6 +2177,26 @@ paths:
             * `social` — platform caption (X / LinkedIn / IG / TikTok / FB /
               Threads). Pairs with `createVideo source='idea'` if the user
               wants a video version.
+        - name: module
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            Optional submodule id without the `.md` extension (e.g.
+            `method`, `formats`, `hooks`, `ctas`, `research_visuals`,
+            `handoff` under `video-script-writing/`). Omit to load the
+            master `SKILL.md` + the live `available_modules[]` index.
+
+            Same lazy-load contract as `/v1/skills/editing` — the master
+            `SKILL.md` is intentionally a small INDEX so it never hits a
+            per-tool-call output cap; detail lives in submodules. The
+            `available_modules[]` index is auto-built from filesystem on
+            every request. Path segments must match `^[A-Za-z0-9_-]+$`;
+            traversal (`../`) is rejected with 400 `invalid_module_id`.
+
+            Every response (entry + submodule) carries an always-returned
+            `contract` field (~1.5 KB) that survives runtime truncation
+            of `method`.
       responses:
         '200':
           description: Skill content with apply-now checklist.
@@ -2188,13 +2208,36 @@ paths:
                   object:         { type: string, example: skill }
                   name:           { type: string, example: video-script-writing }
                   format:         { type: string, enum: [video, blog, social], example: video }
-                  note_to_model:  { type: string, description: "READ THIS FIRST. Imperative wrapper that tells the model to stop and apply." }
-                  must_apply_now: { type: array, items: { type: string }, description: "Ordered checklist (5 steps). Execute in order BEFORE calling createVideo / createContent." }
+                  module:         { type: string, description: "Relative path of the file returned: `SKILL.md` for the entry response, `<id>.md` for a submodule." }
+                  module_id:      { type: string, description: "Submodule responses only — module id without `.md`." }
+                  title:          { type: string, description: "Submodule responses only — parsed first H1, falls back to filename basename." }
+                  size_bytes:     { type: integer }
+                  contract:       { type: string, description: "Always-returned cross-cutting rules (~1.5 KB) — read this FIRST. Survives runtime truncation of `method`." }
+                  note_to_model:  { type: string, description: "Entry response only — imperative wrapper that tells the model to stop and apply." }
+                  must_apply_now: { type: array, items: { type: string }, description: "Entry response only — ordered 5-step checklist." }
                   method_format:  { type: string, example: markdown }
-                  method:         { type: string, description: "Full method as markdown (the SKILL.md body). Reference for the checklist steps." }
-                  next_action:    { type: string, description: "What to do RIGHT NOW after reading this response." }
+                  method:         { type: string, description: "Markdown content of the file (frontmatter stripped). May be truncated by your runtime's per-tool-call output cap." }
+                  available_modules:
+                    type: array
+                    description: "Entry response only — auto-discovered from the format's skill folder on every call."
+                    items:
+                      type: object
+                      properties:
+                        id:         { type: string, example: "method" }
+                        title:      { type: string, description: "Auto-derived: first H1 → first H2 → first content line → filename basename." }
+                        summary:    { type: string, description: "Auto-derived: first ~200 chars of meaningful content after the title (markers stripped)." }
+                        size_bytes: { type: integer }
+                  next_action:    { type: string }
+                  meta:           { type: object }
         '400':
-          description: Unknown format.
+          description: |
+            `invalid_format` — `format` not in {video, blog, social}.
+            `invalid_module_id` — `module` contained traversal or characters
+            outside `[A-Za-z0-9_-]`.
+        '404':
+          description: |
+            `module_not_found` — no `.md` file at that path. Recall the
+            endpoint with `module` omitted to refresh `available_modules[]`.
         '503':
           description: Skill content temporarily unavailable.
 

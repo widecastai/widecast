@@ -2552,6 +2552,15 @@
               "default": "video"
             },
             "description": "Which writing skill to load.\n* `video` — short-form video script (TikTok / Reels / Shorts /\n  YouTube short). Pairs with `createVideo source='text'`.\n* `blog` — article / SEO post / long-form. Pairs with\n  `createVideo source='blog'` (repurpose-to-video).\n* `social` — platform caption (X / LinkedIn / IG / TikTok / FB /\n  Threads). Pairs with `createVideo source='idea'` if the user\n  wants a video version.\n"
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional submodule id without the `.md` extension (e.g.\n`method`, `formats`, `hooks`, `ctas`, `research_visuals`,\n`handoff` under `video-script-writing/`). Omit to load the\nmaster `SKILL.md` + the live `available_modules[]` index.\n\nSame lazy-load contract as `/v1/skills/editing` — the master\n`SKILL.md` is intentionally a small INDEX so it never hits a\nper-tool-call output cap; detail lives in submodules. The\n`available_modules[]` index is auto-built from filesystem on\nevery request. Path segments must match `^[A-Za-z0-9_-]+$`;\ntraversal (`../`) is rejected with 400 `invalid_module_id`.\n\nEvery response (entry + submodule) carries an always-returned\n`contract` field (~1.5 KB) that survives runtime truncation\nof `method`.\n"
           }
         ],
         "responses": {
@@ -2579,16 +2588,35 @@
                       ],
                       "example": "video"
                     },
+                    "module": {
+                      "type": "string",
+                      "description": "Relative path of the file returned: `SKILL.md` for the entry response, `<id>.md` for a submodule."
+                    },
+                    "module_id": {
+                      "type": "string",
+                      "description": "Submodule responses only — module id without `.md`."
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Submodule responses only — parsed first H1, falls back to filename basename."
+                    },
+                    "size_bytes": {
+                      "type": "integer"
+                    },
+                    "contract": {
+                      "type": "string",
+                      "description": "Always-returned cross-cutting rules (~1.5 KB) — read this FIRST. Survives runtime truncation of `method`."
+                    },
                     "note_to_model": {
                       "type": "string",
-                      "description": "READ THIS FIRST. Imperative wrapper that tells the model to stop and apply."
+                      "description": "Entry response only — imperative wrapper that tells the model to stop and apply."
                     },
                     "must_apply_now": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
-                      "description": "Ordered checklist (5 steps). Execute in order BEFORE calling createVideo / createContent."
+                      "description": "Entry response only — ordered 5-step checklist."
                     },
                     "method_format": {
                       "type": "string",
@@ -2596,11 +2624,37 @@
                     },
                     "method": {
                       "type": "string",
-                      "description": "Full method as markdown (the SKILL.md body). Reference for the checklist steps."
+                      "description": "Markdown content of the file (frontmatter stripped). May be truncated by your runtime's per-tool-call output cap."
+                    },
+                    "available_modules": {
+                      "type": "array",
+                      "description": "Entry response only — auto-discovered from the format's skill folder on every call.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "method"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Auto-derived: first H1 → first H2 → first content line → filename basename."
+                          },
+                          "summary": {
+                            "type": "string",
+                            "description": "Auto-derived: first ~200 chars of meaningful content after the title (markers stripped)."
+                          },
+                          "size_bytes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
                     },
                     "next_action": {
-                      "type": "string",
-                      "description": "What to do RIGHT NOW after reading this response."
+                      "type": "string"
+                    },
+                    "meta": {
+                      "type": "object"
                     }
                   }
                 }
@@ -2608,7 +2662,10 @@
             }
           },
           "400": {
-            "description": "Unknown format."
+            "description": "`invalid_format` — `format` not in {video, blog, social}.\n`invalid_module_id` — `module` contained traversal or characters\noutside `[A-Za-z0-9_-]`.\n"
+          },
+          "404": {
+            "description": "`module_not_found` — no `.md` file at that path. Recall the\nendpoint with `module` omitted to refresh `available_modules[]`.\n"
           },
           "503": {
             "description": "Skill content temporarily unavailable."

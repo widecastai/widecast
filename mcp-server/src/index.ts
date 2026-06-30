@@ -129,12 +129,15 @@ const TOOLS = [
       "• 'blog' → an article / blog post / long-form piece. Triggers across languages: 'write a blog', 'write an article', 'draft an article', 'turn this into a blog', 'viết bài blog', 'viết bài', 'écrire un article', '写博客', 'ブログを書いて'.\n" +
       "• 'video' → a short-form video script for TikTok / Reels / Shorts / YouTube. Triggers: 'make a video', 'write a video script', 'turn this into a video', 'short video', 'làm video', 'viết kịch bản video', '做视频'.\n" +
       "• 'social' → a platform-native caption for X / LinkedIn / Instagram / Threads / Facebook / TikTok. Triggers: 'write a tweet', 'LinkedIn post', 'IG caption', 'Threads post', 'social post', 'caption', 'viết caption', '写推文'.\n" +
-      "Match the writing-task intent across any language. Returns a JSON envelope with an ordered 5-step checklist (`must_apply_now`: research → write → inline media → hand-off → handle reply) plus the full method markdown (`method`). Call once per conversation. Key-free.",
+      "Match the writing-task intent across any language. Returns a JSON envelope with an ordered 5-step checklist (`must_apply_now`: research → write → inline media → hand-off → handle reply) plus the full method markdown (`method`).\n" +
+      "**LAZY-LOAD CONTRACT (video format — multi-module)**: master `SKILL.md` is intentionally a small INDEX so it never hits a per-tool-call output cap. Detail lives in submodules (`method`, `formats`, `hooks`, `ctas`, `research_visuals`, `handoff` under `video-script-writing/`). Call this tool MANY TIMES: first call with `module` omitted → returns the master envelope + `available_modules[]` + an always-returned `contract` field (~1.5 KB) that survives any truncation. When you reach a step that names a module, recall with `module='<id>'` (e.g. `widecast_get_writing_skill(format='video', module='method')`). Module IDs match `^[A-Za-z0-9_-]+$`. The `available_modules[]` index is auto-built from filesystem on every call — drop a new `.md` under any format folder and it appears instantly.\n" +
+      "**Freshness**: server caches per module by mtime, response carries `Cache-Control: no-store`, and `/app/*` bypasses Cloudflare — content is always live. 404 `module_not_found` → recall without `module` to refresh the list. Key-free.",
     inputSchema: {
       type: "object",
       required: ["format"],
       properties: {
         format: { type: "string", enum: ["video", "blog", "social"], description: "Which writing skill to load: 'video' for short-form scripts, 'blog' for articles/SEO posts, 'social' for platform captions." },
+        module: { type: "string", description: "Optional. Submodule id without `.md` (e.g. 'method', 'formats', 'hooks', 'ctas', 'research_visuals', 'handoff' under `video-script-writing/`). Omit to load the master SKILL.md + the live `available_modules[]` index." },
       },
     },
   },
@@ -144,11 +147,15 @@ const TOOLS = [
     description:
       "Load the WideCast AI-VIDEO-EDITOR playbook for refining/editing an EXISTING video (per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, definition-of-done). DIFFERENT from widecast_get_writing_skill, which is for AUTHORING new scripts; this skill is for EDITING already-generated scenes.\n" +
       "Triggers across languages: 'edit this video', 'refine the scenes', 'fix scene N', 'review the video', 'improve the overlay', 'fix the thumbnail', 'audit backgrounds', 'redo scene', 'biên tập video', 'chỉnh sửa cảnh', 'sửa scene N', '编辑视频', '剪辑', 'シーン編集', 'ビデオ編集'. Match the editing-task intent across any language.\n" +
-      "**LAZY-LOAD CONTRACT — MULTI-MODULE**: master `SKILL.md` is intentionally a small (~13 KB) INDEX so it never hits a per-tool-call output cap. Every detail (critical rules, jump-prevention triggers, DoD gates + templates, principles, workflow, quality bar) lives in separate modules. Call this tool MANY TIMES per run:\n" +
-      "1) **FIRST call with `module` omitted** → returns `SKILL.md` (the index) + `available_modules[]` (auto-discovered from disk) + an always-returned `contract` field (~1.5 KB) that survives any truncation.\n" +
-      "2) **AT RUN KICKOFF, ALWAYS load the 5 CORE MODULES**: `ai_video_editor/01_critical_rules` (14 rules + self-audit), `ai_video_editor/02_jump_prevention` (interrupt list), `ai_video_editor/03_dod_gates` (9-gate DoD + every template block), `ai_video_editor/04_principles_workflow` (general principles + whole-video workflow), `ai_video_editor/05_quality_qa_priority` (§7 quality bar + §8 video-level QA + §9 priority order).\n" +
-      "3) **PER SCENE**, load `ai_video_editor/10_mechanics` at scene start, then each gate's named module when you reach that gate: `30_overlay_core` + `31_typography` (when overlay has text) + `31`/`32`/`33` by pattern + `styles/*` for Gate 4 overlay; `20_background` for Gate 5 background audit; `40_thumbnail_cta` for scene 2 / thumbnail sync / final CTA. Reload modules at each step — do NOT work from memory across modules.\n" +
-      "**ALWAYS-RETURNED `contract` FIELD** (~1.5 KB): every response carries `contract` first (selector=voice_file, autonomous end-to-end, screenshot evidence, SVG overlay rules, DoD gate names, lazy-load contract). Read it FIRST — it survives truncation of `method` even when a runtime caps the per-tool-call output. `meta.contract_length` + `meta.method_length` let you detect truncation by comparing to your received string lengths.\n" +
+      "**⚠ DOWNLOAD-ZIP DELIVERY MODE (experiment, 2026-06-30)**: this tool no longer returns skill content inline. Instead the response is a 4-step download instruction:\n" +
+      "  1) `mkdir -p /tmp/wc-skill-video-editing && cd /tmp/wc-skill-video-editing`\n" +
+      "  2) `curl -fsSL <result.download.zip_url> -o video-editing.zip`\n" +
+      "  3) (optional) `shasum -a 256 video-editing.zip` should equal `result.download.sha256`\n" +
+      "  4) `unzip -o video-editing.zip` (creates `video-editing/` subdir)\n" +
+      "  Then `Read('/tmp/wc-skill-video-editing/video-editing/SKILL.md')` and follow its LOAD MAP — each step names a sub-module that you load via `Read('.../ai_video_editor/<id>.md')` from disk.\n" +
+      "**Why** — agent step-adherence (background audit, screenshot show-local, gate verdicts, module reload) is measurably better when content is read from a local file than from a tool result. Local-file path forces full reading + re-reading at each step; tool-result path tends to be skimmed once. The skill content on disk is identical to the previous inline-content mode (master INDEX + 5 core modules + per-scene modules + style libs) — only the delivery mechanism changed.\n" +
+      "**ALWAYS-RETURNED `contract` FIELD** (~1.5 KB): every response still carries `contract` (selector=voice_file, autonomous end-to-end, screenshot evidence, SVG overlay rules, DoD gate names, lazy-load contract). Read it FIRST — it is your safety net for cross-cutting rules even if your host cannot complete the download.\n" +
+      "**HOST REQUIREMENTS** — your runtime MUST have local shell + curl + unzip + a `Read`/file tool. If not, you cannot follow the full skill in this mode; fall back to the `contract` field and tell the user the editing skill needs a desktop+shell host (Claude Desktop, Codex CLI, local agent runtime). The download zip is served from `origin.widecast.ai` (Cloudflare-bypassed) with `?v=<mtime>` cache-bust.\n" +
       "**Module IDs are HIERARCHICAL filesystem paths without the `.md` extension**: `ai_video_editor/10_mechanics`, `ai_video_editor/styles/text_axes`, etc. Each segment must match `^[A-Za-z0-9_-]+$`; `../` and hidden segments are rejected with 400 `invalid_module_id`.\n" +
       "**Auto-expand — ZERO formatting required** — `available_modules[]` is rebuilt from filesystem on every call (rglob `*.md` under the skill root, excluding `SKILL.md`). When the maintainer drops a new `.md` file under `widecast/skills/video-editing/`, it appears here automatically. Each entry carries `id` + `title` + `summary` + `size_bytes`. The server auto-derives `title` (first H1 → first H2 → first content line → filename basename) and `summary` (first ~200 chars of meaningful text — paragraphs, bullets, sub-headings, quotes all qualify; markdown markers stripped) from whatever the file contains; the maintainer does NOT need to write an H1 or a dedicated summary line.\n" +
       "**Freshness — no cache to worry about**: server caches per module by file mtime; response carries `Cache-Control: no-store`; the WideCast `/app/*` API path bypasses Cloudflare. Content is ALWAYS the latest version on disk. If a module call returns 404 `module_not_found`, the file isn't on disk yet — recall with `module` omitted to refresh `available_modules[]`.\n" +
@@ -929,7 +936,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   try {
     if (name === "widecast_get_writing_skill") {
       const fmt = String(args.format ?? "video").trim().toLowerCase();
-      const data = await wc("GET", `/v1/skills/writing?format=${encodeURIComponent(fmt)}`);
+      const rawMod = (args.module ?? "");
+      const mod = String(rawMod).trim();
+      const query = mod === ""
+        ? `format=${encodeURIComponent(fmt)}`
+        : `format=${encodeURIComponent(fmt)}&module=${encodeURIComponent(mod)}`;
+      const data = await wc("GET", `/v1/skills/writing?${query}`);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
     if (name === "widecast_get_editing_skill") {
