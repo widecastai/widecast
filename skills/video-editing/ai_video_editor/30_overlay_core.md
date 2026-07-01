@@ -17,6 +17,8 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 >
 > **Load checklist before you draw:** ☐ `30_overlay_core.md` (this) ☐ `10_mechanics.md` if A-roll ☐ `40_thumbnail_cta.md` if endpoint scene ☐ `styles/design_languages.md` ☐ `31_typography.md` if any text appears ☐ matching content module `31`/`32`/`33` ☐ its `styles/*.md`. Stopping at this file = flat / off-pattern output. Skipping the A-roll ladder before drawing on narrator scenes = wrong narrator/overlay tradeoff. Skipping typography on a chart/diagram with labels = unreadable overlay risk. (Opening a module = a required ACTION, not optional — same rule as the master index.)
 >
+> **⭐ A-ROLL STARTING-LAYOUT BIAS GUARD.** If an A-roll scene currently shows a shrunken/picture-in-picture/fallback narrator, do not author, accept, or layout-fix the overlay against that small narrator as the baseline. First run the Gate 4 full-canvas candidate from `10_mechanics.md`: treat narrator full canvas as the starting design, then move/resize/simplify/rebuild the overlay around it. The current small narrator layout is only diagnostic evidence, not a design choice.
+>
 > **⭐ USER-FACING LANGUAGE GATE.** The internal overlay source is SVG, but that is a private implementation detail. In normal user updates, proof blocks, final hand-offs, and error explanations, say **overlay**, **overlay source**, or **overlay preview**. Do not say "SVG", ".svg", "vector conversion", or `svg2spec` unless the user is explicitly debugging the technical pipeline.
 >
 > **⭐ MODULE LOAD PROOF — hard gate before overlay authoring.** Before you write a new overlay source or rebuild an existing overlay, print the master template:

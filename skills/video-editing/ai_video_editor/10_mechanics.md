@@ -129,6 +129,10 @@ If the scene is A-roll (`show_narrator=true`, i.e. `active_roll="A"`), the agent
 
 This ladder is for normal A-roll scenes. Special endpoint / trust / CTA scenes keep their stricter rules below.
 
+**Starting-layout bias guard — reset the design baseline.** If the BEFORE screenshot or `scene_geometry` shows a shrunken / picture-in-picture / fallback narrator, treat that as a suspicious current state, not the design baseline. Before judging the overlay, the agent must mentally and operationally reset the candidate to **Priority 1: narrator full canvas**, then solve the overlay around that full-canvas narrator. The small narrator layout is evidence of what is currently on screen only; it is not permission to keep it, and it does not count as testing Priority 1.
+
+If the agent starts from a shrunken narrator and evaluates only whether the existing overlay fits that shrunken layout, Gate 4 has not run. Priority 1 is valid only when the narrator is actually treated as full canvas first, then the overlay is moved/resized/simplified/rebuilt around that full-canvas candidate.
+
 **Joint composition rule — do not freeze the overlay.** Each priority below is a `narrator + overlay + caption` composition attempt, not a narrator-only attempt. The current overlay position/size is only diagnostic; it is not a fixed constraint. Inside every priority, solve in this order:
 
 1. keep the narrator at the priority's target size/position;
@@ -143,12 +147,13 @@ Do **not** reject full-canvas priorities because the existing overlay currently 
 > - `scene_class`: `normal` / `special_endpoint_or_trust`
 > - `narrator_role`: `primary` / `secondary`
 > - `overlay_role`: `support` / `main_subject`
+> - `starting_layout_bias_reset`: `yes` when the current narrator is shrunken/fallback and the design baseline was reset to Priority 1 full canvas before overlay judgment; `N/A` only when the current narrator is already full-canvas/shifted-full-canvas
 > - `overlay_adjustments_tested`: `move` / `resize` / `simplify` / `rebuild` as applicable
 > - `full_canvas_gate`: `PASS` / `FAIL`
 > - chosen priority number (`1`–`4`)
 > - why each higher-priority option failed, if choosing priority 2–4
 >
-> If the agent chooses priority 4 without proving priorities 1–3 failed, Gate 4 fails and Gate 6 cannot pass. Do not accept an existing shrunken narrator layout just because it is already on screen.
+> If the current narrator is shrunken/fallback and `starting_layout_bias_reset` is not `yes`, Gate 4 is BLOCKED. If the agent chooses priority 4 without proving priorities 1–3 failed, Gate 4 fails and Gate 6 cannot pass. Do not accept an existing shrunken narrator layout just because it is already on screen.
 >
 > For **CTA, contact, trust, intro, outro, testimonial, or direct-address scenes**, the narrator is normally `primary`; prefer priorities **1–3** and keep the narrator large. **Priority 4 is forbidden for CTA/contact/trust scenes unless the overlay is detail-dense and truly the main subject** (e.g. a document, UI, chart, comparison table, product screenshot, or technical process diagram). Shrinking the narrator into a small picture-in-picture because it satisfies geometry is a defect, not a pass.
 >
@@ -163,6 +168,8 @@ Do **not** reject full-canvas priorities because the existing overlay currently 
 #### 1. Narrator full canvas
 
 The narrator nearly fills the whole canvas. The overlay must be adapted to this priority, not kept frozen from the previous render. Place or rebuild the overlay in the most viable full-canvas position: above the head, beside the head, over the chest/torso, or as a compact support element. The point is that the narrator stays full canvas while the overlay is arranged around the face and caption.
+
+If the current scene starts with a small narrator, first set/plan the narrator as full canvas for this candidate. Only after that may the overlay be judged. Checking the old small-narrator layout, or keeping the old small narrator while moving the overlay, is not Priority 1.
 
 If the starting overlay is parked at the top safe zone and touches the face, that does **not** fail priority 1. First move it to the chest/side/lower legal band, resize the group if needed, or rebuild it as a shorter typography-led support.
 

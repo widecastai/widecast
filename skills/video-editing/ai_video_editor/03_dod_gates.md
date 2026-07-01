@@ -106,6 +106,8 @@ Scene class: <normal | special_endpoint_or_trust>
 Narrator role: <primary | secondary>
 Overlay role: <support | main_subject>
 Current layout read: <full-canvas | shifted-full-canvas | shrunken/fallback | other>
+Starting layout bias check: <PASS|FAIL|N/A> — if current narrator is shrunken/fallback, reset design baseline to Priority 1 full-canvas before judging overlay; the small narrator is not the baseline
+Reset to full-canvas candidate before overlay judgment: <yes|no|N/A>
 Overlay adjustments tested: <move | resize | simplify | rebuild | N/A> — current overlay is not fixed evidence
 Full-canvas gate: <PASS|FAIL> — tested narrator full canvas first while moving/resizing/simplifying/rebuilding the overlay as needed; face clear, no dead zones, readable, caption clear
 Priority 2 check: <PASS|FAIL|N/A> — pull narrator down + overlay above head; reason if rejected
@@ -116,7 +118,7 @@ Overlay plan: <leave existing | rebuild overlay | layout-only fix | disable over
 Verdict: <PASS to continue Gate 4 | BLOCKED — revise overlay/narrator plan>
 ```
 
-**If this is A-roll and this proof is missing, Gate 4 is BLOCKED.** Do not accept an existing shrunken narrator layout, draw/upload an overlay, or mark overlay review PASS. If choosing priority 4, the proof must show concrete reasons priorities 1–3 failed as joint narrator + overlay + caption compositions. Do not reject a full-canvas priority just because the old overlay placement touches the face/caption/dead zone; move/resize/simplify/rebuild the overlay first.
+**If this is A-roll and this proof is missing, Gate 4 is BLOCKED.** Do not accept an existing shrunken narrator layout, draw/upload an overlay, or mark overlay review PASS. If the current narrator is shrunken/fallback and `Reset to full-canvas candidate before overlay judgment` is not `yes`, Gate 4 is BLOCKED. If choosing priority 4, the proof must show concrete reasons priorities 1–3 failed as joint narrator + overlay + caption compositions. Do not reject a full-canvas priority just because the old overlay placement touches the face/caption/dead zone; move/resize/simplify/rebuild the overlay first.
 
 ### Gate 4 TITLE GATE PROOF — after drafting a title/hero line and before upload
 
