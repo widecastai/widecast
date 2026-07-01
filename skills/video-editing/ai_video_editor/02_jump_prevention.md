@@ -24,6 +24,8 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - About to **(re)build, apply, or approve an overlay on A-roll** (`show_narrator=true`) without a printed Gate 4 A-ROLL LAYOUT PRIORITY PROOF → STOP. Load `ai_video_editor/10_mechanics`, run the full-canvas-first ladder inside Gate 4, and decide the overlay/narrator tradeoff before drawing/uploading/accepting the overlay.
 
+- About to **reject an A-roll full-canvas or shifted-full-canvas priority** because the current overlay touches the face, caption, or dead zone → STOP. The overlay is movable/rebuildable. First solve narrator + overlay + caption together: move objects/group, resize the group, simplify/rebuild the overlay, then judge the priority from a local-shown screenshot.
+
 - About to **(re)build or apply an overlay** → first load the whole LOAD CHAIN: `ai_video_editor/30_overlay_core` + `ai_video_editor/10_mechanics` when A-roll + the matching `31`/`32`/`33` + its `styles/*`. Stopping at `30_overlay_core` = flat / off-pattern.
 
 - About to **make ANY visual call** (grid-vs-real, regenerate-or-leave, readable?) from `scene_geometry` alone → STOP: pull the screenshot, save + show it locally, judge from the IMAGE. Geometry never substitutes for looking.

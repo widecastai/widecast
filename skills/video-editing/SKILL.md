@@ -82,7 +82,7 @@ Load the module for the full text + nuance. These headlines are reminders, not t
 6. **Font: HEAVY family** (e.g. `"<Family> Black"`). One font + accent per video; vary between videos.
 6a. **Overlay copy correctness is its own gate.** Every visible string proofread; typos/grammar/wrong currency/wrong term = FAIL.
 7. **Diversify the LOOK.** Load the style library; reproduce a real look (gradient/glossy/3D/metallic/…); never ship flat-only.
-8. **A-roll: face is sacred.** Never edit `narrator_face`; design around it. Final CTA scene: narrator-primary + typography-led CTA.
+8. **A-roll: face is sacred.** Never edit `narrator_face`; solve narrator + overlay together. A full-canvas narrator trial cannot fail because the current overlay is in the wrong place; move/resize/simplify/rebuild the overlay before shrinking the narrator. Final CTA scene: narrator-primary + typography-led CTA.
 9. **Grid ≤ 3 scenes/video, all sharing ONE grid.** Default to real background otherwise.
 10. **Realistic photos are REUSED, never "drawn".** Add to a good overlay via `modify_scene` (M) `remotion.add_element`.
 11. **Show found media in chat BEFORE looking/evaluating/applying.** No private preview first.
@@ -112,6 +112,7 @@ If you're about to do any of these, STOP and do the prerequisite first:
 - act on a screenshot you have not SHOWN locally → show it first
 - about to spend time rendering/converting an overlay preview → only do it if the environment already supports it cheaply; otherwise skip pre-upload preview and verify via the post-upload composite screenshot
 - ask the user to choose/approve during runtime → STOP, decide yourself
+- reject A-roll full-canvas because the current overlay touches the face / caption / dead zone → STOP, solve narrator + overlay together first
 - declare `Scene N: PASS` without scanning 9 DoD gates + §7 → run the scan
 - declare PASS without naming Gate 5 verdict (`PASS keep` / `PASS grid-by-design` / `FIXED + PASS`) → STOP
 - declare PASS with any missing required module in MODULE COVERAGE GATE → STOP
@@ -129,7 +130,7 @@ Print this 9-gate checklist VERTICALLY at the start of every scene; tick ✓/✗
 1. ☐ **Text / STT** checked in whole-video context, fixed if wrong.
 2. ☐ **Role** understood — `type` · `pattern`/`sub_mode` · `visual` · `quote` · `talking_point`.
 3. ☐ **BEFORE screenshot** pulled, downloaded with `curl`, SHOWN locally, THEN evaluated.
-4. ☐ **Overlay reviewed/rebuilt** — load `30_overlay_core` first + endpoint/typography/content modules + style lib; for A-roll print Gate 4 A-ROLL LAYOUT PRIORITY PROOF before overlay decisions; print Gate 4 MODULE LOAD PROOF + TITLE GATE PROOF + SECONDARY TEXT GATE PROOF.
+4. ☐ **Overlay reviewed/rebuilt** — load `30_overlay_core` first + endpoint/typography/content modules + style lib; for A-roll print Gate 4 A-ROLL LAYOUT PRIORITY PROOF before overlay decisions, proving narrator + overlay were solved together and the overlay was not treated as fixed; print Gate 4 MODULE LOAD PROOF + TITLE GATE PROOF + SECONDARY TEXT GATE PROOF.
 5. ☐ **Background audited** — load `20_background` first; print Gate 5 BACKGROUND PROOF with two local-visible images.
 6. ☐ **Final composition tuned** — layout + safe zone + dead-zone + face clearance + caption + balance.
 7. ☐ **AFTER screenshot** pulled, downloaded, SHOWN locally, evaluated for all of above.

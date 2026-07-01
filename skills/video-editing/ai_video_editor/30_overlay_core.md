@@ -41,7 +41,8 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 > Narrator role: <primary | secondary>
 > Overlay role: <support | main_subject>
 > Current layout read: <full-canvas | shifted-full-canvas | shrunken/fallback | other>
-> Full-canvas gate: <PASS|FAIL> — tested narrator full canvas first with overlay above head or over chest; face clear, no dead zones, readable, caption clear
+> Overlay adjustments tested: <move | resize | simplify | rebuild | N/A> — current overlay is not fixed evidence
+> Full-canvas gate: <PASS|FAIL> — tested narrator full canvas first while moving/resizing/simplifying/rebuilding the overlay as needed; face clear, no dead zones, readable, caption clear
 > Priority 2 check: <PASS|FAIL|N/A> — pull narrator down + overlay above head; reason if rejected
 > Priority 3 check: <PASS|FAIL|N/A> — push narrator up + overlay over chest; reason if rejected
 > Priority 4 fallback check: <PASS|FAIL|N/A> — allowed only after 1–3 fail; narrator as large as possible, face large/clear/in safe_rect, X inside canvas, Y overflow allowed if it improves face size
@@ -49,7 +50,7 @@ _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 > Overlay plan: <leave existing | rebuild overlay | layout-only fix | disable overlay> with placement rationale
 > Verdict: <PASS to continue Gate 4 | BLOCKED — revise overlay/narrator plan>
 > ```
-> If this is A-roll and this proof is missing, **STOP**. A fallback/shrunken narrator layout is never approved from its current state alone; the proof must show full-canvas and shifted-full-canvas options were tested first and failed with concrete reasons.
+> If this is A-roll and this proof is missing, **STOP**. A fallback/shrunken narrator layout is never approved from its current state alone; the proof must show full-canvas and shifted-full-canvas options were tested first as joint narrator + overlay + caption compositions and failed with concrete reasons. Do not reject a full-canvas priority just because the old overlay placement touches the face/caption/dead zone; move/resize/simplify/rebuild the overlay first.
 >
 > **⭐ TITLE GATE PROOF — hard gate after draft, before upload.** Loading `31_typography.md` is not enough. If the overlay has a title or hero text, print this proof and revise on any FAIL:
 > ```text

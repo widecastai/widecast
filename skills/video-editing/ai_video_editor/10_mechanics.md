@@ -110,6 +110,7 @@ These checks are **yours to compute from the boxes above** (there are no pre-sco
 
 For an A-roll scene, the narrator's face is a high-priority element. If the face is covered, fix the overlay/narrator first with `modify_scene`:
 - move/resize an overlay object: branch (C) `remotion.object.rect` (read `layout_id` from `scene_geometry` first);
+- move/resize the whole overlay group: branch (D) `remotion.group.rect`;
 - move/resize the narrator: branch (E) `overlay.narrator.rect`;
 - move the caption: branch (F) `overlay.caption.y`;
 - multiple things at once: branch (G) `layout.batch`.
@@ -124,14 +125,25 @@ The narrator's body may partially overlap an overlay in some layouts, but the fa
 
 ### Step 4: Choose the A-Roll Layout Priority
 
-If the scene is A-roll (`show_narrator=true`, i.e. `active_roll="A"`), the agent MUST run the priority ladder below during **Gate 4 overlay review/rebuild**, before deciding to leave, rebuild, upload, apply, or layout-fix the overlay (adjusted via `overlay.narrator.rect` + `remotion.object.rect`, 280×498 space). This is not a post-hoc Gate 6 cleanup. For normal scenes, a currently-small narrator / picture-in-picture layout is NOT automatically acceptable. The agent must first test whether the narrator can stay full canvas.
+If the scene is A-roll (`show_narrator=true`, i.e. `active_roll="A"`), the agent MUST run the priority ladder below during **Gate 4 overlay review/rebuild**, before deciding to leave, rebuild, upload, apply, or layout-fix the overlay (adjusted via `overlay.narrator.rect` + `remotion.object.rect` / `remotion.group.rect`, 280×498 space). This is not a post-hoc Gate 6 cleanup. For normal scenes, a currently-small narrator / picture-in-picture layout is NOT automatically acceptable. The agent must first test whether the narrator can stay full canvas.
 
 This ladder is for normal A-roll scenes. Special endpoint / trust / CTA scenes keep their stricter rules below.
+
+**Joint composition rule — do not freeze the overlay.** Each priority below is a `narrator + overlay + caption` composition attempt, not a narrator-only attempt. The current overlay position/size is only diagnostic; it is not a fixed constraint. Inside every priority, solve in this order:
+
+1. keep the narrator at the priority's target size/position;
+2. move overlay objects / the overlay group to a legal zone;
+3. resize the overlay group if the group is too tall/wide, then re-check typography;
+4. simplify or rebuild the overlay into a compact support shape if the existing shape cannot fit;
+5. only then mark that priority failed or move to a smaller narrator priority.
+
+Do **not** reject full-canvas priorities because the existing overlay currently touches `boxes.narrator.face`, the caption, or a dead zone. That is a layout problem to solve first. A full-canvas priority fails only after you prove no moved/resized/simplified/rebuilt overlay can clear the face, avoid caption/dead-zone collisions, preserve readability/padding, and still look balanced in the local-shown screenshot.
 
 > **⭐ REQUIRED GATE 4 A-ROLL LAYOUT DECLARATION — before ANY A-roll overlay decision or layout edit.** After the BEFORE screenshot has been saved locally and shown to the user, explicitly state:
 > - `scene_class`: `normal` / `special_endpoint_or_trust`
 > - `narrator_role`: `primary` / `secondary`
 > - `overlay_role`: `support` / `main_subject`
+> - `overlay_adjustments_tested`: `move` / `resize` / `simplify` / `rebuild` as applicable
 > - `full_canvas_gate`: `PASS` / `FAIL`
 > - chosen priority number (`1`–`4`)
 > - why each higher-priority option failed, if choosing priority 2–4
@@ -143,14 +155,16 @@ This ladder is for normal A-roll scenes. Special endpoint / trust / CTA scenes k
 > **⭐ FINAL A-ROLL / CTA SCENE — HUMAN CLOSE WINS, CTA TEXT STILL MATTERS.** If this is the **last non-thumbnail/content scene** and `show_narrator=true` / `active_roll="A"`, first `Read` `40_thumbnail_cta.md`, declare `narrator_role: primary` by default, and try to keep the narrator **full canvas**. The default close is: large human face + one short typography-led CTA that clears the face and caption. Do **not** rebuild a large checklist/chart/diagram just because `visual` asks for one if it would turn the closing A-roll into a cramped graphic scene. No-overlay is acceptable only when the visible narrator + caption already communicate the CTA clearly; otherwise use a small strong text support element (short CTA, badge, or one-line reminder). Priority 4 is effectively forbidden for a final A-roll/CTA scene unless the final beat truly depends on a detail-dense visual.
 
 > **⭐ NORMAL A-ROLL PRIORITY ORDER — try in THIS sequence and take the FIRST that works:**
-> 1. **Narrator full canvas.** Keep the narrator full canvas and choose the best overlay placement based on the overlay's current shape: above the head OR over the chest/torso. This is the required first test. PASS only if the overlay clears `boxes.narrator.face`, stays out of `dead_top`/`dead_bottom`, remains readable at 280×498, does not collide with the caption, and the composition looks balanced in the local-shown screenshot.
+> 1. **Narrator full canvas.** Keep the narrator full canvas and choose the best legal overlay placement/rebuild: above the head, beside the head, over the chest/torso, or as a compact support element. This is the required first test. PASS only if the adjusted overlay clears `boxes.narrator.face`, stays out of `dead_top`/`dead_bottom`, remains readable at 280×498, does not collide with the caption, and the composition looks balanced in the local-shown screenshot.
 > 2. **Full canvas but pull narrator down + overlay above head.** Keep the narrator full-size, shift the narrator down to create usable top-safe space, and place the overlay above the head. PASS only if the face stays inside `safe_rect`, the crop still looks natural, the overlay clears the face, avoids dead zones, remains readable, and does not fight the caption.
 > 3. **Full canvas but push narrator up + overlay over chest.** Keep the narrator full-size, shift the narrator up to create a clearer chest/torso region, and place the overlay below the face. PASS only if the face stays inside `safe_rect`, the crop does not lose or crowd the face, the overlay clears the face, avoids dead zones, remains readable, and does not fight the caption.
 > 4. **Fallback: large top/safe overlay + optimally-small narrator.** Use this only after priorities 1–3 fail. The overlay becomes the main subject in the top/safe area, and the narrator is made as large as possible in the remaining lower space without blocking the overlay.
 
 #### 1. Narrator full canvas
 
-The narrator nearly fills the whole canvas. Based on the overlay's current shape, place the overlay in the most viable full-canvas position: above the head OR over the chest/torso. The agent chooses the best of those two placements; the point is that the narrator stays full canvas.
+The narrator nearly fills the whole canvas. The overlay must be adapted to this priority, not kept frozen from the previous render. Place or rebuild the overlay in the most viable full-canvas position: above the head, beside the head, over the chest/torso, or as a compact support element. The point is that the narrator stays full canvas while the overlay is arranged around the face and caption.
+
+If the starting overlay is parked at the top safe zone and touches the face, that does **not** fail priority 1. First move it to the chest/side/lower legal band, resize the group if needed, or rebuild it as a shorter typography-led support.
 
 Hard conditions:
 
