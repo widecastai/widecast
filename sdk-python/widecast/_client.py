@@ -1651,28 +1651,42 @@ class Widecast:
         On screenshot errors (no image bytes could be composed, or the
         composed JPEG could not be persisted) the route returns a JSON
         error envelope: HTTP 500 with
-        ``code="screenshot_publish_failed"`` or
-        ``code="server_fallback_failed"``.
+        ``code="screenshot_publish_failed"``.
+
+        ``overlay_poster`` — audit the overlay in isolation. Companion
+        action that composites ONLY the Remotion overlay poster on a
+        solid black 280×498 canvas (no background image, no narrator,
+        no caption). Response shape mirrors screenshot but uses
+        ``result.overlay_poster.{url, mime_type, width, height, bytes,
+        expires_at, ttl_seconds}`` and adds ``result.review_checklist``
+        — a bilingual reminder that walks the agent through 8 audit
+        dimensions (readability, typos, grammar, semantic, diacritics,
+        glyph rendering, numbers/units, punctuation). Filename is
+        STABLE (``<voice>_poster.jpg``, overwritten each call); the
+        ``?v=<mtime>`` cache-bust bumps every write so the URL string
+        is fresh in every response. Server still fsync+atomic-renames
+        BEFORE responding. Errors specific to overlay_poster: 409
+        ``overlay_not_available`` (scene has no poster —
+        ``remotion_spec="none"`` or spec not yet built), 500
+        ``overlay_publish_failed`` (disk write / rename failed).
 
         **No live editor → graceful behaviour**:
 
-          * For non-screenshot actions, the response is ``{status:
-            "unavailable", code: "no_live_editor" | "no_active_editor",
-            fallback: {...}}`` — expected, not a crash. Fall back to
-            :meth:`video_data` + :meth:`scene_geometry` +
-            ``remotion_spec_url``.
-          * For ``screenshot_scene_280x498``, the server composes a
-            fallback screenshot from scene thumbnails +
-            ``{voice_file}_overlay_poster.png`` and publishes it to
-            the same 15-minute URL contract — treat fallback
-            screenshots as approximate composites, not real renders.
+          * For non-screenshot / non-overlay-poster actions, the
+            response is ``{status: "unavailable", code:
+            "no_live_editor" | "no_active_editor"}`` — expected, not a
+            crash. Fall back to :meth:`video_data` +
+            :meth:`scene_geometry` + ``remotion_spec_url``.
+          * ``screenshot_scene_280x498`` and ``overlay_poster`` are
+            pure server-side compositors — always served via the same
+            15-minute URL contract regardless of live-editor presence.
 
         Allowed actions:
           ``list_live_editors`` | ``list_instances`` |
           ``get_preview_state`` | ``get_scene_dom_snapshot`` |
           ``get_computed_boxes`` | ``screenshot_scene_280x498`` |
-          ``activate_scene`` | ``reload_preview`` | ``pause_preview`` |
-          ``play_preview`` | ``seek_preview``.
+          ``overlay_poster`` | ``activate_scene`` | ``reload_preview`` |
+          ``pause_preview`` | ``play_preview`` | ``seek_preview``.
 
         No arbitrary JavaScript eval is exposed. Screenshots intentionally
         small (280×498). Use ``voice_file`` for scene selection whenever
@@ -1697,7 +1711,8 @@ class Widecast:
         allowed_actions = {
             "list_live_editors", "list_instances", "get_preview_state",
             "get_scene_dom_snapshot", "get_computed_boxes",
-            "screenshot_scene_280x498", "activate_scene", "reload_preview",
+            "screenshot_scene_280x498", "overlay_poster",
+            "activate_scene", "reload_preview",
             "pause_preview", "play_preview", "seek_preview",
         }
         if action not in allowed_actions:

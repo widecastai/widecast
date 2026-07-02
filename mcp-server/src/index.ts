@@ -732,16 +732,18 @@ const TOOLS = [
       "SYNC live browser inspector for an open scene editor of a video. **More expensive than widecast_scene_geometry — use this only when data + geometry are NOT enough**: typically when the agent needs browser truth (mounted DOM, computed boxes, current preview play state) or a small 280×498 visual screenshot for aesthetic judgment. Do NOT use it as the first step if `widecast_scene_geometry` already gives you the boxes you need.\n" +
       "**How it works**: the server broadcasts a tiny MQTT probe to every open editor tab for this video, elects ONE healthy foreground/active browser within ~800ms, then sends the real inspector command only to that tab. widecast_modify_scene realtime broadcasts to all editors separately — this tool's election only affects which tab returns the live inspection. Presence alone is not usability: a tab on the workflow page, on a different video, or any page without a mounted scene preview is ignored for scene-bound commands.\n" +
       "**🖼 `screenshot_scene_280x498` response shape**: regular `SceneInspectorResponse` JSON whose `result.screenshot` carries a *temporary public URL* — NOT bytes, NOT base64. Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. The agent fetches the JPEG by `curl <url>` — the URL is public (no auth header needed) and remains valid for ~15 minutes from the call (TTL contract). Every call publishes a fresh unique file (token = 16 hex chars), so the URL is never reused across calls — matches the realtime semantics of inspector data. Host is `origin.widecast.ai` (bypasses Cloudflare so 15-min ephemeral URLs never get pinned in CF edge cache). Cache-bust `?v=<mtime>` is belt-and-suspenders. Server only responds AFTER the JPEG is fsynced + atomically renamed to its final path, so the URL is guaranteed readable when the agent reads the response. Error codes (non-200): 404 `video_not_found`/`scene_not_found`, 409 `script_not_ready`, 502 `script_parse_failed`, 500 `screenshot_publish_failed` (disk write fails after compose). Plus the normal 400/auth/`unsupported_action`/`publisher_missing` codes.\n" +
+      "**🎨 `overlay_poster` — audit the overlay in isolation**. Companion action to `screenshot_scene_280x498`. Server composites ONLY the Remotion overlay poster on a solid black 280×498 canvas (no background image, no narrator, no caption). Purpose = catch text-quality issues the composite screenshot hides — readability, typos, grammar, semantic drift, missing Vietnamese diacritics, glyph rendering (□ tofu, cut characters), punctuation. Response shape mirrors screenshot: `result.overlay_poster.{url, mime_type, width, height, bytes, expires_at, ttl_seconds}` plus `result.review_checklist` — a bilingual reminder covering 8 audit dimensions the agent should walk before PASSing a scene. Filename is STABLE (`<voice>_poster.jpg`, overwritten each call) but the `?v=<mtime>` cache-bust makes the URL string fresh every response. Server still fsync+atomic-renames BEFORE responding so the file is guaranteed readable. Errors: 409 `overlay_not_available` when the scene has no poster (`remotion_spec='none'` or spec not yet built), 500 `overlay_publish_failed` when the JPEG can't be persisted.\n" +
       "**No live editor → graceful behaviour**:\n" +
-      "• For non-screenshot actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
-      "• `screenshot_scene_280x498` is always served via the same 15-min URL contract regardless of whether a live editor is mounted; treat the image as approximate when no live editor was available.\n" +
+      "• For non-screenshot / non-overlay-poster actions, returns `status='unavailable'` with `code='no_live_editor'` (no presence) or `'no_active_editor'` (presence but unresponsive). That is expected, not a crash — fall back to widecast_video_data + widecast_scene_geometry + fetching `remotion_spec_url`.\n" +
+      "• `screenshot_scene_280x498` and `overlay_poster` are always served via the same 15-min URL contract regardless of whether a live editor is mounted — both actions are pure server-side compositors.\n" +
       "**Actions** (`action`):\n" +
       "• `list_live_editors` — presence list of open editor tabs (browser/OS/last_seen) — debug/discovery only.\n" +
       "• `list_instances` — preview instance ids mounted in the elected tab.\n" +
       "• `get_preview_state` — current playing/paused/scene/time in the preview player.\n" +
       "• `get_scene_dom_snapshot` — DOM subtree for a scene (scoped via optional `selector` — keep it narrow).\n" +
       "• `get_computed_boxes` — computed `getBoundingClientRect` for scene elements. **Prefer widecast_scene_geometry for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON.\n" +
-      "• `screenshot_scene_280x498` — small JPEG (~280×498). **Response is JSON with a temporary public URL** (see above). Fetch the bytes by `curl <result.screenshot.url>`. For pixel-perfect verification, use a renderer / headless-browser pass.\n" +
+      "• `screenshot_scene_280x498` — small JPEG (~280×498) showing the full composite: background + Remotion overlay poster + narrator + caption. **Response is JSON with a temporary public URL** (see above).\n" +
+      "• `overlay_poster` — small JPEG (~280×498) showing ONLY the overlay poster on black. **Response is JSON with a URL + a `review_checklist` reminder** — use this to catch typos / diacritic loss / glyph tofu / grammar / semantic drift the background image would otherwise mask.\n" +
       "• `activate_scene` — bring the elected tab to scene N (may visibly switch the editor for that user).\n" +
       "• `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` — preview transport controls.\n" +
       "**No arbitrary JavaScript eval is exposed.** Use `voice_file` as the scene selector wherever possible.",
@@ -759,13 +761,14 @@ const TOOLS = [
             "get_scene_dom_snapshot",
             "get_computed_boxes",
             "screenshot_scene_280x498",
+            "overlay_poster",
             "activate_scene",
             "reload_preview",
             "pause_preview",
             "play_preview",
             "seek_preview",
           ],
-          description: "Inspector action. Prefer get_computed_boxes / get_scene_dom_snapshot for structural audit; use screenshot_scene_280x498 only when visual judgment is needed.",
+          description: "Inspector action. Prefer get_computed_boxes / get_scene_dom_snapshot for structural audit. Use screenshot_scene_280x498 for the composite scene visual (background + overlay + narrator + caption). Use overlay_poster to audit the overlay in isolation on solid black — catches readability / typos / grammar / semantic / diacritic / glyph issues the composite hides.",
         },
         scene_id: { type: ["string", "number"], description: "Current display/order scene id. Use voice_file when available." },
         voice_file: { type: "string", description: "Stable per-scene UID from widecast_video_data; preferred selector." },
@@ -783,7 +786,7 @@ const TOOLS = [
       properties: {
         object: { type: "string", const: "scene_inspector_result" },
         status: { type: "string", enum: ["completed", "error", "unavailable"] },
-        code: { type: "string", description: "Response codes: ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | screenshot_publish_failed (composed but couldn't be persisted to disk — 500). Successful `screenshot_scene_280x498` calls always return this JSON envelope with `code: \"ok\"` and `result.screenshot.url` (15-min public URL)." },
+        code: { type: "string", description: "Response codes: ok | no_live_editor | no_active_editor | unsupported_action | publisher_missing | mqtt_publish_failed | browser_error | screenshot_publish_failed | overlay_not_available (scene has no Remotion overlay — 409) | overlay_publish_failed (overlay JPEG couldn't be persisted — 500). Successful `screenshot_scene_280x498` and `overlay_poster` calls always return this JSON envelope with `code: \"ok\"` and either `result.screenshot.url` or `result.overlay_poster.url` (15-min public URL)." },
         request_id: { type: "string" },
         action: { type: "string" },
         topic_id: { type: "string" },

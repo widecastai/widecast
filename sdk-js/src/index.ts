@@ -259,6 +259,7 @@ export type SceneInspectorAction =
   | "get_scene_dom_snapshot"
   | "get_computed_boxes"
   | "screenshot_scene_280x498"
+  | "overlay_poster"
   | "activate_scene"
   | "reload_preview"
   | "pause_preview"
@@ -1901,7 +1902,8 @@ export class Widecast {
     const allowed: readonly SceneInspectorAction[] = [
       "list_live_editors", "list_instances", "get_preview_state",
       "get_scene_dom_snapshot", "get_computed_boxes",
-      "screenshot_scene_280x498", "activate_scene", "reload_preview",
+      "screenshot_scene_280x498", "overlay_poster",
+      "activate_scene", "reload_preview",
       "pause_preview", "play_preview", "seek_preview",
     ];
     if (!allowed.includes(action)) {

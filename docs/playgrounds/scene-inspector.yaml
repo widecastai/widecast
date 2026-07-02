@@ -34,7 +34,8 @@ fields:
       - { value: "get_preview_state",         label: "get_preview_state — current play state" }
       - { value: "get_scene_dom_snapshot",    label: "get_scene_dom_snapshot — DOM subtree" }
       - { value: "get_computed_boxes",        label: "get_computed_boxes — bounding rects (preferred)" }
-      - { value: "screenshot_scene_280x498",  label: "screenshot_scene_280x498 — small visual capture" }
+      - { value: "screenshot_scene_280x498",  label: "screenshot_scene_280x498 — small visual capture (full composite)" }
+      - { value: "overlay_poster",            label: "overlay_poster — overlay only on solid black (audit typos/diacritics/glyph)" }
       - { value: "activate_scene",            label: "activate_scene — switch scenes in elected tab" }
       - { value: "reload_preview",            label: "reload_preview" }
       - { value: "pause_preview",             label: "pause_preview" }
@@ -101,9 +102,16 @@ use_cases:
       timeout_ms: 7000
   - id: screenshot
     title: "📸 Small 280×498 screenshot — temporary public URL (15-min TTL)"
-    description: "Response is a regular SceneInspectorResponse whose `result.screenshot.url` is a public path the agent fetches with `curl <url>` (no auth header). Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. Every call publishes a fresh unique file (16-hex token) — URLs are never reused across calls, matching the realtime semantics of inspector data. The server only responds after fsync+rename, so the URL is guaranteed readable when this response arrives. Server-fallback composites (no live editor → scene thumbnails + `{voice_file}_overlay_poster.png`) publish to the same URL contract."
+    description: "Full composite (background + Remotion overlay poster + narrator + caption). Response is a regular SceneInspectorResponse whose `result.screenshot.url` is a public path the agent fetches with `curl <url>` (no auth header). Shape: `{url:'https://origin.widecast.ai/downloads/<co>/<topic>/inspector/<voice>_<token>.jpg?v=<mtime>', mime_type:'image/jpeg', width:280, height:498, bytes:N, expires_at:'<ISO>', ttl_seconds:900}`. Every call publishes a fresh unique file (16-hex token) — URLs are never reused across calls, matching the realtime semantics of inspector data. The server only responds after fsync+rename, so the URL is guaranteed readable when this response arrives."
     request:
       id: "widecast7c0d4f8a9b1e2d3f"
       action: "screenshot_scene_280x498"
       voice_file: "XcR0k"
       activate: true
+  - id: overlay-poster
+    title: "🎨 Overlay-only on solid black — audit typos/diacritics/glyph/grammar/semantic"
+    description: "Companion to screenshot_scene_280x498. Server composites ONLY the Remotion overlay poster on a solid black 280×498 canvas (no background image, no narrator, no caption). Purpose: catch text-quality issues (readability / typos / grammar / semantic drift / missing Vietnamese diacritics / □ tofu glyph / punctuation) that the busy background can visually camouflage. Response shape: `result.overlay_poster.{url, mime_type, width, height, bytes, expires_at, ttl_seconds}` + `result.review_checklist` — a bilingual reminder walking the agent through 8 audit dimensions before PASSing the scene. Filename is STABLE (`<voice>_poster.jpg`, overwritten each call); `?v=<mtime>` bumps every write so the URL string is fresh in every response. Server still fsync+atomic-renames BEFORE responding. Errors: 409 `overlay_not_available` when the scene has no poster (`remotion_spec='none'` or spec not built), 500 `overlay_publish_failed`."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "overlay_poster"
+      voice_file: "XcR0k"

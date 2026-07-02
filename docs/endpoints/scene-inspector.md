@@ -132,6 +132,68 @@ const blob = await (await fetch(url)).blob();
 > **Historical note.** Prior contracts of this action returned raw `image/jpeg` bytes (or, briefly, an opt-in JSON `result.screenshot.{data_url, base64}` via `return_base64: true`). Both contracts were retired in favour of the URL-publishing path above. The `return_base64` flag is parsed but ignored — old callers don't 400, they just get the new URL contract.
 
 
+### 🎨 `overlay_poster` — audit the overlay in isolation
+
+Companion action to `screenshot_scene_280x498`. The server composites **ONLY** the Remotion overlay poster on a solid **black 280×498** canvas — no background image, no narrator, no caption. Purpose: catch text-quality issues the composite screenshot hides. A busy photo background can visually camouflage a missing Vietnamese tone mark, a `□` tofu glyph where a special character failed to render, a typo, a wrong currency symbol, or a semantic drift between the narration and the overlay.
+
+The response mirrors the screenshot shape but uses `result.overlay_poster.*` and adds a `result.review_checklist` — a bilingual reminder walking the agent through the 8 audit dimensions.
+
+```jsonc
+// request
+{
+  "id":         "widecast7c0d4f8a9b1e2d3f",
+  "action":     "overlay_poster",
+  "voice_file": "XcR0k"
+}
+
+// response (HTTP 200, Content-Type: application/json)
+{
+  "object":     "scene_inspector_result",
+  "status":     "completed",
+  "code":       "ok",
+  "action":     "overlay_poster",
+  "topic_id":   "widecast7c0d4f8a9b1e2d3f",
+  "company_id": "<company_id>",
+  "request_id": "req_…",
+  "result": {
+    "action":      "overlay_poster",
+    "scene_id":    3,
+    "voice_file":  "XcR0k",
+    "scene_index": 2,
+    "overlay_poster": {
+      "url":         "https://origin.widecast.ai/downloads/<co>/<topic>/inspector/XcR0k_poster.jpg?v=1782700123",
+      "mime_type":   "image/jpeg",
+      "width":       280,
+      "height":      498,
+      "bytes":       18234,
+      "expires_at":  "2026-06-29T13:32:03Z",
+      "ttl_seconds": 900
+    },
+    "review_checklist": "Đây là overlay riêng trên nền đen — background đã bị loại để bạn audit CHỈ overlay. Duyệt qua đủ 8 chiều: 1) Readability … 2) Typos … 3) Grammar … 4) Semantic … 5) Diacritics … 6) Glyph rendering … 7) Numbers/units/symbols … 8) Punctuation …"
+  }
+}
+```
+
+**Key invariants (in addition to the screenshot ones):**
+
+| Property | Value |
+|---|---|
+| Filename | `<voice_file>_poster.jpg` (STABLE — overwritten each call). The user asked for exactly this name. |
+| Freshness | `?v=<mtime>` bumps on every write, so the URL string is always new even though the filename doesn't rotate. |
+| Storage path | `/mnt/html/lcw/downloads/<company_id>/<topic_id>/inspector/<voice_file>_poster.jpg` |
+| Atomicity | Same tmp + fsync + rename dance as the screenshot publisher — the response only returns after rename succeeds. |
+| Requires | An enabled Remotion overlay for this scene. If `segment.remotion_spec == "none"` OR the spec has not been built, the server returns **HTTP 409 `overlay_not_available`** — upload an overlay first (see [`/v1/modify_scene`](modify-scene.md) Upload Overlay branch) and retry. |
+
+**Error responses specific to `overlay_poster`:**
+
+| HTTP | `error.code` | When |
+|---|---|---|
+| 409 | `overlay_not_available` | Scene has no poster (`remotion_spec="none"` or spec not built). |
+| 500 | `overlay_publish_failed` | Composed JPEG could not be persisted (disk write / rename failed). |
+
+The generic screenshot errors (`404 video_not_found`, `404 scene_not_found`, `409 script_not_ready`, `502 script_parse_failed`) apply here too.
+
+
 ### "No editor open" — graceful behaviour
 
 For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unavailable"`:
@@ -149,9 +211,9 @@ For **non-screenshot actions**, no live editor → HTTP 200 with `status: "unava
 | `no_live_editor` | No editor tab is currently open for this video (no presence at all). |
 | `no_active_editor` | At least one tab is registered but none responded to the probe in time. |
 
-For **`screenshot_scene_280x498`**, the server always falls through to its compositor and **publishes the JPEG to the same 15-minute URL contract** regardless of whether a live editor was present — there is no separate `unavailable` envelope for screenshots. Treat screenshots taken without a live editor as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
+For **`screenshot_scene_280x498`** and **`overlay_poster`**, the server always uses its compositor and **publishes the JPEG to the same 15-minute URL contract** regardless of whether a live editor was present — there is no separate `unavailable` envelope for these two actions. Both are pure server-side compositors, so live-editor absence never blocks them. Treat screenshots taken without a live editor as **approximate composites, not real renders** — use a renderer / headless-browser pass for pixel-perfect verification.
 
-For non-screenshot actions, agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
+For non-screenshot / non-overlay-poster actions, agents should fall back to [`/v1/video_data`](video-data.md) + [`/v1/scene_geometry`](scene-geometry.md), and when needed fetch the per-scene `remotion_spec_url`.
 
 ---
 
@@ -164,7 +226,8 @@ For non-screenshot actions, agents should fall back to [`/v1/video_data`](video-
 | `get_preview_state` | `{playing, paused, scene, time}` for the preview player. | |
 | `get_scene_dom_snapshot` | DOM subtree for the scene (scoped via optional `selector`). | Keep `selector` narrow — broad selectors blow up the payload. |
 | `get_computed_boxes` | `getBoundingClientRect()` for elements in the scene. | **Prefer [`/v1/scene_geometry`](scene-geometry.md) for structural audits** — geometry is cheaper, always-available (no browser needed), and returns the same boxes plus collision violations and safe zones in pure JSON. |
-| `screenshot_scene_280x498` | Small ~280×498 capture for aesthetic / visual judgment. | **Response carries a 15-min public URL** in `result.screenshot.url` — see the section above. Best-effort live capture or server-fallback composite; use a renderer / headless-browser fallback for pixel-perfect verification. |
+| `screenshot_scene_280x498` | Small ~280×498 capture — **full composite** (background + Remotion overlay poster + narrator + caption). | **Response carries a 15-min public URL** in `result.screenshot.url` — see the section above. Best-effort live capture or server compositor; use a renderer / headless-browser fallback for pixel-perfect verification. |
+| `overlay_poster` | Small ~280×498 image showing **ONLY the Remotion overlay poster on solid black**. | **Response carries a 15-min public URL** in `result.overlay_poster.url` + `result.review_checklist` reminder — see the section above. Use to catch typos / diacritic loss / glyph tofu / grammar / semantic issues the composite screenshot would mask. Filename stable, `?v=<mtime>` for freshness. Errors: 409 `overlay_not_available`, 500 `overlay_publish_failed`. |
 | `activate_scene` | Brings the elected tab to the requested scene. May visibly switch the open editor for that user. | Use sparingly. |
 | `reload_preview` / `pause_preview` / `play_preview` / `seek_preview` | Preview transport controls. | `seek_preview` accepts `seek_seconds`. |
 
@@ -233,9 +296,13 @@ Content-Type: application/json
 
 Response is JSON `SceneInspectorResponse` whose `result.screenshot` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}`. See the full sample + invariants in the section above. There's no flag to distinguish a live capture from a server composite; assume "approximate" when reading `screenshot_scene_280x498` output.
 
+### `200 OK` — `overlay_poster` (URL response + review checklist)
+
+Response is JSON `SceneInspectorResponse` whose `result.overlay_poster` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}` PLUS `result.review_checklist` — a bilingual reminder covering the 8 audit dimensions (readability / typos / grammar / semantic / diacritic / glyph rendering / numbers / punctuation). See the full sample + invariants in the section above.
+
 ### `200 OK` — `unavailable`
 
-See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns this envelope — when no live editor is available, the server falls through to its compositor and still publishes a URL (or returns a 500 JSON error if it cannot).
+See "No editor open" above. **Note**: `screenshot_scene_280x498` and `overlay_poster` never return this envelope — both are pure server-side compositors that always try to publish a URL, or return a 500 JSON error if they cannot.
 
 ### `200 OK` — `error` (browser-side failure)
 
@@ -267,13 +334,20 @@ See "No editor open" above. **Note**: `screenshot_scene_280x498` never returns t
 |---|---|
 | `video_not_found` | No video with this id on the account. |
 
-### `500 Internal Server Error` (screenshot-only)
-
-JSON envelope returned when `screenshot_scene_280x498` can't be served:
+### `409 Precondition Failed` (overlay_poster-only)
 
 | `error.code` | Meaning |
 |---|---|
-| `screenshot_publish_failed` | Compositor produced bytes but the disk write / atomic rename failed (no readable URL to return). |
+| `overlay_not_available` | The scene has no Remotion overlay poster — either `segment.remotion_spec == "none"` (user disabled it) or the spec has not been built. Upload an overlay first via [`/v1/modify_scene`](modify-scene.md) Upload Overlay branch and retry. |
+
+### `500 Internal Server Error` (compositor-only)
+
+JSON envelope returned when the compositor cannot persist its output:
+
+| `error.code` | Meaning |
+|---|---|
+| `screenshot_publish_failed` | `screenshot_scene_280x498` — compositor produced bytes but disk write / atomic rename failed. |
+| `overlay_publish_failed` | `overlay_poster` — compositor produced bytes but disk write / atomic rename failed. |
 
 ---
 
@@ -308,6 +382,30 @@ else:
     # Composition itself failed (rare) — fall back to scene_geometry data
     geom = client.scene_geometry(data["id"], voice_file=target["voice_file"])
     print("falling back to scene_geometry:", geom["summary"])
+```
+
+### Python — overlay-only audit (typos / diacritics / glyph rendering)
+
+```python
+from widecast import Widecast
+import requests
+
+client = Widecast()
+resp = client.scene_inspector(
+    video_id="widecast7c0d4f8a9b1e2d3f",
+    action="overlay_poster",
+    voice_file="XcR0k",
+)
+
+if resp["status"] == "completed" and resp.get("code") == "ok":
+    poster = resp["result"]["overlay_poster"]
+    open("overlay.jpg", "wb").write(requests.get(poster["url"], timeout=10).content)
+    # Print the reminder so the agent reads it before judging
+    print(resp["result"]["review_checklist"])
+    # → duyệt qua đủ 8 chiều: readability / typos / grammar / semantic /
+    #   diacritics / glyph rendering / numbers / punctuation
+elif resp.get("code") == "overlay_not_available":
+    print("Scene has no overlay to audit — upload one first.")
 ```
 
 ### TypeScript — structural audit (prefer scene_geometry)
@@ -352,6 +450,7 @@ if (resp.status === "completed") console.log("preview state:", resp.result);
 | Pick coordinates / audit collisions before a layout edit | **[`/v1/scene_geometry`](scene-geometry.md)** (not this endpoint) |
 | Verify a layout move worked in the live preview after the edit | `get_computed_boxes` (or refetch `/v1/scene_geometry`) |
 | Aesthetic gut-check whether text + image collide / wrap | `screenshot_scene_280x498` |
+| Audit overlay text quality (typos / diacritics / glyph tofu / grammar / semantic) without background noise | `overlay_poster` |
 | See exactly what DOM the editor mounted | `get_scene_dom_snapshot` (narrow `selector`) |
 | Pause / step the preview to inspect a frame | `pause_preview` then `seek_preview` |
 | Confirm the user actually has the editor open | `list_live_editors` |

@@ -1759,6 +1759,15 @@
                     "voice_file": "XcR0k",
                     "activate": true
                   }
+                },
+                "overlay_poster": {
+                  "summary": "Overlay only on solid black — audit typos / diacritics / glyph rendering",
+                  "description": "Response carries `result.overlay_poster.url` (public,\nvalid 15 min) + `result.review_checklist` — a\nbilingual reminder for the agent to walk 8 audit\ndimensions (readability / typos / grammar /\nsemantic / diacritic / glyph / numbers / punctuation).\nFilename is stable (`<voice>_poster.jpg`) but\n`?v=<mtime>` freshens the URL every call.\n",
+                  "value": {
+                    "id": "widecast7c0d4f8a9b1e2d3f",
+                    "action": "overlay_poster",
+                    "voice_file": "XcR0k"
+                  }
                 }
               }
             }
@@ -1766,7 +1775,7 @@
         },
         "responses": {
           "200": {
-            "description": "Inspector outcome. Always JSON `SceneInspectorResponse`:\n  * **`screenshot_scene_280x498`** → JSON carrying\n    `result.screenshot.{url, mime_type, width, height,\n    bytes, expires_at, ttl_seconds}`. The agent fetches\n    the JPEG by `curl <result.screenshot.url>` — the URL\n    is public, fresh per call, and valid 15 minutes.\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
+            "description": "Inspector outcome. Always JSON `SceneInspectorResponse`:\n  * **`screenshot_scene_280x498`** → JSON carrying\n    `result.screenshot.{url, mime_type, width, height,\n    bytes, expires_at, ttl_seconds}`. The agent fetches\n    the JPEG by `curl <result.screenshot.url>` — the URL\n    is public, fresh per call, and valid 15 minutes.\n  * **`overlay_poster`** → JSON carrying\n    `result.overlay_poster.{url, mime_type, width,\n    height, bytes, expires_at, ttl_seconds}` plus\n    `result.review_checklist` — a bilingual reminder\n    covering readability / typos / grammar / semantic /\n    diacritic / glyph / numbers / punctuation. Filename\n    is stable (`<voice>_poster.jpg`); `?v=<mtime>` bumps\n    every call. Fetch bytes with\n    `curl <result.overlay_poster.url>`.\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1816,7 +1825,7 @@
             }
           },
           "409": {
-            "description": "`script_not_ready` — video still processing or never had a\nscript generated (screenshot composition needs the\nvideo_script).\n",
+            "description": "* `script_not_ready` — video still processing or never had\n  a script generated (compositor needs the video_script).\n* `overlay_not_available` — `overlay_poster` action only.\n  The scene has no Remotion overlay poster to render —\n  either the overlay was disabled\n  (`segment.remotion_spec=\"none\"`) or the spec has not been\n  built yet. Upload an overlay first (see\n  `/v1/modify_scene` Upload Overlay branch), then retry.\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -1826,7 +1835,7 @@
             }
           },
           "500": {
-            "description": "`screenshot_publish_failed` — image was composed but could\nnot be persisted to disk (no readable URL to return).\n",
+            "description": "* `screenshot_publish_failed` — screenshot was composed but\n  could not be persisted to disk (no readable URL to\n  return).\n* `overlay_publish_failed` — `overlay_poster` JPEG was\n  composed but could not be persisted (no readable URL to\n  return).\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -4879,13 +4888,14 @@
               "get_scene_dom_snapshot",
               "get_computed_boxes",
               "screenshot_scene_280x498",
+              "overlay_poster",
               "activate_scene",
               "reload_preview",
               "pause_preview",
               "play_preview",
               "seek_preview"
             ],
-            "description": "Inspector action. Prefer `get_computed_boxes` / `get_scene_dom_snapshot` for structural audit; use `screenshot_scene_280x498` only when visual judgment is needed."
+            "description": "Inspector action. Prefer `get_computed_boxes` /\n`get_scene_dom_snapshot` for structural audit. Use\n`screenshot_scene_280x498` for the composite scene visual\n(background + Remotion overlay poster + narrator +\ncaption). Use `overlay_poster` to audit ONLY the overlay\non a solid black canvas — the composite screenshot can\nhide readability / typos / grammar / diacritic / glyph\nissues that the background image masks. Both actions\nreturn a 15-minute public JPEG URL and are pure\nserver-side compositors.\n"
           },
           "scene_id": {
             "oneOf": [
@@ -4958,7 +4968,7 @@
           },
           "code": {
             "type": "string",
-            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` |\n`screenshot_publish_failed` (composed but couldn't be\npersisted to disk — HTTP 500). Successful\n`screenshot_scene_280x498` calls return this JSON envelope\nwith `code: \"ok\"` and `result.screenshot.url` — agent\nfetches the JPEG with `curl <url>`. The server-side\ncompositor is the sole screenshot path, so a successful\nscreenshot is always `code: \"ok\"` regardless of whether a\nlive editor was elected.\n"
+            "description": "`ok` | `no_live_editor` | `no_active_editor` |\n`unsupported_action` | `publisher_missing` |\n`mqtt_publish_failed` | `browser_error` |\n`screenshot_publish_failed` (composed but couldn't be\npersisted to disk — HTTP 500) | `overlay_not_available`\n(scene has no Remotion overlay poster — HTTP 409) |\n`overlay_publish_failed` (overlay JPEG couldn't be\npersisted — HTTP 500). Successful `screenshot_scene_280x498`\ncalls return this JSON envelope with `code: \"ok\"` and\n`result.screenshot.url`; successful `overlay_poster` calls\nreturn `code: \"ok\"` and `result.overlay_poster.url` plus\n`result.review_checklist`. Both actions are pure\nserver-side compositors — successful compose is always\n`code: \"ok\"` regardless of live-editor presence.\n"
           },
           "request_id": {
             "type": "string"
