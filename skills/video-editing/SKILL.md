@@ -41,7 +41,7 @@ The 5 modules below carry the rules + workflow that apply across the whole run. 
 
 These 5 + `ai_video_editor/00_ENTRYPOINT` are the kickoff set. Per-scene modules (10/20/30/31/32/33/40) load at the step that needs them.
 
-**Before the first `modify_scene`/`upload_asset` of the run, print a KICKOFF LOAD LEDGER** (template in `ai_video_editor/03_dod_gates`): for each kickoff module quote its total line count + exact last line, proving you read it to the end. A module whose last line you cannot quote is NOT loaded → you are BLOCKED from writing. This is the mechanical defense against skipping a module that errored with "output too large".
+**Before the first `modify_scene`/`upload_asset` of the run, print a KICKOFF LOAD LEDGER** (template in `ai_video_editor/03_dod_gates`): for each kickoff module report its line count and match it to `LOAD_MANIFEST.md`; a shortfall = truncated = NOT loaded → you are BLOCKED from writing. (Quote the last line only when no manifest is present.) This is the mechanical defense against skipping a module that errored with "output too large".
 
 ---
 

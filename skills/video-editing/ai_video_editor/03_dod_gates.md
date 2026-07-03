@@ -8,25 +8,26 @@ The 9 gates are pass/fail; the actual work-recipes live in the topic modules (`1
 
 ## LOAD LEDGER — mandatory proof-of-read before any write
 
-The guard against skipping a module that errored with "output too large" is **its own last line**: to quote a file's exact last line you must have read it to the end. Every module already has a last line, so a newly added module needs zero setup — no token, no script, no repackaging.
+The guard against skipping a module that errored with "output too large" is **its line count**: `LOAD_MANIFEST.md` (shipped in the skill zip, auto-generated at build) publishes the expected line count per module. After loading a module, compare your actual `lines` to its manifest row — a shortfall means the read was truncated = NOT loaded, so re-read to EOF before writing. That one number is the required check. `last_line` + `sha256` also ride in the manifest but are OPTIONAL deeper checks (staleness/integrity), not something to quote every load — extra ceremony makes agents drop real work. If no manifest is present, quote the module's last line instead (you can only quote it after reading to EOF).
 
-**KICKOFF LOAD LEDGER — print BEFORE the first `modify_scene`/`upload_asset` of the run.** For each kickoff module quote (a) its total line count and (b) its exact last non-empty line, verbatim:
+**KICKOFF LOAD LEDGER — print BEFORE the first `modify_scene`/`upload_asset` of the run.** For each kickoff module report its line count and match it to `LOAD_MANIFEST.md`:
 
 ```text
 KICKOFF LOAD LEDGER:
-☑ 00_ENTRYPOINT          lines=<N>  last="<verbatim last line>"
-☑ 01_critical_rules      lines=<N>  last="<...>"
-☑ 02_jump_prevention     lines=<N>  last="<...>"
-☑ 03_dod_gates           lines=<N>  last="<...>"
-☑ 04_principles_workflow lines=<N>  last="<...>"
-☑ 05_quality_qa_priority lines=<N>  last="<...>"
-☑ 10_mechanics           lines=<N>  last="<...>"
-Verdict: <PASS — all read to EOF | BLOCKED — re-read <module> to its last line first>
+☑ 00_ENTRYPOINT          lines=<N>  manifest=<M | absent>
+☑ 01_critical_rules      lines=<N>  manifest=<M | absent>
+☑ 02_jump_prevention     lines=<N>  manifest=<M | absent>
+☑ 03_dod_gates           lines=<N>  manifest=<M | absent>
+☑ 04_principles_workflow lines=<N>  manifest=<M | absent>
+☑ 05_quality_qa_priority lines=<N>  manifest=<M | absent>
+☑ 10_mechanics           lines=<N>  manifest=<M | absent>
+Verdict: <PASS — every lines==manifest | BLOCKED — re-read <module> to EOF first>
+(no manifest? quote each module's last line instead to prove EOF)
 ```
 
-**SCENE LOAD LEDGER — print at the START of each scene** for the modules that scene type needs per the LOAD MAP (background→`20_background`; overlay-with-text→`30_overlay_core`+`31_typography`+`styles/text_axes`; chart→`32_charts`; endpoint→`40_thumbnail_cta`+`styles/design_languages`). Same `lines=` + `last="…"` per line.
+**SCENE LOAD LEDGER — print at the START of each scene** for the modules that scene type needs per the LOAD MAP (background→`20_background`; overlay-with-text→`30_overlay_core`+`31_typography`+`styles/text_axes`; chart→`32_charts`; endpoint→`40_thumbnail_cta`+`styles/design_languages`). Same `lines=` + `manifest=` per line.
 
-**Rule:** you can only quote the true last line if you read to EOF, so this defeats truncation-skipping. A module whose last line you cannot quote is NOT loaded → BLOCKED from writing. "I read the preview" is not proof. A `modify_scene`/`upload_asset` with no valid LOAD LEDGER above it in the same transcript is an invalid edit; revert/redo.
+**Rule:** a module whose `lines` falls short of its manifest row came back truncated = NOT loaded → BLOCKED from writing. "I read the preview" is not proof. A `modify_scene`/`upload_asset` with no valid LOAD LEDGER above it in the same transcript is an invalid edit; revert/redo.
 
 ---
 
