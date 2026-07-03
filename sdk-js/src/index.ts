@@ -229,8 +229,18 @@ export interface VideoDataResponse {
   topic_id: string;
   /** `"download_url"` (default) or `"inline_content"` (legacy env flag). */
   delivery_mode?: "download_url" | "inline_content";
-  /** Hint to load the editing skill first. */
-  skill_required?: string;
+  /**
+   *  Backup signal — object stamped on every successful edit-flow
+   *  response. Tells the agent to load the editing skill first if it
+   *  hasn't already. Matches the OpenAPI `SkillRequiredHint` shape.
+   */
+  skill_required?: {
+    name?: string;
+    load_via_tool?: string;
+    load_via_rest?: string;
+    reason?: string;
+    user_intent_hint?: string;
+  };
   /** Pointer to the published JSON file (when delivery_mode="download_url"). */
   data?: {
     /** Public `origin.widecast.ai` URL with `?v=<mtime>` cache-bust. */

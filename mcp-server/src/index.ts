@@ -646,7 +646,17 @@ const TOOLS = [
         id: { type: "string" },
         topic_id: { type: "string" },
         delivery_mode: { type: "string", enum: ["download_url", "inline_content"], description: "Default 'download_url'. Server returns the small envelope; the full tree is fetched from `data.url`. 'inline_content' is the legacy mode behind the WIDECAST_VIDEO_DATA_DELIVERY_MODE env flag." },
-        skill_required: { type: "string", description: "Hint to load the editing skill first." },
+        skill_required: {
+          type: "object",
+          description: "Backup signal telling the agent to load the editing skill first. Matches the OpenAPI SkillRequiredHint schema — stamped on every successful edit-flow response.",
+          properties: {
+            name:             { type: "string", description: "Skill name, e.g. 'video-editing'." },
+            load_via_tool:    { type: "string", description: "MCP tool name to call to load the skill." },
+            load_via_rest:    { type: "string", description: "REST endpoint to call to load the skill (SDK/HTTP callers)." },
+            reason:           { type: "string" },
+            user_intent_hint: { type: "string" },
+          },
+        },
         review_url: { type: "string", format: "uri" },
         data: {
           type: "object",
