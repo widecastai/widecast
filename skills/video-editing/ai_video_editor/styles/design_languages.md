@@ -10,6 +10,13 @@ This is the **visual language layer**, not a replacement for the Universal Overl
 >
 > **Endpoint use.** For scene 2/opening poster, thumbnail sync, and final CTA, this file is mandatory. Pair one language here with one endpoint archetype from `40_thumbnail_cta.md` and print `Gate 4 ENDPOINT DESIGN VARIANT PROOF`. Do not let every endpoint become the same giant outlined title + red vertical side bar + red/double underline motif; those are only possible tokens inside a broader language, not a default template.
 
+<!-- SYNC_DEFAULT_POOL (machine-read by svg_skill_sync.py — the server's default
+     rotation when no vibe is known; edit freely, keep names backticked):
+     `flat_swiss_modern`, `soft_depth_floating_cards`, `liquid_glass_glossy`,
+     `broadcast_serious_tv`, `editorial_magazine`, `corporate_duotone`,
+     `data_lab_technical`, `warm_humanist`, `minimal_mono_premium`,
+     `blue_cyan_fintech`, `modern_experimental_split`, `embossed_3d_sticker` -->
+
 ## Selection Rules
 
 - Serious finance/legal/insurance/health/trust → `broadcast_serious_tv`, `luxury_authority`, `corporate_duotone`, `medical_clean`, `minimal_mono_premium`, `blue_cyan_fintech`.
