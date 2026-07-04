@@ -59,11 +59,22 @@
       <h1 id="get-editing-skill-get-v1skillsediting">Get editing skill — <code>GET /v1/skills/editing</code></h1>
 <p><strong>Synchronous, free, key-free.</strong> Returns instructions for downloading the WideCast <strong>AI-video-editor</strong> playbook zip and reading its <code>SKILL.md</code> from local disk. The skill itself covers per-scene composition, overlay, narrator face clearance, background audit, layout, thumbnail/CTA endpoints, dead-zone, and the 9-gate Definition of Done — for refining/editing an EXISTING video.</p>
 <p>This is DIFFERENT from <a href="skills-writing.md"><code>/v1/skills/writing</code></a> (which is for AUTHORING new scripts); this skill is for EDITING already-generated scenes.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/skills/editing</code></div><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="download-skill" id="ex-skills-editing--download-skill"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📦 Get the download instructions for the editing skill zip</h3><p class="wc-pg-example-desc">Returns the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs the commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/skills/editing</code></div><section class="wc-pg-example" data-cfg="playgrounds/skills-editing.json" data-usecase-id="download-skill" id="ex-skills-editing--download-skill"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📦 Get the preload-tools hint + download instructions for the editing skill zip</h3><p class="wc-pg-example-desc">Returns (a) the `preload_tools` block — copy `one_shot_query` into your ToolSearch to load every WideCast tool at once — and (b) the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs Step 0 (preload) FIRST, then the 4 setup commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP. `preload_tools.tools[]` is auto-derived from the live MCP registry so it stays in sync as new tools are added.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="delivery-mode-download-zip-experiment-2026-06-30">Delivery mode: download-zip (experiment, 2026-06-30)</h2>
-<p>The endpoint no longer returns skill content inline. Instead the response is a 4-step download instruction:</p>
+<p>The endpoint carries <strong>two</strong> blocks: (a) <code>preload_tools</code> — a hint that tells the agent to widen its MCP tool search BEFORE editing so critical tools aren't dropped by a narrow ToolSearch; and (b) the 4-step download instruction for the skill zip.</p>
+<h3 id="step-0-preload-the-widecast-toolkit">Step 0 — preload the WideCast toolkit</h3>
+<p>Some MCP hosts (Codex, Claude Code) lazy-load tool schemas via <code>ToolSearch</code> and default to <strong>narrow keyword queries</strong>. If the agent's initial search misses a tool it later needs (e.g. <code>widecast_modify_scene</code>), the edit run either fails mid-flow or silently skips the edit. To prevent this, every response carries a <code>preload_tools</code> block:</p>
+<ul>
+<li><code>preload_tools.one_shot_query</code> — a literal <code>select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,...</code> string. Copy verbatim into <code>ToolSearch</code>'s <code>query</code> param; one round-trip loads every edit-flow tool at once.</li>
+<li><code>preload_tools.broad_query</code> — fallback keyword query (<code>widecast</code>) for hosts that don't support <code>select:</code> syntax.</li>
+<li><code>preload_tools.broad_max_results</code> — max_results to pass with <code>broad_query</code>; auto-scales with the tool count (<code>≥ tool_count + 5</code>, min 30).</li>
+<li><code>preload_tools.tools[]</code> — every tool with a 1-line reason (first sentence of the tool's own MCP description).</li>
+</ul>
+<p><strong>Zero-config for future tool additions.</strong> The list is derived from the live <code>_WC_MCP_TOOLS</code> registry at request time — when a new WideCast tool is added, it automatically appears in this hint on the very next call. No maintainer action required.</p>
+<p><code>preload_tools</code> ships in BOTH delivery modes (download_zip and inline_content).</p>
+<h3 id="then-download-the-zip">Then — download the zip</h3>
 <ol>
 <li><code>mkdir -p ./.widecast-skill-video-editing &amp;&amp; cd ./.widecast-skill-video-editing</code></li>
 <li><code>curl -fsSL &lt;result.download.zip_url&gt; -o video-editing.zip</code></li>
@@ -104,8 +115,23 @@
     &quot;work_dir&quot;:    &quot;./.widecast-skill-video-editing&quot;,
     &quot;entry_file&quot;:  &quot;./.widecast-skill-video-editing/video-editing/SKILL.md&quot;
   },
-  &quot;instructions&quot;: &quot;MANDATORY 4-step setup… (full text — mkdir/curl/verify/unzip)&quot;,
-  &quot;next_action&quot;:  &quot;Run the 4 setup commands NOW, then Read(&#39;.../SKILL.md&#39;). Do not declare any scene PASS without having loaded the modules from disk first.&quot;,
+  &quot;preload_tools&quot;: {
+    &quot;why&quot;: &quot;The editing workflow will need every WideCast tool listed below. Some MCP hosts (Codex, Claude Code) lazy-load tool schemas via ToolSearch and default to NARROW keyword queries — so any tool the initial search missed will FAIL when the edit flow calls it. Load them ALL now, in ONE ToolSearch call, BEFORE running the 4 setup commands below. This list is auto-derived from the live MCP tool registry, so adding a new tool later is zero-config.&quot;,
+    &quot;one_shot_query&quot;: &quot;select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,widecast_wait_for_video,widecast_export_video,widecast_get_status,widecast_send_telegram_message&quot;,
+    &quot;broad_query&quot;: &quot;widecast&quot;,
+    &quot;broad_max_results&quot;: 30,
+    &quot;tools&quot;: [
+      { &quot;name&quot;: &quot;widecast_video_data&quot;,      &quot;why&quot;: &quot;Read structured video/scene data for a topic_id&quot; },
+      { &quot;name&quot;: &quot;widecast_scene_geometry&quot;,  &quot;why&quot;: &quot;Read data-only layout geometry for ONE scene&quot; },
+      { &quot;name&quot;: &quot;widecast_scene_inspector&quot;, &quot;why&quot;: &quot;SYNC scene inspector for an existing video&quot; },
+      { &quot;name&quot;: &quot;widecast_modify_scene&quot;,    &quot;why&quot;: &quot;SYNC scene editor — 14 edit branches&quot; },
+      { &quot;name&quot;: &quot;widecast_search_broll&quot;,    &quot;why&quot;: &quot;Search stock B-roll (video clips or real photos)&quot; },
+      { &quot;name&quot;: &quot;widecast_upload_asset&quot;,    &quot;why&quot;: &quot;Upload a media asset (image/video/audio) to WideCast&#39;s S3&quot; }
+      // …plus every other widecast_* tool in the registry, auto-derived
+    ]
+  },
+  &quot;instructions&quot;: &quot;MANDATORY setup BEFORE any editing work… 0) PRELOAD ALL WIDECAST TOOLS FIRST (skip → edit will fail mid-run) — copy preload_tools.one_shot_query into your ToolSearch call. 1) mkdir 2) curl 3) verify 4) unzip …&quot;,
+  &quot;next_action&quot;:  &quot;First, run ToolSearch with preload_tools.one_shot_query (or broad_query if your host doesn&#39;t support select:) to load EVERY WideCast tool. THEN run the 4 setup commands and Read(&#39;.../SKILL.md&#39;). Do not declare any scene PASS without having loaded the modules from disk first.&quot;,
   &quot;meta&quot;: {
     &quot;request_id&quot;:         &quot;req_…&quot;,
     &quot;widecast_version&quot;:   &quot;X.Y.Z&quot;,

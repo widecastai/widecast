@@ -1762,7 +1762,7 @@
                 },
                 "overlay_poster": {
                   "summary": "Overlay only on solid black — audit typos / diacritics / glyph rendering",
-                  "description": "Response carries `result.overlay_poster.url` (public,\nvalid 15 min) + `result.review_checklist` — a\nbilingual reminder for the agent to walk 8 audit\ndimensions (readability / typos / grammar /\nsemantic / diacritic / glyph / numbers / punctuation).\nFilename is stable (`<voice>_poster.jpg`) but\n`?v=<mtime>` freshens the URL every call.\n",
+                  "description": "Response carries `result.overlay_poster.url` (public,\nvalid 15 min) + `result.review_checklist` — a\nEnglish reminder for the agent to walk 8 audit\ndimensions (readability / typos / grammar /\nsemantic / diacritic / glyph / numbers / punctuation).\nFilename is stable (`<voice>_poster.jpg`) but\n`?v=<mtime>` freshens the URL every call.\n",
                   "value": {
                     "id": "widecast7c0d4f8a9b1e2d3f",
                     "action": "overlay_poster",
@@ -1775,7 +1775,7 @@
         },
         "responses": {
           "200": {
-            "description": "Inspector outcome. Always JSON `SceneInspectorResponse`:\n  * **`screenshot_scene_280x498`** → JSON carrying\n    `result.screenshot.{url, mime_type, width, height,\n    bytes, expires_at, ttl_seconds}`. The agent fetches\n    the JPEG by `curl <result.screenshot.url>` — the URL\n    is public, fresh per call, and valid 15 minutes.\n  * **`overlay_poster`** → JSON carrying\n    `result.overlay_poster.{url, mime_type, width,\n    height, bytes, expires_at, ttl_seconds}` plus\n    `result.review_checklist` — a bilingual reminder\n    covering readability / typos / grammar / semantic /\n    diacritic / glyph / numbers / punctuation. Filename\n    is stable (`<voice>_poster.jpg`); `?v=<mtime>` bumps\n    every call. Fetch bytes with\n    `curl <result.overlay_poster.url>`.\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
+            "description": "Inspector outcome. Always JSON `SceneInspectorResponse`:\n  * **`screenshot_scene_280x498`** → JSON carrying\n    `result.screenshot.{url, mime_type, width, height,\n    bytes, expires_at, ttl_seconds}`. The agent fetches\n    the JPEG by `curl <result.screenshot.url>` — the URL\n    is public, fresh per call, and valid 15 minutes.\n  * **`overlay_poster`** → JSON carrying\n    `result.overlay_poster.{url, mime_type, width,\n    height, bytes, expires_at, ttl_seconds}` plus\n    `result.review_checklist` — a English reminder\n    covering readability / typos / grammar / semantic /\n    diacritic / glyph / numbers / punctuation. Filename\n    is stable (`<voice>_poster.jpg`); `?v=<mtime>` bumps\n    every call. Fetch bytes with\n    `curl <result.overlay_poster.url>`.\n  * **All other actions** → JSON `SceneInspectorResponse`\n    with `status` discriminating:\n      * `\"completed\"` — elected tab returned a `result`.\n      * `\"unavailable\"` — no editor available; `code` is\n        `no_live_editor` (no presence) or `no_active_editor`\n        (presence but unresponsive).\n      * `\"error\"` — browser-side failure; `code` carries the\n        provider error.\n",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2762,6 +2762,48 @@
                     "contract": {
                       "type": "string",
                       "description": "Always-returned cross-cutting rules (~1.5 KB) — read this FIRST. It survives runtime truncation of `method` even when a host caps per-tool-call output."
+                    },
+                    "preload_tools": {
+                      "type": "object",
+                      "description": "Auto-derived from the live MCP tool registry every request. Ships in BOTH delivery modes. Tells the agent to widen its MCP tool search BEFORE editing so narrow ToolSearch queries don't drop critical tools like `widecast_modify_scene`. Zero-config — adding a new WideCast tool auto-includes it.",
+                      "properties": {
+                        "why": {
+                          "type": "string",
+                          "description": "Human-readable reason. Read to understand why the agent should run the query."
+                        },
+                        "one_shot_query": {
+                          "type": "string",
+                          "description": "Literal `select:widecast_video_data,widecast_scene_geometry,...` string. Paste verbatim into your ToolSearch `query` param to load every WideCast edit-flow tool in ONE round-trip.",
+                          "example": "select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,widecast_wait_for_video,widecast_export_video,widecast_get_status,widecast_send_telegram_message"
+                        },
+                        "broad_query": {
+                          "type": "string",
+                          "description": "Fallback keyword query for hosts that don't support the `select:` syntax.",
+                          "example": "widecast"
+                        },
+                        "broad_max_results": {
+                          "type": "integer",
+                          "description": "Number to pass with `broad_query` — auto-scales with (tool_count + 5) so nothing is truncated.",
+                          "example": 30
+                        },
+                        "tools": {
+                          "type": "array",
+                          "description": "Every tool the agent will need, with 1-line reason. Auto-derived from `_WC_MCP_TOOLS`; first-sentence of each tool's own description.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "example": "widecast_modify_scene"
+                              },
+                              "why": {
+                                "type": "string",
+                                "description": "First-sentence extract of the tool's MCP description."
+                              }
+                            }
+                          }
+                        }
+                      }
                     },
                     "method_format": {
                       "type": "string",

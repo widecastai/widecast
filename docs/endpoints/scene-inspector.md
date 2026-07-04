@@ -136,7 +136,7 @@ const blob = await (await fetch(url)).blob();
 
 Companion action to `screenshot_scene_280x498`. The server composites **ONLY** the Remotion overlay poster on a solid **black 280×498** canvas — no background image, no narrator, no caption. Purpose: catch text-quality issues the composite screenshot hides. A busy photo background can visually camouflage a missing Vietnamese tone mark, a `□` tofu glyph where a special character failed to render, a typo, a wrong currency symbol, or a semantic drift between the narration and the overlay.
 
-The response mirrors the screenshot shape but uses `result.overlay_poster.*` and adds a `result.review_checklist` — a bilingual reminder walking the agent through the 8 audit dimensions.
+The response mirrors the screenshot shape but uses `result.overlay_poster.*` and adds a `result.review_checklist` — a English reminder walking the agent through the 8 audit dimensions.
 
 ```jsonc
 // request
@@ -169,7 +169,7 @@ The response mirrors the screenshot shape but uses `result.overlay_poster.*` and
       "expires_at":  "2026-06-29T13:32:03Z",
       "ttl_seconds": 900
     },
-    "review_checklist": "Đây là overlay riêng trên nền đen — background đã bị loại để bạn audit CHỈ overlay. Duyệt qua đủ 8 chiều: 1) Readability … 2) Typos … 3) Grammar … 4) Semantic … 5) Diacritics … 6) Glyph rendering … 7) Numbers/units/symbols … 8) Punctuation …"
+    "review_checklist": "This is the overlay in isolation on solid black — the background image was stripped so you audit the overlay ONLY. Walk all 8 dimensions: 1) Readability … 2) Typos … 3) Grammar … 4) Semantic … 5) Diacritics … 6) Glyph rendering … 7) Numbers/units/symbols … 8) Punctuation …"
   }
 }
 ```
@@ -298,7 +298,7 @@ Response is JSON `SceneInspectorResponse` whose `result.screenshot` carries `{ur
 
 ### `200 OK` — `overlay_poster` (URL response + review checklist)
 
-Response is JSON `SceneInspectorResponse` whose `result.overlay_poster` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}` PLUS `result.review_checklist` — a bilingual reminder covering the 8 audit dimensions (readability / typos / grammar / semantic / diacritic / glyph rendering / numbers / punctuation). See the full sample + invariants in the section above.
+Response is JSON `SceneInspectorResponse` whose `result.overlay_poster` carries `{url, mime_type, width, height, bytes, expires_at, ttl_seconds}` PLUS `result.review_checklist` — a English reminder covering the 8 audit dimensions (readability / typos / grammar / semantic / diacritic / glyph rendering / numbers / punctuation). See the full sample + invariants in the section above.
 
 ### `200 OK` — `unavailable`
 
@@ -402,7 +402,7 @@ if resp["status"] == "completed" and resp.get("code") == "ok":
     open("overlay.jpg", "wb").write(requests.get(poster["url"], timeout=10).content)
     # Print the reminder so the agent reads it before judging
     print(resp["result"]["review_checklist"])
-    # → duyệt qua đủ 8 chiều: readability / typos / grammar / semantic /
+    # → walks the 8 dimensions: readability / typos / grammar / semantic /
     #   diacritics / glyph rendering / numbers / punctuation
 elif resp.get("code") == "overlay_not_available":
     print("Scene has no overlay to audit — upload one first.")

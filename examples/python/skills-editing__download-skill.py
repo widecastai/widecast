@@ -1,5 +1,5 @@
 """
-📦 Get the download instructions for the editing skill zip
+📦 Get the preload-tools hint + download instructions for the editing skill zip
 
 Auto-generated from widecast/docs/playgrounds/skills-editing.yaml.
 """

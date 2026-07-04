@@ -10,7 +10,22 @@ This is DIFFERENT from [`/v1/skills/writing`](skills-writing.md) (which is for A
 
 ## Delivery mode: download-zip (experiment, 2026-06-30)
 
-The endpoint no longer returns skill content inline. Instead the response is a 4-step download instruction:
+The endpoint carries **two** blocks: (a) `preload_tools` — a hint that tells the agent to widen its MCP tool search BEFORE editing so critical tools aren't dropped by a narrow ToolSearch; and (b) the 4-step download instruction for the skill zip.
+
+### Step 0 — preload the WideCast toolkit
+
+Some MCP hosts (Codex, Claude Code) lazy-load tool schemas via `ToolSearch` and default to **narrow keyword queries**. If the agent's initial search misses a tool it later needs (e.g. `widecast_modify_scene`), the edit run either fails mid-flow or silently skips the edit. To prevent this, every response carries a `preload_tools` block:
+
+- `preload_tools.one_shot_query` — a literal `select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,...` string. Copy verbatim into `ToolSearch`'s `query` param; one round-trip loads every edit-flow tool at once.
+- `preload_tools.broad_query` — fallback keyword query (`widecast`) for hosts that don't support `select:` syntax.
+- `preload_tools.broad_max_results` — max_results to pass with `broad_query`; auto-scales with the tool count (`≥ tool_count + 5`, min 30).
+- `preload_tools.tools[]` — every tool with a 1-line reason (first sentence of the tool's own MCP description).
+
+**Zero-config for future tool additions.** The list is derived from the live `_WC_MCP_TOOLS` registry at request time — when a new WideCast tool is added, it automatically appears in this hint on the very next call. No maintainer action required.
+
+`preload_tools` ships in BOTH delivery modes (download_zip and inline_content).
+
+### Then — download the zip
 
 1. `mkdir -p ./.widecast-skill-video-editing && cd ./.widecast-skill-video-editing`
 2. `curl -fsSL <result.download.zip_url> -o video-editing.zip`
@@ -64,8 +79,23 @@ No auth, no params. (The `module` param from previous inline-content mode is sti
     "work_dir":    "./.widecast-skill-video-editing",
     "entry_file":  "./.widecast-skill-video-editing/video-editing/SKILL.md"
   },
-  "instructions": "MANDATORY 4-step setup… (full text — mkdir/curl/verify/unzip)",
-  "next_action":  "Run the 4 setup commands NOW, then Read('.../SKILL.md'). Do not declare any scene PASS without having loaded the modules from disk first.",
+  "preload_tools": {
+    "why": "The editing workflow will need every WideCast tool listed below. Some MCP hosts (Codex, Claude Code) lazy-load tool schemas via ToolSearch and default to NARROW keyword queries — so any tool the initial search missed will FAIL when the edit flow calls it. Load them ALL now, in ONE ToolSearch call, BEFORE running the 4 setup commands below. This list is auto-derived from the live MCP tool registry, so adding a new tool later is zero-config.",
+    "one_shot_query": "select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,widecast_wait_for_video,widecast_export_video,widecast_get_status,widecast_send_telegram_message",
+    "broad_query": "widecast",
+    "broad_max_results": 30,
+    "tools": [
+      { "name": "widecast_video_data",      "why": "Read structured video/scene data for a topic_id" },
+      { "name": "widecast_scene_geometry",  "why": "Read data-only layout geometry for ONE scene" },
+      { "name": "widecast_scene_inspector", "why": "SYNC scene inspector for an existing video" },
+      { "name": "widecast_modify_scene",    "why": "SYNC scene editor — 14 edit branches" },
+      { "name": "widecast_search_broll",    "why": "Search stock B-roll (video clips or real photos)" },
+      { "name": "widecast_upload_asset",    "why": "Upload a media asset (image/video/audio) to WideCast's S3" }
+      // …plus every other widecast_* tool in the registry, auto-derived
+    ]
+  },
+  "instructions": "MANDATORY setup BEFORE any editing work… 0) PRELOAD ALL WIDECAST TOOLS FIRST (skip → edit will fail mid-run) — copy preload_tools.one_shot_query into your ToolSearch call. 1) mkdir 2) curl 3) verify 4) unzip …",
+  "next_action":  "First, run ToolSearch with preload_tools.one_shot_query (or broad_query if your host doesn't support select:) to load EVERY WideCast tool. THEN run the 4 setup commands and Read('.../SKILL.md'). Do not declare any scene PASS without having loaded the modules from disk first.",
   "meta": {
     "request_id":         "req_…",
     "widecast_version":   "X.Y.Z",

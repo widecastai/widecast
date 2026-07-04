@@ -12,11 +12,25 @@ description: |
   scenes.
 
   **Delivery mode**: download_zip (experiment, 2026-06-30). The
-  response is a 4-step instruction: mkdir + curl + verify + unzip,
-  then Read `./.widecast-skill-video-editing/video-editing/SKILL.md`
+  response carries (a) a `preload_tools` hint block + (b) a 4-step
+  instruction: mkdir + curl + verify + unzip, then Read
+  `./.widecast-skill-video-editing/video-editing/SKILL.md`
   from local disk and follow its LOAD MAP. The skill content is
   identical to previous inline-content mode (master INDEX + 5 core
   modules + per-scene modules + style libs).
+
+  **Preload tools first** (`preload_tools` field): before running
+  the 4 setup commands, copy `preload_tools.one_shot_query` into
+  your MCP host's `ToolSearch` `query` param. This loads EVERY
+  WideCast tool (video_data, scene_geometry, scene_inspector,
+  modify_scene, search_broll, upload_asset, etc.) in one round-trip.
+  Some hosts (Codex, Claude Code) default to NARROW keyword search
+  and drop critical tools like `widecast_modify_scene` — the edit
+  flow then fails mid-run. The list is auto-derived from the live
+  MCP registry, so adding a new tool later is zero-config.
+  Fallback for hosts without `select:` syntax:
+  `preload_tools.broad_query` (`widecast`) with
+  `broad_max_results` (~30).
 
   **Always-returned `contract` field** (~1.5 KB cross-cutting rules)
   survives even if the agent cannot complete the download — it is
@@ -42,6 +56,6 @@ poll_after_create:
 
 use_cases:
   - id: download-skill
-    title: "📦 Get the download instructions for the editing skill zip"
-    description: "Returns the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs the commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP."
+    title: "📦 Get the preload-tools hint + download instructions for the editing skill zip"
+    description: "Returns (a) the `preload_tools` block — copy `one_shot_query` into your ToolSearch to load every WideCast tool at once — and (b) the 4-step setup (mkdir + curl + verify + unzip) plus the always-on `contract` field. Agent runs Step 0 (preload) FIRST, then the 4 setup commands locally, then Reads SKILL.md from `./.widecast-skill-video-editing/video-editing/SKILL.md` and follows its LOAD MAP. `preload_tools.tools[]` is auto-derived from the live MCP registry so it stays in sync as new tools are added."
     request: {}
