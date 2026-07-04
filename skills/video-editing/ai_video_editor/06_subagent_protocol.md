@@ -1,6 +1,12 @@
 # 06 · Subagent Protocol — parallel scene work with ONE serial writer
 
-Load this module **BEFORE spawning any subagent** for scene work (prepare, verify, fix), and re-load it when resuming a run that uses subagents. It exists because of two hard facts:
+Load this module **BEFORE spawning any subagent** for scene work (prepare, verify, fix), and re-load it when resuming a run that uses subagents.
+
+## Delegation is the DEFAULT, not an option
+
+**If the runtime can spawn subagents (an Agent/Task tool or equivalent is available), the subagent pipeline below IS the standard way to run an edit — not an optimization the agent may decline.** Working scenes inline in the main context is the FALLBACK, allowed only when: (a) the runtime has no subagent capability, (b) the video has ≤2 content scenes, or (c) the user explicitly asked for a single-agent run. At kickoff the main agent must record in the run_ledger: `delegation mode: subagent (K=<n>)` or `delegation mode: inline — reason: <a|b|c + detail>`. Choosing inline without one of those three reasons is a process error — "the conditional wording made it sound optional" is not a reason. (Inline runs still obey every other rule: roster order, run_ledger, all gates.)
+
+The protocol exists because of two hard facts:
 
 1. **`modify_scene` is a read-modify-write of the WHOLE topic document with no version lock.** Two concurrent writes to the same video clobber each other (ElasticSearch version conflict / silent lost update). Therefore: **subagents NEVER write; the MAIN agent is the ONLY writer, strictly serial.**
 2. **Read-side calls are parallel-safe.** `video_data`, `scene_geometry`, `scene_inspector` (all actions — `activate:true` is only a UI broadcast, not a write), `search_broll` read the doc; `upload_asset` writes ONLY to S3 (`assets/` prefix, **24-hour TTL**) and never touches the topic document.
@@ -19,7 +25,7 @@ The architecture this enables: **read-only subagents fan out in parallel to do t
 
 - **Phase 0 — kickoff (main, once).** Normal kickoff per `04_principles_workflow` §2: load kickoff modules, pull `video_data`, whole-video context pass, **choose the ONE design look for the whole video** (language_id + font + accent — subagents must receive it, or each fresh context would pick its own and break Critical Rule 7), print the SCENE ROSTER, write the run_ledger file, compose the run digest, and export the steward data files (`video_data_<topic_id>.json`, `run_script.txt`, per-scene `record.json` — see "Data files" below).
 - **Phase 1 — prepare (parallel pool of K).** Spawn PREPARE subagents with the fixed template below. They only read + upload to S3.
-- **Phase 2 — apply (main, STRICTLY SERIAL, roster order).** For each scene: read its payload files → fire each `modify_scene` in the listed order → re-pull `video_data`/`scene_geometry` to confirm saved → refresh that scene's `record.json` (+ `run_script.txt` line if `text` changed) and the full snapshot from the same pull → update run_ledger. Never two writes in flight; never interleave two videos.
+- **Phase 2 — apply (main, STRICTLY SERIAL, roster order).** For each scene: read its payload files → fire each `modify_scene` in the listed order → re-pull `video_data`/`scene_geometry` to confirm saved → refresh that scene's `record.json` (+ `run_script.txt` line if `text` changed) and the full snapshot from the same pull → update run_ledger. **Phase 2 involves NO images:** no screenshots, no posters, no visual judgment — apply is data-in, data-out (see NO-RELOOK RULE); the post-apply look belongs to Phase 3's verifier. Never two writes in flight; never interleave two videos.
 - **Phase 3 — verify (parallel pool of K).** Spawn VERIFY subagents. Any FAIL → a targeted loop: prepare-fix (subagent) → apply (main) → re-verify (subagent). Then the main agent runs the Pre-summary completion scan against the roster and hands off.
 
 **Scene 2 / thumbnail ordering exception:** scene 2 must complete prepare → apply → verify → **immediate thumbnail sync (main agent write)** before any OTHER scene's apply happens. Prepare for scenes 3+ may still run in parallel from the start (they read BEFORE state only).
@@ -140,7 +146,9 @@ Scene N: <PASS | FAIL — reasons>
 
 1. The report contains its own LOAD LEDGER with `PASS` (lines match manifest). 2. No denylisted write occurred. 3. The listed evidence/payload files exist on disk. 4. The report block is complete. Any miss → the scene is NOT prepared/verified; re-spawn it (once with a note about what was missing; a second structural failure → the main agent does that scene inline the classic way).
 
-**Show-gate under delegation:** subagents save all evidence locally and list paths; the **main agent sends the key evidence files (BEFORE, AFTER, poster) to the user when recording the scene verdict** — sending files does not require re-analyzing them, so this satisfies the visual-evidence show rule without re-inflating main-agent context. Judgment stays where the images were actually looked at: inside the subagent.
+**Show-gate under delegation — the main agent is a COURIER, never a second pair of eyes.** Subagents save all evidence locally and list paths; the **main agent sends the key evidence files (BEFORE, AFTER, poster) to the user when recording the scene verdict** — sending files does not require re-analyzing them, so this satisfies the visual-evidence show rule without re-inflating main-agent context. Judgment stays where the images were actually looked at: inside the subagent.
+
+**NO-RELOOK RULE (hard):** in delegation mode the main agent must NOT download-to-view, open, re-analyze, or re-judge any scene image, and must NOT call `scene_inspector` for screenshots/posters of a scene that has a valid subagent report. Looking BEFORE apply was PREPARE's job (already done — its report + payloads are the conclusion); looking AFTER apply is VERIFY's job (a spawned verifier, not the main context). A "quick second look to be sure" duplicates vision tokens per scene and re-opens judgments the pipeline already settled — validity is checked by the four report gates (ledger/no-write/files-exist/complete), which need `ls`, not eyes. **Sole exception — escalation to inline:** if the same scene produces two consecutive INVALID or mutually contradictory reports, the main agent takes that scene over inline (classic per-scene flow); from that point the normal look rules apply to it.
 
 ## Freshness + resume
 

@@ -10,9 +10,13 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - About to **start a scene** → first load `ai_video_editor/10_mechanics`. And check the SCENE ROSTER: if this scene is NOT the next unvisited roster row → STOP, work the roster in order (skipping a row is the exact failure the roster exists to prevent).
 
+- About to **work scene 2 (or any scene) inline in the main context** while the runtime CAN spawn subagents and the video has ≥3 content scenes → STOP. Delegation is the DEFAULT run mode: load `ai_video_editor/06_subagent_protocol`, record `delegation mode: subagent (K=<n>)` in the run_ledger, and run the prepare/apply/verify pipeline. Inline is allowed only with a recorded fallback reason (`no subagent capability` / `≤2 content scenes` / `user asked single-agent`) — "the wording sounded optional" is not one.
+
 - About to **spawn a subagent** for scene work (prepare/verify/fix), or to process multiple scenes in parallel → STOP. First load `ai_video_editor/06_subagent_protocol`. The prompt must be its fixed template (fill blanks only — never paraphrase skill rules into the prompt); the subagent must self-load the skill and print its OWN LOAD LEDGER, and the pool is capped by machine size (K = clamp(cores/2, 2, 6)), rolling not batched.
 
-- About to **accept a subagent report** → validate first: its own LOAD LEDGER printed with PASS, no denylisted write occurred, every listed evidence/payload file exists on disk, report block complete. Any miss = the scene is NOT prepared/verified; re-spawn it.
+- About to **accept a subagent report** → validate first: its own LOAD LEDGER printed with PASS, no denylisted write occurred, every listed evidence/payload file exists on disk (`ls`, not eyes), report block complete. Any miss = the scene is NOT prepared/verified; re-spawn it.
+
+- **Main agent in delegation mode about to view/re-download a scene screenshot or poster, or call `scene_inspector` for a scene that has a valid subagent report** → STOP (NO-RELOOK RULE in `06_subagent_protocol`). PREPARE already looked before apply; VERIFY looks after apply; the main agent only forwards the saved evidence files to the user. Re-looking duplicates vision cost and re-opens settled judgments. Only exception: the scene was escalated to inline after two invalid/contradictory reports.
 
 - A **subagent is about to call (or a report shows it called) `modify_scene`, a voice/narrator upload, `export_video`, or publish** → STOP. Subagents are read-only + `upload_asset` (S3) only. ONLY the main agent writes, strictly serially, one video at a time. If a subagent already wrote: re-pull `video_data`, mark the scene dirty, re-verify it.
 
