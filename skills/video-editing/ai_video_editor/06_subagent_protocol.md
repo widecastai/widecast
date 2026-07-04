@@ -2,9 +2,9 @@
 
 Load this module **BEFORE spawning any subagent** for scene work, and re-load it when resuming a run that uses subagents.
 
-## Delegation is the DEFAULT, not an option
+## When delegation applies — inline is the default up to 30 content scenes
 
-**If the runtime can spawn subagents (an Agent/Task tool or equivalent), the scene-editor pipeline below IS the standard way to run an edit.** Consent is already granted: a WideCast edit trigger (editor URL / `topic_id` + edit intent) is the user's explicit, standing authorization for scene-editor fan-out (MCP server instructions rule 5) — do not wait for the word "subagent" in chat. Inline single-agent editing is the FALLBACK, allowed only for: (a) no subagent capability, (b) ≤2 content scenes, (c) user explicitly asked single-agent, (d) host HARD-BLOCKS spawning (real tool refusal — report it to the user at hand-off). Record `delegation mode: subagent (K=<n>)` or `inline — reason: <a|b|c|d>` in the run_ledger at kickoff.
+**Mode selection is a THRESHOLD, not a preference:** videos with **≤30 content scenes run INLINE by default** (measured: on a 7-scene video, inline was both faster and ~2.5× cheaper than fan-out, because the pipeline's floor is the slowest endpoint scene plus per-editor cold-starts). The scene-editor pipeline below is the standard mode only when the video has **more than 30 content scenes** OR the user explicitly asks for parallel/multi-agent processing. When it applies, consent is already granted: the WideCast edit trigger is the user's standing authorization for scene-editor fan-out (MCP server instructions rule 5) — do not wait for the word "subagent" in chat. Even above the threshold, fall back to inline for: (a) no subagent capability, (d) host HARD-BLOCKS spawning (real tool refusal — report it at hand-off). Record `delegation mode: subagent (K=<n>)` or `inline — reason: <≤30 scenes default | a | user asked single-agent | d>` in the run_ledger at kickoff. The whole mechanism stays maintained and ready — the threshold is one number, not a removal.
 
 ## Why this shape is safe — the server does the hard part
 
@@ -21,8 +21,21 @@ Load this module **BEFORE spawning any subagent** for scene work, and re-load it
 
 ## The flow
 
-- **Phase 0 — kickoff (main, once).** Load kickoff modules; pull `video_data` ONCE; choose the ONE design look for the whole video; print SCENE ROSTER; write run_ledger; export steward files (`run_script.txt`, per-scene `record.json`, full snapshot); ensure the skill zip is **already unzipped locally** and note its root path; call `widecast_edit_session action='start'`.
-- **Phase 1 — spawn scene editors.** One editor per content scene, **rolling pool of K=5**: keep 5 in flight, top up the moment one finishes (never fixed batches). If the host's own limit is lower, run at the host's max and top up on every freed slot; retry refused spawns as slots open. Scene 2's editor is spawned first (it also owns the thumbnail sync).
+- **Phase 0 — kickoff (main, once, SLIM).** The coordinator never edits a scene, so it loads only the COORDINATOR SET: `SKILL.md` + `01_critical_rules` + `02_jump_prevention` + `04_principles_workflow` + `06_subagent_protocol` + `styles/design_languages` (+ `styles/text_axes` if needed to pick the look). It does NOT load `03_dod_gates`, `05`, `10`, `20`, `30`, `31`, `32`, `33`, `40` — those are scene-work modules; every editor loads its own and proves it in its report (that is where Gate 9 coverage lives in delegation mode). Print the COORDINATOR LOAD LEDGER (below) instead of the 7-row kickoff ledger in `03_dod_gates`. Then: pull `video_data` ONCE; choose the ONE design look; print SCENE ROSTER; write run_ledger; export steward files (`run_script.txt`, per-scene `record.json`, full snapshot); ensure the skill zip is **already unzipped locally** and note its root path; call `widecast_edit_session action='start'`.
+
+```text
+COORDINATOR LOAD LEDGER (delegation mode):
+☑ SKILL.md               lines=<N> manifest=<M>
+☑ 01_critical_rules      lines=<N> manifest=<M>
+☑ 02_jump_prevention     lines=<N> manifest=<M>
+☑ 04_principles_workflow lines=<N> manifest=<M>
+☑ 06_subagent_protocol   lines=<N> manifest=<M>
+☑ styles/design_languages lines=<N> manifest=<M>
+Scene-work modules (03/05/10/20/30/31/32/33/40): loaded by each scene editor — proven per-editor in its SCENE LOAD LEDGER.
+Verdict: <PASS | BLOCKED — re-read <module> to EOF>
+```
+
+- **Phase 1 — spawn scene editors, ENDPOINT-FIRST.** One editor per content scene, **rolling pool of K=5**: keep 5 in flight, top up the moment one finishes (never fixed batches). **Pool admission order: scene 2 (opening poster) → final content/CTA scene → the remaining scenes in play order.** Endpoint scenes are the observed critical path (a poster/CTA rebuild runs 8–12+ minutes vs 3–5 for a normal scene); starting the final CTA last adds its whole duration to the run's tail. If the host's limit is lower than K, run at the host's max and top up on every freed slot; retry refused spawns as slots open.
 - **Phase 2 — collect (main, event-driven).** As each editor reports: validate mechanically (`ls` checks, report block complete, write scope respected) → record verdict in run_ledger. No waiting on scene order; rows close in arrival order.
 - **Phase 3 — video-level QA.** When all roster rows are closed, spawn the QA agent (§8: continuity, repeated visuals, caption consistency, grid cap ≤3 shared, hook/CTA strength). A finding goes back to the owning scene's editor via a follow-up message (warm context) or a `Scene <id> fix agent (cycle 1)` if that editor is gone.
 - **Phase 4 — close.** Pre-summary completion scan against the roster → `widecast_edit_session action='commit'` (MANDATORY — staged edits are not live until commit; never commit while any editor is still running) → hand-off + notification.

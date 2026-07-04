@@ -27,7 +27,7 @@ Verdict: <PASS — every lines==manifest | BLOCKED — re-read <module> to EOF f
 
 **SCENE LOAD LEDGER — print at the START of each scene** for the modules that scene type needs per the LOAD MAP (background→`20_background`; overlay-with-text→`30_overlay_core`+`31_typography`+`styles/text_axes`; chart→`32_charts`; endpoint→`40_thumbnail_cta`+`styles/design_languages`). Same `lines=` + `manifest=` per line.
 
-**Rule:** a module whose `lines` falls short of its manifest row came back truncated = NOT loaded → BLOCKED from writing. "I read the preview" is not proof. A `modify_scene`/`upload_asset` with no valid LOAD LEDGER above it in the same transcript is an invalid edit; revert/redo.
+**Rule:** a module whose `lines` falls short of its manifest row came back truncated = NOT loaded → BLOCKED from writing. "I read the preview" is not proof. A `modify_scene`/`upload_asset` with no valid LOAD LEDGER above it in the same transcript is an invalid edit; revert/redo. **Context compaction voids ledgers:** if the conversation was compacted since a ledger was printed, that ledger no longer covers the current scene — re-load and reprint (Critical Rule 13c). **Delegation mode:** the coordinator prints the slimmer COORDINATOR LOAD LEDGER from `06_subagent_protocol` instead of the 7-row kickoff ledger; the 7-row set is for inline runs and scene editors' own contexts.
 
 ---
 

@@ -104,8 +104,9 @@ Load the module for the full text + nuance. These headlines are reminders, not t
 13. **The master is an INDEX — load each module BEFORE its step.** Memory ≠ re-loading.
 13a. **Module Coverage Gate — missing playbook = not done.** Gate 9 proves required playbooks loaded.
 13b. **A failed/truncated load = NOT loaded.** "Output too large"/persisted/preview/truncated/404/timeout = you have not loaded the module. Re-read in chunks to the end (quote its last line) before any step that needs it. Never proceed from a partial read; never mark it loaded.
+13c. **Compaction VOIDS all loads.** Context compacted = resumed run: re-`Read` run_ledger, re-load the current scene's modules, reprint its ledger + plan; pre-compaction loads no longer count; the summary's "short checklist" is forbidden.
 14. **Announce plan + report progress.** Vertical 9-gate checklist at scene start, gate-by-gate progress, ✓/✗ recap + `Scene N: PASS|FAIL` verdict at scene end.
-15. **Subagent fan-out is the DEFAULT run mode (not an option): one SCENE EDITOR per scene on a server edit session.** Runtime can spawn subagents + ≥3 content scenes → the `06_subagent_protocol` pipeline is mandatory; inline is a fallback needing a recorded reason in the run_ledger. Main agent: `edit_session start` → spawn editors (rolling K=5, local skill dir, fixed template, own LOAD LEDGER) → validate reports (no images) → `edit_session commit`. Each editor writes ONLY its own `voice_file` via `modify_scene`; the server lock + session cache make parallel scene-scoped writes safe.
+15. **Mode threshold: inline by default ≤30 content scenes; scene-editor fan-out (one editor per scene on a server edit session) when >30 or the user asks for parallel.** Above the threshold the `06_subagent_protocol` pipeline is mandatory; record the chosen `delegation mode` + reason in the run_ledger either way. Main agent: `edit_session start` → spawn editors (rolling K=5, local skill dir, fixed template, own LOAD LEDGER) → validate reports (no images) → `edit_session commit`. Each editor writes ONLY its own `voice_file` via `modify_scene`; the server lock + session cache make parallel scene-scoped writes safe.
 16. **SCENE ROSTER + run_ledger file = the run's source of truth.** Print the roster at kickoff, persist it to a local run_ledger file, update after every verdict/write; inline mode works rows in order, delegation mode closes rows in event order — either way EVERY row must close; re-`Read` the file on any resume/detour/compaction — never trust memory or a summary.
 
 ---
@@ -138,6 +139,7 @@ If you're about to do any of these, STOP and do the prerequisite first:
 - a subagent writes OUTSIDE its own scene (foreign `voice_file`/export/publish) → STOP, report INVALID; own-scene writes on the edit session are the normal path
 - hand off while the edit session is still open → STOP, run pre-summary scan then `edit_session commit`
 - (inline mode) start a scene that is not the next unvisited SCENE ROSTER row → STOP, follow roster order; (delegation mode) rows close in event order, but no row may stay open
+- context just got compacted → STOP: compaction VOIDS all module loads; `Read` run_ledger, re-load current scene's modules, reprint its plan — never work from the summary's "short checklist"
 - resuming/continuing a run → `Read` the run_ledger file + re-load modules, never work from memory
 
 ---
