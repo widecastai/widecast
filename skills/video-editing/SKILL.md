@@ -39,7 +39,7 @@ The 5 modules below carry the rules + workflow that apply across the whole run. 
 4. **`ai_video_editor/04_principles_workflow`** — §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 reminders.
 5. **`ai_video_editor/05_quality_qa_priority`** — §7 Quality Standard, §8 video-level QA, §9 priority order for gate conflicts.
 
-These 5 + `ai_video_editor/00_ENTRYPOINT` are the kickoff set. Per-scene modules (10/20/30/31/32/33/40) load at the step that needs them.
+These 5 + `ai_video_editor/00_ENTRYPOINT` are the kickoff set; the KICKOFF LOAD LEDGER also lists `10_mechanics` because scene work starts immediately after kickoff. Per-scene modules (20/30/31/32/33/40) load at the step that needs them; `06_subagent_protocol` loads before spawning any subagent.
 
 **Before the first `modify_scene`/`upload_asset` of the run, print a KICKOFF LOAD LEDGER** (template in `ai_video_editor/03_dod_gates`): for each kickoff module report its line count and match it to `LOAD_MANIFEST.md`; a shortfall = truncated = NOT loaded → you are BLOCKED from writing. (Quote the last line only when no manifest is present.) This is the mechanical defense against skipping a module that errored with "output too large".
 
@@ -64,6 +64,7 @@ The **Module id** column is what you pass to `widecast_get_editing_skill(module=
 | Pattern is a CHART (`single_metric`/`bar_chart`/`proportion_chart`/`trend_chart`/`structural_diagram`) | **`ai_video_editor/32_charts`** + **`ai_video_editor/styles/chart_axes`** |
 | Pattern is OTHER (`map_chart`/`comparison_table`/`timeline_events`/`checklist_tips`/`quote_card`/`illustration`/`hybrid_vertical`/`real_entity`/`typography_only`/`narration_only`) | **`ai_video_editor/33_patterns`** |
 | Scene 2 (opening poster) · post-scene-2 thumbnail sync · last content/CTA scene | **`ai_video_editor/40_thumbnail_cta`** |
+| About to spawn ANY subagent for scene work (parallel prepare/verify, batching, apply phase) | **`ai_video_editor/06_subagent_protocol`** |
 
 **Adding modules later — fully automatic, ZERO formatting required.** Drop a new `.md` file anywhere under `widecast/skills/video-editing/` and it appears in the live `available_modules[]` index returned by the entry call. The server auto-generates `title` (first H1 → first H2 → first content line → filename basename) and `summary` (first ~200 chars of meaningful content). No code change, no SKILL.md edit, no required formatting.
 
@@ -104,6 +105,8 @@ Load the module for the full text + nuance. These headlines are reminders, not t
 13a. **Module Coverage Gate — missing playbook = not done.** Gate 9 proves required playbooks loaded.
 13b. **A failed/truncated load = NOT loaded.** "Output too large"/persisted/preview/truncated/404/timeout = you have not loaded the module. Re-read in chunks to the end (quote its last line) before any step that needs it. Never proceed from a partial read; never mark it loaded.
 14. **Announce plan + report progress.** Vertical 9-gate checklist at scene start, gate-by-gate progress, ✓/✗ recap + `Scene N: PASS|FAIL` verdict at scene end.
+15. **Subagent fan-out: read-only prepare/verify, ONE serial writer.** Load `06_subagent_protocol` before spawning; fixed prompt template only (no paraphrased rules); each subagent self-loads the skill + prints its own LOAD LEDGER (report invalid without); subagents never call `modify_scene`/upload voice/export/publish; the main agent applies all writes serially in SCENE ROSTER order.
+16. **SCENE ROSTER + run_ledger file = the run's source of truth.** Print the roster at kickoff, persist it to a local run_ledger file, update after every verdict/write; next scene = next unvisited roster row; re-`Read` the file on any resume/detour/compaction — never trust memory or a summary.
 
 ---
 
@@ -131,7 +134,10 @@ If you're about to do any of these, STOP and do the prerequisite first:
 - move to next scene without stated `PASS`/`FAIL` → declare verdict first
 - write final summary / hand-off / export question → run Pre-summary completion scan
 - final-handoff without complete Background Audit Ledger → STOP
-- resuming/continuing a run → re-load modules, never work from memory
+- spawn a subagent / process scenes in parallel → load `06_subagent_protocol` first; fixed template; subagents are read-only
+- let a subagent call `modify_scene`/upload voice/export/publish → STOP; only the main agent writes, serially
+- start a scene that is not the next unvisited SCENE ROSTER row → STOP, follow roster order
+- resuming/continuing a run → `Read` the run_ledger file + re-load modules, never work from memory
 
 ---
 
@@ -169,6 +175,7 @@ Silently confirm — and fix any "no" before replying:
 - Did any module read error/truncate this session? If yes, did I fully re-read it (can I quote its last line) before proceeding?
 - About to call a write endpoint (`modify_scene`/`upload_asset`/`export_video`)? Is the LOAD LEDGER + this scene's gate block already printed above it?
 - Am I dropping/compressing any required proof to be "concise" or save cost? If yes, restore it.
+- Spawning/accepting subagent work? Loaded `06_subagent_protocol`, used the fixed template, validated each report's own LOAD LEDGER, and kept all writes mine alone — serial, in roster order?
 
 ---
 

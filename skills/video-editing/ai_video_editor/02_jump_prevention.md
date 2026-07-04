@@ -8,7 +8,13 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - A **module read errored / truncated / returned only a preview** ("output too large", "persisted output", 404, timeout, partial) → STOP. That module is NOT loaded. Re-read it in chunks to the end (quote its last line in the LOAD LEDGER) before the step that needs it. Never work from the preview, never skip it, never mark it loaded. (This is exactly how `03_dod_gates` gets skipped when it is large.)
 
-- About to **start a scene** → first load `ai_video_editor/10_mechanics`.
+- About to **start a scene** → first load `ai_video_editor/10_mechanics`. And check the SCENE ROSTER: if this scene is NOT the next unvisited roster row → STOP, work the roster in order (skipping a row is the exact failure the roster exists to prevent).
+
+- About to **spawn a subagent** for scene work (prepare/verify/fix), or to process multiple scenes in parallel → STOP. First load `ai_video_editor/06_subagent_protocol`. The prompt must be its fixed template (fill blanks only — never paraphrase skill rules into the prompt); the subagent must self-load the skill and print its OWN LOAD LEDGER, and the pool is capped by machine size (K = clamp(cores/2, 2, 6)), rolling not batched.
+
+- About to **accept a subagent report** → validate first: its own LOAD LEDGER printed with PASS, no denylisted write occurred, every listed evidence/payload file exists on disk, report block complete. Any miss = the scene is NOT prepared/verified; re-spawn it.
+
+- A **subagent is about to call (or a report shows it called) `modify_scene`, a voice/narrator upload, `export_video`, or publish** → STOP. Subagents are read-only + `upload_asset` (S3) only. ONLY the main agent writes, strictly serially, one video at a time. If a subagent already wrote: re-pull `video_data`, mark the scene dirty, re-verify it.
 
 - About to **handle the first real scene after the thumbnail** → first load `ai_video_editor/40_thumbnail_cta`; it is the opening poster frame even if its `type`/`pattern` is not `thumbnail`, and it needs a named endpoint poster style rather than a normal card/text-bar overlay.
 
@@ -70,4 +76,4 @@ This list is deliberately redundant with the Critical Rules (`ai_video_editor/01
 
 - About to call **`modify_scene` / `upload_asset` / `export_video`** → STOP and confirm, immediately above the write call: (1) run-level KICKOFF LOAD LEDGER is printed with a valid last-line for each kickoff module; (2) this scene has printed its plan + Gate 3 BEFORE + Gate 4 SCENE LOAD LEDGER for the modules this scene type needs (background→`20_background`; overlay-with-text→`30_overlay_core`+`31_typography`; endpoint→`40_thumbnail_cta`). Any missing → not allowed to write; print it first. (Announce ≠ pause: print, then keep working.)
 
-- **Resuming / continuing a run** → do NOT work from memory: re-load the modules for the step you are on.
+- **Resuming / continuing a run** (including after any detour or context compaction) → do NOT work from memory: `Read` the run_ledger file FIRST (roster, verdicts, phase position), then re-load the modules for the step you are on. A conversation summary is not the ledger.

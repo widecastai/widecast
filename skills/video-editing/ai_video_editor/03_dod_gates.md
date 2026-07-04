@@ -298,12 +298,16 @@ Verdict: <PASS secondary text | REVISE labels/layout/rebuild overlay>
 
 This is the guard for text that is correct in data but wrong in the rendered image. It applies to overlay text, chart/map/document/UI labels, generated images, realistic image overlays, and any image-baked message text. Ignore tiny incidental background signage unless it is part of the message or visibly distracts.
 
+**Order of operations is fixed: TRANSCRIBE FIRST, JUDGE STYLE AFTER.** Open the poster and type out every visible string letter-by-letter like a proofreader BEFORE making any readability/aesthetic observation about it — an agent that starts with "the title is punchy and readable" has already stopped seeing the spelling. The transcription is the per-string table below: one row per visible string. A single-line summary, "all text matches", or a PASS without the table = Gate 7 did not run.
+
 ```text
 Gate 7 RENDERED IMAGE TYPO/GRAMMAR CHECK:
 Composite screenshot shown: <yes|no> — local file path: <path>
 Overlay poster evidence: <MCP overlay_poster downloaded+shown | reused local poster | N/A no overlay/message text | unavailable — composite fallback> — local file path: <path>; call `widecast_scene_inspector` with `action="overlay_poster"`, `id`, `voice_file`, `activate:true`, then download the returned URL with `curl`; do not construct the URL manually. Use this local PNG as the primary text-proof image and refresh it after any overlay text/source/image-baked message change.
-Rendered text inventory from overlay poster: <exact visible words as they appear in the poster, not copied from JSON>
-Intended/source copy: <script/quote/talking_point/approved overlay strings or N/A>
+Per-string transcription table (one row per visible string — title, label, value, badge, card line, callout, baked image text; typed letter-by-letter FROM THE POSTER IMAGE, never pasted from JSON/source):
+| # | rendered string (as seen in poster) | intended copy (script/quote/talking_point/source) | char-level diff (for diacritic languages: if the accent-stripped forms match but the accented forms differ, that difference IS the spelling error) | verdict |
+| 1 | <...> | <...> | <none | exact diff> | <PASS|FAIL> |
+| … | | | | |
 Source match check: <PASS|FAIL|N/A> — rendered words match intended copy; no stale old spec text
 Typo/grammar/diacritic/glyph check: <PASS|FAIL> — no typo, grammar error, missing/wrong diacritic, malformed glyph, pseudo-text, wrong language, wrong casing, wrong number/currency/%/symbol, or wrong domain term; for Vietnamese/diacritic languages, every tone mark, accent, horn/breve/circumflex, vowel mark, and `Đ/đ` is visibly correct
 Baked/generated image text check: <PASS|FAIL|N/A> — any text inside generated/realistic image assets is correct, or the image has no message text
@@ -377,7 +381,7 @@ You may advance to the next scene ONLY after you state an explicit verdict:
 
 ## Final video hand-off — after the last content scene passes
 
-- First run the **Pre-summary completion scan** (Critical Rule 12d in `ai_video_editor/01_critical_rules`): every content scene has `Scene N: PASS`, Gate 1–9 checked, Module Coverage Gate PASS, Background Audit Ledger complete, scene 2 thumbnail sync complete, final CTA endpoint handling complete for the last content scene, and no unhandled `[ACTION REQUIRED]` item hidden.
+- First run the **Pre-summary completion scan** (Critical Rule 12d in `ai_video_editor/01_critical_rules`): `Read` the run_ledger file and count `Scene N: PASS` rows against the SCENE ROSTER total — every roster row has a PASS verdict (a blank/FAIL row = not done, regardless of what memory says), Gate 1–9 checked, Module Coverage Gate PASS, Background Audit Ledger complete, scene 2 thumbnail sync complete, final CTA endpoint handling complete for the last content scene, and no unhandled `[ACTION REQUIRED]` item hidden.
 - If the scan finds missing major work, do that work now. Do not write a "done" summary as a substitute for completing it. If the user explicitly asked for only triage or only selected-scene fixes, hand off as `partial_triage_only` / `partial_fix_only`, not complete.
 - Do **not** revisit the thumbnail; it was completed by the immediate post-scene-2 sync gate.
 - Pull/keep the `review_url` for the video.
