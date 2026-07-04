@@ -105,8 +105,8 @@ Load the module for the full text + nuance. These headlines are reminders, not t
 13a. **Module Coverage Gate — missing playbook = not done.** Gate 9 proves required playbooks loaded.
 13b. **A failed/truncated load = NOT loaded.** "Output too large"/persisted/preview/truncated/404/timeout = you have not loaded the module. Re-read in chunks to the end (quote its last line) before any step that needs it. Never proceed from a partial read; never mark it loaded.
 14. **Announce plan + report progress.** Vertical 9-gate checklist at scene start, gate-by-gate progress, ✓/✗ recap + `Scene N: PASS|FAIL` verdict at scene end.
-15. **Subagent fan-out is the DEFAULT run mode (not an option): read-only prepare/verify, ONE serial writer.** Runtime can spawn subagents + ≥3 content scenes → the `06_subagent_protocol` pipeline is mandatory; inline is a fallback needing a recorded reason in the run_ledger. Load `06_subagent_protocol` before spawning; fixed prompt template only (no paraphrased rules); each subagent self-loads the skill + prints its own LOAD LEDGER (report invalid without); subagents never call `modify_scene`/upload voice/export/publish; the main agent applies all writes serially in SCENE ROSTER order.
-16. **SCENE ROSTER + run_ledger file = the run's source of truth.** Print the roster at kickoff, persist it to a local run_ledger file, update after every verdict/write; next scene = next unvisited roster row; re-`Read` the file on any resume/detour/compaction — never trust memory or a summary.
+15. **Subagent fan-out is the DEFAULT run mode (not an option): read-only prepare/verify, ONE serial writer.** Runtime can spawn subagents + ≥3 content scenes → the `06_subagent_protocol` pipeline is mandatory; inline is a fallback needing a recorded reason in the run_ledger. Load `06_subagent_protocol` before spawning; fixed prompt template only (no paraphrased rules); each subagent self-loads the skill + prints its own LOAD LEDGER (report invalid without); subagents never call `modify_scene`/upload voice/export/publish; the main agent applies all writes serially (one in flight) in event-driven report-arrival order.
+16. **SCENE ROSTER + run_ledger file = the run's source of truth.** Print the roster at kickoff, persist it to a local run_ledger file, update after every verdict/write; inline mode works rows in order, delegation mode closes rows in event order — either way EVERY row must close; re-`Read` the file on any resume/detour/compaction — never trust memory or a summary.
 
 ---
 
@@ -136,7 +136,7 @@ If you're about to do any of these, STOP and do the prerequisite first:
 - final-handoff without complete Background Audit Ledger → STOP
 - spawn a subagent / process scenes in parallel → load `06_subagent_protocol` first; fixed template; subagents are read-only
 - let a subagent call `modify_scene`/upload voice/export/publish → STOP; only the main agent writes, serially
-- start a scene that is not the next unvisited SCENE ROSTER row → STOP, follow roster order
+- (inline mode) start a scene that is not the next unvisited SCENE ROSTER row → STOP, follow roster order; (delegation mode) rows close in event order, but no row may stay open
 - resuming/continuing a run → `Read` the run_ledger file + re-load modules, never work from memory
 
 ---
@@ -175,7 +175,7 @@ Silently confirm — and fix any "no" before replying:
 - Did any module read error/truncate this session? If yes, did I fully re-read it (can I quote its last line) before proceeding?
 - About to call a write endpoint (`modify_scene`/`upload_asset`/`export_video`)? Is the LOAD LEDGER + this scene's gate block already printed above it?
 - Am I dropping/compressing any required proof to be "concise" or save cost? If yes, restore it.
-- Spawning/accepting subagent work? Loaded `06_subagent_protocol`, used the fixed template, validated each report's own LOAD LEDGER, and kept all writes mine alone — serial, in roster order?
+- Spawning/accepting subagent work? Loaded `06_subagent_protocol`, used the fixed template with `Scene <id> prepare/verify/fix agent` names, validated each report's own LOAD LEDGER, and kept all writes mine alone — one in flight, event-driven arrival order?
 
 ---
 
