@@ -26,7 +26,7 @@ The architecture this enables: **read-only subagents fan out in parallel to do t
 - **Phase 0 — kickoff (main, once).** Normal kickoff per `04_principles_workflow` §2: load kickoff modules, pull `video_data`, whole-video context pass, **choose the ONE design look for the whole video** (language_id + font + accent — subagents must receive it, or each fresh context would pick its own and break Critical Rule 7), print the SCENE ROSTER, write the run_ledger file, compose the run digest, and export the steward data files (`video_data_<topic_id>.json`, `run_script.txt`, per-scene `record.json` — see "Data files" below).
 - **Phase 1 — prepare (parallel pool of K).** Spawn PREPARE subagents with the fixed template below. They only read + upload to S3.
 - **Phase 2 — apply (main, STRICTLY SERIAL, roster order).** For each scene: read its payload files → fire each `modify_scene` in the listed order → re-pull `video_data`/`scene_geometry` to confirm saved → refresh that scene's `record.json` (+ `run_script.txt` line if `text` changed) and the full snapshot from the same pull → update run_ledger. **Phase 2 involves NO images:** no screenshots, no posters, no visual judgment — apply is data-in, data-out (see NO-RELOOK RULE); the post-apply look belongs to Phase 3's verifier. Never two writes in flight; never interleave two videos.
-- **Phase 3 — verify (parallel pool of K).** Spawn VERIFY subagents. Any FAIL → a targeted loop: prepare-fix (subagent) → apply (main) → re-verify (subagent). Then the main agent runs the Pre-summary completion scan against the roster and hands off.
+- **Phase 3 — verify (parallel pool of K).** Spawn VERIFY subagents. Any FAIL → the Fix cycle below. Then the main agent runs the Pre-summary completion scan against the roster and hands off.
 
 **Scene 2 / thumbnail ordering exception:** scene 2 must complete prepare → apply → verify → **immediate thumbnail sync (main agent write)** before any OTHER scene's apply happens. Prepare for scenes 3+ may still run in parallel from the start (they read BEFORE state only).
 
@@ -141,6 +141,18 @@ Gate 7 typo table: <path> — <PASS | FAIL: list>
 Evidence: <AFTER path, poster path>
 Scene N: <PASS | FAIL — reasons>
 ```
+
+## Fix cycle — when a VERIFY REPORT says `Scene N: FAIL`
+
+VERIFY never fixes anything itself (it is read-only and its context is a judge, not a builder). The cycle is:
+
+1. **Record** — main agent writes `Scene N: FAIL (cycle <c>) — <reasons>` into the run_ledger. The scene's roster row stays open.
+2. **FIX-PREPARE (subagent)** — spawn a PREPARE subagent with the normal PREPARE template plus two extra input lines: `verify report: <path>` and `prior prepare report: <path>`. Its scope is ONLY the failing gates listed in the VERIFY REPORT — **layer isolation applies (Critical Rule 4c):** an overlay FAIL authorizes overlay/layout payloads only; a background FAIL authorizes `mediaUrl`/`mediaType` only; a typo FAIL fixes the text/overlay source, not the composition. **Evidence reuse first:** the verifier's AFTER screenshot, poster, and typo table are already in `scene_<voice_file>/` — the fix-preparer reads those local files (looking is a subagent's job) and pulls a fresh screenshot only if the saved evidence does not cover what it must judge. Output: fix payloads (new numbered files, e.g. `11_B_overlay_fix.json`) + an updated PREPARE REPORT marked `FIX cycle <c>`.
+3. **Apply (main, serial)** — same Phase 2 rules: fire payloads, Gate 8 re-pull, refresh steward files, update run_ledger. Still NO images in the main context.
+4. **Re-verify (subagent)** — spawn a fresh VERIFY subagent for that scene (fresh eyes; do not ask the failing verifier to grade its own re-check). Only its `Scene N: PASS` closes the roster row.
+5. **Loop cap = 2 fix cycles per scene.** A third FAIL (or two INVALID/contradictory reports at any point) escalates the scene to **inline takeover**: the main agent handles that one scene with the classic per-scene flow (normal look rules apply to it from then on), while the rest of the run stays in the pipeline. Record `escalated_inline (after <c> cycles)` in the run_ledger.
+
+Fix cycles for different scenes may interleave with normal Phase 3 verification, but their APPLY steps queue through the same single serial writer — never concurrent writes.
 
 ## Main-agent validity gates — before accepting ANY subagent report
 
