@@ -1,24 +1,89 @@
-# 02 · Jump-Prevention — Fast Edition
+# Jump-Prevention Rules — catch yourself BEFORE the action
 
-Load at kickoff and after any detour/resume.
+Each line below is an **interrupt** on what you are *about to* do. If the trigger matches what you're about to do next, **STOP**, do the `→` part first, then resume your task.
 
-If you are about to do one of these, stop and do the prerequisite first:
+This list is deliberately redundant with the Critical Rules (`ai_video_editor/01_critical_rules`) and the per-scene Definition of Done (`ai_video_editor/03_dod_gates`) — **redundancy is what stops misses**. Load this module at the START of every run, and re-load it whenever you do a Gate Resume Scan after a detour.
 
-- Start a run → load kickoff modules and print the KICKOFF LOAD LEDGER.
-- Start a scene → load `03_dod_gates`, `10_mechanics`, and `20_background`, then print the fast scene plan.
-- Ask the user what kind of edit after a WideCast URL/topic_id → stop. Scope is fast blind-spot QA + objective fixes.
-- Judge a screenshot or media candidate privately → stop. Download/save local, show once, then judge.
-- Pull an `overlay_poster` for every scene → stop. Gate 4 poster proof is only for text-risk patterns or changed overlay text.
-- Rebuild or restyle overlay because it looks plain/less polished → stop. Aesthetic redesign is outside fast scope.
-- Fail a title for being thin, not punchy, not premium, or not your taste → stop. Fast scope checks typo/data/glyph correctness only.
-- Omit Gate 5 because background looks secondary → stop. Gate 5 always runs from the composite and gets its own verdict.
-- Pull active plate when the composite already proves background PASS/skip → stop. Plate is only for closer judgment or metadata conflict.
-- Evaluate hidden full-canvas A-roll background content → stop. Run Gate 5, then mark `PASS skip` with the hidden/A-roll reason.
-- Search/replace background because it could be prettier → stop. Replace only objective off-topic/geo/watermark/misleading defects.
-- Run Gate 6 dead-zone proof on an untouched WideCast layout → stop. Gate 6 is required only after edits or visible objective collision.
-- Pull AFTER screenshot when no edit happened → stop. Reuse BEFORE as final evidence and state no edit.
-- Declare PASS after a write without save confirmation → stop. Re-pull `video_data`/`scene_geometry` as relevant.
-- Use batch/contact sheet as PASS proof → stop. It is triage only.
-- Move to next scene without `Scene N: PASS|FAIL` → stop and declare verdict.
-- Summarize final video while any roster row is blank/FAIL → stop and complete or report partial status.
-- Context was compacted or run resumed → read run ledger, reload current modules, continue from earliest unproven applicable gate.
+---
+
+- A **module read errored / truncated / returned only a preview** ("output too large", "persisted output", 404, timeout, partial) → STOP. That module is NOT loaded. Re-read it in chunks to the end (quote its last line in the LOAD LEDGER) before the step that needs it. Never work from the preview, never skip it, never mark it loaded. (This is exactly how `03_dod_gates` gets skipped when it is large.)
+
+- About to **start a scene** → first load `ai_video_editor/10_mechanics`. And check the SCENE ROSTER: in an INLINE run, if this scene is NOT the next unvisited roster row → STOP, work the roster in order (skipping a row is the exact failure the roster exists to prevent). In DELEGATION mode rows may close in event/arrival order — the check instead is that no roster row is left open at the end.
+
+- About to **work scene 2 (or any scene) inline in the main context** while the runtime CAN spawn subagents and the video has MORE THAN 30 content scenes → STOP. Delegation is the DEFAULT run mode: load `ai_video_editor/06_subagent_protocol`, record `delegation mode: subagent (K=<n>)` in the run_ledger, call `widecast_edit_session action='start'`, and spawn scene editors. Inline is allowed only with a recorded fallback reason (`no subagent capability` / `≤30 content scenes (inline is the default at this size)` / `user asked single-agent` / `host policy hard-blocks spawning`) — "the wording sounded optional" is not one, and neither is "the user didn't say the word subagent": the WideCast edit trigger IS the explicit consent (MCP instructions rule 5). Reason (d) requires a real tool refusal and must be reported to the user at hand-off.
+
+- About to **spawn a subagent** for scene work (editor/fix/QA) → STOP. First load `ai_video_editor/06_subagent_protocol`, ensure the edit session is started and the skill is unzipped locally. The prompt must be its fixed template (fill blanks only — never paraphrase skill rules; pass `skill_root` so the editor reads LOCAL files and downloads nothing); the editor must print its OWN LOAD LEDGER. Pool: rolling K=5 top-up (host limit lower → host max), name = `Scene <id> editor agent`.
+
+- About to **accept a subagent report** → validate first: its own LOAD LEDGER printed with PASS, write scope respected (only its own `voice_file`; scene-2 editor may also write the thumbnail scene), every listed evidence file exists on disk (`ls`, not eyes), report block complete with explicit `Scene <id>: PASS|FAIL`. Any miss = the scene is NOT done; re-spawn it (2 structural failures → inline takeover of that scene).
+
+- **Main agent in delegation mode about to view/re-download a scene screenshot or poster, or call `scene_inspector`** → STOP (NO-RELOOK RULE in `06_subagent_protocol`). Scene editors look before AND after their own edits; the QA agent looks at the end; the main agent only forwards editors' saved evidence files to the user. Re-looking duplicates vision cost and re-opens settled judgments. Only exception: a scene escalated to inline takeover.
+
+- A **subagent report shows a write OUTSIDE its scene scope** (another scene's `voice_file`, export, publish, voice/narrator upload) → STOP: the report is INVALID. Re-pull `video_data`, mark BOTH scenes dirty, re-verify them. Scene-scoped `modify_scene` writes by the scene's own editor are the NORMAL path (the server's per-video lock + edit session make them safe) — foreign-scene writes are the violation.
+
+- About to **hand off / summarize while the edit session is still open** → STOP. Run the Pre-summary completion scan, then call `widecast_edit_session action='commit'` (staged edits are not live until commit; never commit while an editor is still running). A run that ends without commit leaves the video un-updated.
+
+- About to **handle the first real scene after the thumbnail** → first load `ai_video_editor/40_thumbnail_cta`; it is the opening poster frame even if its `type`/`pattern` is not `thumbnail`, and it needs a named endpoint poster style rather than a normal card/text-bar overlay.
+
+- About to **handle `type="thumbnail"`** → only do this as the immediate sync gate after scene 2 PASS (unless the user explicitly asks for a thumbnail-only debug/edit). First load `ai_video_editor/40_thumbnail_cta`; clone/verify the opening poster identity, then continue to scene 3.
+
+- About to **handle the last non-thumbnail/content scene or `type="CALL TO ACTION"`** → first load `ai_video_editor/40_thumbnail_cta`; treat it as the closing CTA endpoint, with one clear action, typography stronger than decorative objects, and poster-grade composition rather than normal inside-scene card styling.
+
+- About to **author, upload, apply, or approve an endpoint overlay** for scene 2/opening poster, thumbnail sync, or final CTA without a printed `Gate 4 ENDPOINT DESIGN VARIANT PROOF` → STOP. Load `styles/design_languages`, choose a language + endpoint archetype, state variant tokens, and pass the anti-template check before touching the overlay. Reusing the same red side-bar/double-underline/giant-outline motif across unrelated videos is not a proof of style; it is a process failure.
+
+- About to **ask what kind of edit / edit scope** after the user gave a WideCast URL or `topic_id` (`What kind of edit do you want?`, `Full audit + fix / Specific scenes / Backgrounds / Text`, `Before I touch anything...`, `edit this video can mean different things`, `Asking Edit scope`, `request_user_input`) → STOP. The scope is already **Full audit + fix**. Do not ask. Continue the autonomous run from `video_data` → whole-video context → scene 2.
+
+- About to **audit/choose the background** → first load `ai_video_editor/20_background`. (Background is its OWN pass immediately after overlay, never folded into the overlay.)
+
+- About to **start Gate 6 / final composition work** and this scene does not yet have a printed `Gate 5 BACKGROUND PROOF` with a PASS/FIXED verdict → STOP. Run Gate 5 first. Overlay urgency, obvious text errors, or "the screenshot looks fine" do not waive background proof.
+
+- About to **rebuild, replace, upload, disable, or restyle an overlay** because background search failed, the background is wrong, geo failed, or grid fallback was chosen → STOP. Gate 5 owns background only; keep overlay/remotion unchanged unless Gate 4 already printed an independent overlay FAIL proof for this exact scene.
+
+- About to **replace or re-search the background** because the overlay is ugly, unreadable, in a dead zone, or stylistically weak → STOP. Overlay/layout defects are fixed in Gate 4/Gate 6; change background only when Gate 5 independently fails.
+
+- About to **declare Gate 6 PASS / Scene PASS** while a visible overlay/remotion object exists and there is no printed `Gate 6 DEAD-ZONE PROOF` for the latest overlay/layout state → STOP. Pull fresh `scene_geometry`, list checked object ids/layout_ids, verify `dead_top`, `dead_bottom`, and caption reserve, fix if needed, then repeat the proof.
+
+- About to **declare Gate 7 / Scene PASS** while visible overlay, chart, label, title, generated image, or image-baked message text exists and there is no printed `Gate 7 RENDERED IMAGE TYPO/GRAMMAR CHECK` using a local PNG from MCP `widecast_scene_inspector action="overlay_poster"` for the current `remotion_spec` → STOP. Call the MCP action with topic `id`, scene `voice_file`, and `activate:true`, download/show the returned URL once, read the exact words from the poster itself, compare against intended copy, and fix any typo/grammar/diacritic/glyph/pseudo-text error before PASS. If the poster result is unavailable, state the composite fallback; do not construct the poster URL manually and do not launch a browser/local converter just to make one.
+
+- About to **write `Gate 7: PASS` / "typo PASS" / "diacritics correct" for a scene WITHOUT its own per-string transcription table printed in THIS scene's block** → STOP. One table per scene with visible text, every scene, no exceptions — "the last few scenes were all clean" is proof-compression drift (each scene slightly more compressed than the previous one until the table disappears). A prose assurance is not the table; scene 2's table does not cover scene 9.
+
+- Just finished any **detour/fix** (wrong term, typo, missing number/symbol, bad overlay word, covered face, wrong thumbnail, background swap, geo mismatch, layout tweak, tool/debug issue, or cross-scene small fix) and feel ready to summarize/handoff/move on → STOP. Run the Gate Resume Scan from Critical Rule 12c (`ai_video_editor/01_critical_rules`) and continue from the earliest unchecked or invalidated gate; a fix is not a scene/run verdict.
+
+- About to **(re)build, apply, or approve an overlay on A-roll** (`show_narrator=true`) without a printed Gate 4 A-ROLL LAYOUT PRIORITY PROOF → STOP. Load `ai_video_editor/10_mechanics`, run the full-canvas-first ladder inside Gate 4, and decide the overlay/narrator tradeoff before drawing/uploading/accepting the overlay.
+
+- About to **reject an A-roll full-canvas or shifted-full-canvas priority** because the current overlay touches the face, caption, or dead zone → STOP. The overlay is movable/rebuildable. First solve narrator + overlay + caption together: move objects/group, resize the group, simplify/rebuild the overlay, then judge the priority from a local-shown screenshot.
+
+- About to **(re)build or apply an overlay** → first load the whole LOAD CHAIN: `ai_video_editor/30_overlay_core` + `ai_video_editor/10_mechanics` when A-roll + the matching `31`/`32`/`33` + its `styles/*`. Stopping at `30_overlay_core` = flat / off-pattern.
+
+- About to **make ANY visual call** (grid-vs-real, regenerate-or-leave, readable?) from `scene_geometry` alone → STOP: pull the screenshot, save + show it locally, judge from the IMAGE. Geometry never substitutes for looking.
+
+- About to **act on a screenshot / found media you have not SHOWN** locally → save + show it first (Critical Rules 0/11).
+
+- About to spend time **rendering/converting an overlay preview** before upload → STOP. Only show a pre-upload overlay preview if the runtime already has a cheap direct display/conversion path; otherwise upload/apply the overlay, verify composition via the post-upload composite screenshot, and verify rendered text via MCP `widecast_scene_inspector action="overlay_poster"` when visible overlay/message text exists (Critical Rule 4).
+
+- About to **ask the user to choose/approve an option during runtime** → STOP. Use the decision protocol in Critical Rule 2a, choose the best option yourself, act, and only report the decision/proof. Do not turn uncertainty into a user question.
+
+- About to **declare `Scene N: PASS`** without scanning all 9 DoD gates + §7 Quality Standard (incl. module coverage + final composition + the explicit Gate 6 DEAD-ZONE PROOF) → run the scan first; PASS is earned by the scan. The DoD lives in `ai_video_editor/03_dod_gates`; the Quality Standard lives in `ai_video_editor/05_quality_qa_priority`.
+
+- About to **declare `Scene N: PASS` from a batch/contact-sheet/gallery/table/script/bulk API result** → STOP. That result is triage only. Pull/show the scene's own BEFORE and AFTER/final screenshots, complete all 9 gates, include Gate 5 background proof and Module Coverage Gate, confirm server-saved, then declare PASS only for that exact scene.
+
+- About to **declare `Scene N: PASS`** but the end checklist cannot name the Gate 5 verdict (`PASS keep`, `PASS grid-by-design`, or `FIXED + PASS`) → STOP. The background audit is missing even if overlay/composition passed.
+
+- About to **declare `Scene N: PASS` / final handoff** but the `MODULE COVERAGE GATE` has any missing required module → STOP. Load the missing module at the correct step, resume the earliest invalidated gate, then re-scan.
+
+- About to **move to the next scene** with no stated `PASS`/`FAIL` verdict → declare the verdict first. No verdict = scene not done.
+
+- About to **write a final summary / completion report / Telegram completion message / export question** → STOP and run the Pre-summary completion scan (Critical Rule 12d). If any scene/gate/ledger row is incomplete, do that work first instead of summarizing.
+
+- About to **ask for render/export or call `export_video`** while any content scene lacks its own `Scene N: PASS` → STOP. The only allowed status is `partial_triage_only` / `partial_fix_only`; do not ask for render/export and do not call export.
+
+- About to **handoff after triage or a partial set of fixes** → STOP. Say the status is `partial_triage_only` or `partial_fix_only`, then list scenes with individual PASS separately from scenes not individually PASS. Do not imply full video completion.
+
+- About to **final-handoff a video** without a complete per-scene background-audit ledger for every content scene → STOP. Say "background audit not complete" and run the missing Gate 5 rows before hand-off/export.
+
+- User asks **"did you audit backgrounds?" / "are backgrounds suitable?"** → answer from the Gate 5 ledger only. If any content scene lacks a Gate 5 proof row, answer "not yet" and continue the background audit; do not infer from memory or from overlay screenshots.
+
+- About to call **`modify_scene` / `upload_asset` / `export_video`** → STOP and confirm, immediately above the write call: (1) run-level KICKOFF LOAD LEDGER is printed with a valid last-line for each kickoff module; (2) this scene has printed its plan + Gate 3 BEFORE + Gate 4 SCENE LOAD LEDGER for the modules this scene type needs (background→`20_background`; overlay-with-text→`30_overlay_core`+`31_typography`; endpoint→`40_thumbnail_cta`). Any missing → not allowed to write; print it first. (Announce ≠ pause: print, then keep working.)
+
+- **The context was just compacted/summarized** (a summary block replaced earlier turns) → STOP before the next scene action. This is a RESUME, not a continuation: `Read` the run_ledger, treat every pre-compaction module load as VOID, re-load the CURRENT scene/step's modules, reprint its SCENE LOAD LEDGER + 9-gate plan, and continue from the earliest unproven gate. Do NOT invent a "short checklist for the rest" from the summary — that is how the final CTA gets a shallow pass. (Critical Rule 13c.)
+
+- **Resuming / continuing a run** (including after any detour or context compaction) → do NOT work from memory: `Read` the run_ledger file FIRST (roster, verdicts, phase position), then re-load the modules for the step you are on. A conversation summary is not the ledger.

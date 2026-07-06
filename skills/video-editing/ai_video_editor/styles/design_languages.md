@@ -2,13 +2,13 @@
 
 _Version: `modular-1.1` · style module of the AI Video Editor Playbook._
 
-This is the **visual language reference** used by the SVG engine and by explicit endpoint/overlay polish requests. The fast video-editing skill does not load this file by default and does not judge scenes by these aesthetics.
+This is the **visual language layer**, not a replacement for the Universal Overlay Design Standard. Every language below still obeys: instant-punch mobile title, strong contrast, safe zones, face/caption clearance, correct copy, separated objects, and post-upload screenshot proof.
 
-> **HOW TO USE — short.** Use this only when the user explicitly asks for visual polish or when an objective endpoint/overlay defect requires a rebuild. Pick ONE language as a design direction, then render the scene's pattern. In fast blind-spot QA, do not load this file merely to judge taste.
+> **HOW TO USE — short.** Pick ONE language before authoring/rebuilding an overlay. Use it as a design direction, then render the scene's pattern via `ai_video_editor/31_typography.md`, `ai_video_editor/32_charts.md`, or `ai_video_editor/33_patterns.md`. Keep one language across a video unless an endpoint/CTA or scene context clearly needs a deliberate shift. Do not explain the language to normal users; just apply it.
 >
-> **Fast-scope guard:** never fail a scene only because it does not match one of these languages. Copy correctness and background fit live in the fast gates; visual language is only for explicit rebuild/polish work.
+> **Universal title rule across EVERY language:** title/hero/primary CTA/hero metric text is **open typography**, never boxed inside a card/chip/pill/panel/black translucent rectangle. Readability is only the floor: the title must be graspable in the first second, vivid, and thick-bodied. Use 900-equivalent weight (`Black`/`900`, plus `font-weight="900"` where possible), an **8–15x same-fill face stack inside the same title object**, and visible text stroke **0–2px max**. The range is a guardrail, not an auto-pass: reduce count/offset or change font if the stack makes letters muddy/blobby/deformed, closes counters/negative space, crushes tracking, swallows Vietnamese diacritics, or makes the style feel less premium. More than 15 face copies = FAIL. If a language mentions cards, panels, pills, tags, plates, or bubbles, those are for secondary labels, stats, frames, decoration, or object surfaces — **not containers for the main title**. Use shadow, glow, scrim/gradient, brackets, underlines, slashes, or object-integrated placement for title contrast.
 >
-> **Endpoint use.** Scene 2, thumbnail, and final CTA do not automatically load this file in fast mode. Load it only for an explicit endpoint rebuild/polish request or an unrecoverable objective endpoint defect.
+> **Endpoint use.** For scene 2/opening poster, thumbnail sync, and final CTA, this file is mandatory. Pair one language here with one endpoint archetype from `40_thumbnail_cta.md` and print `Gate 4 ENDPOINT DESIGN VARIANT PROOF`. Do not let every endpoint become the same giant outlined title + red vertical side bar + red/double underline motif; those are only possible tokens inside a broader language, not a default template.
 
 <!-- SYNC_DEFAULT_POOL (machine-read by svg_skill_sync.py — the server's default
      rotation when no vibe is known; edit freely, keep names backticked):

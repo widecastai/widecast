@@ -1,49 +1,72 @@
-# 04 · Principles + Whole-Video Workflow — Fast Edition
+# General Principles + Whole-Video Workflow + Agent Reminders
 
-Load at kickoff.
+Load this module at **run kickoff**, alongside `01_critical_rules` and `02_jump_prevention`. It carries §1, §2, and §10 from the original master playbook — general principles, the whole-video workflow pass, and the long-form reminders list.
 
-## Principles
+---
 
-- Prefer **objective checks** over taste calls.
-- Trust WideCast layout and design output unless there is a visible, objective defect.
-- Spend vision tokens where WideCast is blind: generated/baked text and background/media fit.
-- Do not add overlays, restyle overlays, or polish endpoints unless the user asked or an objective defect requires a targeted fix.
-- Use the minimum evidence needed:
-  - one BEFORE composite for every scene
-  - overlay poster only for text-risk scenes
-  - dedicated Gate 5 background verdict for every scene
-  - active plate only when the composite is not enough for background judgment
-  - AFTER only after edits
+## 1. General Principles
 
-## Whole-Video Setup
+1. Always start by pulling the entire video script (`video_data`).
+2. Read the whole video context before editing each scene.
+3. Concatenate the `text` of the segments into the full script to understand the topic, terminology, proper names, industry, offer, disclaimer, and tone.
+4. Go through scenes in the order they appear in the video. Start with the first real scene after the thumbnail (usually scene `id=2`), but treat that scene as an **opening poster scene** using `ai_video_editor/40_thumbnail_cta` in addition to the normal DoD, because it may become the platform's default extracted thumbnail. The scene `type="thumbnail"` is handled immediately after scene 2 PASS as a sync gate, then skipped for the rest of the run unless the user explicitly asks. When you reach the last non-thumbnail/content scene, especially `type="CALL TO ACTION"`, use `40_thumbnail_cta` again and treat it as the closing CTA scene.
+5. Prioritize reading the data first, including `text`, `visual`, `pattern`, `sub_mode`, `keyword`, `quote`, `talking_point`, `mediaUrl`, and the geometry from `scene_geometry`. **⭐ But `pattern`/`sub_mode` exist for the BLIND automated pipeline — you CAN see, so make the visual/aesthetic calls (grid-vs-background, regenerate-or-leave, is-this-image-right) from your own judgment + the topic's vibe, NOT from the pattern label. Use the data as input, never as the verdict** (`ai_video_editor/20_background`, `ai_video_editor/30_overlay_core`).
+6. `scene_geometry` gives the structural data (boxes, safe zones); a **local-shown screenshot from MCP `screenshot_scene_280x498`** is how you actually SEE the scene. For every WideCast scene screenshot, download `result.screenshot.url` to a local file with `curl`, show it, then evaluate. Show the **BEFORE screenshot** before evaluating and the **AFTER screenshot** before confirming — but **don't force a fixed count and don't pull after every tiny edit** (each pull costs tokens + bandwidth); batch your edits and pull/show when you genuinely need to see the result (`ai_video_editor/10_mechanics`).
+7. After each edit, pull `video_data`/`scene_geometry` again to check the result was saved on the server.
+8. When doing an interactive review with the user, show the important images/thumbnails/layouts and your reasoning so the user can evaluate alongside you.
+9. **Visual evidence before agent judgment (not just before applying).** Any visual artifact the agent is about to use as evidence — screenshot, found media, B-roll candidate thumbnail, contact sheet, downloaded image, generated image, extracted spec image, style/reference preview, or **cheap local overlay preview when available** — must be **downloaded/saved locally and rendered viewable in chat BEFORE the agent evaluates it, chooses from it, edits from it, uploads it, or calls `modify_scene` because of it**. Looking privately first is a process error. A self-authored overlay uses an internal SVG source, but user-facing language is only **overlay** / **overlay preview**; do not mention the internal format to normal users. Pre-upload preview is opportunistic, not a blocker: show it only if the runtime can display/convert it cheaply without installing tools, launching a headless browser, or probing multiple render paths. If no cheap preview path exists, skip it and verify final placement/readability via the **post-upload screenshot** plus rendered text/glyph correctness via MCP `widecast_scene_inspector action="overlay_poster"` when visible overlay/message text exists (`ai_video_editor/30_overlay_core`), both local-shown before judgment when used as evidence.
+   - **EXACTLY ONE USER-VISIBLE RENDER PER IMAGE — anti-double AND anti-zero.** Count renders the USER sees inline, not the agent's private views. Two failure modes, both forbidden: (a) **double** — on hosts where the agent's viewing tool already renders inline to the user (Codex `view_image`), that view IS the show; adding a markdown `![](path)` tag or a second attachment duplicates the picture in the user's feed; (b) **zero** — on hosts where the agent's viewing is private or click-to-open only (a `Read` the user sees only as a file card), the private look NEVER satisfies the show-gate; the agent must still produce the one user-visible render via `SendUserFile`(render)/`present_files`/inline attachment. A "shown: yes" proof backed only by a private Read is a false proof and voids the gate. Decide once per session which host type this is; from then on every evidence image gets exactly one visible render.
+   - **THE SHOW MECHANISM — LOCAL FILE FROM `result.screenshot.url`, NOT BASE64 / BINARY / BROWSER.** For WideCast scene screenshots, call MCP `scene_inspector` / `widecast_scene_inspector` with `action="screenshot_scene_280x498"` as the source of truth for composition/layout. The tool must return `result.screenshot.url`. The agent must immediately download that URL to a local file with `curl -L -s -o <local>.jpg "<url>"`, then show the local file using the environment's local-file display mechanism (`SendUserFile` / `present_files` / local image attachment). **ABSOLUTELY DO NOT judge from the remote URL itself or show via an online URL** (S3/http) embedded in a widget/HTML. Sidecar JSON, request ids, truncated transcript dumps, base64, binary `ImageContent`, browser screenshots, and HTML galleries with online `<img>` are NOT sufficient for WideCast scene screenshots. Narrow exception: overlay typo/grammar/diacritic/glyph proof uses a local PNG downloaded from MCP `widecast_scene_inspector` with `action="overlay_poster"`, `id`, `voice_file`, and `activate:true`; never construct that URL manually.
 
-1. Pull `video_data`.
-2. Build full script context and glossary.
-3. Identify location/currency sensitivity.
-4. Identify content scenes: scene 2 through last non-thumbnail/content scene.
-5. Identify thumbnail scene, but do not run poster polish by default.
-6. Create a run ledger with one row per content scene:
-   `scene`, `voice_file`, `pattern`, `background_verdict`, `overlay_text_verdict`, `edits`, `final_evidence`, `verdict`.
-7. Decide inline vs subagent by scene count.
+---
 
-## Per-Scene Loop
+## 2. Whole-Video Workflow
 
-For each scene in roster order:
+Before going scene by scene, the agent needs to do one pass of a video-level audit:
 
-1. Run Gates 1–3.
-2. Run Gate 4 only if text-risk exists; otherwise skip explicitly.
-3. Run mandatory Gate 5 from the composite; mark `PASS skip` only for hidden/full-canvas A-roll/force-grid/disabled backgrounds.
-4. Run Gate 6 only after edits or objective collision.
-5. Run Gate 7 with existing evidence unless edits require a fresh look.
-6. Run Gate 8 only if edited.
-7. Run Gate 9 and verdict.
+1. Pull the entire video data.
+2. Build the full script by concatenating each scene's `text`.
+3. Identify the topic, field, and primary audience of the video.
+4. Note the important terms, product names, people's names, company names, the industry, and the phrases STT is likely to mishear.
+5. Identify the video type: educational, sales, explainer, how-to, reaction, case study, news, or CTA.
+6. Identify the tone: serious, humorous, warning, expert, friendly, or viral hook.
+7. Lightly scan each scene's classification fields **for context only** (`type`, `show_narrator`, `pattern`+`sub_mode`, `overlay.*.visible`, `remotion_spec`) — enough to infer `faceless`, spot the thumbnail, and catch context-level script errors. **This is NOT a per-scene edit plan — make NO visual judgement and take NO screenshot here.**
+8. Initialize a **Background Audit Ledger** with one blank row for every content scene from scene 2 through the last content scene. Do not fill visual judgments during the context pass; rows are filled only when that scene reaches Gate 5. Required columns: `scene`, `voice_file`, `composite_local_path`, `active_plate_local_path`, `geo_context_required`, `geo_verdict`, `decision`, `action`, `verdict`. A blank row means the video is not done.
+9. Print a **SCENE ROSTER** — one row per content scene in play order: `#`, `id`, `voice_file`, `type`, class (`normal` / `scene2_opening_poster` / `final_CTA`; the `type="thumbnail"` scene is listed as the sync gate attached to scene 2, not a separate work row), and a blank `verdict` column — and state the **total content-scene count** explicitly ("N content scenes"). Then write the roster + the Background Audit Ledger into a local **run_ledger file** (`<scratchpad>/run_ledger_<topic_id>.md`). Update this file immediately after every `Scene N: PASS|FAIL` verdict and every applied/confirmed write. **In an inline run, the next scene to work is always the next unvisited roster row; in delegation mode (see `06_subagent_protocol`) rows close in event/arrival order and the roster is the completeness tracker — either way, every row must end with a verdict.** On ANY resume, detour return, or context compaction, `Read` the run_ledger file back before continuing — never reconstruct progress from memory or a conversation summary. The Pre-summary completion scan counts `PASS` rows in this file against the roster total.
+10. **Delegation check (mandatory, not optional):** if the runtime can spawn subagents and the video has MORE THAN 30 content scenes, the scene-editor pipeline in `ai_video_editor/06_subagent_protocol` IS the default run mode — load that module now, export the steward data files from the kickoff `video_data` pull (`run_script.txt` + per-scene `record.json` + full snapshot — editors read these files instead of re-calling `video_data`), ensure the skill is unzipped locally (editors read modules from `skill_root`, never re-download), call `widecast_edit_session action='start'`, and record `delegation mode: subagent (K=5 rolling)` + the chosen whole-video design look (language_id + font + accent) in the run_ledger file. Editors write their own scenes directly (server lock + session cache make that safe); the main agent never writes a scene, never views an image, and must `commit` the session before hand-off. The WideCast edit trigger is itself the user's explicit consent for scene-editor fan-out (MCP instructions rule 5) — do not wait for the word "subagent" in chat. Running inline is allowed ONLY with a recorded reason (`no subagent capability` / `≤30 content scenes (inline is the default at this size)` / `user asked single-agent` / `host policy hard-blocks spawning` — for the last one, tell the user at hand-off) — subagents receive the look via the run digest so every fresh context keeps ONE look per video (Critical Rule 7).
 
-## Completion Scan
+Understanding the whole picture is mandatory because many per-scene errors cannot be detected by reading a single scene in isolation.
 
-Before final handoff, read the run ledger and confirm:
+> **⭐ AFTER this light context pass, go ONE SCENE AT A TIME — do NOT audit or pre-plan all scenes at once.** Start at the **first scene after the thumbnail (scene 2)** and treat it as the **opening poster scene**: load `ai_video_editor/40_thumbnail_cta`, make the first-frame overlay poster-like, and verify caption coexistence because this scene still plays as video. **After scene 2 PASS and before scene 3, immediately upload/apply that same poster overlay to the `type="thumbnail"` scene, pull/show the thumbnail screenshot, and confirm server-saved; this keeps the opening poster pair locked.** The thumbnail is then done; do NOT re-check it at the end unless the user explicitly asks. When you reach the last non-thumbnail/content scene, load `40_thumbnail_cta` and make the close a CTA endpoint: one clear action, typography-led, narrator-primary if A-roll. Fully handle one scene — **pull BEFORE screenshot via MCP → download `result.screenshot.url` to a local file with `curl` → show visible local evidence in chat → only then evaluate → handle overlay, including one MCP `action="overlay_poster"` local text proof when visible overlay/message text exists → audit background → tune final composition → pull/download/show AFTER screenshot → only then verify** — before moving to the next. Sidecar JSON, request ids, base64, binary `ImageContent`, browser screenshots, or remote URLs shown inline do not satisfy the show gate. The visual decision for each scene is made from the **visible local screenshot of THAT scene when you reach it**, never from a whole-video table built up front. (Producing an all-scenes intention table instead of working scene-by-scene is a process error.)
+>
+> **⭐ RUN END-TO-END — do NOT pause between scenes.** At runtime the user is NOT present (Critical Rule 2 in `ai_video_editor/01_critical_rules`), so the agent works **scene 2 (+ immediate thumbnail sync) → … → the last content scene**, in one continuous pass, and **only stops at the very end** to hand off the finished video for review. **Never stop mid-video to ask or wait for input.** (Pausing for review after each scene is a *development-mode* behaviour for building this playbook with a human in the loop — it is NOT a runtime rule.)
 
-- every content scene has PASS or an explicit unresolved FAIL
-- all objective text-risk scenes were checked or skipped with reason
-- every content scene has a Gate 5 background verdict
-- all edits were server-saved
-- no export is requested before PASS completion
+Example: in a video about insurance or estate planning, STT might write `Living Church` when the correct content should be `Living Trust`. Spelling and grammar aren't wrong, but it's wrong by context.
+
+---
+
+## 10. Reminders for the Agent
+
+- Read the entire video before editing one scene.
+- Use data (`video_data` + `scene_geometry`) to measure fields/boxes, but use local-shown screenshots for every visual judgment and QA decision.
+- Name fields precisely; use `voice_file` as the selector.
+- Don't edit `text` just because the sentence sounds odd; you must rely on context.
+- Don't pick a beautiful visual that's wrong on content.
+- Don't force overlay work on normal scenes. If `pattern="narration_only"`, `visual` is empty, or the local-shown scene is intentionally carried by narrator/background/caption, mark overlay audit N/A and do not invent an overlay/title. Missing title is not a defect unless the scene's data or existing overlay asks for one. **Endpoint exception:** scene 2/opening poster, thumbnail sync, and final CTA still load `40_thumbnail_cta` and decide whether poster/CTA overlay is required even when current overlay is missing.
+- Don't replace good existing visuals. A good map, realistic photo, chart, diagram, or illustration should be preserved; repair serious defects with layout/additive/text fixes before considering any rebuild.
+- Don't let one failed layer contaminate another. If Gate 5 fails, fix only the background/media plate (`mediaUrl`/`mediaType`); do not rebuild overlay. If Gate 4 fails, fix only overlay/layout; do not replace background unless Gate 5 independently fails. Grid fallback is not permission to redraw a realistic overlay image.
+- Don't homogenize the video into "big title + one object." Preserve each scene's intended pattern and visual variety.
+- Don't make the overlay too small just to keep the narrator large; don't make the narrator so small the face becomes worthless.
+- For UI/document/chart/laptop/code, a large overlay may be right, but on **A-roll** it is still priority 4 (last resort): during **Gate 4 overlay review/rebuild**, after the local-shown BEFORE screenshot, declare `narrator_role`/`overlay_role`, run the full-canvas narrator gate first, reject priorities 1–3 with concrete reasons, and keep CTA/contact/trust/direct-address scenes narrator-primary unless a detail-dense overlay truly must dominate.
+- For A-roll, the narrator's face is a no-cover zone; DON'T edit `narrator_face`, adjust via `overlay.narrator.rect`.
+- For B-roll (`photo_with_people`/`photo_no_people`), the visual must directly serve the sentence being spoken.
+- Most scenes get a real background; grid is the capped exception (≤3/video). Don't force footage where the overlay fully carries the message — but don't default whole pattern-categories to grid either; decide by sight (`ai_video_editor/20_background`).
+- An agent-built overlay is allowed only after Gate 4 says the scene truly needs build/repair. Internally author an **SVG** (720×1280, **transparent**, each object in its own `<g data-wc-object>`) → optionally show a cheap local **overlay preview** if the runtime already supports it → Upload Overlay (B, FREE); the server converts. Do not say "SVG" or describe the conversion pipeline to normal users. Title text is large + high-contrast + 900-weight + **8–15 same-fill face copies** with a controlled <=2px outline, so it feels punchy in the first second, not merely readable (`ai_video_editor/31_typography`); **secondary labels/values/card text use no visible outline** and must sit on clean chips/cards/quiet areas. Reuse a real photo or good current visual instead of redrawing it worse (`ai_video_editor/30_overlay_core`). Palette coordinated, accent derived (not reflexive).
+- An unrecorded A-roll narrator is **the default placeholder ("YOUR FACE & VOICE HERE"), ALWAYS full-canvas, NEVER hidden**; design the text around `narrator_face` (it's in the upper part of the frame).
+- **`faceless=true` video**: no narrator → **drop face clearance, keep the safe zone**; place text by context + background; judge text-vs-background tone from the **local-shown BEFORE screenshot** plus the Gate 5 active background/media plate, and if the text **sinks into the same tone as the background** build it in a contrasting color (`ai_video_editor/31_typography`).
+- An A-roll scene **not yet recorded** (`arollUrl`=`statics/aroll_*.png`) → **remind the user in a standalone `[ACTION REQUIRED]` block** to complete it: WideCast teleprompter (recommended, authentic) / upload a face+voice file / AI-gen from a photo — **each scene ≤20s**.
+- To change **color/font/content/style** of the text overlay → re-author the overlay source → optionally show a cheap local overlay preview → upload (`ai_video_editor/31_typography`) (rect can't recolor/rewrite/restyle text). To change the **position/size** of a few overlay objects → **`layout.batch`** with `remotion.object.rect`; to move or resize the **whole overlay group** → `remotion.group.rect` (see below).
+- **The overlay/text position is NOT fixed — the agent CAN change it via `modify_scene` layout edits** (FREE), but only inside Gate 4/Gate 6 after an overlay/layout FAIL proof, never as a side effect of Gate 5 background fallback. The server's auto-place is just a starting point; if the server placed text into a **bright region that makes it sink** or the wrong band → measure the background brightness and move it into a better band. Use `layout.batch` + `remotion.object.rect` for up to **12** individual objects in one edit. If the SVG decomposed into more than 12 objects, or you are translating the whole overlay down/up together, use `remotion.group.rect` on the Storyboard group. If translation alone cannot keep both top and bottom inside `safe_rect`, resize the whole group with `resize_mode:"scale_children"` and verify typography from the local-shown screenshot. `upload_overlay` **strips the scrim + reflows** so position can't be locked through the image — position must be adjusted after upload.
+- **SHOW every image/clip/screenshot in chat BEFORE looking/evaluating/applying** so the user can audit the same evidence — never inspect privately. For self-authored overlays, show a pre-upload overlay preview only when it is cheap and already supported; otherwise do not spend time converting. Use the post-upload composite screenshot for composition, and use MCP `widecast_scene_inspector action="overlay_poster"` for rendered text/glyph proof when visible overlay/message text exists. For WideCast scene screenshots specifically, the only valid route is `result.screenshot.url` → `curl` to local file → show local file.
+- Text spec **comes from `quote`**; the agent **evaluates + improves the anchor line per its own judgment**, unless the user asks for their way (see `ai_video_editor/31_typography`).
+- Each scene must be good on its own, but still fit the whole video.

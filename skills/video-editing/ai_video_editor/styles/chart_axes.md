@@ -7,9 +7,9 @@
 
 _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-This is the chart/graphic style reference for explicit chart rebuild/polish work. Fast blind-spot QA does not load this file by default and does not fail charts for being flat, plain, or stylistically different.
+The diversity vocabulary for **objects/shapes** in charts & diagrams (bars, donut arcs, nodes, pins, cards, icons). The native AI-image pipeline mixes 6 axes (~13,000 combos) — reproduce the chosen look in SVG. **Stop shipping flat-solid only.**
 
-> **HOW TO USE.** Use only when rebuilding a chart because text/data is objectively wrong or the user asked for visual polish. In fast QA, check values/labels/glyphs first and stop if they are correct.
+> **HOW TO USE.** Per video derive ONE chart look = `structure × surface × finish × outline × color_application × typography × palette` from brand/topic/rotation; keep it across the video. A `medium` structure (`hand_drawn`, `line_art_mono`) is self-contained and **locks/overrides** surface+finish+outline+typography. `is_3d` structures forbid flat-only and require shading kept INSIDE each silhouette (no cast shadows on the background).
 > If you use any visual reference or preset image to choose these axes, save/show it as a local image before evaluating it; do not inspect reference images privately or via online URLs.
 
 > **Reusable `<defs>` (declare once, reference by id):**

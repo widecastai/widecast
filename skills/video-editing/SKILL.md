@@ -1,105 +1,187 @@
-# AI Video Editor Fast Playbook
+# AI Video Editor Playbook
 
-Version: `fast-1.0`. This is the **default WideCast video-editing skill**. It is intentionally scoped to the two things WideCast cannot fully control because it does not see rendered scenes:
+Version: `modular-2.0` · This file is the **MASTER INDEX**. It is intentionally small so every host/MCP runtime can deliver it without hitting per-tool-call output caps. Every detail — rules, jump-prevention triggers, DoD gate templates, principles, workflow, quality bar, priority order — lives in **separate modules** under `ai_video_editor/`. Reach a step → open the matching module → then act.
 
-1. **Baked/rendered text inside visual overlays** — generated images, charts, maps, document/UI mockups, labels, values, names, numbers, currency, Vietnamese diacritics, and pseudo-text.
-2. **Background/media fit** — whether the active background actually matches the scene, especially geography/currency/culture/watermarks/off-topic footage. This is a mandatory separate Gate 5 audit for every content scene.
+The goal of the AI video editor is to edit each scene so that the final video has **correct content, a clear face, instant-punch title text, the right visuals, good layout, and consistent quality from beginning to end.** Readability is only the minimum floor; short-form titles must feel thick, vivid, and graspable in the first second.
 
-Trust WideCast for layout, narrator placement, safe zones, caption placement, title weight, style, and normal overlay aesthetics unless an objective defect is visible or the user explicitly asks for visual polish. Do not judge taste. Do not redesign because something could be prettier.
-
-> **Default scope:** fast blind-spot QA + objective fixes only. The previous full visual-polish audit is intentionally not described here.
+> **Overarching principle — name the field, do not guess.** Stick to the exact field name in the data: `show_narrator=true` (not "the scene has a narrator"), `overlay.<sub>.visible=true` (not "it has an overlay"). All geometry (safe zone, narrator face, overlay position) is precomputed — call `scene_geometry` instead of estimating coordinates.
 
 ---
 
-## How To Use
+## 🛑 HOW TO USE — open a module before you do its step
 
-Open the module for the step you are doing. Do not work from memory.
+This file is an INDEX, not the manual. **Opening a module is a REQUIRED ACTION** — when you reach a step, you MUST load the module named for it BEFORE doing that step, every time, even if you think you remember it.
 
-### Kickoff Modules
+### Two transports — both ALWAYS LIVE, never cached
 
-Load these at the start of every run:
+- **MCP transport** (Claude/ChatGPT/Codex MCP servers, plain HTTP) — call `widecast_get_editing_skill(module='<id>')` where `<id>` is the path without `.md`. Examples: `widecast_get_editing_skill(module='ai_video_editor/01_critical_rules')`, `widecast_get_editing_skill(module='ai_video_editor/10_mechanics')`. First call (no `module`) returns this SKILL.md + live `available_modules[]` index. Server emits `Cache-Control: no-store`; `/app/*` bypasses Cloudflare. If a call returns 404 `module_not_found`, recall with no args to refresh the index.
+- **Anthropic Skill upload transport** (`video-editing.zip` mounted locally) — use the host's local `Read` tool with the path relative to skill root: `Read("ai_video_editor/01_critical_rules.md")`.
 
-1. `ai_video_editor/00_ENTRYPOINT`
-2. `ai_video_editor/01_critical_rules`
-3. `ai_video_editor/02_jump_prevention`
-4. `ai_video_editor/03_dod_gates`
-5. `ai_video_editor/04_principles_workflow`
-6. `ai_video_editor/05_quality_qa_priority`
-7. `ai_video_editor/10_mechanics`
+**Stable rule across both transports:** reach a step → open the module → act. Memory of a module loaded earlier does NOT replace re-loading it. Both transports are cheap.
 
-Print a KICKOFF LOAD LEDGER with each module's actual line count matched against `LOAD_MANIFEST.md`. A shortfall means truncated, not loaded.
+> **Transport does not relax anything.** MCP tool, REST endpoint (`/v1/scene_inspector`, `/v1/scene_geometry`, `/v1/modify_scene`, `/v1/upload_asset`…), or local `Read`/`cat` — every gate, module load, proof, and the LOAD LEDGER is identical and equally mandatory. Mapping tool names grants NO latitude to skip or soften a proof. Reading with `cat`/`sed` instead of `Read` is fine; skipping because of transport is not.
 
-### Step Load Map
+> **This is exactly how the background audit gets skipped:** an agent reads the master, treats a scene as "an overlay geometry task", and never opens `20_background` — so the whole background/B-roll branch silently disappears. **The fix is mechanical: reach a step → open its module → then act.** If you did not open the module, you have not done the step.
 
-| When you reach this step | Load |
+**Stable TEXT markers** (icons render differently across AI apps — the TEXT is the source of truth): use these literal markers; an emoji (⭐ ✓ → ○ !) MAY decorate but never replaces the text:
+
+- `[ACTION REQUIRED]` — a standalone block whenever the human must do something (record A-roll, approve, run a command, final hand-off).
+- `Scene N: PASS` / `Scene N: FAIL — …` — the per-scene verdict.
+- `No action required.` — when a hand-off needs nothing from the human.
+
+### Run kickoff — load these 5 core modules FIRST, before scene 1
+
+The 5 modules below carry the rules + workflow that apply across the whole run. Load all five at the START of every run (or whenever you do a Gate Resume Scan after a detour):
+
+1. **`ai_video_editor/01_critical_rules`** — 14 critical rules that hold across every scene + the self-audit checklist run before each reply.
+2. **`ai_video_editor/02_jump_prevention`** — "about to do X → STOP, do Y first" interrupt list.
+3. **`ai_video_editor/03_dod_gates`** — per-scene Definition of Done (9 gates) + every template block (Gate 4 module-load proof, Gate 4 A-roll layout priority proof, Gate 4 title proof, Gate 4 secondary text proof, Gate 5 background proof, Gate 6 DEAD-ZONE PROOF + screenshot checks, Gate 9 module coverage).
+4. **`ai_video_editor/04_principles_workflow`** — §1 general principles, §2 whole-video workflow (initial context pass + Background Audit Ledger init), §10 reminders.
+5. **`ai_video_editor/05_quality_qa_priority`** — §7 Quality Standard, §8 video-level QA, §9 priority order for gate conflicts.
+
+These 5 + `ai_video_editor/00_ENTRYPOINT` are the kickoff set; the KICKOFF LOAD LEDGER also lists `10_mechanics` because scene work starts immediately after kickoff. Per-scene modules (20/30/31/32/33/40) load at the step that needs them; `06_subagent_protocol` loads before spawning any subagent.
+
+**Before the first `modify_scene`/`upload_asset` of the run, print a KICKOFF LOAD LEDGER** (template in `ai_video_editor/03_dod_gates`): for each kickoff module report its line count and match it to `LOAD_MANIFEST.md`; a shortfall = truncated = NOT loaded → you are BLOCKED from writing. (Quote the last line only when no manifest is present.) This is the mechanical defense against skipping a module that errored with "output too large".
+
+---
+
+## ⬇ LOAD MAP — reach a step → open the matching module
+
+The **Module id** column is what you pass to `widecast_get_editing_skill(module=...)` (MCP) or what to `Read` (upload transport — append `.md`). One row = one required load.
+
+| When you reach this step | Module id to load |
 |---|---|
-| Run kickoff | `00_ENTRYPOINT` + the six core modules above |
-| Start every scene | `03_dod_gates` + `10_mechanics` + `20_background` |
-| Overlay text-risk triage or objective overlay fix | `30_overlay_core`; add `31_typography` if fixing text |
-| Chart/data/table/text-heavy pattern needs typo proof | `32_charts` or `33_patterns` as the pattern reference |
-| Background audit or replacement | `20_background` |
-| Scene 2 thumbnail or final CTA has objective text/background issue | `40_thumbnail_cta` |
-| More than 30 content scenes or user asks for parallel | `06_subagent_protocol` |
+| Run kickoff — every run | **`ai_video_editor/00_ENTRYPOINT`** + the 5 core modules above |
+| Anything that uses one of the 14 critical rules | **`ai_video_editor/01_critical_rules`** (already loaded at kickoff; re-load on resume) |
+| About to take any action you might jump past | **`ai_video_editor/02_jump_prevention`** |
+| Start of every scene — print the DoD plan + gate templates | **`ai_video_editor/03_dod_gates`** |
+| Before declaring `Scene N: PASS` — scan §7 against the scene | **`ai_video_editor/05_quality_qa_priority`** |
+| Reading scene data · coordinates · the 13 `modify_scene` branches · A-roll layout priority ladder · how to look (screenshot) | **`ai_video_editor/10_mechanics`** |
+| Deciding the background (grid vs real) · searching · evaluating · applying footage | **`ai_video_editor/20_background`** |
+| About to (re)build or apply ANY overlay (internal vector model, rebuild threshold, `data-wc-*`, reuse-a-photo, verify) | **`ai_video_editor/30_overlay_core`** — FIRST for any overlay |
+| Choosing the overlay's design language (style direction, not QA standard) | **`ai_video_editor/styles/design_languages`** |
+| Overlay has TEXT (title/label/value/quote) | **`ai_video_editor/31_typography`** + **`ai_video_editor/styles/text_axes`** |
+| Pattern is a CHART (`single_metric`/`bar_chart`/`proportion_chart`/`trend_chart`/`structural_diagram`) | **`ai_video_editor/32_charts`** + **`ai_video_editor/styles/chart_axes`** |
+| Pattern is OTHER (`map_chart`/`comparison_table`/`timeline_events`/`checklist_tips`/`quote_card`/`illustration`/`hybrid_vertical`/`real_entity`/`typography_only`/`narration_only`) | **`ai_video_editor/33_patterns`** |
+| Scene 2 (opening poster) · post-scene-2 thumbnail sync · last content/CTA scene | **`ai_video_editor/40_thumbnail_cta`** |
+| About to spawn ANY subagent for scene work (scene editors, fix agents, video QA) · edit-session start/commit | **`ai_video_editor/06_subagent_protocol`** |
+
+**Adding modules later — fully automatic, ZERO formatting required.** Drop a new `.md` file anywhere under `widecast/skills/video-editing/` and it appears in the live `available_modules[]` index returned by the entry call. The server auto-generates `title` (first H1 → first H2 → first content line → filename basename) and `summary` (first ~200 chars of meaningful content). No code change, no SKILL.md edit, no required formatting.
+
+If you see an available module whose `title`/`summary` matches a step that this table doesn't cover yet, load it. Treat the live `available_modules[]` as the source of truth; this table is the curated default chain.
 
 ---
 
-## Critical Defaults
+## ⭐ CRITICAL RULES — 1-line headlines (full text → `ai_video_editor/01_critical_rules`)
 
-- Use `voice_file` as the selector for `scene_geometry` and `modify_scene`; never use display `id` as the write selector.
-- Work autonomously from scene 2 through the last content scene. Do not ask the user to choose options during an edit run.
-- Pull `video_data` once at kickoff, build whole-video context, then work scenes in roster order.
-- Every scene gets a **fast 9-gate receipt**. Gate 5 background QA is mandatory; Gates 4/6/7 are conditional and skip cleanly when WideCast-controlled layers were not edited.
-- A scene normally needs **one BEFORE composite screenshot**. Reuse it as final evidence when no edit is made.
-- Pull an `overlay_poster` only for text-risk scenes with visible/message text, or after changing overlay text.
-- Run background QA from the BEFORE composite for every scene. Pull an active background/media plate only when the visible background needs closer judgment.
-- Pull an AFTER screenshot only after an edit, replacement, or objective uncertainty that must be verified.
-- Do not print aesthetic/taste failures in this fast skill. Objective defects only.
-- After any edit, re-pull `video_data`/`scene_geometry` as relevant to confirm server save.
+Load the module for the full text + nuance. These headlines are reminders, not the rules themselves.
 
----
-
-## Fast 9-Gate Definition Of Done
-
-1. **Text/STT context** — check spoken `text` for significant context/domain errors.
-2. **Role** — read `type`, `pattern`, `sub_mode`, `visual`, `quote`, `talking_point`, `show_narrator`, active media.
-3. **BEFORE evidence** — pull one `screenshot_scene_280x498`, download locally, show it, then judge.
-4. **Overlay text-risk triage** — only risk patterns / visible message text; check typo, pseudo-text, wrong diacritics, stale text, wrong number/currency/name/domain term. Otherwise skip and trust WideCast overlay.
-5. **Background QA** — mandatory separate audit for every scene. Use the BEFORE composite to judge visible active background/media for objective fit; mark `PASS skip` only when the background is objectively hidden, force-grid, full-canvas A-roll, or disabled.
-6. **Post-edit layout sanity** — only if this run changed overlay/layout/media or an objective collision is visible. Otherwise skip and trust WideCast layout.
-7. **Final evidence** — use BEFORE as final if no edit; pull AFTER / overlay poster only when needed by an edit or text-risk proof.
-8. **Server-saved** — required only after writes.
-9. **Module coverage** — required modules loaded or explicitly N/A.
-
-`Scene N: PASS` requires all applicable gates to pass. Skipped gates must state why.
-
----
-
-## Overlay Text-Risk Patterns
-
-Run overlay text proof when visible/message text may be baked or model-generated:
-
-- `illustration` with `document`, `digital_ui`, `photo_with_people`, `photo_no_people` when any image text is visible or expected
-- `real_entity` when labels/logos/UI/document text matter
-- `hybrid_vertical`
-- `map_chart`
-- `single_metric`, `bar_chart`, `proportion_chart`, `trend_chart`, `structural_diagram`
-- `comparison_table`, `timeline_events`, `checklist_tips`, `quote_card`
-
-Skip by default:
-
-- `narration_only`
-- no visible/message overlay text
-- normal typography generated by WideCast unless the screenshot/poster shows a concrete text error
+0. **Visual evidence gate.** Every image used as evidence — screenshots (`scene_inspector` → `curl` `result.screenshot.url` → local file), found media, generated images, and cheap local overlay previews when available — must be saved locally and SHOWN visibly to the user BEFORE the agent judges/edits/uploads from it. Overlay previews are opportunistic; the mandatory overlay truth is the post-upload composite screenshot.
+1. **Name the field, never guess.** Selector = `voice_file` (not `id`). After every `modify_scene`, re-pull `video_data`/`scene_geometry` to confirm saved.
+2. **Runtime = autonomous, end-to-end.** Work scene 2 → last content scene in ONE pass. Never pause to ask. No `A or B?` questions to the user.
+2a. **Decision protocol — choose, don't defer.** Priority: content correctness → face/subject preservation → preserve good existing work → readability floor + title first-second punch when a title legitimately exists/is required → safe-zone/caption → aesthetic → minimal necessary edit.
+2b. **WideCast edit trigger = full autonomous run.** "edit this video" + a WideCast URL/`topic_id` = full audit + fix. Never ask scope.
+2c. **Proof is a process artifact — no request suppresses it.** "Be concise / save credits / go fast" only shortens the final user summary (Rule 14 hand-off); it never cancels the per-scene gate proofs or module loads. Forbidden excuses: user-wants-short, save-cost, screenshot-looks-fine, I-remember-it, output-too-large, already-triaged, REST-not-MCP.
+3. **Decide by SIGHT, not by `pattern`.** Visual calls need a local-shown screenshot. `scene_geometry` never substitutes for looking.
+4. **Overlay = transparent internal vector, hosted, uploaded, then screenshot-verified.** Safe box x∈[36,684], y∈[128,960]. Show a local overlay preview only when the environment already supports it cheaply; never expose the internal format to normal users.
+4a. **Do not force overlays, titles, or replacement.** For normal content scenes, if `pattern="narration_only"`, `visual` is empty, or the scene intentionally has no overlay, mark overlay audit N/A and do not invent an overlay/title. **Exception:** scene 2/opening poster, thumbnail sync, and final CTA are endpoint scenes; they still load `40_thumbnail_cta` and must decide whether poster/CTA overlay is required even when current overlay is missing. If an existing map/photo/chart/diagram/illustration is good enough and on-topic, preserve it; repair only serious defects. Full overlay replacement is the last resort and must prove it is strictly better than BEFORE.
+4b. **Dead-zone micro-gate.** Dead zone is not an aesthetic subnote. On every scene with a visible overlay, after any upload/layout/no-edit decision and before Scene PASS, pull `scene_geometry` and print Gate 6 DEAD-ZONE PROOF: no overlay object/text in `dead_top`/`dead_bottom`, caption fits `dead_bottom`, object ids listed. Missing proof = FAIL.
+4c. **Fix only the failing layer.** Gate 4 owns overlay; Gate 5 owns background. Background miss/search failure/geo mismatch/grid fallback can change only `mediaUrl`/`mediaType`; it does not authorize overlay rebuild, disable, or restyle. Overlay defects can change overlay/layout only; they do not authorize background replacement. Crossing layers requires an independent printed FAIL proof in the other gate. Preserve realistic overlay photos/maps/complex visuals when the background changes.
+5. **ONE atom = ONE object** (`<g data-wc-object>`). Atomize, never clump. Co-appear via shared `data-wc-delay`; a clumped overlay is not upload-ready.
+6. **Title typography: HEAVY + stacked face**. Title/hero text uses a 900-equivalent family (e.g. `"<Family> Black"` + `font-weight="900"`), open typography, 8–15 same-fill face copies for body thickness, and <=2px visible text stroke. This range is a guardrail, not an auto-pass: if the duplicate fill makes letters muddy, deformed, over-thick, or swallows counters/negative space/Vietnamese diacritics, reduce count/offset or change font. More than 15 face copies = FAIL. Readable-but-thin title = FAIL.
+6a. **Overlay copy correctness is its own gate.** Every visible string proofread; typos/grammar/wrong currency/wrong term = FAIL.
+6b. **Rendered image typo/grammar check.** Read the words from the actual BEFORE/AFTER screenshot, not just JSON fields. Any overlay/chart/label/title or generated/image-baked text visible in the render must match intended copy and have no typo, grammar, diacritic, glyph, pseudo-text, currency, number, or domain-term error. For Vietnamese and other diacritic languages, every mark is spelling: wrong/missing tone mark, accent, horn/breve/circumflex, or `Đ/đ` = FAIL. Models often generate bad text inside images; screenshot text is the source of truth.
+7. **Diversify the LOOK.** Load the style library; reproduce a real look (gradient/glossy/3D/metallic/…); never ship flat-only, and never homogenize a whole video into the same "big title + one object" template.
+8. **A-roll: face is sacred.** Never edit `narrator_face`; solve narrator + overlay together. A full-canvas narrator trial cannot fail because the current overlay is in the wrong place; move/resize/simplify/rebuild the overlay before shrinking the narrator. Final CTA scene: narrator-primary + typography-led CTA.
+9. **Grid ≤ 3 scenes/video, all sharing ONE grid.** Default to real background otherwise.
+10. **Realistic photos are REUSED, never "drawn".** Add to a good overlay via `modify_scene` (M) `remotion.add_element`.
+11. **Show found media in chat BEFORE looking/evaluating/applying.** No private preview first.
+12. **Every scene = overlay review (Gate 4) AND background audit (Gate 5).** Two separate passes. Never skip the background.
+12a. **Endpoint scenes (scene 2 + thumbnail + final CTA) are special.** Load `40_thumbnail_cta` for both. Sync thumbnail immediately after scene 2 PASS. Endpoint scenes must also print `Gate 4 ENDPOINT DESIGN VARIANT PROOF`: chosen `styles/design_languages` language + endpoint archetype + anti-template check. The same red side-bar/double-underline/giant-outline poster motif across unrelated videos = FAIL.
+12b. **Gate 5 requires a printed BACKGROUND PROOF.** No proof = scene not done.
+12c. **Gate Resume Scan after any detour/fix.** A fix is not a verdict; rescan from the earliest invalidated gate.
+12d. **Pre-summary completion scan.** No summary/Telegram/export until every scene PASS + Module Coverage Gate + ledgers complete. Batch/contact-sheet/gallery/table/script/API results are triage only, never DoD proof.
+13. **The master is an INDEX — load each module BEFORE its step.** Memory ≠ re-loading.
+13a. **Module Coverage Gate — missing playbook = not done.** Gate 9 proves required playbooks loaded.
+13b. **A failed/truncated load = NOT loaded.** "Output too large"/persisted/preview/truncated/404/timeout = you have not loaded the module. Re-read in chunks to the end (quote its last line) before any step that needs it. Never proceed from a partial read; never mark it loaded.
+13c. **Compaction VOIDS all loads.** Context compacted = resumed run: re-`Read` run_ledger, re-load the current scene's modules, reprint its ledger + plan; pre-compaction loads no longer count; the summary's "short checklist" is forbidden.
+14. **Announce plan + report progress.** Vertical 9-gate checklist at scene start, gate-by-gate progress, ✓/✗ recap + `Scene N: PASS|FAIL` verdict at scene end.
+15. **Mode threshold: inline by default ≤30 content scenes; scene-editor fan-out (one editor per scene on a server edit session) when >30 or the user asks for parallel.** Above the threshold the `06_subagent_protocol` pipeline is mandatory; record the chosen `delegation mode` + reason in the run_ledger either way. Main agent: `edit_session start` → spawn editors (rolling K=5, local skill dir, fixed template, own LOAD LEDGER) → validate reports (no images) → `edit_session commit`. Each editor writes ONLY its own `voice_file` via `modify_scene`; the server lock + session cache make parallel scene-scoped writes safe.
+16. **SCENE ROSTER + run_ledger file = the run's source of truth.** Print the roster at kickoff, persist it to a local run_ledger file, update after every verdict/write; inline mode works rows in order, delegation mode closes rows in event order — either way EVERY row must close; re-`Read` the file on any resume/detour/compaction — never trust memory or a summary.
 
 ---
 
-## Final Handoff
+## ⛔ JUMP-PREVENTION TRIGGERS — 1-line interrupts (full list → `ai_video_editor/02_jump_prevention`)
 
-Before handoff, read the run ledger and confirm every content scene has `PASS` or a clear unresolved `FAIL`. Report succinctly:
+If you're about to do any of these, STOP and do the prerequisite first:
 
-- text-risk overlay issues fixed or none found
-- background issues fixed or none found
-- scenes skipped because WideCast-controlled layers were trusted
-- review URL
+- start a scene → load `10_mechanics`
+- handle scene 2 / thumbnail / final CTA → load `40_thumbnail_cta`
+- ask "what kind of edit?" after a WideCast URL → STOP. Scope is **Full audit + fix**.
+- audit background → load `20_background`
+- start Gate 6 without printed Gate 5 BACKGROUND PROOF → STOP, run Gate 5
+- declare Gate 6/Scene PASS without printed Gate 6 DEAD-ZONE PROOF when overlay is visible → STOP, pull `scene_geometry`, fill the proof, fix if needed
+- finished any detour/fix and feel ready to summarize → run Gate Resume Scan
+- (re)build overlay → load the whole chain `30_overlay_core` + `31`/`32`/`33` + `styles/*`
+- visual call from `scene_geometry` alone → STOP, pull screenshot first
+- act on a screenshot you have not SHOWN locally → show it first
+- about to spend time rendering/converting an overlay preview → only do it if the environment already supports it cheaply; otherwise skip pre-upload preview and verify via the post-upload composite screenshot
+- ask the user to choose/approve during runtime → STOP, decide yourself
+- reject A-roll full-canvas because the current overlay touches the face / caption / dead zone → STOP, solve narrator + overlay together first
+- declare `Scene N: PASS` without scanning 9 DoD gates + §7 → run the scan
+- declare PASS without naming Gate 5 verdict (`PASS keep` / `PASS grid-by-design` / `FIXED + PASS`) → STOP
+- declare PASS with any missing required module in MODULE COVERAGE GATE → STOP
+- declare PASS from a batch/contact-sheet/gallery/table/script/API result → STOP. Status is `partial_triage_only` until each scene has its own 9-gate PASS.
+- move to next scene without stated `PASS`/`FAIL` → declare verdict first
+- write final summary / hand-off / export question → run Pre-summary completion scan
+- final-handoff without complete Background Audit Ledger → STOP
+- spawn a subagent / process scenes in parallel → load `06_subagent_protocol` first; fixed template; subagents are read-only
+- a subagent writes OUTSIDE its own scene (foreign `voice_file`/export/publish) → STOP, report INVALID; own-scene writes on the edit session are the normal path
+- hand off while the edit session is still open → STOP, run pre-summary scan then `edit_session commit`
+- (inline mode) start a scene that is not the next unvisited SCENE ROSTER row → STOP, follow roster order; (delegation mode) rows close in event order, but no row may stay open
+- context just got compacted → STOP: compaction VOIDS all module loads; `Read` run_ledger, re-load current scene's modules, reprint its plan — never work from the summary's "short checklist"
+- resuming/continuing a run → `Read` the run_ledger file + re-load modules, never work from memory
 
-Ask only after all scenes pass: `Render/export the final MP4 now, or review the scenes first?`
+---
+
+## ⭐ DEFINITION OF DONE — 9 gates per scene (full DoD + all template blocks → `ai_video_editor/03_dod_gates`)
+
+Print this 9-gate checklist VERTICALLY at the start of every scene; tick ✓/✗ at the end and state `Scene N: PASS|FAIL`.
+
+1. ☐ **Text / STT** checked in whole-video context, fixed if wrong.
+2. ☐ **Role** understood — `type` · `pattern`/`sub_mode` · `visual` · `quote` · `talking_point`.
+3. ☐ **BEFORE screenshot** pulled, downloaded with `curl`, SHOWN locally, THEN evaluated.
+4. ☐ **Overlay reviewed/rebuilt** — load `30_overlay_core` first + endpoint/typography/content modules + style lib; for A-roll print Gate 4 A-ROLL LAYOUT PRIORITY PROOF before overlay decisions, proving narrator + overlay were solved together and the overlay was not treated as fixed; print Gate 4 MODULE LOAD PROOF + TITLE GATE PROOF + SECONDARY TEXT GATE PROOF.
+5. ☐ **Background audited** — load `20_background` first; print Gate 5 BACKGROUND PROOF with two local-visible images.
+6. ☐ **Final composition tuned** — layout + safe zone + Gate 6 DEAD-ZONE PROOF + face clearance + caption + balance.
+7. ☐ **AFTER screenshot** pulled, downloaded, SHOWN locally, evaluated for all of above; if visible message text exists, print/pass Gate 7 RENDERED IMAGE TYPO/GRAMMAR CHECK.
+8. ☐ **Server-saved** — re-pulled `video_data`/`scene_geometry` to confirm persisted.
+9. ☐ **MODULE COVERAGE GATE** — print proof; PASS only if every required playbook loaded at the correct step.
+
+All 9 checked + §7 (`05_quality_qa_priority`) scan met → `Scene N: PASS`. Otherwise `Scene N: FAIL — ✗K …`; fix and re-scan.
+
+---
+
+## ✅ SELF-AUDIT — before every reply (full version → tail of `ai_video_editor/01_critical_rules`)
+
+Silently confirm — and fix any "no" before replying:
+- Did I open the module(s) for the action I'm taking THIS turn, not work from memory?
+- Every image I used as evidence — saved locally AND shown to the user?
+- Visual call from a SCREENSHOT, not `scene_geometry` alone?
+- Which DoD gate am I on; did I announce progress?
+- Ending a scene? Scanned 9 gates + §7? Stated `Scene N: PASS|FAIL`?
+- MODULE COVERAGE GATE clean (no missing required playbook)?
+- Field discipline: `voice_file` selector + re-pull to confirm saved?
+- Finished a detour? Ran Gate Resume Scan?
+- About to summarize/hand-off/export? Ran Pre-summary completion scan?
+- Human must act? Used a standalone `[ACTION REQUIRED]` block?
+- Did any module read error/truncate this session? If yes, did I fully re-read it (can I quote its last line) before proceeding?
+- About to call a write endpoint (`modify_scene`/`upload_asset`/`export_video`)? Is the LOAD LEDGER + this scene's gate block already printed above it?
+- Am I dropping/compressing any required proof to be "concise" or save cost? If yes, restore it.
+- Spawning/accepting subagent work? Loaded `06_subagent_protocol`, started the edit session, used the fixed template with `Scene <id> editor agent` names + local `skill_root`, validated each report's LOAD LEDGER + write scope, viewed no images myself, and committed the session before hand-off?
+
+---
+
+## next_action
+
+**Right now → load `ai_video_editor/00_ENTRYPOINT` AND the 5 core modules (`01_critical_rules`, `02_jump_prevention`, `03_dod_gates`, `04_principles_workflow`, `05_quality_qa_priority`).** Then pull `video_data`, do the §2 whole-video context pass, and start scene 2. Do not start scene 1; scene 2 is the first real content scene.
