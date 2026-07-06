@@ -1,10 +1,10 @@
-# 20 · Fast Background QA
+# 20 · Mandatory Fast Background QA
 
-Load when reaching Gate 5 or replacing background media.
+Load for every scene at Gate 5, and again when replacing background media.
 
 ## Scope
 
-Background QA checks objective fit only:
+Background QA is a separate mandatory audit because WideCast cannot see rendered backgrounds. It checks objective fit only:
 
 - relevant to `text`, `talking_point`, `keyword`, or `visual`
 - not clearly off-topic or misleading
@@ -14,22 +14,24 @@ Background QA checks objective fit only:
 
 Do not judge beauty, taste, mood, cinematic quality, or whether a better clip might exist.
 
-## Skip Cases
+## Mandatory Gate Rule
 
-Mark Gate 5 `PASS skip` when:
+Never omit Gate 5. Use the Gate 3 composite screenshot and write the Gate 5 ledger even when no background edit is needed.
+
+Mark Gate 5 `PASS skip` only when:
 
 - full-canvas A-roll narrator hides/occludes the background
 - active media is force-grid / grid-by-design
 - background is not visible and not intended to carry the scene
 - user explicitly disabled stock/background changes
 
-Still record the skip reason in the ledger.
+Still record the skip reason in the ledger. If any meaningful background/media is visible, do not skip; judge it.
 
 ## Evidence
 
-Use the Gate 3 composite screenshot as render truth.
+Use the Gate 3 composite screenshot as render truth. This keeps the audit fast while preserving a dedicated background decision.
 
-Pull/show active plate only if the background is visible or must be judged:
+Pull/show active plate only if the composite is not enough for objective judgment or metadata/source cues conflict:
 
 1. `thumbnailUrl`
 2. `mediaUrl` if `mediaType="image"`

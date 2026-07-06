@@ -41,13 +41,13 @@ Use only when Gate 4 requires text-risk proof or overlay text changed:
 
 ### Active Background Plate
 
-Use in Gate 5 only when background is visible or content-fit must be judged:
+Gate 5 itself is mandatory and uses the BEFORE composite. Pull an active plate only when the composite is not enough for objective background judgment or metadata/source cues conflict:
 
 1. Prefer `thumbnailUrl`.
 2. If `mediaType="image"`, fallback to `mediaUrl`.
 3. Else fallback by active roll: B-roll → `brollThumbnailUrl`, A-roll → `arollThumbnailUrl`.
 
-Skip content-fit for hidden full-canvas A-roll backgrounds.
+For hidden full-canvas A-roll backgrounds, still record Gate 5 as `PASS skip`; do not pull the hidden plate.
 
 ## Writes
 

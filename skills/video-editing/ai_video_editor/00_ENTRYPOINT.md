@@ -25,7 +25,8 @@ objective rendered defect. Do not run a full visual-polish audit.
    - >30 content scenes or explicit parallel request: load 06_subagent_protocol
      and use scene editors.
 
-4. For each content scene, run the fast 9 gates:
+4. For each content scene, load 03_dod_gates + 10_mechanics + 20_background,
+   then run the fast 9 gates:
    1 Text/STT context
    2 Role
    3 BEFORE screenshot shown

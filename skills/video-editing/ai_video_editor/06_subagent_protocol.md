@@ -24,7 +24,7 @@ Each editor must:
 3. Work only its assigned `voice_file`.
 4. Pull/show one BEFORE screenshot.
 5. Run Gate 4 only for text-risk overlays.
-6. Run Gate 5 for visible background/media.
+6. Run mandatory Gate 5 for background/media using the BEFORE composite; pull a plate only if needed.
 7. Pull extra evidence only after edits or required text-risk proof.
 8. Verify saves after writes.
 9. Report files, gate verdicts, and `Scene N: PASS|FAIL`.

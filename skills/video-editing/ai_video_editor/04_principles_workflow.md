@@ -11,7 +11,8 @@ Load at kickoff.
 - Use the minimum evidence needed:
   - one BEFORE composite for every scene
   - overlay poster only for text-risk scenes
-  - active plate only for visible/background-relevant scenes
+  - dedicated Gate 5 background verdict for every scene
+  - active plate only when the composite is not enough for background judgment
   - AFTER only after edits
 
 ## Whole-Video Setup
@@ -31,7 +32,7 @@ For each scene in roster order:
 
 1. Run Gates 1–3.
 2. Run Gate 4 only if text-risk exists; otherwise skip explicitly.
-3. Run Gate 5 for visible background/media; skip hidden/full-canvas A-roll or force-grid content fit.
+3. Run mandatory Gate 5 from the composite; mark `PASS skip` only for hidden/full-canvas A-roll/force-grid/disabled backgrounds.
 4. Run Gate 6 only after edits or objective collision.
 5. Run Gate 7 with existing evidence unless edits require a fresh look.
 6. Run Gate 8 only if edited.
@@ -43,6 +44,6 @@ Before final handoff, read the run ledger and confirm:
 
 - every content scene has PASS or an explicit unresolved FAIL
 - all objective text-risk scenes were checked or skipped with reason
-- all visible backgrounds were checked or skipped with reason
+- every content scene has a Gate 5 background verdict
 - all edits were server-saved
 - no export is requested before PASS completion

@@ -5,16 +5,16 @@ After loading any module below, its actual LINE COUNT must match its row here (s
 
 | module | lines | sha256 | last_line |
 |---|---|---|---|
-| SKILL.md | 105 | bc74a3dfeeb656d9d9096f3261c6a0140b384f0471ef925c6a7a96e7957273f5 | Ask only after all scenes pass: `Render/export the final MP4 now, or review the scenes first?` |
-| ai_video_editor/00_ENTRYPOINT.md | 63 | 0c6d8efabfd29f7509836aa6f85ef342182e48c37745682fe6e8c5aa7e24d0b7 | ``` |
-| ai_video_editor/01_critical_rules.md | 30 | cf5b81f8229542503a33ca22ad0673c7252d7fd47b0bbf34be66d92b4b9540de | - Did I state `Scene N: PASS` or `Scene N: FAIL — ...` with applicable gates? |
-| ai_video_editor/02_jump_prevention.md | 23 | 041be2d4369c29e2a0d0995fd923221743e3e3963fc3c0b3b0036bfbd1558403 | - Context was compacted or run resumed → read run ledger, reload current modules, continue from earliest unproven applicable gate. |
-| ai_video_editor/03_dod_gates.md | 199 | d2047831d087082be02af3b4afe2e7ab813e32297217777db6dd55857fc3ec23 | Do not advance without PASS or an explicit unresolved FAIL. |
-| ai_video_editor/04_principles_workflow.md | 48 | cf5ae8a23bb30909635117786506a6fcba22b13459b5ea3bf40c43f8c409fd1d | - no export is requested before PASS completion |
-| ai_video_editor/05_quality_qa_priority.md | 45 | 18ce722df129b8d48d69ae5f74f75637f83bf746f9751a22d46bcd2c4bc5a106 | 6. Save tokens: skip extra screenshots/posters/plates when the gate is N/A or no edit occurred. |
-| ai_video_editor/06_subagent_protocol.md | 55 | 548873d4e459b21187640a5f04631e803e39ee440c6fa3305b90a5915fec3cb4 | 5. Commit session before handoff. |
-| ai_video_editor/10_mechanics.md | 75 | 327ca728ab2fa6fa50b3738dfa7b177cdbbe7e9e562fd1bd9f5635b49b137a64 | When Gate 6 runs, use `scene_geometry` for measurement and the latest shown composite screenshot for visual confirmation. |
-| ai_video_editor/20_background.md | 60 | 916b2a1ec959c504921730745d4f6c515203b48a1b6e1be5c1b8aa6bae4559e4 | Layer isolation: background replacement must not rebuild/restyle overlay unless an independent Gate 4 text/objective overlay FAIL exists. |
+| SKILL.md | 105 | b62859d84f4110d38881f8a3f3816e95d37dbd6149d2db23555fbc759069a6b1 | Ask only after all scenes pass: `Render/export the final MP4 now, or review the scenes first?` |
+| ai_video_editor/00_ENTRYPOINT.md | 64 | 425b54ad0831f50ae9f80848bb14f0e3406e5279fd6d07438dbd3ee243719ea5 | ``` |
+| ai_video_editor/01_critical_rules.md | 30 | 11e84b7cd3fbd7a28dc59ca19bfc3eeff2749b1300cbeccc4aaa6a7e6697e7ed | - Did I state `Scene N: PASS` or `Scene N: FAIL — ...` with applicable gates? |
+| ai_video_editor/02_jump_prevention.md | 24 | f1339115d303e89ad54c1617a8a6fad3381ca2721ac0c55b7b5629df485eb5dc | - Context was compacted or run resumed → read run ledger, reload current modules, continue from earliest unproven applicable gate. |
+| ai_video_editor/03_dod_gates.md | 201 | dd30e3137554c1bd482ab26a7ca31f4194c304b21e31f00f7aea92af1ad2be27 | Do not advance without PASS or an explicit unresolved FAIL. |
+| ai_video_editor/04_principles_workflow.md | 49 | 783a1c7bb3eb91911c45d574816f4bb7bad60361515f02fe620ae7fdda2101f7 | - no export is requested before PASS completion |
+| ai_video_editor/05_quality_qa_priority.md | 46 | 190fe6e99eca343e5d5a57e86dedf6478caee756078a58aec85e0057eb961cbc | 6. Save tokens: skip extra screenshots/posters/plates when the composite is enough, but never omit mandatory Gate 5. |
+| ai_video_editor/06_subagent_protocol.md | 55 | fba6ce5839536051fa30faf1affd509ec9b42325aa0200e802febc69088c4ab8 | 5. Commit session before handoff. |
+| ai_video_editor/10_mechanics.md | 75 | 9d9871e05f810ee8e4386ca5beee6d5c2fdfce9919ea7fa557a61444e892cbb4 | When Gate 6 runs, use `scene_geometry` for measurement and the latest shown composite screenshot for visual confirmation. |
+| ai_video_editor/20_background.md | 62 | fe19574895f5ce040e8c87b731deada4af70f0eb5ce8d39f8043ea4063cb45a8 | Layer isolation: background replacement must not rebuild/restyle overlay unless an independent Gate 4 text/objective overlay FAIL exists. |
 | ai_video_editor/30_overlay_core.md | 60 | e81d2c20d5c5c978cc9c906610ca01f965657b690ee3da26631f2bcc8ec00b3a | Every agent layout/overlay edit triggers Gate 6 post-edit sanity. |
 | ai_video_editor/31_typography.md | 42 | 901a1512edb6620ae4130d82cf69546464496c758bff9f23bf255e5a06bdc699 | If the table passes, stop. Do not add style commentary. |
 | ai_video_editor/32_charts.md | 29 | 73861db1968ffa6ef78e3dbd03ee264ba91da8529323757e740739817b2a7133 | If a label/value is wrong, fix the smallest possible text/data layer. Rebuild the chart only when the wrong text is baked into an image or the render is objectively broken. |

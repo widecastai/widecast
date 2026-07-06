@@ -24,7 +24,7 @@ For each scene, print a smaller SCENE LOAD LEDGER for modules actually used:
 SCENE LOAD LEDGER:
 ☑ 03_dod_gates.md lines=<N> manifest=<M>
 ☑ 10_mechanics.md lines=<N> manifest=<M>
-☑ 20_background.md <loaded | N/A>
+☑ 20_background.md <loaded>
 ☑ 30_overlay_core.md <loaded | N/A>
 ☑ 31_typography.md <loaded | N/A>
 ☑ 32_charts.md / 33_patterns.md <loaded | N/A>
@@ -90,7 +90,9 @@ Do not include style, hierarchy, title punch, card padding, or aesthetics in thi
 
 ## Gate 5 — Background QA
 
-Load `20_background`. Use Gate 3 composite. Pull/show active plate only when the background is visible or must be judged.
+Load `20_background` for every scene. Gate 5 is mandatory and must have its own ledger entry. Use Gate 3 composite as the render truth. Pull/show active plate only when the visible background needs closer judgment or metadata/source cues conflict with the composite.
+
+You may mark `PASS skip`, but never omit the gate. `PASS skip` is only valid when the composite proves the background is objectively hidden, force-grid, full-canvas A-roll, or background changes are disabled.
 
 ```text
 Gate 5 BACKGROUND QA:
@@ -176,7 +178,7 @@ MODULE COVERAGE GATE:
 ☑ 04_principles_workflow.md — kickoff
 ☑ 05_quality_qa_priority.md — PASS scan
 ☑ 10_mechanics.md — scene mechanics
-☑ 20_background.md — Gate 5 loaded OR N/A: <reason>
+☑ 20_background.md — loaded for mandatory Gate 5
 ☑ 30_overlay_core.md — Gate 4 loaded OR N/A: <reason>
 ☑ 31_typography.md — loaded for text fix OR N/A: <reason>
 ☑ 32_charts.md / 33_patterns.md — loaded for risk pattern OR N/A: <reason>

@@ -10,6 +10,7 @@ A scene passes when all applicable items are true:
 - Overlay text-risk triage is `PASS` or `SKIP` with a valid reason.
 - Any rendered/baked message text checked has no typo, pseudo-text, malformed glyph, wrong/missing Vietnamese diacritics, stale copy, wrong number/currency/name/domain term.
 - Visible background/media is relevant enough for the sentence and not objectively misleading.
+- Gate 5 has a dedicated verdict for every content scene, even when the verdict is `PASS skip`.
 - Location/currency/culture cues match when the video/scene is location-sensitive.
 - No visible watermark/burned-in text/logo creates a wrong message.
 - Any edits made by the agent are saved and verified.
@@ -42,4 +43,4 @@ After all scenes:
 3. Do not use misleading/off-topic/wrong-geo background media.
 4. Do not create new face/caption/layout collisions when fixing.
 5. Preserve WideCast's existing layout/style unless an objective fix requires a small targeted change.
-6. Save tokens: skip extra screenshots/posters/plates when the gate is N/A or no edit occurred.
+6. Save tokens: skip extra screenshots/posters/plates when the composite is enough, but never omit mandatory Gate 5.

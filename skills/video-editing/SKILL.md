@@ -3,7 +3,7 @@
 Version: `fast-1.0`. This is the **default WideCast video-editing skill**. It is intentionally scoped to the two things WideCast cannot fully control because it does not see rendered scenes:
 
 1. **Baked/rendered text inside visual overlays** — generated images, charts, maps, document/UI mockups, labels, values, names, numbers, currency, Vietnamese diacritics, and pseudo-text.
-2. **Background/media fit** — whether the active background actually matches the scene, especially geography/currency/culture/watermarks/off-topic footage.
+2. **Background/media fit** — whether the active background actually matches the scene, especially geography/currency/culture/watermarks/off-topic footage. This is a mandatory separate Gate 5 audit for every content scene.
 
 Trust WideCast for layout, narrator placement, safe zones, caption placement, title weight, style, and normal overlay aesthetics unless an objective defect is visible or the user explicitly asks for visual polish. Do not judge taste. Do not redesign because something could be prettier.
 
@@ -34,7 +34,7 @@ Print a KICKOFF LOAD LEDGER with each module's actual line count matched against
 | When you reach this step | Load |
 |---|---|
 | Run kickoff | `00_ENTRYPOINT` + the six core modules above |
-| Start every scene | `03_dod_gates` + `10_mechanics` |
+| Start every scene | `03_dod_gates` + `10_mechanics` + `20_background` |
 | Overlay text-risk triage or objective overlay fix | `30_overlay_core`; add `31_typography` if fixing text |
 | Chart/data/table/text-heavy pattern needs typo proof | `32_charts` or `33_patterns` as the pattern reference |
 | Background audit or replacement | `20_background` |
@@ -48,10 +48,10 @@ Print a KICKOFF LOAD LEDGER with each module's actual line count matched against
 - Use `voice_file` as the selector for `scene_geometry` and `modify_scene`; never use display `id` as the write selector.
 - Work autonomously from scene 2 through the last content scene. Do not ask the user to choose options during an edit run.
 - Pull `video_data` once at kickoff, build whole-video context, then work scenes in roster order.
-- Every scene gets a **fast 9-gate receipt**, but Gates 4/6/7 are conditional and skip cleanly when WideCast-controlled layers were not edited.
+- Every scene gets a **fast 9-gate receipt**. Gate 5 background QA is mandatory; Gates 4/6/7 are conditional and skip cleanly when WideCast-controlled layers were not edited.
 - A scene normally needs **one BEFORE composite screenshot**. Reuse it as final evidence when no edit is made.
 - Pull an `overlay_poster` only for text-risk scenes with visible/message text, or after changing overlay text.
-- Pull an active background/media plate only when the background is visible or must be judged; skip hidden full-canvas A-roll plates and force-grid content-fit checks.
+- Run background QA from the BEFORE composite for every scene. Pull an active background/media plate only when the visible background needs closer judgment.
 - Pull an AFTER screenshot only after an edit, replacement, or objective uncertainty that must be verified.
 - Do not print aesthetic/taste failures in this fast skill. Objective defects only.
 - After any edit, re-pull `video_data`/`scene_geometry` as relevant to confirm server save.
@@ -64,7 +64,7 @@ Print a KICKOFF LOAD LEDGER with each module's actual line count matched against
 2. **Role** — read `type`, `pattern`, `sub_mode`, `visual`, `quote`, `talking_point`, `show_narrator`, active media.
 3. **BEFORE evidence** — pull one `screenshot_scene_280x498`, download locally, show it, then judge.
 4. **Overlay text-risk triage** — only risk patterns / visible message text; check typo, pseudo-text, wrong diacritics, stale text, wrong number/currency/name/domain term. Otherwise skip and trust WideCast overlay.
-5. **Background QA** — judge visible active background/media plate for objective fit; skip full-canvas A-roll, force-grid, or invisible background content.
+5. **Background QA** — mandatory separate audit for every scene. Use the BEFORE composite to judge visible active background/media for objective fit; mark `PASS skip` only when the background is objectively hidden, force-grid, full-canvas A-roll, or disabled.
 6. **Post-edit layout sanity** — only if this run changed overlay/layout/media or an objective collision is visible. Otherwise skip and trust WideCast layout.
 7. **Final evidence** — use BEFORE as final if no edit; pull AFTER / overlay poster only when needed by an edit or text-risk proof.
 8. **Server-saved** — required only after writes.
