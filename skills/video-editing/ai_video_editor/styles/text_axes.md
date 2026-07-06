@@ -7,9 +7,9 @@
 
 _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
-This is the **diversity vocabulary for TEXT** (titles, labels, values, quotes). The native Canvas typography renderer already mixes these axes across 142 curated presets — but when YOU author an overlay as SVG you must reproduce the look yourself. Below: every axis value with a **concrete SVG recipe**. Do not ship flat-only text.
+This is the **text style reference** for explicit overlay rebuild/polish work. Fast blind-spot QA does not load this file by default and does not fail scenes for text style or title punch.
 
-> **HOW TO USE.** Per video, derive ONE text look = `structure × depth × fill × typeface × casing × palette` from brand/topic/rotation (see §0.5 "vary between videos"). Keep it across the video; change it next video. The TITLE may carry the richest treatment (bevel/metallic/gradient + a controlled outline); secondary text stays simpler and cleaner: solid heavy fill on a chip/card/quiet area, with **no visible text stroke/outline**. **Title body rule:** a title/hero is not a single `<text>`; build its body with **8–15 same-fill face copies** inside one title object, then add one final top copy with 0–2px stroke. Vary the copy count between titles/videos based on font, word length, and screenshot proof. The count is not an auto-pass: if the rendered title becomes muddy/blobby, loses clean counters/negative space, crushes tracking, swallows Vietnamese diacritics, or feels less premium, reduce count/offset or change font. More than 15 face copies = FAIL. **Authoring cap:** visible text stroke is **0–2px max on the 720 canvas**; use shadows/backplates/chips/shapes for extra separation, not thicker letter outlines.
+> **HOW TO USE.** Use only when authoring/rebuilding an overlay because of an objective defect or an explicit polish request. In fast QA, the pass/fail question is whether rendered text is correct, not whether a style recipe is prettier.
 
 > **Reusable `<defs>` (declare once per SVG, reference by id):**
 > ```svg
