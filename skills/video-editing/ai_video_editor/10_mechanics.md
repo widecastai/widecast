@@ -91,7 +91,7 @@ The safe zone is **the same percentage** in both spaces — only the absolute nu
 | (L) Scene metadata | Edit `pattern` + `quote` | metadata | `pattern` is validated against the 15 canonical values; `type ∈ {HOOK,STAT,KEY POINT,DATA,FACT,CALL TO ACTION}`; setting `pattern=typography_only` will auto-clear `visual`. |
 | (M) **Add element** (add-only) | **Append** ONE text/stat/label/callout to the EXISTING spec **without overwriting it** | `remotion.add_element` | **FREE, sync, additive — does NOT touch the existing objects.** `value={kind, value?, label?, url?, position?, rect?, style_token?, emphasis?}` (or a bare string for `kind="text"`). Response returns the new `element_id`/`object_id`/`layout_id`/`rect`. Use ONLY in the **narrow preserve case** (§5.4): an existing realistic photo/overlay is already good and you ONLY need to ADD a missing label/stat/callout — this keeps the photo instead of re-authoring + overwriting. **NOT the default** — most fixes (wrong/ugly/off-message) = re-author the whole SVG via (B). |
 
-After every `modify_scene`, **pull `video_data` again (and `scene_geometry` if it was a layout edit)** to confirm the value actually changed correctly on the server.
+Under an edit session a `modify_scene` 200 is durable (per-topic lock + in-memory cache + WAL). Confirm a fix with the ONE Gate 5 AFTER look (the poster/composite renders from the saved state) — do NOT reflexively re-pull `video_data`/`scene_geometry` afterward; that costs an extra call and adds nothing.
 
 ### Layout is server-managed — the agent does NOT audit placement
 
