@@ -32,7 +32,7 @@ Do **not** judge these endpoint scenes by the normal scene-overlay standard alon
 Example for an insurance deductible video:
 
 - Better thumbnail hook: `SAI DEDUCTIBLE?` / `MẤT NGHÌN ĐÔ`
-- Optional tiny subline: `MỖI NĂM`
+- Optional LARGE subline (≥48px, same size as any other support text): `MỖI NĂM`
 - Worse: `CHỌN SAI DEDUCTIBLE MẤT HÀNG NGHÌN ĐÔ/NĂM` as four small muddy lines.
 
 ### Endpoint visual style ladder
@@ -51,7 +51,7 @@ Pick **one** of these for scene 2, the synced thumbnail, and the final CTA. The 
 4. **Typographic collage:** one giant keyword plus 1-2 smaller supporting words, arranged asymmetrically but still readable in one glance.
 5. **Object-integrated title:** title wraps around or frames the narrator face, product, vehicle, document, or key prop without covering the important part.
 6. **Premium CTA poster:** giant action verb (`SAVE`, `COMMENT`, `DM`, `BOOK`) plus one support line, with a vertical side bar, editorial rule, seal, or bracket. Use this often for the final scene.
-7. **Minimal premium cover:** one huge word/number plus one tiny contextual label, lots of negative space, one elegant accent. Minimal is allowed; generic is not.
+7. **Minimal premium cover:** one huge word/number plus one LARGE (≥48px) secondary label — a real second reading level, never a tiny caption — lots of negative space, one elegant accent. Minimal is allowed; generic is not.
 
 Do **not** use the normal inside-scene recipe here: a neat rounded card with horizontal title + subtitle, a row of chips, a balanced info panel, or text centered in a box. Those are acceptable for interior explainer scenes, but endpoint scenes need poster energy.
 
