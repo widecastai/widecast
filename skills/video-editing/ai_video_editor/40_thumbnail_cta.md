@@ -2,6 +2,8 @@
 
 _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
+> **⚠ RETIRED (2026 lean model).** Endpoint/poster authoring — opening-poster scene 2, thumbnail-sync, closing-CTA design — is no longer an agent gate. WideCast produces the overlays (including the poster/cover/CTA), and scene 2 / the thumbnail / the final CTA are now routed exactly like any other scene: Gate 1 text, Gate 3 background fit (if it applies), Gate 4 image-gen typo (if it applies). Do NOT load this module, do NOT print an ENDPOINT DESIGN VARIANT PROOF, and do NOT run a thumbnail-sync gate. The content below is kept only for reference/history.
+
 > **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** you are handling the first real scene after the thumbnail (usually scene 2 / the opening poster scene), its immediate static thumbnail sync, OR the last content/CTA scene.
 > Cross-refs: screenshot truth + geometry → `10_mechanics.md`; background plate evidence → `20_background.md`; SVG overlay rules → `30_overlay_core.md`; endpoint visual grammar → `styles/design_languages.md`; poster typography → `31_typography.md` + `styles/text_axes.md`.
 

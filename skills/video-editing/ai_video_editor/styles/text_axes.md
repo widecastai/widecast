@@ -60,10 +60,10 @@ cairosvg ignores numeric `font-weight` → **name the HEAVY family** (see overla
 
 | key | use family (heavy) |
 |---|---|
-| `bold_sans` | `Be Vietnam Pro Black` · `Inter Black` · `Montserrat Black` · `Open Sans Black` |
-| `condensed` | `Anton` (single-weight, already heavy) · `Roboto Condensed` · `Noto Sans Condensed` |
-| `slab_serif` | `DejaVu Serif` (heaviest VN-safe serif in the set) |
-| `rounded` | `Be Vietnam Pro Black` (rounded-ish) — no dedicated rounded VN family ships; prefer bold_sans |
+| `bold_sans` | `Be Vietnam Pro Black` · `Montserrat Black` · `Archivo Expanded` · `Bricolage Grotesque` |
+| `condensed` | `Anton` (single-weight, already heavy) · `Barlow Condensed` · `Oswald` · `Roboto Condensed Black` |
+| `slab_serif` | `Roboto Slab` (heavy VN-safe slab serif) |
+| `rounded` | `Baloo 2` (dedicated rounded VN family) · `Paytone One` |
 
 ## Axis: casing
 <!-- SYNC: casing = upper, title, sentence -->

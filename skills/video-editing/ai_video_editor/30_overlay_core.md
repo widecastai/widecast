@@ -2,6 +2,8 @@
 
 _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
+> **⚠ SCOPE (2026 lean model): load this ONLY to fix a genuine overlay defect — almost always an image-model typo (Gate 4).** WideCast now produces overlays and guarantees their placement (dead-zone, face-clearance, safe-zone fit); the agent does NOT author overlays as a routine gate, does NOT run a dead-zone/composition/A-roll-ladder check, and does NOT decide whether a scene needs an overlay. The usual typo fix is to regenerate/replace the image or correct its source text, then re-pull the poster. Treat any per-scene "overlay pass", dead-zone proof, title face-stack gate, or endpoint poster authoring below as REMOVED — use the authoring recipes only when a defect genuinely requires re-authoring.
+
 > **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** you are going to (re)build or apply ANY overlay. ALWAYS load this first; if the overlay contains any text/title/label/value, load `31_typography.md` too even when the main pattern is a chart/diagram; then load the per-content style guide (`32_charts.md` for charts/diagrams, `33_patterns.md` for the rest).
 > Cross-refs: text look→`31_typography.md`+`styles/text_axes.md`; chart/diagram→`32_charts.md`+`styles/chart_axes.md`; other patterns→`33_patterns.md`.
 

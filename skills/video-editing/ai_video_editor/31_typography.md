@@ -2,6 +2,8 @@
 
 _Version: `modular-1.1` · module of the AI Video Editor Playbook (`SKILL.md`)._
 
+> **⚠ SCOPE (2026 lean model): load this ONLY when re-authoring an overlay to fix a real defect.** Routine overlay authoring/typography is no longer an agent gate — WideCast produces overlays. **SVG/typography text is deterministic and never misspells, so there is no typo gate for it** (Gate 4 typo checks apply only to image-model-baked text). The title face-stack/thickness/first-second-punch rules here are authoring guidance for the rare rebuild, not a per-scene pass.
+
 > **Module of the AI Video Editor Playbook.** Master index + checklist + critical rules live in `SKILL.md`. **Load this when:** the overlay has TEXT (title/label/value/quote) — i.e. almost always. Decide prominence, weight, size, highlight, and the per-video text LOOK.
 > Cross-refs: look catalog + SVG recipes per look → `styles/text_axes.md`; core SVG rules → `30_overlay_core.md`.
 
