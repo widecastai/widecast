@@ -47,15 +47,17 @@ The known bad default template is: **giant outlined all-caps title + red vertica
 
 Pick **one** of these for scene 2, the synced thumbnail, and the final CTA. The agent chooses; do not ask the user.
 
-1. **Dynamic poster typography:** oversized words with staggered baselines, angled/vertical word blocks, strong scale contrast, and a few motion slashes/brackets anchored to the title.
-2. **Magazine-cover thumbnail:** editorial masthead-like headline, one small cover-line/subline, a sticker/seal or side rule, and cover-style framing around the face/subject.
-3. **Kinetic stacked type:** 2-4 short words stacked like a trailer/poster beat, with stepped placement, directional underline bars, or staggered reveal-ready groups.
-4. **Typographic collage:** one giant keyword plus 1-2 smaller supporting words, arranged asymmetrically but still readable in one glance.
-5. **Object-integrated title:** title wraps around or frames the narrator face, product, vehicle, document, or key prop without covering the important part.
-6. **Premium CTA poster:** giant action verb (`SAVE`, `COMMENT`, `DM`, `BOOK`) plus one support line, with a vertical side bar, editorial rule, seal, or bracket. Use this often for the final scene.
-7. **Minimal premium cover:** one huge word/number plus one LARGE (≥48px) secondary label — a real second reading level, never a tiny caption — lots of negative space, one elegant accent. Minimal is allowed; generic is not.
+**Hard layout rule (applies to every archetype below): the poster is MAX 3 TEXT LINES TOTAL — hero line(s) and support/contact lines all counted; default is 1–2 lines. Each line is ONE full-width horizontal band spanning 70–100% of the safe width. Never a narrow column that wraps a sentence into 2-words-per-line stacks, never scattered word blocks — those collide with the hero and cannot be auto-fit. Everything beyond the 3 lines must be vector decoration, not text.**
 
-Do **not** use the normal inside-scene recipe here: a neat rounded card with horizontal title + subtitle, a row of chips, a balanced info panel, or text centered in a box. Those are acceptable for interior explainer scenes, but endpoint scenes need poster energy.
+1. **Dynamic poster typography:** oversized FULL-WIDTH title lines (max 3) with staggered baselines and strong scale contrast, and a few motion slashes/brackets anchored to the title — no word blocks or columns.
+2. **Magazine-cover thumbnail:** editorial masthead-like full-width headline plus ONE full-width cover-line below it, a sticker/seal or side rule, and cover-style framing around the face/subject.
+3. **Kinetic stacked type:** 2-3 FULL-WIDTH lines stacked like trailer beats (each line spans the safe width — never single floating words), with stepped baselines, directional underline bars, or staggered reveal-ready groups.
+4. **Typographic collage:** one giant full-width keyword line plus 1-2 full-width support lines with contrasting alignment, still readable in one glance.
+5. **Object-integrated title:** full-width title lines placed to frame the narrator face, product, vehicle, document, or key prop without covering the important part.
+6. **Premium CTA poster:** giant action verb (`SAVE`, `COMMENT`, `DM`, `BOOK`) as the full-width hero line plus ONE full-width support line, with a vertical side bar, editorial rule, seal, or bracket. Use this often for the final scene.
+7. **Minimal premium cover:** one huge word/number line plus ONE LARGE (≥48px) secondary label line — a real second reading level, never a tiny caption — lots of negative space, one elegant accent. Minimal is allowed; generic is not.
+
+Do **not** use the normal inside-scene recipe here: a neat rounded card with horizontal title + subtitle, a row of chips, a balanced info panel, or text centered in a box. Those are acceptable for interior explainer scenes, but endpoint scenes need poster energy — delivered as at most 3 full-width lines, not as a card of small text.
 
 Endpoint style still obeys all hard gates: face/subject clear, caption clear, safe zone, no dead-zone intrusion, copy correctness, title thickness, secondary text readability, and server-saved proof. Style is not an excuse for clutter.
 
