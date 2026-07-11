@@ -195,6 +195,7 @@ info:
       remotion_spec_not_found | remotion_spec_parse_failed |
       remotion_spec_invalid | missing_remotion_object_rect |
       invalid_remotion_add_element | invalid_remotion_add_element_kind |
+      invalid_text_edit | missing_text_edit | no_svg_overlay_source |
       invalid_disable_overlay_value | invalid_module_id | module_not_found |
       skill_unavailable |
       missing_uploaded_overlay_url | invalid_uploaded_overlay_url |
@@ -707,6 +708,33 @@ paths:
         `invalid_disable_overlay_value` / `mixed_remotion_fields`,
         409 `missing_voice_file`.
 
+        **(O) Overlay TEXT edit (`overlay.text_edit`) — FREE, SYNC,
+        0-LLM, SVG-sourced overlays only.** Change ONLY the words of an
+        existing overlay object without re-authoring or re-uploading.
+        `value = {wc_object: "<g data-wc-object id>", lines?: ["NEW LINE
+        1", "NEW LINE 2"], fill?: "#1E6091"}` (`lines` retypes the group;
+        `fill` is an optional hex colour that repaints the group's main
+        text - send `lines` and/or `fill`, a fill-only edit keeps the
+        existing words; one per group). The server
+        rewrites `{voice_file}_overlay.svg` in place (face-stack copies
+        update together; fewer lines delete slots, extra lines stack
+        below), re-rasterizes ONLY the touched groups, and patches the
+        existing spec objects — layout, narrator-fit shifts, and manual
+        positions on other objects are preserved. Requires an SVG-sourced
+        spec (`spec._source="svg2spec"`: endpoint posters and previously
+        uploaded SVG overlays); typography and image scenes return 422
+        `no_svg_overlay_source` (for typography, edit `quote` via (L)
+        scene metadata and regenerate instead). Poster copy rules (max 3
+        lines, max 4 words/line, uppercase) come back as
+        `applied.warnings` only — the typed copy is sovereign, but long
+        lines shrink to fit the safe band. The `type="thumbnail"` clone
+        of an edited opening poster is NOT auto-synced: apply the same
+        `overlay.text_edit` to the thumbnail scene's `voice_file`. Must
+        be sent **alone** (400 `mixed_remotion_fields`). Errors: 400
+        `invalid_text_edit` / `missing_text_edit`, 404
+        `remotion_spec_not_found`, 409 `remotion_spec_disabled` /
+        `missing_voice_file`, 422 `no_svg_overlay_source`.
+
         **`remotion_spec="none"`**: user intentionally disabled the
         overlay on that scene (via (N) Disable overlay or UI). Layout
         edits return `remotion_spec_disabled`. Do NOT auto-enable —
@@ -731,6 +759,20 @@ paths:
                       value: "https://cdn.example.com/coast-sunset.jpg"
                     - field_name: mediaType
                       value: image
+              text_edit_svg_poster:
+                summary: (O) Text edit — retype one poster line (SVG-sourced spec, 0-LLM)
+                value:
+                  id: widecast7c0d4f8a9b1e2d3f
+                  by: voice_file
+                  value: Xb79O
+                  fields:
+                    - field_name: overlay.text_edit
+                      value:
+                        wc_object: support_stack
+                        lines:
+                          - "KHOAN VAY MUA NHA"
+                          - "DUNG CHU QUAN"
+                        fill: "#FFD60A"
               media_by_text:
                 summary: (A) Background swap — match by narration, declare video type
                 value:

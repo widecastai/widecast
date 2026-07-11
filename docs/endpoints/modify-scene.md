@@ -22,6 +22,7 @@ The endpoint supports **thirteen edit branches**, grouped by family. Pick exactl
 | **(L) Scene metadata** | Update scene planning metadata (`pattern`, `type`, …). | metadata fields |
 | **(M) Remotion add element** *(add-only)* | Append a new text / stat / label / callout / image object to the overlay; follow up with (C) `layout.batch` for placement. | `remotion.add_element` |
 | **(N) Disable overlay** | Hide the Remotion overlay on one scene by setting `remotion_spec="none"` (spec/poster files preserved). | `disable_overlay` (aliases: `remotion.disable_overlay` / `overlay.disable` / `remotion_spec.none`) |
+| **(O) Overlay text edit** *(0-LLM, SVG posters)* | Retype the words and/or recolor an existing SVG-sourced overlay object in place (`value={wc_object, lines?, fill?}`) — SVG + spec patched, layout preserved; poster copy rules returned as warnings. | `overlay.text_edit` |
 
 <!-- widecast-playground:modify-scene -->
 

@@ -137,6 +137,29 @@
       }
     },
     {
+      "id": "text-edit-svg-poster",
+      "title": "(O) Overlay text edit — retype a poster line (0-LLM, SVG-sourced)",
+      "description": "Changes ONLY the words of one overlay object. Server rewrites {voice_file}_overlay.svg, re-rasterizes only the touched group, patches the spec in place (layout preserved). Requires spec._source=svg2spec (endpoint posters / uploaded SVG overlays); typography/image scenes return 422 no_svg_overlay_source. Poster copy rules (≤3 lines, ≤4 words/line, uppercase) come back as applied.warnings only. Thumbnail clone is not auto-synced — repeat the edit on the thumbnail voice_file.",
+      "request": {
+        "id": "widecast7c0d4f8a9b1e2d3f",
+        "by": "voice_file",
+        "value": "Xb79O",
+        "fields": [
+          {
+            "field_name": "overlay.text_edit",
+            "value": {
+              "wc_object": "support_stack",
+              "lines": [
+                "KHOAN VAY MUA NHA",
+                "DUNG CHU QUAN"
+              ],
+              "fill": "#FFD60A"
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "object-rect-one-by-one",
       "title": "(C) Object-layer rect — preferred overlay layout (one_by_one)",
       "description": "Read boxes.remotion.object_layer.objects from /v1/scene_geometry; pass the logical *.one_by_one layout_id to transform all timed sequence items together. WideCast keeps the group wrapper unchanged.",
