@@ -1,0 +1,42 @@
+# Playground — POST /v1/edit_session (sync, free). No polling.
+endpoint:
+  method: POST
+  path: /v1/edit_session
+title: Open/close the per-video edit session
+description: |
+  Synchronous, free. Manages a per-video in-memory edit session that makes an
+  AI editing run safe under PARALLEL scene edits and gives instant
+  read-after-write. `start` caches the whole video in memory (crash-safe via a
+  write-ahead file) so every /v1/modify_scene write lands in the cache and
+  ElasticSearch is written ONCE at commit; `commit` flushes to storage
+  (REQUIRED to finish — idle sessions auto-commit after 45 min); `abort`
+  discards staged edits; `status` reports {active, staged_writes}. If the
+  response has cache_enabled=false the server is in legacy direct-write mode —
+  proceed without a session.
+fields:
+  - { name: id, type: text, label: "id (topic_id)", required: true, placeholder: "widecast7c0d4f8a9b1e2d3f" }
+  - name: action
+    type: select
+    label: "action"
+    required: true
+    options:
+      - { value: "start",  label: "start — open + cache the video in memory" }
+      - { value: "commit", label: "commit — flush staged edits to storage (finish the run)" }
+      - { value: "abort",  label: "abort — discard staged edits" }
+      - { value: "status", label: "status — report active + staged_writes" }
+    default: "start"
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: start-session
+    title: "▶️ Start an edit session before the first scene edit"
+    description: "Caches the whole video document in memory so parallel modify_scene writes are conflict-free and reads are instant. Returns {object:'edit_session', action:'start', cache_enabled, active:true, ttl_seconds:2700}."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "start"
+  - id: commit-session
+    title: "✅ Commit after the last scene (REQUIRED to finish)"
+    description: "Flushes the cached edits to permanent storage. An idle session auto-commits after 45 minutes as a backstop, but call commit explicitly to finish promptly."
+    request:
+      id: "widecast7c0d4f8a9b1e2d3f"
+      action: "commit"

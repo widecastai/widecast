@@ -181,10 +181,17 @@ describe("widecast SDK", () => {
   it("read/library methods exist on the client", () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
     // search() withdrawn 2026-06-21 (Round 29); video_data() added the same round.
+    // recommendations() withdrawn 2026-07-13 (Round 30); foundation_videos()
+    // re-promoted the same round.
     for (const name of ["list_videos", "account", "analytics", "roadmap",
-      "production_plan", "recommendations", "video_data"]) {
+      "production_plan", "foundation_videos", "video_data"]) {
       expect(typeof (c as any)[name]).toBe("function");
     }
+  });
+
+  it("recommendations() was withdrawn (Round 30)", () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    expect((c as any).recommendations).toBeUndefined();
   });
 
   it("video_data rejects an empty id", async () => {

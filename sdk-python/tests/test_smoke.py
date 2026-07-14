@@ -558,11 +558,19 @@ def test_video_data_accepts_valid():
 
 def test_read_methods_exist_and_are_callable():
     """The read methods exist on the client (server reuse verified live).
-    search() was withdrawn 2026-06-21; video_data() added the same round."""
+    search() withdrawn 2026-06-21; video_data() added the same round.
+    recommendations() withdrawn 2026-07-13 (Round 30); foundation_videos()
+    re-promoted the same round."""
     c = Widecast(api_key="dummy")
     for name in ("list_videos", "account", "analytics", "roadmap",
-                 "production_plan", "recommendations", "video_data"):
+                 "production_plan", "foundation_videos", "video_data"):
         assert callable(getattr(c, name)), name
+
+
+def test_recommendations_withdrawn():
+    """recommendations() was withdrawn from the SDK 2026-07-13 (Round 30)."""
+    c = Widecast(api_key="dummy")
+    assert not hasattr(c, "recommendations")
 
 
 def test_account_passes_validation():

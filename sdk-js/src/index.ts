@@ -1293,6 +1293,29 @@ export class Widecast {
     return await this.#request<AssetPresignResponse>("POST", "/v1/upload_asset", body);
   }
 
+  /** POST /v1/edit_session — open/close the per-video edit session for an AI
+   *  editing run. SYNC, free. `action="start"` caches the whole video in
+   *  memory so parallel `modify_scene()` writes are conflict-free and reads
+   *  are instant; `"commit"` flushes to storage (REQUIRED to finish — idle
+   *  sessions auto-commit after 45 min); `"abort"` discards staged edits;
+   *  `"status"` reports `{active, staged_writes}`. If the response has
+   *  `cache_enabled=false` the server is in legacy direct-write mode —
+   *  proceed without a session. Throws `code="invalid_action"` for an
+   *  action outside {start, commit, abort, status}. */
+  async edit_session(videoId: string, action: "start" | "commit" | "abort" | "status"): Promise<any> {
+    if (!(["start", "commit", "abort", "status"] as const).includes(action)) {
+      throw new InvalidRequestError(
+        "action must be one of: start, commit, abort, status.",
+        { code: "invalid_action", param: "action" });
+    }
+    if (typeof videoId !== "string" || !videoId.trim()) {
+      throw new InvalidRequestError(
+        "video_id (the topic_id) is required.",
+        { code: "missing_field", param: "id" });
+    }
+    return await this.#request("POST", "/v1/edit_session", { id: videoId.trim(), action });
+  }
+
   /** POST /v1/modify_scene — synchronous for most branches (some
    *  upload branches are async — see below), **no credit charged** until
    *  `export_video()` re-renders the final MP4. Edit ONE scene of an
@@ -1963,17 +1986,22 @@ export class Widecast {
     });
   }
 
-  // NOTE: foundation_videos() was withdrawn from the SDK 2026-06-19 (Round 27).
-  // The REST endpoint /v1/foundation_videos still serves the dashboard UI;
-  // SDK callers shouldn't have needed it (it's an in-product navigation aid).
-
-  /** GET /v1/recommendations — recommended video ideas for an industry. Free. */
-  async recommendations(opts: { industry?: string; page?: number } = {}): Promise<IdeasResponse> {
-    return await this.#get<IdeasResponse>("/v1/recommendations", {
+  /** GET /v1/foundation_videos — browse the curated foundation-video template
+   *  library (proven starter angles for an industry). SYNC, read-only, free.
+   *  Re-promoted 2026-07-13 (Round 30). A navigation/discovery aid — creates
+   *  nothing. `industry` falls back to the account's saved industry. */
+  async foundation_videos(opts: { industry?: string; sub_industry?: string; page?: number } = {}): Promise<any> {
+    return await this.#get("/v1/foundation_videos", {
       industry: opts.industry,
+      sub_industry: opts.sub_industry,
       page: opts.page ?? 0,
     });
   }
+
+  // NOTE: recommendations() was withdrawn from the SDK 2026-07-13 (Round 30).
+  // The REST endpoint /v1/recommendations still serves the dashboard UI;
+  // kept off the agent-facing surface to cap the MCP tool count. Use
+  // collect_ideas() to brainstorm ideas from a product/service description.
 
   // ── Connections (Batch E — connect / accounts / configure, free) ────────
   // NOTE: connect() was withdrawn from the SDK 2026-06-21 (Round 28).

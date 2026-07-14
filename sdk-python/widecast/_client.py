@@ -803,6 +803,33 @@ class Widecast:
                              json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 
+    def edit_session(self, video_id: str, action: str) -> dict:
+        """POST /v1/edit_session — open/close the per-video edit session for
+        an AI editing run. SYNC, free.
+
+        ``action="start"`` before the first scene edit caches the whole
+        video in memory so parallel :meth:`modify_scene` writes are
+        conflict-free and reads are instant; ``"commit"`` flushes to
+        storage (REQUIRED to finish — idle sessions auto-commit after 45
+        min); ``"abort"`` discards staged edits; ``"status"`` reports
+        ``{active, staged_writes}``. If the response has
+        ``cache_enabled=False`` the server is in legacy direct-write mode —
+        proceed without a session.
+
+        Raises ``InvalidRequestError(code="invalid_action")`` for an action
+        outside {start, commit, abort, status}.
+        """
+        if action not in ("start", "commit", "abort", "status"):
+            raise InvalidRequestError(
+                "action must be one of: start, commit, abort, status.",
+                code="invalid_action", param="action")
+        if not isinstance(video_id, str) or not video_id.strip():
+            raise InvalidRequestError(
+                "video_id (the topic_id) is required.",
+                code="missing_field", param="id")
+        return self._request("POST", "/v1/edit_session",
+                             json_body={"id": video_id.strip(), "action": action})
+
     def modify_scene(self, video_id: str, *, by: str, value, fields: list,
                      op: Optional[str] = None,
                      min_score: Optional[float] = None) -> dict:
@@ -1762,14 +1789,30 @@ class Widecast:
         return self._get("/v1/production_plan",
                          {"page": page, "week_start": week_start, "week_end": week_end})
 
-    # NOTE: foundation_videos() was withdrawn from the SDK 2026-06-19 (Round 27).
-    # The REST endpoint /v1/foundation_videos still serves the dashboard UI;
-    # SDK callers shouldn't have needed it (it's an in-product navigation aid).
+    def foundation_videos(self, *, industry: Optional[str] = None,
+                          sub_industry: Optional[str] = None,
+                          page: int = 0) -> dict:
+        """GET /v1/foundation_videos — browse the curated foundation-video
+        template library. SYNC, read-only, free. Re-promoted 2026-07-13
+        (Round 30). Proven starter angles for an industry that a user can
+        adapt into a new video — a navigation/discovery aid, creates nothing.
 
-    def recommendations(self, *, industry: Optional[str] = None, page: int = 0) -> dict:
-        """GET /v1/recommendations — recommended video ideas for an industry. Free.
-        Returns `{object:"ideas", industry, ideas:[…]}`."""
-        return self._get("/v1/recommendations", {"industry": industry, "page": page})
+        Args:
+            industry: Industry to browse. Omit → the account's saved industry.
+            sub_industry: Optional narrower filter.
+            page: Pagination index (default 0).
+
+        Returns ``{object:"list", data:[{id, title, description,
+        thumbnail_url, industry, group}], total}``.
+        """
+        return self._get("/v1/foundation_videos",
+                         {"industry": industry, "sub_industry": sub_industry,
+                          "page": page})
+
+    # NOTE: recommendations() was withdrawn from the SDK 2026-07-13 (Round 30).
+    # The REST endpoint /v1/recommendations still serves the dashboard UI;
+    # kept off the agent-facing surface to cap the MCP tool count. Use
+    # collect_ideas() to brainstorm ideas from a product/service description.
 
     # ── Connections (Batch E — connect / accounts / configure, free) ────────
     # NOTE: connect() was withdrawn from the SDK 2026-06-21 (Round 28).

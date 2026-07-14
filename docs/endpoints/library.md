@@ -9,7 +9,7 @@ A set of **read-only, synchronous, free** (0-credit) `GET` endpoints for browsin
 | `GET /v1/analytics` | Social analytics dashboard (slow) |
 | `GET /v1/roadmap` | Content roadmap (weeks, slots, streak) |
 | `GET /v1/production_plan` | Weekly production plan |
-| `GET /v1/recommendations` | Recommended video ideas |
+| `GET /v1/foundation_videos` | Curated foundation-video template library |
 
 ---
 
@@ -43,11 +43,13 @@ The weekly production plan. Query: `page` (default 0), `week_start`, `week_end`.
 
 <!-- widecast-playground:production-plan -->
 
-## `GET /v1/recommendations`
+## `GET /v1/foundation_videos`
 
-Recommended video ideas for an industry. Query: `industry` (falls back to your account industry), `page` (default 0). Returns `{object:"ideas", industry, ideas:[{title, description, …}]}`.
+Browse the curated **foundation-video template library** — proven starter angles for an industry that a user can adapt into a new video. A navigation / discovery aid: it creates or modifies nothing. Pair with [`/v1/skills/writing`](skills-writing.md) + [`/v1/create_video`](create-video.md) to seed a new video from a known-good structure. Query: `industry` (falls back to your account industry), `sub_industry` (optional narrower filter), `page` (default 0). Returns `{object:"list", data:[{id, title, description, thumbnail_url, industry, group}], total}` — `id` is the template's topic_id, `group` the foundation grouping label. Re-promoted to the public surface 2026-07-13 (Round 30).
 
-<!-- widecast-playground:recommendations -->
+<!-- widecast-playground:foundation-videos -->
+
+> `GET /v1/recommendations` was withdrawn from the public surface 2026-07-13 (Round 30) — removed from the MCP tools, SDKs, and OpenAPI to cap the agent-facing tool count. The REST endpoint still serves the dashboard UI. Use [`POST /v1/collect_ideas`](collect-ideas.md) to brainstorm ideas from a product/service description.
 
 ### Errors
 

@@ -112,7 +112,22 @@ function summarize(v) {
 }
 const TOOLS = [
     // Tool order is canonical — see dashboard2.py `_WC_MCP_TOOLS` for parity.
-    // widecast_foundation_videos withdrawn 2026-06-19 (Round 27) — REST stays.
+    // widecast_foundation_videos re-promoted 2026-07-13 (Round 30) after being
+    // withdrawn 2026-06-19 (Round 27). Defined here; dispatched via READ_ROUTES.
+    {
+        name: "widecast_foundation_videos",
+        title: "WideCast: Browse foundation-video templates",
+        description: "Browse the curated FOUNDATION-VIDEO template library — proven starter angles for an industry that a user can adapt into a new video. SYNC, read-only, FREE. Use when the user asks 'what should I make?', 'show me template/example videos', 'ideas to start from', or when seeding a new video from a known-good structure (pair with widecast_get_writing_skill + widecast_create_video). Query: `industry` (optional — falls back to the account's industry), `sub_industry` (optional narrower filter), `page` (optional, default 0). Returns `{object:'list', data:[{id, title, description, thumbnail_url, industry, group}], total}` where `id` is the template's topic_id (usable as a reference), `group` is the foundation grouping label, `thumbnail_url` a preview image. NAVIGATION/discovery aid — creates/modifies nothing. Errors: 401 auth, 502 read_failed.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                industry: { type: "string", description: "Industry to browse. Omit to use the account's saved industry." },
+                sub_industry: { type: "string", description: "Optional narrower sub-industry filter." },
+                page: { type: "number", default: 0, description: "Pagination index. Default 0." },
+            },
+        },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    },
     {
         name: "widecast_get_writing_skill",
         title: "WideCast: Get writing skill",
@@ -429,6 +444,39 @@ const TOOLS = [
                 put_expires_at: { type: "string" },
                 expires_at: { type: "string" },
                 ttl_hours: { type: "number" },
+            },
+        },
+    },
+    {
+        name: "widecast_edit_session",
+        title: "WideCast: Open/close the per-video edit session (safe parallel scene edits)",
+        description: "Open/close the per-video EDIT SESSION for an AI editing run. SYNC, FREE. " +
+            "action='start' before the first scene edit of a run: the server caches the whole video document in memory — every widecast_modify_scene write lands in the cache (crash-safe via a write-ahead file), every read (widecast_video_data / widecast_scene_geometry / widecast_scene_inspector / overlay_poster) is served fresh from the cache, and ElasticSearch is written ONCE at commit. This makes PARALLEL scene-editor subagents safe (no version conflicts) and read-after-write instant. " +
+            "action='commit' after the last scene closes: flushes the cache to permanent storage — REQUIRED to finish a run (an idle session auto-commits after 45 minutes as a backstop). " +
+            "action='abort' discards staged edits; action='status' reports {active, staged_writes}. " +
+            "If the response says cache_enabled=false the server runs in legacy direct-write mode — proceed WITHOUT a session; writes are still serialized per video by the server-side lock.",
+        inputSchema: {
+            type: "object",
+            required: ["id", "action"],
+            properties: {
+                id: { type: "string", description: "topic_id of the video being edited." },
+                action: { type: "string", enum: ["start", "commit", "abort", "status"], description: "start (open + cache), commit (flush to storage), abort (discard staged edits), status (report active + staged_writes)." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "edit_session" },
+                id: { type: "string" },
+                action: { type: "string" },
+                cache_enabled: { type: "boolean", description: "false → server is in legacy direct-write mode; proceed without a session." },
+                active: { type: "boolean" },
+                committed: { type: "boolean", description: "Set on action='commit'." },
+                aborted: { type: "boolean", description: "Set on action='abort'." },
+                staged_writes: { type: "number", description: "Set on action='status' — pending cached writes." },
+                ttl_seconds: { type: "number", description: "Set on action='start' — idle auto-commit backstop (2700s / 45 min)." },
+                request_id: { type: "string" },
             },
         },
     },
@@ -877,28 +925,15 @@ const TOOLS = [
             properties: { page: { type: "number", default: 0 }, week_start: { type: "string" }, week_end: { type: "string" } },
         },
     },
-    {
-        name: "widecast_recommendations",
-        title: "WideCast: Recommended ideas",
-        description: "Recommended video ideas for an industry. Read-only, free. `industry` falls back to the account industry.",
-        inputSchema: {
-            type: "object",
-            properties: { industry: { type: "string" }, page: { type: "number", default: 0 } },
-        },
-    },
-    {
-        name: "widecast_set_platform_settings",
-        title: "WideCast: Save publish settings",
-        description: "Save one platform's publish settings (e.g. youtube privacy, reddit subreddit, facebook page id). Free. Confirm the values with the user first.",
-        inputSchema: {
-            type: "object",
-            required: ["platform", "settings"],
-            properties: {
-                platform: { type: "string", enum: ["youtube", "tiktok", "instagram", "facebook", "linkedin", "x", "threads", "pinterest", "reddit", "bluesky", "google_business"] },
-                settings: { type: "object", description: "Platform-specific publish settings object." },
-            },
-        },
-    },
+    // widecast_recommendations withdrawn 2026-07-13 (Round 30) — REST
+    // /v1/recommendations still serves the dashboard UI. Kept OFF the
+    // agent-facing surface to cap the MCP tool count (also removed from the
+    // remote MCP registry, OpenAPI, docs, and both SDKs).
+    //
+    // widecast_set_platform_settings intentionally NOT an MCP tool — the MCP
+    // surface is read-only for platform settings (widecast_platform_settings =
+    // GET load only). Saving is REST + SDK only (client.set_platform_settings /
+    // POST /v1/platform_settings). Do not re-add without product-owner sign-off.
 ];
 // MCP server-level instructions — per MCP spec 2025-06-18, optional top-level
 // field on InitializeResult. Compliant hosts inject this into the model's
@@ -1159,6 +1194,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const data = await wc("POST", "/v1/upload_asset", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
+        if (name === "widecast_edit_session") {
+            const data = await wc("POST", "/v1/edit_session", { id: String(args.id ?? ""), action: args.action });
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
         if (name === "widecast_modify_scene") {
             const body = {
                 id: String(args.video_id),
@@ -1187,10 +1226,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         // widecast_connect dispatcher removed 2026-06-21 (Round 28) — tool
         // withdrawn from MCP. Agents should point users to
         // https://widecast.ai/#setup; REST /v1/connect still serves the UI.
-        if (name === "widecast_set_platform_settings") {
-            const data = await wc("POST", "/v1/platform_settings", { platform: args.platform, settings: args.settings });
-            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-        }
+        // widecast_set_platform_settings dispatcher removed 2026-07-13 (Round 30)
+        // — the save action is REST + SDK only (POST /v1/platform_settings /
+        // client.set_platform_settings). The MCP surface stays read-only for
+        // platform settings.
         if (name === "widecast_send_telegram_message") {
             const body = { message: String(args.message ?? "") };
             if (args.parse_mode !== undefined)
@@ -1203,12 +1242,16 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         // ── Read / library + connections GET tools (free) ──
+        // NOTE: /v1/roadmap is intentionally NOT an MCP tool — it's a
+        // dashboard-facing read (REST + OpenAPI + docs only), agents don't
+        // need it. Do not add it here without product-owner sign-off.
         const READ_ROUTES = {
             widecast_list_videos: { path: "/v1/videos", params: ["from_record", "reconcile", "engagement"] },
             widecast_account: { path: "/v1/account", params: [] },
             widecast_analytics: { path: "/v1/analytics", params: ["period", "start_date", "end_date"] },
             widecast_production_plan: { path: "/v1/production_plan", params: ["page", "week_start", "week_end"] },
-            widecast_recommendations: { path: "/v1/recommendations", params: ["industry", "page"] },
+            widecast_foundation_videos: { path: "/v1/foundation_videos", params: ["industry", "sub_industry", "page"] },
+            // widecast_recommendations withdrawn 2026-07-13 (Round 30) — REST-only now.
             widecast_accounts: { path: "/v1/accounts", params: [] },
             widecast_platform_settings: { path: "/v1/platform_settings", params: [] },
         };

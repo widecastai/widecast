@@ -87,8 +87,8 @@
 <td>Weekly production plan</td>
 </tr>
 <tr>
-<td><code>GET /v1/recommendations</code></td>
-<td>Recommended video ideas</td>
+<td><code>GET /v1/foundation_videos</code></td>
+<td>Curated foundation-video template library</td>
 </tr>
 </tbody>
 </table>
@@ -113,10 +113,13 @@
 <p>The weekly production plan. Query: <code>page</code> (default 0), <code>week_start</code>, <code>week_end</code>. <strong>Note:</strong> passing both <code>week_start</code> and <code>week_end</code> may backfill missing plan rows upstream (a write); omit them for a pure read. Returns <code>{object:"production_plan", total, page, week_start, week_end, ideas:[…], topics:[…]}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/production_plan</code></div><section class="wc-pg-example" data-cfg="playgrounds/production-plan.json" data-usecase-id="plan" id="ex-production-plan--plan"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📅 Production plan</h3><p class="wc-pg-example-desc">Fetch the current plan (page 0). Add a week range to scope it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
-<h2 id="get-v1recommendations"><code>GET /v1/recommendations</code></h2>
-<p>Recommended video ideas for an industry. Query: <code>industry</code> (falls back to your account industry), <code>page</code> (default 0). Returns <code>{object:"ideas", industry, ideas:[{title, description, …}]}</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/recommendations</code></div><section class="wc-pg-example" data-cfg="playgrounds/recommendations.json" data-usecase-id="recommend" id="ex-recommendations--recommend"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💡 Recommended ideas</h3><p class="wc-pg-example-desc">Get recommended ideas for an industry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<h2 id="get-v1foundation_videos"><code>GET /v1/foundation_videos</code></h2>
+<p>Browse the curated <strong>foundation-video template library</strong> — proven starter angles for an industry that a user can adapt into a new video. A navigation / discovery aid: it creates or modifies nothing. Pair with <a href="skills-writing.md"><code>/v1/skills/writing</code></a> + <a href="create-video.md"><code>/v1/create_video</code></a> to seed a new video from a known-good structure. Query: <code>industry</code> (falls back to your account industry), <code>sub_industry</code> (optional narrower filter), <code>page</code> (default 0). Returns <code>{object:"list", data:[{id, title, description, thumbnail_url, industry, group}], total}</code> — <code>id</code> is the template's topic_id, <code>group</code> the foundation grouping label. Re-promoted to the public surface 2026-07-13 (Round 30).</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/foundation_videos</code></div><section class="wc-pg-example" data-cfg="playgrounds/foundation-videos.json" data-usecase-id="browse-templates" id="ex-foundation-videos--browse-templates"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Browse templates for an industry</h3><p class="wc-pg-example-desc">List curated foundation-video templates. Returns {object:'list', data:[{id, title, description, thumbnail_url, industry, group}], total}. Omit industry to use the account's saved industry.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
+<blockquote>
+<p><code>GET /v1/recommendations</code> was withdrawn from the public surface 2026-07-13 (Round 30) — removed from the MCP tools, SDKs, and OpenAPI to cap the agent-facing tool count. The REST endpoint still serves the dashboard UI. Use <a href="collect-ideas.md"><code>POST /v1/collect_ideas</code></a> to brainstorm ideas from a product/service description.</p>
+</blockquote>
 <h3 id="errors">Errors</h3>
 <table>
 <thead>

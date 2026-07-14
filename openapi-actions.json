@@ -44,7 +44,7 @@
     },
     {
       "name": "Library",
-      "description": "Read-only account data — videos, search, account, analytics, roadmap, plan, templates, recommendations (free)."
+      "description": "Read-only account data — videos, account, analytics, roadmap, production plan (free)."
     },
     {
       "name": "Connections",
@@ -352,6 +352,155 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/v1/edit_session": {
+      "post": {
+        "tags": [
+          "Videos"
+        ],
+        "operationId": "editSession",
+        "summary": "Open/close the per-video edit session for an AI editing run.",
+        "description": "Open/close the per-video edit session for an AI editing run.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "action"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "topic_id of the video being edited. `topic_id` accepted as an alias."
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "start",
+                      "commit",
+                      "abort",
+                      "status"
+                    ]
+                  }
+                },
+                "example": {
+                  "id": "widecast7c0d4f8a9b1e2d3f",
+                  "action": "start"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edit-session state. Fields vary by `action` — `ttl_seconds` on\nstart, `committed` on commit, `aborted` on abort,\n`staged_writes`/`started`/`last_write` on status.\n",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "edit_session"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "start",
+                        "commit",
+                        "abort",
+                        "status"
+                      ]
+                    },
+                    "cache_enabled": {
+                      "type": "boolean",
+                      "description": "false → legacy direct-write mode; proceed without a session."
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "committed": {
+                      "type": "boolean",
+                      "description": "Set on action=commit."
+                    },
+                    "aborted": {
+                      "type": "boolean",
+                      "description": "Set on action=abort."
+                    },
+                    "staged_writes": {
+                      "type": "integer",
+                      "description": "Set on action=status — pending cached writes."
+                    },
+                    "ttl_seconds": {
+                      "type": "integer",
+                      "description": "Set on action=start — idle auto-commit backstop (2700)."
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_id` (missing/malformed topic_id) or `invalid_action` (not start/commit/abort/status).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`topic_not_found` — no video with this id (action=start).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`topic_fetch_failed` — could not load the video document to start a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2242,14 +2391,14 @@
         }
       }
     },
-    "/v1/recommendations": {
+    "/v1/foundation_videos": {
       "get": {
         "tags": [
           "Library"
         ],
-        "operationId": "getRecommendations",
-        "summary": "Recommended video ideas for an industry (may be slow).",
-        "description": "Recommended video ideas for an industry (may be slow).",
+        "operationId": "getFoundationVideos",
+        "summary": "Browse the curated foundation-video template library.",
+        "description": "Browse the curated foundation-video template library.",
         "parameters": [
           {
             "name": "industry",
@@ -2257,7 +2406,17 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Industry to browse templates for. Omit to use the account's saved industry."
+          },
+          {
+            "name": "sub_industry",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional narrower sub-industry filter."
           },
           {
             "name": "page",
@@ -2271,7 +2430,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Recommended ideas.",
+            "description": "Foundation-video templates.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2292,13 +2451,61 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IdeasResponse"
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "list"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Template topic_id — usable as a reference."
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "thumbnail_url": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "industry": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "description": "Foundation grouping label."
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
                 }
               }
             }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "`read_failed` — the underlying template read failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }

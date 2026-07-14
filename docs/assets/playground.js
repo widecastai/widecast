@@ -362,7 +362,6 @@ ${forms.join("\n")}
       "/v1/videos": "list_videos", "/v1/account": "account",
       "/v1/analytics": "analytics", "/v1/roadmap": "roadmap",
       "/v1/production_plan": "production_plan",
-      "/v1/recommendations": "recommendations",
       "/v1/telegram/send": "send_telegram_message",
       "/v1/create_image": "create_image",
       "/v1/search_broll": "search_broll",

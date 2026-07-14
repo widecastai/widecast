@@ -120,6 +120,11 @@
 <td>For <code>output_type=scene</code> videos, kick the final-MP4 renderer after review</td>
 </tr>
 <tr>
+<td><a href="endpoints/edit-session.html"><code>/v1/edit_session</code></a></td>
+<td>POST</td>
+<td>(sync, free) Open/close the per-video edit session — <code>start</code>/<code>commit</code>/<code>abort</code>/<code>status</code>. Caches the video in memory so parallel <code>modify_scene</code> writes are conflict-free + reads are instant</td>
+</tr>
+<tr>
 <td><a href="endpoints/modify-scene.html"><code>/v1/modify_scene</code></a></td>
 <td>POST</td>
 <td>(sync/async, free) Edit ONE scene — 12 branches: background media, Upload Overlay, Remotion object-layer rect (preferred), group rect, narrator/caption layout, <code>layout.batch</code>, Upload Voice/Narrator Video (async), A/B-roll switch, text, metadata</td>
@@ -200,9 +205,9 @@
 <td>(read, free) Weekly production plan</td>
 </tr>
 <tr>
-<td><a href="endpoints/library.html"><code>/v1/recommendations</code></a></td>
+<td><a href="endpoints/library.html"><code>/v1/foundation_videos</code></a></td>
 <td>GET</td>
-<td>(read, free) Recommended video ideas</td>
+<td>(read, free) Browse the curated foundation-video template library</td>
 </tr>
 <tr>
 <td><a href="endpoints/connections.html"><code>/v1/accounts</code></a></td>

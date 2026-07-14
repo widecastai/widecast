@@ -236,7 +236,7 @@ tags:
   - name: Notifications
     description: Push a notification to the user's own connected Telegram chat. Self-notify only — no recipient field.
   - name: Library
-    description: Read-only account data — videos, search, account, analytics, roadmap, plan, templates, recommendations (free).
+    description: Read-only account data — videos, account, analytics, roadmap, production plan (free).
   - name: Connections
     description: Connect social platforms (OAuth link), list connected accounts, configure publish settings (free).
   - name: Skills
@@ -472,6 +472,88 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '500':
           $ref: '#/components/responses/ServerError'
+
+  /v1/edit_session:
+    post:
+      tags: [Videos]
+      operationId: editSession
+      summary: Open/close the per-video edit session for an AI editing run.
+      description: |
+        Synchronous, free. Manages a per-video in-memory edit session that
+        makes an AI editing run **safe under parallel scene edits** and
+        gives **instant read-after-write**.
+
+        - `action="start"` — before the first scene edit: the server caches
+          the whole video document in memory. Every `/v1/modify_scene`
+          write lands in the cache (crash-safe via a write-ahead file),
+          every read (`/v1/video_data`, `/v1/scene_geometry`,
+          `/v1/scene_inspector`) is served fresh from the cache, and
+          ElasticSearch is written ONCE at commit. This eliminates version
+          conflicts across parallel scene-editor subagents.
+        - `action="commit"` — after the last scene: flushes the cache to
+          permanent storage. **Required to finish a run** (an idle session
+          auto-commits after 45 minutes / 2700 s as a backstop).
+        - `action="abort"` — discards staged edits without writing.
+        - `action="status"` — reports `{active, staged_writes}`.
+
+        If the response has `cache_enabled=false` the server is in legacy
+        direct-write mode — proceed WITHOUT a session; writes are still
+        serialized per video by the server-side lock.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, action]
+              properties:
+                id:
+                  type: string
+                  description: topic_id of the video being edited. `topic_id` accepted as an alias.
+                action:
+                  type: string
+                  enum: [start, commit, abort, status]
+              example:
+                id: widecast7c0d4f8a9b1e2d3f
+                action: start
+      responses:
+        '200':
+          description: |
+            Edit-session state. Fields vary by `action` — `ttl_seconds` on
+            start, `committed` on commit, `aborted` on abort,
+            `staged_writes`/`started`/`last_write` on status.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: edit_session }
+                  id: { type: string }
+                  action: { type: string, enum: [start, commit, abort, status] }
+                  cache_enabled: { type: boolean, description: "false → legacy direct-write mode; proceed without a session." }
+                  active: { type: boolean }
+                  committed: { type: boolean, description: "Set on action=commit." }
+                  aborted: { type: boolean, description: "Set on action=abort." }
+                  staged_writes: { type: integer, description: "Set on action=status — pending cached writes." }
+                  ttl_seconds: { type: integer, description: "Set on action=start — idle auto-commit backstop (2700)." }
+                  request_id: { type: string }
+        '400':
+          description: "`invalid_id` (missing/malformed topic_id) or `invalid_action` (not start/commit/abort/status)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: "`topic_not_found` — no video with this id (action=start)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: "`topic_fetch_failed` — could not load the video document to start a session."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /v1/modify_scene:
     post:
@@ -2086,12 +2168,15 @@ paths:
                   dashboard: { type: object, additionalProperties: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  # /v1/roadmap is intentionally REST + OpenAPI + docs only — NOT an MCP
+  # tool (dashboard-facing read; agents don't need it). SDK client.roadmap()
+  # is available for HTTP/SDK callers.
   /v1/roadmap:
     get:
       tags: [Library]
       operationId: getRoadmap
       summary: The account's content roadmap.
-      description: Synchronous, read-only, free.
+      description: Synchronous, read-only, free. Available via REST + SDK (`client.roadmap()`); intentionally not exposed as an MCP tool.
       parameters:
         - { name: cycle, in: query, required: false, schema: { type: integer, default: 1 } }
       responses:
@@ -2144,27 +2229,67 @@ paths:
                   topics: { type: array, items: { type: object, additionalProperties: true } }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
-  # /v1/foundation_videos withdrawn from the public surface 2026-06-19 (Round 27).
-  # The REST endpoint still serves the dashboard UI; this spec no longer
-  # advertises it. SDK methods removed; MCP tool removed.
-
-  /v1/recommendations:
+  # /v1/foundation_videos re-promoted to the public surface 2026-07-13 (Round 30)
+  # after being withdrawn 2026-06-19 (Round 27). MCP tool + SDK methods restored.
+  /v1/foundation_videos:
     get:
       tags: [Library]
-      operationId: getRecommendations
-      summary: Recommended video ideas for an industry (may be slow).
-      description: Synchronous, read-only, free. `industry` falls back to your account industry.
+      operationId: getFoundationVideos
+      summary: Browse the curated foundation-video template library.
+      description: |
+        Synchronous, read-only, free. The curated FOUNDATION-VIDEO template
+        library — proven starter angles for an industry that a user can
+        adapt into a new video. A navigation / discovery aid: it creates or
+        modifies nothing. Pair with `getWritingSkill` + `createVideo` to
+        seed a new video from a known-good structure.
       parameters:
-        - { name: industry, in: query, required: false, schema: { type: string } }
-        - { name: page, in: query, required: false, schema: { type: integer, default: 0 } }
+        - name: industry
+          in: query
+          required: false
+          schema: { type: string }
+          description: Industry to browse templates for. Omit to use the account's saved industry.
+        - name: sub_industry
+          in: query
+          required: false
+          schema: { type: string }
+          description: Optional narrower sub-industry filter.
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
       responses:
         '200':
-          description: Recommended ideas.
+          description: Foundation-video templates.
           headers: *commonHeaders
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/IdeasResponse' }
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: list }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, description: "Template topic_id — usable as a reference." }
+                        title: { type: string }
+                        description: { type: string }
+                        thumbnail_url: { type: string, format: uri }
+                        industry: { type: string }
+                        group: { type: string, description: "Foundation grouping label." }
+                  total: { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '502':
+          description: "`read_failed` — the underlying template read failed."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # /v1/recommendations withdrawn from the public surface 2026-07-13 (Round 30).
+  # The REST endpoint still serves the dashboard UI; this spec no longer
+  # advertises it. SDK methods removed; MCP tool removed. Kept off the
+  # agent-facing surface to cap the MCP tool count.
 
   # /v1/connect withdrawn from the public surface 2026-06-21 (Round 28).
   # REST endpoint still serves the dashboard UI; agents are pointed at

@@ -1,0 +1,24 @@
+# Playground — GET /v1/foundation_videos (read, free). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/foundation_videos
+title: Browse the foundation-video template library
+description: |
+  Read-only, free. The curated FOUNDATION-VIDEO template library — proven
+  starter angles for an industry that a user can adapt into a new video. A
+  navigation / discovery aid: creates or modifies nothing. Re-promoted to the
+  public surface 2026-07-13 (Round 30). `industry` falls back to the account's
+  saved industry.
+fields:
+  - { name: industry, type: text, label: "industry (falls back to account industry)", required: false, placeholder: "real estate" }
+  - { name: sub_industry, type: text, label: "sub_industry (optional narrower filter)", required: false, placeholder: "" }
+  - { name: page, type: text, label: "page", required: false, placeholder: "0" }
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: browse-templates
+    title: "🎬 Browse templates for an industry"
+    description: "List curated foundation-video templates. Returns {object:'list', data:[{id, title, description, thumbnail_url, industry, group}], total}. Omit industry to use the account's saved industry."
+    request:
+      industry: "real estate"
+      page: 0
