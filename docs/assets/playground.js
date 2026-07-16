@@ -10,6 +10,8 @@
   "use strict";
 
   const API_BASE = window.WIDECAST_API_BASE_URL || "https://widecast.ai/app/dashboard2";
+  const UPLOAD_API_BASE = API_BASE.replace(
+    /^https?:\/\/[^/]+/i, "https://origin.widecast.ai");
   const LS_KEY = "widecast_api_key";
 
   // ──────────────────────────────────────────────────────────────────────
@@ -297,7 +299,7 @@
     const argsBlock = lines.join(",\n");
     return `from widecast import Widecast
 
-client = Widecast(api_key="wc_live_REPLACE_ME", base_url="${API_BASE}")
+client = Widecast(api_key="wc_live_REPLACE_ME", base_url="${fileField ? UPLOAD_API_BASE : API_BASE}")
 
 resp = client.${sdkMethod}(
 ${argsBlock}
@@ -312,7 +314,7 @@ print(resp)
       entries.push(`  ${fileField}: yourBlob /* a Blob/File (e.g. await openAsBlob("clip.mp4")) */`);
       return `import Widecast from "@widecast/sdk";
 
-const client = new Widecast({ apiKey: "wc_live_REPLACE_ME", baseUrl: "${API_BASE}" });
+const client = new Widecast({ apiKey: "wc_live_REPLACE_ME", baseUrl: "${UPLOAD_API_BASE}" });
 
 const resp = await client.${sdkMethod}({
 ${entries.join(",\n")}
@@ -336,7 +338,7 @@ console.log(resp);
       const forms = Object.entries(body).map(([k, v]) =>
         `  -F "${k}=${typeof v === "object" ? JSON.stringify(v) : v}" \\`);
       forms.push(`  -F "${fileField}=@/path/to/your/file"`);
-      return `curl -X ${method} "${API_BASE}${path}" \\
+      return `curl -X ${method} "${UPLOAD_API_BASE}${path}" \\
   -H "Authorization: Bearer wc_live_REPLACE_ME" \\
 ${forms.join("\n")}
 `;
@@ -794,7 +796,14 @@ ${forms.join("\n")}
           fetchBody = method === "GET" ? undefined : JSON.stringify(body);
         }
         const t0 = performance.now();
-        const r = await fetch(API_BASE + withQuery(path, method, body), { method, headers, body: fetchBody });
+        const requestBase = pickedFile ? UPLOAD_API_BASE : API_BASE;
+        const fetchOptions = { method, headers, body: fetchBody };
+        if (pickedFile) {
+          fetchOptions.credentials = "omit";
+          fetchOptions.mode = "cors";
+        }
+        const r = await fetch(
+          requestBase + withQuery(path, method, body), fetchOptions);
         const dt = Math.round(performance.now() - t0);
         const json = await r.json().catch(() => ({}));
         const reqId = r.headers.get("X-Request-Id") || "-";
