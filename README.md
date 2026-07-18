@@ -23,13 +23,19 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 <h3 align="center">Claude Editing a Video Using WideCast</h3>
 
 <p align="center">
-  <video src="https://widecast.ai/statics/claude_making_video_small.mp4" controls muted playsinline width="100%"></video>
+  <a href="https://widecast.ai/statics/claude_making_video_small.mp4">
+    <img src="https://github.com/user-attachments/assets/d2a7766e-a04e-4da7-b615-5cd201c6ede6" width="100%" alt="Claude Editing a Video Using WideCast">
+  </a>
+  <br><sub>▶︎ Click to watch the full video</sub>
 </p>
 
 <h3 align="center">Codex Editing a Video Using WideCast</h3>
 
 <p align="center">
-  <video src="https://widecast.ai/statics/codex_making_video_small.mp4" controls muted playsinline width="100%"></video>
+  <a href="https://widecast.ai/statics/codex_making_video_small.mp4">
+    <img src="https://github.com/user-attachments/assets/ea4250eb-6ce7-492a-83f4-ee9a33c904fa" width="100%" alt="Codex Editing a Video Using WideCast">
+  </a>
+  <br><sub>▶︎ Click to watch the full video</sub>
 </p>
 
 ---
