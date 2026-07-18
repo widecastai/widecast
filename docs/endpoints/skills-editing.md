@@ -81,7 +81,7 @@ No auth, no params. (The `module` param from previous inline-content mode is sti
   },
   "preload_tools": {
     "why": "The editing workflow will need every WideCast tool listed below. Some MCP hosts (Codex, Claude Code) lazy-load tool schemas via ToolSearch and default to NARROW keyword queries — so any tool the initial search missed will FAIL when the edit flow calls it. Load them ALL now, in ONE ToolSearch call, BEFORE running the 4 setup commands below. This list is auto-derived from the live MCP tool registry, so adding a new tool later is zero-config.",
-    "one_shot_query": "select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,widecast_wait_for_video,widecast_export_video,widecast_get_status,widecast_send_telegram_message",
+    "one_shot_query": "select:widecast_video_data,widecast_scene_geometry,widecast_scene_inspector,widecast_modify_scene,widecast_search_broll,widecast_upload_asset,widecast_wait_for_video,widecast_export_video,widecast_get_status,widecast_send_notification",
     "broad_query": "widecast",
     "broad_max_results": 30,
     "tools": [

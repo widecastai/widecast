@@ -1534,27 +1534,31 @@
         }
       }
     },
-    "/v1/telegram/send": {
+    "/v1/notification/send": {
       "post": {
         "tags": [
           "Notifications"
         ],
-        "operationId": "sendTelegramMessage",
-        "summary": "Push a self-notify message — Telegram preferred, email fallback.",
-        "description": "Push a self-notify message — Telegram preferred, email fallback.",
+        "operationId": "sendNotification",
+        "summary": "Push a self-notify notification — email default, Telegram additional.",
+        "description": "Push a self-notify notification — email default, Telegram additional.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TelegramSendRequest"
+                "$ref": "#/components/schemas/NotificationSendRequest"
+              },
+              "example": {
+                "subject": "Your video is ready",
+                "message": "All 8 scenes finished rendering — open the editor to review."
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Message delivered.",
+            "description": "Notification delivered on at least one channel.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1575,19 +1579,36 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TelegramMessageResponse"
+                  "$ref": "#/components/schemas/NotificationResponse"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "`missing_field` (subject/message), `subject_too_long`,\n`invalid_parse_mode`, `conflicting_media`,\n`invalid_photo_url`/`invalid_video_url`, `message_too_long`, or\n`no_delivery_channel` (no email AND no Telegram on the account).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "429": {
+            "description": "`rate_limited` — over 60 notifications/hour. Carries `Retry-After` + `details`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "502": {
-            "description": "Telegram API rejected the message.",
+            "description": "`notification_send_failed` — every attempted channel failed (`details` carries per-channel errors).",
             "content": {
               "application/json": {
                 "schema": {
@@ -4355,17 +4376,23 @@
           }
         }
       },
-      "TelegramSendRequest": {
+      "NotificationSendRequest": {
         "type": "object",
         "required": [
+          "subject",
           "message"
         ],
-        "description": "Body for `POST /v1/telegram/send`. The recipient chat is resolved\nserver-side from the API key's company doc — there is no\n`chat_id` / `to` field by design (prevents using WideCast as a\nTelegram spam relay).\n",
+        "description": "Body for `POST /v1/notification/send`. The recipient (email address\n+ Telegram chat) is resolved server-side from the API key's account\n— there is no `to` / `chat_id` field by design (prevents using\nWideCast as a notification spam relay).\n",
         "properties": {
+          "subject": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "REQUIRED. The email subject line; also prepended in **bold**\nbefore the Telegram message body. Keep it short (≤200 bytes) —\nthe server returns `subject_too_long` (400) beyond that.\n"
+          },
           "message": {
             "type": "string",
             "maxLength": 4000,
-            "description": "Text body in plain-text mode, OR the caption when `photo_url` /\n`video_url` is set. Telegram caps captions at 1024 bytes — the\nserver pre-validates and returns `message_too_long` (400) if\nyou exceed that in caption mode.\n"
+            "description": "The notification body (email body / Telegram text), OR the\ncaption when `photo_url` / `video_url` is set. Telegram caps\ncaptions at 1024 bytes — the server pre-validates and returns\n`message_too_long` (400) if you exceed that in caption mode.\n"
           },
           "parse_mode": {
             "type": "string",
@@ -4374,46 +4401,45 @@
               "MarkdownV2",
               "HTML"
             ],
-            "description": "Optional Telegram formatting mode. Omit for plain text. `HTML`\nsupports a small tag subset (b, i, u, s, code, pre, a); the\nserver strips other tags.\n"
+            "description": "Optional Telegram formatting mode for the body. Omit for plain\ntext. `HTML` supports a small tag subset (b, i, u, s, code, pre,\na); the server strips other tags. The subject is always bolded\nautomatically.\n"
           },
           "photo_url": {
             "type": "string",
             "format": "uri",
-            "description": "Optional photo to attach. Public http(s) URL — Telegram\ndownloads it server-side. Mutually exclusive with `video_url`.\n"
+            "description": "Optional photo to attach. Public http(s) URL — Telegram\ndownloads it; email embeds it inline. Mutually exclusive with\n`video_url`.\n"
           },
           "video_url": {
             "type": "string",
             "format": "uri",
-            "description": "Optional video to attach. Public http(s) URL — Telegram\ndownloads it server-side. Mutually exclusive with `photo_url`.\n"
+            "description": "Optional video to attach. Public http(s) URL — Telegram\ndownloads it; email shows a clickable link. Mutually exclusive\nwith `photo_url`.\n"
           }
         }
       },
-      "TelegramMessageResponse": {
+      "NotificationResponse": {
         "type": "object",
         "required": [
           "object",
           "status",
+          "subject",
           "delivery",
-          "media_kind",
           "request_id"
         ],
-        "description": "Success body for POST /v1/telegram/send. `delivery` discriminates\nwhich channel was used:\n  * `telegram` → `chat_id_masked` + `telegram_message_id` are set,\n    email-fallback fields are absent.\n  * `email` → `recipient_email_masked`, `fallback_reason`, `setup_url`,\n    and `note` are set; Telegram fields are absent.\n",
+        "description": "Success body for POST /v1/notification/send. `delivery` lists the\nchannels that were delivered successfully; per-channel `email` /\n`telegram` objects carry each channel's own status.\n",
         "properties": {
           "object": {
             "type": "string",
-            "const": "telegram_message"
+            "const": "notification"
           },
           "status": {
             "type": "string",
-            "const": "sent"
-          },
-          "delivery": {
-            "type": "string",
             "enum": [
-              "telegram",
-              "email"
+              "sent",
+              "partial"
             ],
-            "description": "Which channel actually delivered the message. `telegram` when\nthe user has connected; `email` when they haven't (fallback).\n"
+            "description": "`sent` = every attempted channel succeeded; `partial` = at least one but not all succeeded."
+          },
+          "subject": {
+            "type": "string"
           },
           "media_kind": {
             "type": "string",
@@ -4423,35 +4449,76 @@
               "video"
             ]
           },
-          "chat_id_masked": {
-            "type": "string",
-            "example": "…1234",
-            "description": "Set only when `delivery=\"telegram\"`. `…` + last 4 digits of the user's chat_id."
+          "delivery": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "telegram"
+              ]
+            },
+            "description": "The channels that were delivered successfully."
           },
-          "telegram_message_id": {
-            "type": "integer",
-            "nullable": true,
-            "description": "Set only when `delivery=\"telegram\"`. Upstream Telegram message_id for later edit/delete."
+          "email": {
+            "type": "object",
+            "description": "Present when email was attempted.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "sent",
+                  "failed"
+                ]
+              },
+              "recipient_email_masked": {
+                "type": "string",
+                "example": "u***n@example.com"
+              },
+              "error": {
+                "type": "string",
+                "description": "Set when status=failed."
+              }
+            }
           },
-          "recipient_email_masked": {
-            "type": "string",
-            "example": "u***n@example.com",
-            "description": "Set only when `delivery=\"email\"`. Email of the account that received the fallback."
+          "telegram": {
+            "type": "object",
+            "description": "Present when Telegram was attempted.",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "sent",
+                  "failed",
+                  "skipped"
+                ]
+              },
+              "chat_id_masked": {
+                "type": "string",
+                "example": "…1234"
+              },
+              "telegram_message_id": {
+                "type": "integer",
+                "nullable": true
+              },
+              "error": {
+                "type": "string",
+                "description": "Set when status=failed."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Set when status=skipped (e.g. subject+body over Telegram's byte limit)."
+              }
+            }
           },
-          "fallback_reason": {
+          "note": {
             "type": "string",
-            "example": "telegram_not_connected",
-            "description": "Set only when `delivery=\"email\"`. Why the fallback fired."
+            "description": "Set when delivered via Telegram only (no email on file)."
           },
           "setup_url": {
             "type": "string",
             "format": "uri",
-            "example": "https://widecast.ai/#setup",
-            "description": "Set only when `delivery=\"email\"`. Send the user here to connect Telegram so future calls land in Telegram instead."
-          },
-          "note": {
-            "type": "string",
-            "description": "Set only when `delivery=\"email\"`. Human-readable explanation the caller can relay to the user."
+            "example": "https://widecast.ai/#setup"
           },
           "request_id": {
             "type": "string"

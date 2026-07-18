@@ -1567,59 +1567,85 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /v1/telegram/send:
+  # /v1/telegram/send renamed to /v1/notification/send 2026-07-13 — email is
+  # now the default channel + a required `subject` was added. Old path removed.
+  /v1/notification/send:
     post:
       tags: [Notifications]
-      operationId: sendTelegramMessage
-      summary: Push a self-notify message — Telegram preferred, email fallback.
+      operationId: sendNotification
+      summary: Push a self-notify notification — email default, Telegram additional.
       description: |
-        Synchronous, free. Self-notify only — the recipient is the user who
-        owns this API key (delivery target is resolved server-side from
-        their account, never accepted as input), so this cannot be used to
+        Synchronous, free. Self-notify only — the recipient (email address +
+        Telegram chat) is resolved server-side from the account that owns
+        this API key, never accepted as input, so this cannot be used to
         message anyone else.
 
-        **Delivery channel is auto-chosen**:
-          * `telegram` — preferred when the user has completed `Connect
-            Telegram` at https://widecast.ai/#setup. The message lands in
-            their Telegram chat with the WideCast bot.
-          * `email` — fallback when Telegram is not connected. The same
-            message is delivered to the account's email address with an
-            in-mail banner explaining WHY (Telegram not connected) and a
-            CTA to connect. Response carries `delivery: "email"`,
-            `fallback_reason: "telegram_not_connected"`, and `setup_url`.
+        **Multi-channel delivery**:
+          * **email** — the DEFAULT channel. Always sent when the account
+            has an email on file. `subject` becomes the email subject line.
+          * **telegram** — an ADDITIONAL channel. When the user has also
+            completed `Connect Telegram` at https://widecast.ai/#setup, the
+            SAME notification is ALSO sent to their Telegram chat, with
+            `subject` prepended in **bold** before the body.
 
-        Only returns 400 `telegram_not_connected` if the account has
-        NEITHER Telegram NOR an email on file. Rate-limited to 60
-        messages/hour/account.
+        The response carries `delivery: [...]` — the channels that were
+        delivered successfully (e.g. `["email","telegram"]` or `["email"]`)
+        — plus per-channel `email` / `telegram` objects with their own
+        status. `status` is `"sent"` when every attempted channel
+        succeeded, `"partial"` when at least one but not all succeeded.
+
+        Edge cases:
+          * No email on file but Telegram connected → Telegram only; the
+            response includes a `note` + `setup_url`.
+          * Neither email nor Telegram → 400 `no_delivery_channel`.
+
+        Rate-limited to 60 notifications/hour/account.
 
         Payload modes:
-          * **text** — `message` only.
-          * **photo** — `message` is the caption, `photo_url` is a public
-            http(s) URL Telegram downloads.
-          * **video** — `message` is the caption, `video_url` is a public
-            http(s) URL Telegram downloads.
+          * **text** — `subject` + `message`.
+          * **photo** — `message` is the caption, `photo_url` a public
+            http(s) URL (Telegram downloads it; email embeds it inline).
+          * **video** — `message` is the caption, `video_url` a public
+            http(s) URL (Telegram downloads it; email shows a link).
 
-        `photo_url` and `video_url` are mutually exclusive (Telegram can't
-        attach both to one message). `parse_mode` is opt-in (`Markdown` /
-        `MarkdownV2` / `HTML`); omit for plain text.
+        `photo_url` and `video_url` are mutually exclusive. `parse_mode` is
+        opt-in (`Markdown` / `MarkdownV2` / `HTML`) and formats the body;
+        omit for plain text. On Telegram, if the bold subject + body exceeds
+        Telegram's byte limit the Telegram channel is skipped (email is
+        still sent) — reported as `telegram.status: "skipped"`.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/TelegramSendRequest' }
+            schema: { $ref: '#/components/schemas/NotificationSendRequest' }
+            example:
+              subject: "Your video is ready"
+              message: "All 8 scenes finished rendering — open the editor to review."
       responses:
         '200':
-          description: Message delivered.
+          description: Notification delivered on at least one channel.
           headers: *commonHeaders
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/TelegramMessageResponse' }
+              schema: { $ref: '#/components/schemas/NotificationResponse' }
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: |
+            `missing_field` (subject/message), `subject_too_long`,
+            `invalid_parse_mode`, `conflicting_media`,
+            `invalid_photo_url`/`invalid_video_url`, `message_too_long`, or
+            `no_delivery_channel` (no email AND no Telegram on the account).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: "`rate_limited` — over 60 notifications/hour. Carries `Retry-After` + `details`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '502':
-          description: Telegram API rejected the message.
+          description: "`notification_send_failed` — every attempted channel failed (`details` carries per-channel errors)."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -3974,93 +4000,102 @@ components:
           description: TTL relative to upload time, in hours.
           example: 24
 
-    TelegramSendRequest:
+    NotificationSendRequest:
       type: object
-      required: [message]
+      required: [subject, message]
       description: |
-        Body for `POST /v1/telegram/send`. The recipient chat is resolved
-        server-side from the API key's company doc — there is no
-        `chat_id` / `to` field by design (prevents using WideCast as a
-        Telegram spam relay).
+        Body for `POST /v1/notification/send`. The recipient (email address
+        + Telegram chat) is resolved server-side from the API key's account
+        — there is no `to` / `chat_id` field by design (prevents using
+        WideCast as a notification spam relay).
       properties:
+        subject:
+          type: string
+          maxLength: 200
+          description: |
+            REQUIRED. The email subject line; also prepended in **bold**
+            before the Telegram message body. Keep it short (≤200 bytes) —
+            the server returns `subject_too_long` (400) beyond that.
         message:
           type: string
           maxLength: 4000
           description: |
-            Text body in plain-text mode, OR the caption when `photo_url` /
-            `video_url` is set. Telegram caps captions at 1024 bytes — the
-            server pre-validates and returns `message_too_long` (400) if
-            you exceed that in caption mode.
+            The notification body (email body / Telegram text), OR the
+            caption when `photo_url` / `video_url` is set. Telegram caps
+            captions at 1024 bytes — the server pre-validates and returns
+            `message_too_long` (400) if you exceed that in caption mode.
         parse_mode:
           type: string
           enum: [Markdown, MarkdownV2, HTML]
           description: |
-            Optional Telegram formatting mode. Omit for plain text. `HTML`
-            supports a small tag subset (b, i, u, s, code, pre, a); the
-            server strips other tags.
+            Optional Telegram formatting mode for the body. Omit for plain
+            text. `HTML` supports a small tag subset (b, i, u, s, code, pre,
+            a); the server strips other tags. The subject is always bolded
+            automatically.
         photo_url:
           type: string
           format: uri
           description: |
             Optional photo to attach. Public http(s) URL — Telegram
-            downloads it server-side. Mutually exclusive with `video_url`.
+            downloads it; email embeds it inline. Mutually exclusive with
+            `video_url`.
         video_url:
           type: string
           format: uri
           description: |
             Optional video to attach. Public http(s) URL — Telegram
-            downloads it server-side. Mutually exclusive with `photo_url`.
+            downloads it; email shows a clickable link. Mutually exclusive
+            with `photo_url`.
 
-    TelegramMessageResponse:
+    NotificationResponse:
       type: object
-      required: [object, status, delivery, media_kind, request_id]
+      required: [object, status, subject, delivery, request_id]
       description: |
-        Success body for POST /v1/telegram/send. `delivery` discriminates
-        which channel was used:
-          * `telegram` → `chat_id_masked` + `telegram_message_id` are set,
-            email-fallback fields are absent.
-          * `email` → `recipient_email_masked`, `fallback_reason`, `setup_url`,
-            and `note` are set; Telegram fields are absent.
+        Success body for POST /v1/notification/send. `delivery` lists the
+        channels that were delivered successfully; per-channel `email` /
+        `telegram` objects carry each channel's own status.
       properties:
         object:
           type: string
-          const: telegram_message
+          const: notification
         status:
           type: string
-          const: sent
-        delivery:
+          enum: [sent, partial]
+          description: "`sent` = every attempted channel succeeded; `partial` = at least one but not all succeeded."
+        subject:
           type: string
-          enum: [telegram, email]
-          description: |
-            Which channel actually delivered the message. `telegram` when
-            the user has connected; `email` when they haven't (fallback).
         media_kind:
           type: string
           enum: [text, photo, video]
-        chat_id_masked:
+        delivery:
+          type: array
+          items:
+            type: string
+            enum: [email, telegram]
+          description: The channels that were delivered successfully.
+        email:
+          type: object
+          description: Present when email was attempted.
+          properties:
+            status: { type: string, enum: [sent, failed] }
+            recipient_email_masked: { type: string, example: "u***n@example.com" }
+            error: { type: string, description: Set when status=failed. }
+        telegram:
+          type: object
+          description: Present when Telegram was attempted.
+          properties:
+            status: { type: string, enum: [sent, failed, skipped] }
+            chat_id_masked: { type: string, example: "…1234" }
+            telegram_message_id: { type: integer, nullable: true }
+            error: { type: string, description: Set when status=failed. }
+            reason: { type: string, description: Set when status=skipped (e.g. subject+body over Telegram's byte limit). }
+        note:
           type: string
-          example: "…1234"
-          description: Set only when `delivery="telegram"`. `…` + last 4 digits of the user's chat_id.
-        telegram_message_id:
-          type: integer
-          nullable: true
-          description: Set only when `delivery="telegram"`. Upstream Telegram message_id for later edit/delete.
-        recipient_email_masked:
-          type: string
-          example: "u***n@example.com"
-          description: Set only when `delivery="email"`. Email of the account that received the fallback.
-        fallback_reason:
-          type: string
-          example: telegram_not_connected
-          description: Set only when `delivery="email"`. Why the fallback fired.
+          description: Set when delivered via Telegram only (no email on file).
         setup_url:
           type: string
           format: uri
           example: "https://widecast.ai/#setup"
-          description: Set only when `delivery="email"`. Send the user here to connect Telegram so future calls land in Telegram instead.
-        note:
-          type: string
-          description: Set only when `delivery="email"`. Human-readable explanation the caller can relay to the user.
         request_id:
           type: string
 

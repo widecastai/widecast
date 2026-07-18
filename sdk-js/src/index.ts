@@ -490,40 +490,38 @@ export interface IdeasResponse {
   ideas: Idea[];
 }
 
-/** Success body for POST /v1/telegram/send (Round 27 + 28).
+/** Success body for POST /v1/notification/send.
  *
- *  `delivery` discriminates the channel actually used:
- *    - `"telegram"` → `chat_id_masked` + `telegram_message_id` are set,
- *      email-fallback fields are absent.
- *    - `"email"` → `recipient_email_masked`, `fallback_reason`, `setup_url`,
- *      and `note` are set; Telegram fields are absent. */
-export interface TelegramMessageResponse {
-  object: "telegram_message";
-  status: "sent";
-  /** Which channel delivered the message. Email fires when the account
-   *  has not completed Connect Telegram. */
-  delivery: "telegram" | "email";
-  /** Which Telegram primitive was used (or, on email fallback, the kind
-   *  of attachment included inline). */
+ *  Email is the default channel; Telegram is additional when connected.
+ *  `delivery` lists the channels that were delivered successfully; the
+ *  per-channel `email` / `telegram` objects carry each channel's status. */
+export interface NotificationResponse {
+  object: "notification";
+  /** `"sent"` = every attempted channel succeeded; `"partial"` = at least
+   *  one but not all succeeded. */
+  status: "sent" | "partial";
+  subject: string;
+  /** Which attachment kind was included (or `"text"` for none). */
   media_kind: "text" | "photo" | "video";
-  /** Last 4 digits of the user's chat_id, prefixed with `…`. Set only
-   *  when `delivery === "telegram"`. */
-  chat_id_masked?: string;
-  /** Telegram's own message_id for later edit/delete (when surfaced).
-   *  Set only when `delivery === "telegram"`. */
-  telegram_message_id?: number | null;
-  /** Masked email of the account that received the fallback. Set only
-   *  when `delivery === "email"`. */
-  recipient_email_masked?: string;
-  /** Why the email fallback fired (e.g. `"telegram_not_connected"`).
-   *  Set only when `delivery === "email"`. */
-  fallback_reason?: string;
-  /** URL to send the user to so future calls land in Telegram instead.
-   *  Set only when `delivery === "email"`. */
-  setup_url?: string;
-  /** Human-readable explanation the caller can relay to the user.
-   *  Set only when `delivery === "email"`. */
+  /** The channels that were delivered successfully. */
+  delivery: Array<"email" | "telegram">;
+  /** Present when email was attempted. */
+  email?: {
+    status: "sent" | "failed";
+    recipient_email_masked?: string;
+    error?: string;
+  };
+  /** Present when Telegram was attempted. */
+  telegram?: {
+    status: "sent" | "failed" | "skipped";
+    chat_id_masked?: string;
+    telegram_message_id?: number | null;
+    error?: string;
+    reason?: string;
+  };
+  /** Set when delivered via Telegram only (no email on file). */
   note?: string;
+  setup_url?: string;
   request_id: string;
 }
 
@@ -2032,28 +2030,35 @@ export class Widecast {
     return await this.#request<any>("POST", "/v1/platform_settings", { platform, settings });
   }
 
-  /** POST /v1/telegram/send — push a notification to the USER'S OWN connected
-   *  Telegram chat. SYNC, FREE. Self-notify only — the recipient is the user
-   *  who owns this API key (chat_id is resolved server-side from their
-   *  account, never accepted as input).
+  /** POST /v1/notification/send — push a notification to the USER'S OWN
+   *  account. SYNC, FREE. Self-notify only — the recipient (email + Telegram
+   *  chat) is resolved server-side from the account, never accepted as input.
    *
-   *  The user must have completed 'Connect Telegram' at
-   *  https://widecast.ai/#setup; if not, throws with
-   *  `code="telegram_not_connected"` + `details.setup_url`.
+   *  **Multi-channel**: email is the DEFAULT channel (always sent when the
+   *  account has an email on file); Telegram is ADDITIONAL when the user has
+   *  completed 'Connect Telegram' at https://widecast.ai/#setup. `subject` is
+   *  the email subject line and is prepended in bold before the Telegram body.
+   *  No email but Telegram connected → Telegram only (response has `note`);
+   *  neither → throws `code="no_delivery_channel"`.
    *
-   *  `message` is the text body in plain-text mode, or the caption when
-   *  `photo_url` / `video_url` is set. Capped at 4000 bytes plain text /
-   *  1024 bytes as caption. Pass at most one of `photo_url` / `video_url`
-   *  (Telegram cannot attach both).
+   *  `message` is the body (email body / Telegram text), or the caption when
+   *  `photo_url` / `video_url` is set. Capped at 4000 bytes text / 1024 as
+   *  caption. Pass at most one of `photo_url` / `video_url`.
    */
-  async send_telegram_message(
+  async send_notification(
+    subject: string,
     message: string,
     opts: {
       parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
       photo_url?: string;
       video_url?: string;
     } = {},
-  ): Promise<TelegramMessageResponse> {
+  ): Promise<NotificationResponse> {
+    if (typeof subject !== "string" || subject.trim() === "") {
+      throw new InvalidRequestError(
+        "subject (non-empty string) is required.",
+        { code: "missing_field", param: "subject" });
+    }
     if (typeof message !== "string" || message.trim() === "") {
       throw new InvalidRequestError(
         "message (non-empty string) is required.",
@@ -2064,11 +2069,11 @@ export class Widecast {
         "Provide AT MOST one of photo_url / video_url.",
         { code: "conflicting_media", param: "photo_url" });
     }
-    const body: Record<string, unknown> = { message };
+    const body: Record<string, unknown> = { subject, message };
     if (opts.parse_mode !== undefined) body.parse_mode = opts.parse_mode;
     if (opts.photo_url) body.photo_url = opts.photo_url;
     if (opts.video_url) body.video_url = opts.video_url;
-    return await this.#request<TelegramMessageResponse>("POST", "/v1/telegram/send", body);
+    return await this.#request<NotificationResponse>("POST", "/v1/notification/send", body);
   }
 
   // ── HTTP plumbing ───────────────────────────────────────────────────────

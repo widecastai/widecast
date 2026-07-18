@@ -882,50 +882,56 @@ const TOOLS = [
     },
   },
   {
-    name: "widecast_send_telegram_message",
-    title: "WideCast: Send a self-notify message (Telegram → email fallback)",
+    name: "widecast_send_notification",
+    title: "WideCast: Send a self-notify notification (email default + Telegram if connected)",
     description:
       "Push a notification to the USER'S OWN account. SYNC, FREE. Self-notify " +
-      "only — the recipient is the user who owns this API key (delivery target " +
-      "is resolved server-side, never accepted as input), so you cannot use " +
-      "this to message anyone else. Use this to signal completion / ask the " +
-      "user to come review / surface an error mid-conversation without forcing " +
-      "them to refresh the UI. **Delivery channel auto-chosen**: (1) Telegram " +
-      "if the user has completed 'Connect Telegram' at https://widecast.ai/#setup " +
-      "— preferred path. (2) Email fallback if not — the same message is " +
-      "delivered to the account's email with an in-mail banner explaining " +
-      "WHY (Telegram not connected) + CTA to connect. Response carries " +
-      "`delivery: 'telegram' | 'email'` so the caller knows which channel was " +
-      "used. Only fails (400 `telegram_not_connected`) if the account has " +
-      "NEITHER Telegram NOR email on file. Payload: `message` (text or caption, " +
-      "REQUIRED) + optionally ONE of `photo_url` / `video_url` (public http(s) " +
-      "URL). `parse_mode` opt-in (Markdown / MarkdownV2 / HTML); omit for " +
-      "plain text. Caps: 4000 bytes text / 1024 bytes caption. Rate-limited " +
-      "to 60 messages/hour/account.",
+      "only — the recipient (email + Telegram chat) is resolved server-side " +
+      "from the account, never accepted as input, so you cannot message anyone " +
+      "else. Use this to signal completion / ask the user to come review / " +
+      "surface an error mid-conversation without forcing them to refresh the " +
+      "UI. **Multi-channel delivery**: EMAIL is the default channel (always " +
+      "sent when the account has an email on file); if the user has ALSO " +
+      "completed 'Connect Telegram' at https://widecast.ai/#setup, the same " +
+      "notification is ALSO sent to Telegram. `subject` (REQUIRED) is the " +
+      "email subject line and is prepended in **bold** before the Telegram " +
+      "body. Response carries `delivery: [...]` (the channels that succeeded, " +
+      "e.g. ['email','telegram'] or ['email']) plus per-channel `email` / " +
+      "`telegram` objects with their own status; `status` is 'sent' when all " +
+      "attempted channels succeeded, 'partial' otherwise. If the account has " +
+      "NO email but Telegram IS connected → Telegram only (response has a " +
+      "`note`). If the account has NEITHER email NOR Telegram → 400 " +
+      "`no_delivery_channel`. Payload: `subject` (REQUIRED, ≤200 bytes) + " +
+      "`message` (text or caption, REQUIRED) + optionally ONE of `photo_url` / " +
+      "`video_url` (public http(s) URL). `parse_mode` opt-in (Markdown / " +
+      "MarkdownV2 / HTML) formats the body; omit for plain text. Caps: message " +
+      "4000 bytes text / 1024 bytes caption; if bold-subject + body exceeds " +
+      "Telegram's limit the Telegram channel is skipped (email still sent). " +
+      "Rate-limited to 60 notifications/hour/account.",
     inputSchema: {
       type: "object",
-      required: ["message"],
+      required: ["subject", "message"],
       properties: {
-        message: { type: "string", maxLength: 4000, description: "Text body, or the photo/video caption when `photo_url` / `video_url` is set. Caption mode capped at 1024 bytes by Telegram." },
-        parse_mode: { type: "string", enum: ["Markdown", "MarkdownV2", "HTML"], description: "Optional Telegram formatting. Omit for plain text. `HTML` supports a small tag subset (b, i, u, s, code, pre, a); other tags stripped server-side." },
-        photo_url: { type: "string", format: "uri", description: "Optional photo to attach. Public http(s) URL — Telegram downloads it. Mutually exclusive with `video_url`." },
-        video_url: { type: "string", format: "uri", description: "Optional video to attach. Public http(s) URL — Telegram downloads it. Mutually exclusive with `photo_url`." },
+        subject: { type: "string", maxLength: 200, description: "REQUIRED. Email subject line; also prepended in bold before the Telegram body. Keep it short (≤200 bytes)." },
+        message: { type: "string", maxLength: 4000, description: "Notification body (email body / Telegram text), or the photo/video caption when `photo_url` / `video_url` is set. Caption mode capped at 1024 bytes by Telegram." },
+        parse_mode: { type: "string", enum: ["Markdown", "MarkdownV2", "HTML"], description: "Optional Telegram formatting for the body. Omit for plain text. `HTML` supports a small tag subset (b, i, u, s, code, pre, a); other tags stripped server-side. The subject is always bolded automatically." },
+        photo_url: { type: "string", format: "uri", description: "Optional photo to attach. Public http(s) URL — Telegram downloads it; email embeds it inline. Mutually exclusive with `video_url`." },
+        video_url: { type: "string", format: "uri", description: "Optional video to attach. Public http(s) URL — Telegram downloads it; email shows a clickable link. Mutually exclusive with `photo_url`." },
       },
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true, idempotentHint: false },
     outputSchema: {
       type: "object",
       properties: {
-        object: { type: "string", const: "telegram_message" },
-        status: { type: "string" },
-        delivery: { type: "string", enum: ["telegram", "email"] },
+        object: { type: "string", const: "notification" },
+        status: { type: "string", enum: ["sent", "partial"] },
+        subject: { type: "string" },
         media_kind: { type: "string", enum: ["text", "photo", "video"] },
-        chat_id_masked: { type: "string", description: "Set only when delivery='telegram'." },
-        telegram_message_id: { type: ["number", "null"], description: "Set only when delivery='telegram'." },
-        recipient_email_masked: { type: "string", description: "Set only when delivery='email'." },
-        fallback_reason: { type: "string", description: "Set only when delivery='email' (e.g. 'telegram_not_connected')." },
-        setup_url: { type: "string", description: "Set only when delivery='email' — point the user here so future calls land in Telegram." },
-        note: { type: "string", description: "Human-readable explanation of the email-fallback path." },
+        delivery: { type: "array", items: { type: "string", enum: ["email", "telegram"] }, description: "Channels that were delivered successfully." },
+        email: { type: "object", description: "Present when email was attempted.", properties: { status: { type: "string", enum: ["sent", "failed"] }, recipient_email_masked: { type: "string" }, error: { type: "string" } } },
+        telegram: { type: "object", description: "Present when Telegram was attempted.", properties: { status: { type: "string", enum: ["sent", "failed", "skipped"] }, chat_id_masked: { type: "string" }, telegram_message_id: { type: ["number", "null"] }, error: { type: "string" }, reason: { type: "string" } } },
+        note: { type: "string", description: "Set when delivered via Telegram only (no email on file)." },
+        setup_url: { type: "string" },
         request_id: { type: "string" },
       },
     },
@@ -1239,12 +1245,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     // — the save action is REST + SDK only (POST /v1/platform_settings /
     // client.set_platform_settings). The MCP surface stays read-only for
     // platform settings.
-    if (name === "widecast_send_telegram_message") {
-      const body: Record<string, unknown> = { message: String(args.message ?? "") };
+    if (name === "widecast_send_notification") {
+      const body: Record<string, unknown> = {
+        subject: String(args.subject ?? ""),
+        message: String(args.message ?? ""),
+      };
       if (args.parse_mode !== undefined) body.parse_mode = args.parse_mode;
       if (args.photo_url !== undefined && args.photo_url !== "") body.photo_url = args.photo_url;
       if (args.video_url !== undefined && args.video_url !== "") body.video_url = args.video_url;
-      const data = await wc("POST", "/v1/telegram/send", body);
+      const data = await wc("POST", "/v1/notification/send", body);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
     // ── Read / library + connections GET tools (free) ──

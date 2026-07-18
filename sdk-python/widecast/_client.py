@@ -1842,46 +1842,51 @@ class Widecast:
         return self._request("POST", "/v1/platform_settings",
                              json_body={"platform": platform, "settings": dict(settings)})
 
-    def send_telegram_message(self, message: str, *,
-                              parse_mode: Optional[str] = None,
-                              photo_url: Optional[str] = None,
-                              video_url: Optional[str] = None) -> dict:
-        """POST /v1/telegram/send — push a notification to the USER'S OWN
-        account. SYNC, FREE. Self-notify only — the recipient is the user
-        who owns this API key (delivery target is resolved server-side from
-        their account, never accepted as input).
+    def send_notification(self, subject: str, message: str, *,
+                          parse_mode: Optional[str] = None,
+                          photo_url: Optional[str] = None,
+                          video_url: Optional[str] = None) -> dict:
+        """POST /v1/notification/send — push a notification to the USER'S OWN
+        account. SYNC, FREE. Self-notify only — the recipient (email +
+        Telegram chat) is resolved server-side from the account, never
+        accepted as input.
 
-        Delivery channel is auto-chosen:
-          * ``"telegram"`` — preferred when the user has completed
-            ``Connect Telegram`` at https://widecast.ai/#setup.
-          * ``"email"`` — fallback when Telegram is not connected. The
-            same message is delivered to the account's email with an
-            in-mail banner explaining why + CTA to connect.
+        Multi-channel delivery:
+          * **email** — the DEFAULT channel; always sent when the account
+            has an email on file. ``subject`` is the email subject line.
+          * **telegram** — an ADDITIONAL channel; when the user has also
+            completed ``Connect Telegram`` at https://widecast.ai/#setup,
+            the same notification is ALSO sent to Telegram with ``subject``
+            prepended in bold before the body.
 
-        Only raises ``code="telegram_not_connected"`` (400) if the account
-        has NEITHER Telegram NOR an email on file.
+        Edge cases: no email on file but Telegram connected → Telegram only
+        (response has a ``note``); neither → raises
+        ``code="no_delivery_channel"`` (400).
 
         Args:
-            message:      Text body (plain-text mode) OR the caption when
-                          ``photo_url`` / ``video_url`` is set. Capped at
-                          4000 bytes plain text / 1024 bytes as caption.
+            subject:      REQUIRED. Email subject line; also prepended in
+                          bold before the Telegram body. ≤200 bytes.
+            message:      Notification body (email body / Telegram text) OR
+                          the caption when ``photo_url`` / ``video_url`` is
+                          set. Capped at 4000 bytes text / 1024 as caption.
             parse_mode:   Optional ``"Markdown"`` / ``"MarkdownV2"`` /
-                          ``"HTML"``. Omit for plain text. (On email
-                          fallback, ``"HTML"`` is rendered inline; the
-                          others are HTML-escaped.)
+                          ``"HTML"`` for the body. Omit for plain text.
             photo_url:    Optional photo to attach. Mutually exclusive with
                           ``video_url``.
             video_url:    Optional video to attach. Mutually exclusive with
                           ``photo_url``.
 
         Returns dict
-        ``{object: "telegram_message", status: "sent", delivery:
-        "telegram"|"email", media_kind, chat_id_masked? |
-        recipient_email_masked?, fallback_reason?, setup_url?, note?,
-        telegram_message_id?, request_id}``. Inspect ``delivery`` to know
-        which channel the message went to and whether to nudge the user
-        toward Connect Telegram.
+        ``{object: "notification", status: "sent"|"partial", subject,
+        media_kind, delivery: [...], email?: {...}, telegram?: {...},
+        note?, setup_url?, request_id}``. Inspect ``delivery`` (the list of
+        channels delivered) and the per-channel ``email`` / ``telegram``
+        objects for each channel's status.
         """
+        if not isinstance(subject, str) or not subject.strip():
+            raise InvalidRequestError(
+                "subject (non-empty string) is required.",
+                code="missing_field", param="subject")
         if not isinstance(message, str) or not message.strip():
             raise InvalidRequestError(
                 "message (non-empty string) is required.",
@@ -1890,14 +1895,14 @@ class Widecast:
             raise InvalidRequestError(
                 "Provide AT MOST one of photo_url / video_url.",
                 code="conflicting_media", param="photo_url")
-        body: Dict[str, Any] = {"message": message}
+        body: Dict[str, Any] = {"subject": subject, "message": message}
         if parse_mode is not None:
             body["parse_mode"] = parse_mode
         if photo_url:
             body["photo_url"] = photo_url
         if video_url:
             body["video_url"] = video_url
-        return self._request("POST", "/v1/telegram/send",
+        return self._request("POST", "/v1/notification/send",
                              json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 

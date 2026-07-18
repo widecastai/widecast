@@ -1,0 +1,73 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/notification/send"
+  },
+  "title": "Send a self-notify notification (email default + Telegram)",
+  "description": "Synchronous, no credit. Push a notification to YOUR OWN account. EMAIL is\nthe default channel (always sent when the account has an email on file); if\nyou have also completed `Connect Telegram` at https://widecast.ai/#setup,\nthe same notification is ALSO sent to Telegram. `subject` (required) is the\nemail subject line and is prepended in bold before the Telegram body. No\nemail + Telegram connected → Telegram only; neither → 400\nno_delivery_channel.\n",
+  "fields": [
+    {
+      "name": "subject",
+      "type": "text",
+      "label": "Subject (required; email subject + bold prefix on Telegram; ≤ 200 bytes)",
+      "required": true,
+      "placeholder": "Your video is ready"
+    },
+    {
+      "name": "message",
+      "type": "textarea",
+      "label": "Message (≤ 4000 bytes; ≤ 1024 bytes if photo/video set)",
+      "required": true,
+      "placeholder": "All 8 scenes finished rendering — open the editor to review."
+    },
+    {
+      "name": "parse_mode",
+      "type": "select",
+      "label": "Parse mode for the body (optional)",
+      "options": [
+        "",
+        "HTML",
+        "Markdown",
+        "MarkdownV2"
+      ]
+    },
+    {
+      "name": "photo_url",
+      "type": "text",
+      "label": "Photo URL (optional, mutually exclusive with video URL)",
+      "placeholder": "https://example.com/preview.jpg"
+    },
+    {
+      "name": "video_url",
+      "type": "text",
+      "label": "Video URL (optional, mutually exclusive with photo URL)",
+      "placeholder": "https://example.com/clip.mp4"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "text",
+      "title": "🔔 Plain notification (email + Telegram if connected)",
+      "description": "subject + message. Email is always sent when an email is on file; Telegram is added when connected. Response `delivery` lists the channels that succeeded.",
+      "request": {
+        "subject": "Your video is ready",
+        "message": "All 8 scenes finished rendering — open the editor to review."
+      }
+    },
+    {
+      "id": "html",
+      "title": "✨ HTML-formatted body",
+      "description": "Use a small subset of HTML tags (`b`, `i`, `u`, `s`, `code`, `pre`, `a`) in the body for emphasis or links. The subject is bolded automatically.",
+      "request": {
+        "subject": "Render finished",
+        "message": "<b>Final cut</b> is ready — open <a href='https://widecast.ai/'>WideCast</a> to publish.",
+        "parse_mode": "HTML"
+      }
+    }
+  ],
+  "_key": "notification-send",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

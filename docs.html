@@ -170,9 +170,9 @@
 <td>Publish a video / blog / text to connected social platforms (returns request_ids → poll status)</td>
 </tr>
 <tr>
-<td><a href="endpoints/telegram-send.html"><code>/v1/telegram/send</code></a></td>
+<td><a href="endpoints/notification-send.html"><code>/v1/notification/send</code></a></td>
 <td>POST</td>
-<td>(sync, free) Push a notification to the user's own connected Telegram chat (self-notify only — text + optional photo/video URL)</td>
+<td>(sync, free) Push a self-notify notification — email default + Telegram if connected. <code>subject</code> + <code>message</code> (+ optional photo/video URL)</td>
 </tr>
 <tr>
 <td><a href="endpoints/library.html"><code>/v1/videos</code></a></td>
