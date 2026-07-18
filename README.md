@@ -20,6 +20,20 @@ Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
 
 ---
 
+<h3 align="center">Claude Editing a Video Using WideCast</h3>
+
+<p align="center">
+  <video src="https://widecast.ai/statics/claude_making_video_small.mp4" controls muted playsinline width="100%"></video>
+</p>
+
+<h3 align="center">Codex Editing a Video Using WideCast</h3>
+
+<p align="center">
+  <video src="https://widecast.ai/statics/codex_making_video_small.mp4" controls muted playsinline width="100%"></video>
+</p>
+
+---
+
 ## 🎬 See it in action
 
 **From faceless AI to fully authentic — same prompt, four modes.** Each clip below was created from a single line of natural-language prompt typed into an AI chat.
