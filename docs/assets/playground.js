@@ -364,6 +364,7 @@ ${forms.join("\n")}
       "/v1/videos": "list_videos", "/v1/account": "account",
       "/v1/analytics": "analytics", "/v1/roadmap": "roadmap",
       "/v1/production_plan": "production_plan",
+      "/v1/production_plan/add": "add_to_production_plan",
       "/v1/notification/send": "send_notification",
       "/v1/create_image": "create_image",
       "/v1/search_broll": "search_broll",

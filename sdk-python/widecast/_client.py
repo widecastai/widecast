@@ -1789,6 +1789,57 @@ class Widecast:
         return self._get("/v1/production_plan",
                          {"page": page, "week_start": week_start, "week_end": week_end})
 
+    def add_to_production_plan(self, idea_text: str, *,
+                               description: Optional[str] = None,
+                               industry: Optional[str] = None,
+                               source: Optional[str] = None,
+                               week_start: Optional[int] = None,
+                               topic_id: Optional[str] = None,
+                               template: Optional[str] = None,
+                               sub_industry: Optional[str] = None,
+                               core_topics: Optional[str] = None,
+                               peripheral_topics: Optional[str] = None,
+                               short_headline: Optional[str] = None) -> dict:
+        """POST /v1/production_plan/add — queue a new idea/topic into the
+        account's production plan. SYNC, FREE. Readable back via
+        :meth:`production_plan`.
+
+        The entry lands with ``workflow_phase="queued"`` — or ``"ab_roll"``
+        when ``source="template"`` and a ``template`` is given. The account
+        is resolved server-side from the API key.
+
+        Args:
+            idea_text:    REQUIRED. The idea / topic line to queue.
+            description:  Optional longer notes.
+            industry:     Optional; falls back to the account's industry.
+            source:       Optional provenance tag (default ``"idea"``).
+            week_start:   Optional unix timestamp (seconds) for the plan
+                          week; the entry's creation_time. Defaults to now.
+            topic_id:     Optional stable id; auto-generated when omitted.
+            template / sub_industry / core_topics / peripheral_topics /
+            short_headline: advanced template-flow fields.
+
+        Returns ``{object:"production_plan_entry", added:True, topic_id,
+        workflow_phase, industry, source, request_id}``.
+        """
+        if not isinstance(idea_text, str) or not idea_text.strip():
+            raise InvalidRequestError(
+                "idea_text (non-empty string) is required.",
+                code="missing_field", param="idea_text")
+        body: Dict[str, Any] = {"idea_text": idea_text.strip()}
+        for _k, _v in (("description", description), ("industry", industry),
+                       ("source", source), ("topic_id", topic_id),
+                       ("template", template), ("sub_industry", sub_industry),
+                       ("core_topics", core_topics),
+                       ("peripheral_topics", peripheral_topics),
+                       ("short_headline", short_headline)):
+            if _v is not None and _v != "":
+                body[_k] = _v
+        if week_start is not None:
+            body["week_start"] = int(week_start)
+        return self._request("POST", "/v1/production_plan/add", json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
+
     def foundation_videos(self, *, industry: Optional[str] = None,
                           sub_industry: Optional[str] = None,
                           page: int = 0) -> dict:

@@ -1,0 +1,64 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/production_plan/add"
+  },
+  "title": "Add an idea to the production plan",
+  "description": "Synchronous, no credit. Queue a new idea/topic into the account's\nproduction plan (readable via GET /v1/production_plan). Use after\n/v1/collect_ideas or /v1/foundation_videos surfaces ideas, or whenever the\nuser wants to save an idea to work on later. The entry lands with\nworkflow_phase=\"queued\" (or \"ab_roll\" when source=\"template\" + a template\nis given). idea_text is required; topic_id auto-generates when omitted;\nindustry falls back to the account's saved industry.\n",
+  "fields": [
+    {
+      "name": "idea_text",
+      "type": "textarea",
+      "label": "Idea text (required — the idea/topic line)",
+      "required": true,
+      "placeholder": "Why estate planning matters for young families"
+    },
+    {
+      "name": "description",
+      "type": "textarea",
+      "label": "Description (optional notes)",
+      "placeholder": "Hook on the 40% who die intestate; CTA to book a consult."
+    },
+    {
+      "name": "industry",
+      "type": "text",
+      "label": "Industry (optional — falls back to account industry)",
+      "placeholder": "estate planning"
+    },
+    {
+      "name": "source",
+      "type": "text",
+      "label": "Source (optional, default 'idea')",
+      "placeholder": "idea"
+    },
+    {
+      "name": "week_start",
+      "type": "text",
+      "label": "week_start (optional unix seconds; defaults to now)",
+      "placeholder": "1782900000"
+    },
+    {
+      "name": "topic_id",
+      "type": "text",
+      "label": "topic_id (optional — auto-generated if empty)",
+      "placeholder": ""
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "queue-idea",
+      "title": "📝 Queue an idea into the plan",
+      "description": "Add a single idea. Returns {object:'production_plan_entry', added:true, topic_id, workflow_phase:'queued', industry, source, request_id}. Read it back with GET /v1/production_plan.",
+      "request": {
+        "idea_text": "Why estate planning matters for young families",
+        "description": "Hook on the 40% who die intestate; CTA to book a consult.",
+        "source": "idea"
+      }
+    }
+  ],
+  "_key": "production-plan-add",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

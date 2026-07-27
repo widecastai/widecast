@@ -1984,6 +1984,43 @@ export class Widecast {
     });
   }
 
+  /** POST /v1/production_plan/add — queue a new idea/topic into the account's
+   *  production plan. SYNC, FREE. Readable back via `production_plan()`. The
+   *  entry lands with `workflow_phase="queued"` (or `"ab_roll"` when
+   *  `source="template"` + a `template` is given). The account is resolved
+   *  server-side. `idea_text` is required; `topic_id` auto-generates when
+   *  omitted; `industry` falls back to the account's industry. */
+  async add_to_production_plan(
+    idea_text: string,
+    opts: {
+      description?: string;
+      industry?: string;
+      source?: string;
+      week_start?: number;
+      topic_id?: string;
+      template?: string;
+      sub_industry?: string;
+      core_topics?: string;
+      peripheral_topics?: string;
+      short_headline?: string;
+    } = {},
+  ): Promise<any> {
+    if (typeof idea_text !== "string" || idea_text.trim() === "") {
+      throw new InvalidRequestError(
+        "idea_text (non-empty string) is required.",
+        { code: "missing_field", param: "idea_text" });
+    }
+    const body: Record<string, unknown> = { idea_text: idea_text.trim() };
+    for (const k of ["description", "industry", "source", "topic_id", "template",
+                     "sub_industry", "core_topics", "peripheral_topics",
+                     "short_headline"] as const) {
+      const v = opts[k];
+      if (v !== undefined && v !== "") body[k] = v;
+    }
+    if (opts.week_start !== undefined) body.week_start = opts.week_start;
+    return await this.#request("POST", "/v1/production_plan/add", body);
+  }
+
   /** GET /v1/foundation_videos — browse the curated foundation-video template
    *  library (proven starter angles for an industry). SYNC, read-only, free.
    *  Re-promoted 2026-07-13 (Round 30). A navigation/discovery aid — creates

@@ -931,6 +931,53 @@ const TOOLS = [
             properties: { page: { type: "number", default: 0 }, week_start: { type: "string" }, week_end: { type: "string" } },
         },
     },
+    {
+        name: "widecast_add_to_production_plan",
+        title: "WideCast: Queue an idea into the production plan",
+        description: "Queue a new idea/topic into the account's PRODUCTION PLAN. SYNC, FREE. " +
+            "Use this when the user wants to save/schedule an idea to work on later " +
+            "(e.g. after widecast_collect_ideas or widecast_foundation_videos surfaces " +
+            "ideas, or when the user says 'add this to my plan', 'queue this idea', " +
+            "'schedule this topic'). The entry lands in the account's plan (readable " +
+            "via widecast_production_plan) with workflow_phase='queued' (or 'ab_roll' " +
+            "when source='template' + a template is given). Self-notify style: the " +
+            "account is resolved server-side from the API key — no company/user field " +
+            "in the body. Returns `{object:'production_plan_entry', added:true, " +
+            "topic_id, workflow_phase, industry, source, request_id}` — `topic_id` is " +
+            "the queued entry's id (auto-generated when you don't pass one). Errors: " +
+            "400 `missing_field` (idea_text) / `invalid_week_start`, 502 " +
+            "`production_plan_add_failed`.",
+        inputSchema: {
+            type: "object",
+            required: ["idea_text"],
+            properties: {
+                idea_text: { type: "string", description: "REQUIRED. The idea / topic line to queue into the production plan." },
+                description: { type: "string", description: "Optional longer description / notes for the idea." },
+                industry: { type: "string", description: "Optional industry tag. Falls back to the account's saved industry when omitted." },
+                source: { type: "string", description: "Optional provenance tag (default 'idea'). Use 'template' together with `template` to start the entry in the 'ab_roll' workflow phase instead of 'queued'." },
+                week_start: { type: "number", description: "Optional unix timestamp (seconds) for the plan week; used as the entry's creation_time. Defaults to now." },
+                topic_id: { type: "string", description: "Optional stable id for the entry. Auto-generated (widecast<hex>) when omitted." },
+                template: { type: "string", description: "Advanced: template id when queuing from a foundation template (source='template')." },
+                sub_industry: { type: "string", description: "Advanced: narrower sub-industry tag." },
+                core_topics: { type: "string", description: "Advanced: core topics for the idea." },
+                peripheral_topics: { type: "string", description: "Advanced: peripheral/related topics." },
+                short_headline: { type: "string", description: "Advanced: a short headline for the entry." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "production_plan_entry" },
+                added: { type: "boolean" },
+                topic_id: { type: "string" },
+                workflow_phase: { type: "string", enum: ["queued", "ab_roll"] },
+                industry: { type: "string" },
+                source: { type: "string" },
+                request_id: { type: "string" },
+            },
+        },
+    },
     // widecast_recommendations withdrawn 2026-07-13 (Round 30) — REST
     // /v1/recommendations still serves the dashboard UI. Kept OFF the
     // agent-facing surface to cap the MCP tool count (also removed from the
@@ -1248,6 +1295,17 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             if (args.video_url !== undefined && args.video_url !== "")
                 body.video_url = args.video_url;
             const data = await wc("POST", "/v1/notification/send", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_add_to_production_plan") {
+            const body = { idea_text: String(args.idea_text ?? "") };
+            for (const k of ["description", "industry", "source", "week_start", "topic_id",
+                "template", "sub_industry", "core_topics", "peripheral_topics",
+                "short_headline"]) {
+                if (args[k] !== undefined && args[k] !== "")
+                    body[k] = args[k];
+            }
+            const data = await wc("POST", "/v1/production_plan/add", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         // ── Read / library + connections GET tools (free) ──

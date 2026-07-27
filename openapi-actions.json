@@ -2412,6 +2412,83 @@
         }
       }
     },
+    "/v1/production_plan/add": {
+      "post": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "addToProductionPlan",
+        "summary": "Queue a new idea/topic into the account's production plan.",
+        "description": "Queue a new idea/topic into the account's production plan.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToProductionPlanRequest"
+              },
+              "example": {
+                "idea_text": "Why estate planning matters for young families",
+                "description": "Hook on the 40% who die intestate; CTA to book a consult.",
+                "source": "idea"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idea queued into the production plan.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`missing_field` (idea_text) or `invalid_week_start` (not an integer).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "`production_plan_add_failed` — the plan write failed upstream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/foundation_videos": {
       "get": {
         "tags": [
@@ -5402,6 +5479,99 @@
             "items": {
               "$ref": "#/components/schemas/Idea"
             }
+          }
+        }
+      },
+      "AddToProductionPlanRequest": {
+        "type": "object",
+        "required": [
+          "idea_text"
+        ],
+        "description": "Body for `POST /v1/production_plan/add`. The account is resolved\nserver-side from the API key — there is no company/user field.\n",
+        "properties": {
+          "idea_text": {
+            "type": "string",
+            "description": "REQUIRED. The idea / topic line to queue into the production plan."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional longer description / notes for the idea."
+          },
+          "industry": {
+            "type": "string",
+            "description": "Optional industry tag. Falls back to the account's saved industry when omitted."
+          },
+          "source": {
+            "type": "string",
+            "description": "Optional provenance tag (default `idea`). Use `template`\ntogether with `template` to start the entry in the `ab_roll`\nworkflow phase instead of `queued`.\n"
+          },
+          "week_start": {
+            "type": "integer",
+            "description": "Optional unix timestamp (seconds) for the plan week; used as the entry's creation_time. Defaults to now."
+          },
+          "topic_id": {
+            "type": "string",
+            "description": "Optional stable id for the entry. Auto-generated (`widecast<hex>`) when omitted."
+          },
+          "template": {
+            "type": "string",
+            "description": "Advanced: template id when queuing from a foundation template (source='template')."
+          },
+          "sub_industry": {
+            "type": "string",
+            "description": "Advanced: narrower sub-industry tag."
+          },
+          "core_topics": {
+            "type": "string",
+            "description": "Advanced: core topics for the idea."
+          },
+          "peripheral_topics": {
+            "type": "string",
+            "description": "Advanced: peripheral/related topics."
+          },
+          "short_headline": {
+            "type": "string",
+            "description": "Advanced: a short headline for the entry."
+          }
+        }
+      },
+      "ProductionPlanEntryResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "added",
+          "topic_id",
+          "workflow_phase",
+          "request_id"
+        ],
+        "description": "Success body for POST /v1/production_plan/add.",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "production_plan_entry"
+          },
+          "added": {
+            "type": "boolean"
+          },
+          "topic_id": {
+            "type": "string",
+            "description": "The queued entry's id (generated if the caller didn't pass one)."
+          },
+          "workflow_phase": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "ab_roll"
+            ]
+          },
+          "industry": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },

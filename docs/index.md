@@ -69,6 +69,7 @@ console.log(v.status, v.review_url);
 | [`/v1/analytics`](endpoints/library.html) | GET | (read, free) Social analytics dashboard |
 | [`/v1/roadmap`](endpoints/library.html) | GET | (read, free) Content roadmap |
 | [`/v1/production_plan`](endpoints/library.html) | GET | (read, free) Weekly production plan |
+| [`/v1/production_plan/add`](endpoints/production-plan-add.html) | POST | (sync, free) Queue a new idea/topic into the production plan |
 | [`/v1/foundation_videos`](endpoints/library.html) | GET | (read, free) Browse the curated foundation-video template library |
 | [`/v1/accounts`](endpoints/connections.html) | GET | (free) List connected social platforms |
 | [`/v1/platform_settings`](endpoints/connections.html) | GET/POST | (free) Load / save per-platform publish settings |
