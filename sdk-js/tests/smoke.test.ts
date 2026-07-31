@@ -12,6 +12,8 @@ import Widecast, {
   MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
   OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
   PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
+  CLIENT_LINK_TYPES, CLIENT_LINK_TTL_MIN, CLIENT_LINK_TTL_MAX,
+  CLIENT_LINK_TTL_DEFAULT,
   verifyWebhook, WebhookVerificationError,
 } from "../src/index";
 import { createHmac } from "node:crypto";
@@ -531,5 +533,136 @@ describe("widecast SDK", () => {
     expect(v.isTerminal).toBe(true);
     expect(v.error).toEqual({ code: "credit_exhausted", message: "Out of credits." });
     expect(v.review_url).toBeNull();
+  });
+});
+
+// ── /v1/client_link/send (sync, free — no-login client "magic link") ────────
+describe("send_client_link", () => {
+  /** Capturing fetch mock — records every request, replies 200 JSON. */
+  function captureFetch(responseBody: unknown = {
+    object: "client_link", link_type: "content_plan",
+    magic_url: "https://widecast.ai/record.html#workspace?token=x&redirect=y",
+    expires_in_days: 7, notified: false, request_id: "req_test",
+  }) {
+    const calls: Array<{ url: string; method: string; headers: Record<string, string>; body: any }> = [];
+    const fetchImpl = (async (url: any, init: any) => {
+      calls.push({
+        url: String(url),
+        method: init?.method ?? "GET",
+        headers: (init?.headers ?? {}) as Record<string, string>,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      return new Response(JSON.stringify(responseBody), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof fetch;
+    return { calls, fetchImpl };
+  }
+
+  it("client-link vocabulary + TTL bounds are locked (server parity)", () => {
+    // Mirrors dashboard2.py WIDECAST_CLIENT_LINK_TTL_* — 5-surface drift canary.
+    expect(CLIENT_LINK_TYPES).toEqual(["record", "content_plan", "setup",
+      "social_dashboard", "publish_schedule"]);
+    expect(CLIENT_LINK_TTL_MIN).toBe(1);
+    expect(CLIENT_LINK_TTL_MAX).toBe(30);
+    expect(CLIENT_LINK_TTL_DEFAULT).toBe(7);
+  });
+
+  it("exposes send_client_link method", () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    expect(typeof (c as any).send_client_link).toBe("function");
+  });
+
+  it("rejects a missing/unknown link_type", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(c.send_client_link({} as any)).rejects.toThrow(InvalidRequestError);
+    await expect(
+      c.send_client_link({ link_type: "billing" } as any),
+    ).rejects.toMatchObject({ code: "invalid_link_type", param: "link_type" });
+  });
+
+  it("link_type=record requires topic_id", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.send_client_link({ link_type: "record" } as any),
+    ).rejects.toMatchObject({ code: "missing_field", param: "topic_id" });
+  });
+
+  it("link_type=record rejects a malformed topic_id", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.send_client_link({ link_type: "record", topic_id: "bad id!" }),
+    ).rejects.toMatchObject({ code: "invalid_topic_id", param: "topic_id" });
+    await expect(
+      c.send_client_link({ link_type: "record", topic_id: "x".repeat(65) }),
+    ).rejects.toMatchObject({ code: "invalid_topic_id", param: "topic_id" });
+  });
+
+  it("rejects non-object channels and unknown channel keys", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(
+      c.send_client_link({ link_type: "setup", channels: ["telegram"] as any }),
+    ).rejects.toMatchObject({ code: "invalid_channels", param: "channels" });
+    await expect(
+      c.send_client_link({ link_type: "setup", channels: { whatsapp: true } as any }),
+    ).rejects.toMatchObject({ code: "invalid_channels", param: "channels" });
+  });
+
+  it("mint-only request shape: link_type + default ttl_days, nothing else", async () => {
+    const { calls, fetchImpl } = captureFetch();
+    const c = new Widecast({ apiKey: "wc_live_dummy", fetchImpl });
+    const resp = await c.send_client_link({ link_type: "content_plan" });
+    expect(calls.length).toBe(1);
+    expect(calls[0].method).toBe("POST");
+    expect(calls[0].url.endsWith("/v1/client_link/send")).toBe(true);
+    expect(calls[0].headers["Authorization"]).toBe("Bearer wc_live_dummy");
+    expect(calls[0].body).toEqual({
+      link_type: "content_plan", ttl_days: CLIENT_LINK_TTL_DEFAULT,
+    });
+    expect(resp.object).toBe("client_link");
+    expect(resp.magic_url).toContain("#workspace?token=");
+  });
+
+  it("record request shape: topic_id sent, ttl_days clamped, channels passed through", async () => {
+    const { calls, fetchImpl } = captureFetch({
+      object: "client_link", link_type: "record",
+      magic_url: "https://widecast.ai/record.html#workspace?token=x&redirect=y",
+      expires_in_days: 30, notified: true, topic_id: "widecastab12",
+      results: { telegram: { status: "sent" } }, request_id: "req_test",
+    });
+    const c = new Widecast({ apiKey: "wc_live_dummy", fetchImpl });
+    const resp = await c.send_client_link({
+      link_type: "record", topic_id: "widecastab12",
+      ttl_days: 99, channels: { telegram: true, email: false },
+    });
+    expect(calls[0].body).toEqual({
+      link_type: "record", topic_id: "widecastab12",
+      ttl_days: CLIENT_LINK_TTL_MAX,                 // 99 → clamped to 30
+      channels: { telegram: true, email: false },
+    });
+    expect(resp.notified).toBe(true);
+    expect(resp.results?.telegram?.status).toBe("sent");
+  });
+
+  it("ttl_days clamps low + zero falls back to the default (server parity)", async () => {
+    const { calls, fetchImpl } = captureFetch();
+    const c = new Widecast({ apiKey: "wc_live_dummy", fetchImpl });
+    await c.send_client_link({ link_type: "setup", ttl_days: -5 });
+    expect(calls[0].body.ttl_days).toBe(CLIENT_LINK_TTL_MIN);       // -5 → 1
+    await c.send_client_link({ link_type: "setup", ttl_days: 0 });
+    expect(calls[1].body.ttl_days).toBe(CLIENT_LINK_TTL_DEFAULT);   // 0 → 7
+  });
+
+  it("topic_id is omitted for non-record link types; page passes through", async () => {
+    const { calls, fetchImpl } = captureFetch();
+    const c = new Widecast({ apiKey: "wc_live_dummy", fetchImpl });
+    await c.send_client_link({
+      link_type: "publish_schedule", topic_id: "widecastab12", page: "record2.html",
+    });
+    expect(calls[0].body).toEqual({
+      link_type: "publish_schedule", ttl_days: CLIENT_LINK_TTL_DEFAULT,
+      page: "record2.html",
+    });
+    expect(calls[0].body.topic_id).toBeUndefined();
   });
 });

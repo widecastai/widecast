@@ -3,6 +3,21 @@
 All notable changes to the WideCast JS/TS SDK. Format: [Keep a Changelog](https://keepachangelog.com/),
 versioning: [Semver](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `send_client_link()` — POST `/v1/client_link/send`: mint a no-login client
+  link ("magic link") to one of the account's client screens (`record` /
+  `content_plan` / `setup` / `social_dashboard` / `publish_schedule`) and
+  optionally send it through the account's notification channels
+  (Telegram / SMS / email). SYNC, FREE. Mint-only when `channels` is omitted
+  or all-false; recipients are always resolved server-side from
+  Setup > Notification (anti-spam-relay design).
+- `SendClientLinkOptions` + `ClientLinkResponse` types.
+- Exported constants `CLIENT_LINK_TYPES`, `CLIENT_LINK_TTL_MIN` (1),
+  `CLIENT_LINK_TTL_MAX` (30), `CLIENT_LINK_TTL_DEFAULT` (7) — locked, mirror
+  the server's `WIDECAST_CLIENT_LINK_TTL_*` constants.
+
 ## [0.1.0] — 2026-05-19
 
 ### Added

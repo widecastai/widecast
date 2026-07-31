@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import uuid
 from typing import Any, Dict, Mapping, Optional
@@ -74,6 +75,21 @@ INTERVENTION_LEVELS = (0, 1, 2)
 PUBLISH_PLATFORMS = ("youtube", "tiktok", "instagram", "facebook", "linkedin",
                      "x", "threads", "pinterest", "reddit", "bluesky",
                      "google_business")
+# No-login client links (/v1/client_link/send). Locked vocabulary + TTL
+# bounds mirroring the server constants WIDECAST_CLIENT_LINK_TTL_* in
+# dashboard2.py. link_type picks WHICH screen the link opens:
+#   record           = one specific project's recording workspace (needs topic_id)
+#   content_plan     = the Saved Ideas / content-plan screen
+#   setup            = the account Setup Center
+#   social_dashboard = the Social Dashboard (statistics)
+#   publish_schedule = the Publish Schedule screen
+CLIENT_LINK_TYPES = ("record", "content_plan", "setup",
+                     "social_dashboard", "publish_schedule")
+CLIENT_LINK_TTL_MIN = 1        # days — server clamps below this
+CLIENT_LINK_TTL_MAX = 30       # days — server clamps above this
+CLIENT_LINK_TTL_DEFAULT = 7    # days — applied when ttl_days omitted
+# Server-side topic_id pattern for link_type="record" (invalid_topic_id).
+_CLIENT_LINK_TOPIC_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # Generative sources (have a Phase 1 script-writer) → which input field +
 # bounds + error codes. source="text" is NOT here (caller supplies the script).
 _GENERATIVE_SOURCES = {
@@ -1954,6 +1970,120 @@ class Widecast:
         if video_url:
             body["video_url"] = video_url
         return self._request("POST", "/v1/notification/send",
+                             json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
+
+    def send_client_link(self, link_type: str, *,
+                         topic_id: Optional[str] = None,
+                         ttl_days: int = CLIENT_LINK_TTL_DEFAULT,
+                         channels: Optional[Mapping[str, Any]] = None,
+                         page: Optional[str] = None) -> dict:
+        """POST /v1/client_link/send — mint a no-login client link ("magic
+        link") and OPTIONALLY send it through the account's notification
+        channels. SYNC, FREE.
+
+        Built for autonomous AI agents operating an account: e.g. after
+        finishing a video, send the client a ``record`` link; after
+        queueing an idea, send a ``content_plan`` link so the client can
+        review.
+
+        Recipients are ALWAYS resolved server-side from the account's
+        Setup > Notification settings — the caller can NEVER supply a
+        phone number or email address (anti-spam-relay design).
+        Notification content is composed SERVER-SIDE per link_type
+        (``record`` includes the video's title/hook; ``content_plan``
+        says "Your content plan is ready for review"; etc.) across the
+        Telegram message, SMS (Twilio) and email with a CTA button.
+
+        Args:
+            link_type: REQUIRED. Which screen the link opens — one of
+                       CLIENT_LINK_TYPES:
+                         * ``"record"`` — one specific project's recording
+                           workspace (REQUIRES ``topic_id``).
+                         * ``"content_plan"`` — the Saved Ideas /
+                           content-plan screen.
+                         * ``"setup"`` — the account Setup Center.
+                         * ``"social_dashboard"`` — the Social Dashboard
+                           (statistics).
+                         * ``"publish_schedule"`` — the Publish Schedule
+                           screen.
+            topic_id:  Required IFF ``link_type="record"`` — the project
+                       to open (pattern ``^[A-Za-z0-9_-]{1,64}$``).
+                       Ignored by other link types.
+            ttl_days:  Link lifetime in days. Default
+                       CLIENT_LINK_TTL_DEFAULT (7). The server clamps to
+                       CLIENT_LINK_TTL_MIN..CLIENT_LINK_TTL_MAX (1..30);
+                       the SDK pre-validates the same bounds (fast fail).
+            channels:  Optional ``{"telegram": bool, "sms": bool,
+                       "email": bool}``. Omitted, empty, or all-false →
+                       MINT-ONLY (no notification is sent; the caller
+                       gets ``magic_url`` and decides later).
+            page:      Optional host page for the link —
+                       ``"record.html"`` (server default) or
+                       ``"record2.html"``.
+
+        Returns dict ``{"object": "client_link", "link_type",
+        "magic_url", "expires_in_days", "notified", "topic_id"?
+        (link_type=record only), "results"? (only when channels were
+        requested — per-channel ``{"status": "sent"|"skipped"|"failed",
+        "reason"/"error"}``), "request_id"}``.
+
+        Raises ``InvalidRequestError`` client-side for a bad
+        ``link_type`` / ``topic_id`` / ``ttl_days`` / ``channels`` /
+        ``page``; server-side errors surface as ``client_link_failed``
+        (500 when the API key has no account email, 502 when minting
+        fails) plus the standard 401 auth errors.
+        """
+        if link_type not in CLIENT_LINK_TYPES:
+            raise InvalidRequestError(
+                f"link_type must be one of {list(CLIENT_LINK_TYPES)} "
+                f"(got {link_type!r}).",
+                code="invalid_link_type", param="link_type")
+        if link_type == "record" and (
+                not isinstance(topic_id, str) or not topic_id.strip()):
+            raise InvalidRequestError(
+                "topic_id is required when link_type='record' (the link "
+                "opens that project's recording workspace).",
+                code="missing_field", param="topic_id")
+        if topic_id is not None:
+            if not isinstance(topic_id, str) or \
+                    not _CLIENT_LINK_TOPIC_ID_RE.match(topic_id.strip()):
+                raise InvalidRequestError(
+                    "topic_id must match ^[A-Za-z0-9_-]{1,64}$.",
+                    code="invalid_topic_id", param="topic_id")
+        if not isinstance(ttl_days, int) or \
+                ttl_days < CLIENT_LINK_TTL_MIN or ttl_days > CLIENT_LINK_TTL_MAX:
+            raise InvalidRequestError(
+                f"ttl_days must be an integer "
+                f"{CLIENT_LINK_TTL_MIN}-{CLIENT_LINK_TTL_MAX} "
+                f"(got {ttl_days!r}).",
+                code="invalid_ttl_days", param="ttl_days")
+        if channels is not None:
+            if not isinstance(channels, Mapping):
+                raise InvalidRequestError(
+                    "channels must be an object like "
+                    "{'telegram': True, 'email': True}.",
+                    code="invalid_channels", param="channels")
+            bad = [k for k in channels
+                   if k not in ("telegram", "sms", "email")]
+            if bad:
+                raise InvalidRequestError(
+                    f"Unknown channel(s) {bad}. Valid: "
+                    f"['telegram', 'sms', 'email'].",
+                    code="invalid_channels", param="channels")
+        if page is not None and page not in ("record.html", "record2.html"):
+            raise InvalidRequestError(
+                f"page must be one of ['record.html', 'record2.html'] "
+                f"(got {page!r}).",
+                code="invalid_page", param="page")
+        body: Dict[str, Any] = {"link_type": link_type, "ttl_days": ttl_days}
+        if topic_id is not None:
+            body["topic_id"] = topic_id.strip()
+        if channels is not None:
+            body["channels"] = {k: bool(v) for k, v in channels.items()}
+        if page is not None:
+            body["page"] = page
+        return self._request("POST", "/v1/client_link/send",
                              json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 

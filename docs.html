@@ -175,6 +175,11 @@
 <td>(sync, free) Push a self-notify notification — email default + Telegram if connected. <code>subject</code> + <code>message</code> (+ optional photo/video URL)</td>
 </tr>
 <tr>
+<td><a href="endpoints/client-link-send.html"><code>/v1/client_link/send</code></a></td>
+<td>POST</td>
+<td>(sync, free) Mint a no-login client "magic link" (<code>record</code> / <code>content_plan</code> / <code>setup</code> / <code>social_dashboard</code> / <code>publish_schedule</code>) and optionally notify the client via the account's Telegram/SMS/email channels — recipients resolved server-side, never supplied by the caller</td>
+</tr>
+<tr>
 <td><a href="endpoints/library.html"><code>/v1/videos</code></a></td>
 <td>GET</td>
 <td>(read, free) List the account's recent videos</td>

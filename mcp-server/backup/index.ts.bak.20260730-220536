@@ -1005,78 +1005,6 @@ const TOOLS = [
       },
     },
   },
-  {
-    name: "widecast_send_client_link",
-    title: "WideCast: Mint + send a no-login client link (magic link)",
-    description:
-      "Mint a no-login client link ('magic link') for the account and " +
-      "OPTIONALLY send it through the account's notification channels. SYNC, " +
-      "FREE. WHEN to use: after you finished a video, send the client a " +
-      "`record` link so they can open that project's recording workspace; " +
-      "after you queued an idea (widecast_add_to_production_plan), send a " +
-      "`content_plan` link so the client can review the plan. `link_type` " +
-      "(REQUIRED) is one of: `record` (opens ONE specific project's recording " +
-      "workspace — REQUIRES `topic_id`), `content_plan` (the Saved Ideas / " +
-      "content-plan screen), `setup` (the account Setup Center), " +
-      "`social_dashboard` (the Social Dashboard — statistics), " +
-      "`publish_schedule` (the Publish Schedule screen). `ttl_days` = link " +
-      "lifetime in days, clamped to 1..30, default 7. `channels` = " +
-      "`{telegram?, sms?, email?}` booleans; OMITTED, empty, or all-false => " +
-      "MINT-ONLY — no notification is sent, you get `magic_url` back and " +
-      "decide later. Recipients are ALWAYS resolved server-side from the " +
-      "account's Setup > Notification settings — you can NEVER supply a phone " +
-      "number or email address (anti-spam-relay design). Notification content " +
-      "is composed server-side per link_type (record includes the video's " +
-      "title/hook; content_plan says the content plan is ready for review) " +
-      "across Telegram, SMS (Twilio) and email with a CTA button. Response " +
-      "carries `magic_url`, `expires_in_days`, `notified`, and — only when " +
-      "channels were requested — per-channel `results` (status sent / skipped " +
-      "/ failed with reason/error). Errors: 400 `invalid_link_type` / " +
-      "`missing_field` (topic_id, when link_type=record without topic_id) / " +
-      "`invalid_topic_id` / `invalid_channels`, `client_link_failed` (500 " +
-      "when the API key has no account email, 502 when minting fails).",
-    inputSchema: {
-      type: "object",
-      required: ["link_type"],
-      properties: {
-        link_type: { type: "string", enum: ["record", "content_plan", "setup", "social_dashboard", "publish_schedule"], description: "REQUIRED. record = one specific project's recording workspace (requires topic_id); content_plan = Saved Ideas / content-plan screen; setup = account Setup Center; social_dashboard = Social Dashboard (statistics); publish_schedule = Publish Schedule screen." },
-        topic_id: { type: "string", pattern: "^[A-Za-z0-9_-]{1,64}$", description: "Required IFF link_type='record': the project whose recording workspace the link opens." },
-        ttl_days: { type: "integer", minimum: 1, maximum: 30, default: 7, description: "Link lifetime in days. Clamped to 1..30, default 7." },
-        channels: {
-          type: "object",
-          description: "Optional. Omitted, empty, or all-false = MINT-ONLY (no notification; caller gets magic_url and decides later). Recipients are always resolved server-side from Setup > Notification settings — a phone number or email address can never be passed in.",
-          properties: {
-            telegram: { type: "boolean", description: "Send via the account's connected Telegram." },
-            sms: { type: "boolean", description: "Send via SMS (Twilio) to the account's configured phone." },
-            email: { type: "boolean", description: "Send via email to the account's configured address." },
-          },
-        },
-        page: { type: "string", enum: ["record.html", "record2.html"], default: "record.html", description: "Which app page hosts the link. Default record.html." },
-      },
-    },
-    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-    outputSchema: {
-      type: "object",
-      properties: {
-        object: { type: "string", const: "client_link" },
-        link_type: { type: "string", enum: ["record", "content_plan", "setup", "social_dashboard", "publish_schedule"] },
-        magic_url: { type: "string", description: "The no-login link to hand to the client." },
-        expires_in_days: { type: "integer" },
-        notified: { type: "boolean" },
-        topic_id: { type: "string", description: "Present only for link_type=record." },
-        results: {
-          type: "object",
-          description: "Present only when channels were requested. Per-channel delivery status: sent | skipped | failed, with reason/error.",
-          properties: {
-            telegram: { type: "object", properties: { status: { type: "string", enum: ["sent", "skipped", "failed"] }, reason: { type: "string" }, error: { type: "string" } } },
-            sms: { type: "object", properties: { status: { type: "string", enum: ["sent", "skipped", "failed"] }, reason: { type: "string" }, error: { type: "string" } } },
-            email: { type: "object", properties: { status: { type: "string", enum: ["sent", "skipped", "failed"] }, reason: { type: "string" }, error: { type: "string" } } },
-          },
-        },
-        request_id: { type: "string" },
-      },
-    },
-  },
   // widecast_recommendations withdrawn 2026-07-13 (Round 30) — REST
   // /v1/recommendations still serves the dashboard UI. Kept OFF the
   // agent-facing surface to cap the MCP tool count (also removed from the
@@ -1384,14 +1312,6 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         if (args[k] !== undefined && args[k] !== "") body[k] = args[k];
       }
       const data = await wc("POST", "/v1/production_plan/add", body);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
-    if (name === "widecast_send_client_link") {
-      const body: Record<string, unknown> = { link_type: String(args.link_type ?? "") };
-      for (const k of ["topic_id", "ttl_days", "channels", "page"]) {
-        if (args[k] !== undefined && args[k] !== "") body[k] = args[k];
-      }
-      const data = await wc("POST", "/v1/client_link/send", body);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
     // ── Read / library + connections GET tools (free) ──

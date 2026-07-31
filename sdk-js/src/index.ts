@@ -59,6 +59,15 @@ export const PUBLISH_PLATFORMS = ["youtube", "tiktok", "instagram", "facebook",
   "linkedin", "x", "threads", "pinterest", "reddit", "bluesky",
   "google_business"] as const;
 export type PublishPlatform = (typeof PUBLISH_PLATFORMS)[number];
+// Client-link vocabulary (/v1/client_link/send). Values are LOCKED — they
+// mirror the server constants WIDECAST_CLIENT_LINK_TTL_* and the
+// _WIDECAST_CLIENT_LINK_REDIRECTS keys in dashboard2.py.
+export const CLIENT_LINK_TYPES = ["record", "content_plan", "setup",
+  "social_dashboard", "publish_schedule"] as const;
+export type ClientLinkType = (typeof CLIENT_LINK_TYPES)[number];
+export const CLIENT_LINK_TTL_MIN = 1;       // days
+export const CLIENT_LINK_TTL_MAX = 30;      // days
+export const CLIENT_LINK_TTL_DEFAULT = 7;   // days
 
 /** Options for client.create_content(). */
 export interface CreateContentOptions {
@@ -522,6 +531,57 @@ export interface NotificationResponse {
   /** Set when delivered via Telegram only (no email on file). */
   note?: string;
   setup_url?: string;
+  request_id: string;
+}
+
+/** Options for client.send_client_link() — POST /v1/client_link/send. */
+export interface SendClientLinkOptions {
+  /** REQUIRED. Which client screen the link opens: `record` = one specific
+   *  project's recording workspace (REQUIRES `topic_id`); `content_plan` =
+   *  the Saved Ideas / content-plan screen; `setup` = the account Setup
+   *  Center; `social_dashboard` = the Social Dashboard (statistics);
+   *  `publish_schedule` = the Publish Schedule screen. */
+  link_type: ClientLinkType;
+  /** The project the `record` link opens. Required IFF `link_type="record"`
+   *  (pattern `^[A-Za-z0-9_-]{1,64}$`); ignored for the other link types. */
+  topic_id?: string;
+  /** Link lifetime in days. Default `CLIENT_LINK_TTL_DEFAULT` (7);
+   *  out-of-range values are clamped to `CLIENT_LINK_TTL_MIN`..
+   *  `CLIENT_LINK_TTL_MAX` (1..30), never rejected. */
+  ttl_days?: number;
+  /** Which of the account's notification channels deliver the link.
+   *  Omitted, empty, or all-false => MINT-ONLY (no notification is sent;
+   *  the caller gets `magic_url` back and decides later). Recipients are
+   *  ALWAYS resolved server-side from the account's Setup > Notification
+   *  settings — the caller can NEVER supply a phone number or email
+   *  address (anti-spam-relay design). */
+  channels?: { telegram?: boolean; sms?: boolean; email?: boolean };
+  /** Which app page hosts the link. Default `"record.html"`. */
+  page?: "record.html" | "record2.html";
+}
+
+/** Success body for POST /v1/client_link/send. */
+export interface ClientLinkResponse {
+  object: "client_link";
+  link_type: ClientLinkType;
+  /** The no-login client link, e.g.
+   *  `https://widecast.ai/record.html#workspace?token=...&redirect=...`.
+   *  Hand it to the client or send it later. */
+  magic_url: string;
+  /** The applied link lifetime (after clamping), in days. */
+  expires_in_days: number;
+  /** `true` when at least one notification channel delivered the link. */
+  notified: boolean;
+  /** Present only for `link_type="record"`. */
+  topic_id?: string;
+  /** Present only when channels were requested. Per-channel delivery
+   *  status: `sent` | `skipped` | `failed` — `reason` set when skipped
+   *  (e.g. `sms_not_configured`), `error` set when failed. */
+  results?: {
+    telegram?: { status: "sent" | "skipped" | "failed"; reason?: string; error?: string };
+    sms?: { status: "sent" | "skipped" | "failed"; reason?: string; error?: string };
+    email?: { status: "sent" | "skipped" | "failed"; reason?: string; error?: string };
+  };
   request_id: string;
 }
 
@@ -2111,6 +2171,79 @@ export class Widecast {
     if (opts.photo_url) body.photo_url = opts.photo_url;
     if (opts.video_url) body.video_url = opts.video_url;
     return await this.#request<NotificationResponse>("POST", "/v1/notification/send", body);
+  }
+
+  /** POST /v1/client_link/send — mint a NO-LOGIN CLIENT LINK ("magic link")
+   *  to one of the account's client screens and OPTIONALLY send it through
+   *  the account's notification channels. SYNC, FREE.
+   *
+   *  Built for autonomous AI agents operating an account: after finishing a
+   *  video, send the client a `record` link; after queueing an idea, send a
+   *  `content_plan` link so the client can review.
+   *
+   *  **Mint-only by default**: omit `channels` (or leave every flag false)
+   *  and NO notification is sent — the response carries `magic_url` and you
+   *  decide later when/how to deliver it. Recipients are ALWAYS resolved
+   *  server-side from the account's Setup > Notification settings — the
+   *  caller can NEVER supply a phone number or email address
+   *  (anti-spam-relay design). Notification content is composed SERVER-SIDE
+   *  per link_type (a `record` link includes the video's title/hook;
+   *  `content_plan` says the content plan is ready for review; etc.) across
+   *  Telegram, SMS (Twilio) and email with a CTA button.
+   *
+   *  `ttl_days` mirrors the server clamp (`CLIENT_LINK_TTL_MIN`..
+   *  `CLIENT_LINK_TTL_MAX`, default `CLIENT_LINK_TTL_DEFAULT`) — out-of-range
+   *  values are clamped client-side too, never rejected, so
+   *  `expires_in_days` is predictable.
+   */
+  async send_client_link(opts: SendClientLinkOptions): Promise<ClientLinkResponse> {
+    if (!opts || !(CLIENT_LINK_TYPES as readonly string[]).includes(opts.link_type)) {
+      throw new InvalidRequestError(
+        `link_type must be one of ${JSON.stringify(CLIENT_LINK_TYPES)} (got ${JSON.stringify(opts?.link_type)}).`,
+        { code: "invalid_link_type", param: "link_type" });
+    }
+    const body: Record<string, unknown> = { link_type: opts.link_type };
+    if (opts.link_type === "record") {
+      const topicId = typeof opts.topic_id === "string" ? opts.topic_id.trim() : "";
+      if (!topicId) {
+        throw new InvalidRequestError(
+          "topic_id is required when link_type='record' — the link opens one specific project.",
+          { code: "missing_field", param: "topic_id" });
+      }
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(topicId)) {
+        throw new InvalidRequestError(
+          "topic_id may only contain letters, digits, '_' and '-' (max 64 chars).",
+          { code: "invalid_topic_id", param: "topic_id" });
+      }
+      body.topic_id = topicId;
+    }
+    // ttl_days — same computation as the server: absent/zero/garbage falls
+    // back to the default, everything else is clamped to 1..30 (never 400s).
+    let ttlDays = CLIENT_LINK_TTL_DEFAULT;
+    if (opts.ttl_days !== undefined && opts.ttl_days !== null) {
+      const n = Math.trunc(Number(opts.ttl_days));
+      if (Number.isFinite(n) && n !== 0) {
+        ttlDays = Math.max(CLIENT_LINK_TTL_MIN, Math.min(n, CLIENT_LINK_TTL_MAX));
+      }
+    }
+    body.ttl_days = ttlDays;
+    if (opts.channels !== undefined && opts.channels !== null) {
+      if (typeof opts.channels !== "object" || Array.isArray(opts.channels)) {
+        throw new InvalidRequestError(
+          'channels must be an object like {"telegram": true, "sms": false, "email": true}.',
+          { code: "invalid_channels", param: "channels" });
+      }
+      const unknown = Object.keys(opts.channels)
+        .filter((k) => !["telegram", "sms", "email"].includes(k));
+      if (unknown.length) {
+        throw new InvalidRequestError(
+          `Unknown channel(s): ${unknown.sort().join(", ")}. Valid channels: telegram, sms, email.`,
+          { code: "invalid_channels", param: "channels" });
+      }
+      body.channels = opts.channels;
+    }
+    if (opts.page !== undefined) body.page = opts.page;
+    return await this.#request<ClientLinkResponse>("POST", "/v1/client_link/send", body);
   }
 
   // ── HTTP plumbing ───────────────────────────────────────────────────────

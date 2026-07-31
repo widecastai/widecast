@@ -1,0 +1,67 @@
+# Playground — POST /v1/client_link/send (SYNCHRONOUS, no credit).
+# Mint a no-login client link ("magic link") and OPTIONALLY send it through
+# the account's notification channels. Recipients are ALWAYS resolved
+# server-side from Setup > Notification settings — the body never carries a
+# phone number or email address (anti-spam-relay design).
+
+endpoint:
+  method: POST
+  path: /v1/client_link/send
+
+title: Mint (and optionally send) a no-login client link
+description: |
+  Synchronous, no credit. Mint a no-login client link ("magic link") for one
+  of five client screens — record | content_plan | setup | social_dashboard |
+  publish_schedule — and OPTIONALLY send it through the account's Telegram /
+  SMS / email notification channels. `link_type=record` additionally requires
+  `topic_id`. Omit `channels` (or leave it empty / all-false) for MINT-ONLY:
+  nothing is sent and you get `magic_url` back to deliver yourself later.
+  Recipients always come from the account's Setup > Notification settings —
+  the caller can never supply a phone number or email address. Notification
+  content is composed server-side per link_type.
+
+fields:
+  - name: link_type
+    type: select
+    label: "link_type (required — which client screen the link opens)"
+    required: true
+    options: ["record", "content_plan", "setup", "social_dashboard", "publish_schedule"]
+  - name: topic_id
+    type: text
+    label: "topic_id (required when link_type=record; pattern ^[A-Za-z0-9_-]{1,64}$)"
+    placeholder: "widecastab12"
+  - name: ttl_days
+    type: text
+    label: "ttl_days (optional integer — link lifetime in days; default 7, clamped 1..30)"
+    placeholder: "7"
+  - name: channels
+    type: json
+    label: "channels (optional JSON object {telegram?, sms?, email?} — maps to the `channels` request object; omit/empty/all-false = mint-only)"
+    placeholder: '{"telegram": true, "email": true}'
+  - name: page
+    type: select
+    label: "page (optional — app page hosting the link; default record.html)"
+    options: ["", "record.html", "record2.html"]
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: mint-only
+    title: "🔗 Mint-only content_plan link"
+    description: "Minimal call — just `link_type`. No channels → nothing is sent (`notified: false`); the response carries `magic_url` for you to deliver however you like."
+    request:
+      link_type: "content_plan"
+  - id: record-notify
+    title: "📬 Record link + notify via Telegram + email"
+    description: "After a video finishes, send the client its recording workspace link. `link_type=record` requires `topic_id`. Per-channel outcome comes back in `results` (`sent` | `skipped` | `failed`); recipients are resolved server-side from Setup > Notification settings."
+    request:
+      link_type: "record"
+      topic_id: "widecastab12"
+      ttl_days: 7
+      channels: {"telegram": true, "email": true}
+  - id: missing-topic-id
+    title: "🚫 record without topic_id (negative — 400)"
+    description: "Negative example — `link_type=record` without `topic_id` returns `400 missing_field` with `error.param = \"topic_id\"`."
+    request:
+      link_type: "record"

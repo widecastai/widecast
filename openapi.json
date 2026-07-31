@@ -1612,6 +1612,108 @@
         }
       }
     },
+    "/v1/client_link/send": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "sendClientLink",
+        "summary": "Mint a no-login client link and optionally notify the client.",
+        "description": "Synchronous, free. Mint a no-login client link (\"magic link\") and\nOPTIONALLY send it through the account's notification channels.\nBuilt for autonomous AI agents operating an account: e.g. after\nfinishing a video, send the client a `record` link; after queueing\nan idea, send a `content_plan` link so the client can review.\n\n**Link types** (`link_type`):\n  * **record** — opens one specific project's recording workspace\n    (REQUIRES `topic_id`).\n  * **content_plan** — the Saved Ideas / content-plan screen.\n  * **setup** — the account Setup Center.\n  * **social_dashboard** — the Social Dashboard (statistics).\n  * **publish_schedule** — the Publish Schedule screen.\n\n**Mint-only vs notify**: when `channels` is omitted, empty, or\nall-false, NO notification is sent — the caller gets `magic_url`\nback and decides later (mint-only). When at least one channel is\n`true`, the link is delivered on those channels and the response\ncarries a per-channel `results` object.\n\nRecipients are ALWAYS resolved server-side from the account's\nSetup > Notification settings — the caller can NEVER supply a\nphone number or email address (anti-spam-relay design).\n\nNotification content is composed SERVER-SIDE per `link_type`\n(`record` includes the video's title/hook; `content_plan` says\n\"Your content plan is ready for review\"; etc.) across the Telegram\nmessage, SMS (Twilio) and email with a CTA button.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientLinkSendRequest"
+              },
+              "examples": {
+                "record_with_channels": {
+                  "summary": "Mint a record link for one project and notify via Telegram + email",
+                  "value": {
+                    "link_type": "record",
+                    "topic_id": "widecast7c0d4f8a9b1e",
+                    "ttl_days": 14,
+                    "channels": {
+                      "telegram": true,
+                      "email": true
+                    }
+                  }
+                },
+                "content_plan_mint_only": {
+                  "summary": "Mint a content-plan link only (no notification sent)",
+                  "value": {
+                    "link_type": "content_plan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link minted (and, when channels were requested, delivery attempted).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json`, `invalid_link_type` (param=link_type),\n`missing_field` (param=topic_id, when `link_type=record`\nwithout a `topic_id`), `invalid_topic_id` (param=topic_id), or\n`invalid_channels` (param=channels).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "`client_link_failed` — the API key has no account email.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`client_link_failed` — minting the link failed upstream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/publish": {
       "post": {
         "tags": [
@@ -4643,6 +4745,185 @@
             "type": "string",
             "format": "uri",
             "example": "https://widecast.ai/#setup"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ClientLinkSendRequest": {
+        "type": "object",
+        "required": [
+          "link_type"
+        ],
+        "description": "Body for `POST /v1/client_link/send`. Recipients are ALWAYS\nresolved server-side from the account's Setup > Notification\nsettings — there is no phone/email field by design (prevents using\nWideCast as a notification spam relay).\n",
+        "properties": {
+          "link_type": {
+            "type": "string",
+            "enum": [
+              "record",
+              "content_plan",
+              "setup",
+              "social_dashboard",
+              "publish_schedule"
+            ],
+            "description": "REQUIRED. Which screen the link opens: `record` = one specific\nproject's recording workspace (REQUIRES `topic_id`);\n`content_plan` = the Saved Ideas / content-plan screen;\n`setup` = the account Setup Center; `social_dashboard` = the\nSocial Dashboard (statistics); `publish_schedule` = the\nPublish Schedule screen.\n"
+          },
+          "topic_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "The project the `record` link opens. Required IFF\n`link_type=record` (400 `missing_field` when absent there);\nignored for the other link types.\n"
+          },
+          "ttl_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 7,
+            "description": "Link lifetime in days. Out-of-range values are clamped to 1..30."
+          },
+          "channels": {
+            "type": "object",
+            "description": "Which of the account's notification channels deliver the link.\nOmitted, empty, or all-false => MINT-ONLY (no notification is\nsent; the caller gets `magic_url` and decides later).\n",
+            "properties": {
+              "telegram": {
+                "type": "boolean",
+                "description": "Send via the account's connected Telegram chat."
+              },
+              "sms": {
+                "type": "boolean",
+                "description": "Send via SMS (Twilio) to the account's configured phone number."
+              },
+              "email": {
+                "type": "boolean",
+                "description": "Send via email to the account's configured address."
+              }
+            }
+          },
+          "page": {
+            "type": "string",
+            "enum": [
+              "record.html",
+              "record2.html"
+            ],
+            "default": "record.html",
+            "description": "Which app page hosts the link."
+          }
+        }
+      },
+      "ClientLinkResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "link_type",
+          "magic_url",
+          "expires_in_days",
+          "notified",
+          "request_id"
+        ],
+        "description": "Success body for POST /v1/client_link/send. `results` is present\nonly when channels were requested; per-channel objects carry their\nown status.\n",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "client_link"
+          },
+          "link_type": {
+            "type": "string",
+            "enum": [
+              "record",
+              "content_plan",
+              "setup",
+              "social_dashboard",
+              "publish_schedule"
+            ]
+          },
+          "magic_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The no-login client link. Hand it to the client or send it later.",
+            "example": "https://widecast.ai/record.html#workspace?token=...&redirect=..."
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "description": "The applied link lifetime (after clamping), in days.",
+            "example": 7
+          },
+          "notified": {
+            "type": "boolean",
+            "description": "`true` when at least one notification channel delivered the link."
+          },
+          "topic_id": {
+            "type": "string",
+            "description": "Present only for `link_type=record`.",
+            "example": "widecastab12"
+          },
+          "results": {
+            "type": "object",
+            "description": "Present only when channels were requested. Per-channel delivery\nstatus: `sent` | `skipped` | `failed` (with `reason` / `error`).\n",
+            "properties": {
+              "telegram": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "sent",
+                      "skipped",
+                      "failed"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Set when status=skipped."
+                  },
+                  "error": {
+                    "type": "string",
+                    "description": "Set when status=failed."
+                  }
+                }
+              },
+              "sms": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "sent",
+                      "skipped",
+                      "failed"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Set when status=skipped (e.g. `sms_not_configured`)."
+                  },
+                  "error": {
+                    "type": "string",
+                    "description": "Set when status=failed."
+                  }
+                }
+              },
+              "email": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "sent",
+                      "skipped",
+                      "failed"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Set when status=skipped."
+                  },
+                  "error": {
+                    "type": "string",
+                    "description": "Set when status=failed."
+                  }
+                }
+              }
+            }
           },
           "request_id": {
             "type": "string"

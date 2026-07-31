@@ -63,6 +63,7 @@ console.log(v.status, v.review_url);
 | [`/v1/collect_ideas`](endpoints/collect-ideas.html) | POST | (sync) Video ideas from a product/service description |
 | [`/v1/publish`](endpoints/publish.html) | POST | Publish a video / blog / text to connected social platforms (returns request_ids → poll status) |
 | [`/v1/notification/send`](endpoints/notification-send.html) | POST | (sync, free) Push a self-notify notification — email default + Telegram if connected. `subject` + `message` (+ optional photo/video URL) |
+| [`/v1/client_link/send`](endpoints/client-link-send.html) | POST | (sync, free) Mint a no-login client "magic link" (`record` / `content_plan` / `setup` / `social_dashboard` / `publish_schedule`) and optionally notify the client via the account's Telegram/SMS/email channels — recipients resolved server-side, never supplied by the caller |
 | [`/v1/videos`](endpoints/library.html) | GET | (read, free) List the account's recent videos |
 | [`/v1/video_data`](endpoints/video-data.html) | POST | (sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — **first step for data-first scene audit/edit**. Chain: video_data → scene_geometry → modify_scene |
 | [`/v1/account`](endpoints/library.html) | GET | (read, free) Account profile + remaining credits |

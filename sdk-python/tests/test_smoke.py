@@ -13,6 +13,8 @@ from widecast import (
     MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
     OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
     PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
+    CLIENT_LINK_TYPES, CLIENT_LINK_TTL_MIN, CLIENT_LINK_TTL_MAX,
+    CLIENT_LINK_TTL_DEFAULT,
     __version__,
 )
 
@@ -36,6 +38,8 @@ def test_public_surface_exports():
         "FREE_TIER_WORDS_PER_SECOND", "PRICING_URL",
         "OUTPUT_TYPES", "SOURCES", "FACELESS_SOURCES", "CONTENT_TYPES",
         "INTERVENTION_LEVELS", "PUBLISH_PLATFORMS", "VIDEO_LENGTHS", "LANGUAGES",
+        "CLIENT_LINK_TYPES", "CLIENT_LINK_TTL_MIN", "CLIENT_LINK_TTL_MAX",
+        "CLIENT_LINK_TTL_DEFAULT",
         "verify_webhook", "WebhookVerificationError",
         "__version__",
     ])
@@ -905,3 +909,98 @@ def test_video_dict_access_failed():
     assert v.is_terminal is True
     assert v.error == {"code": "credit_exhausted", "message": "Out of credits."}
     assert v.review_url is None
+
+
+# ── /v1/client_link/send (no-login client "magic links") ────────────────────
+
+def test_client_link_constants_locked():
+    """Parity canary: the link_type enum + TTL bounds must match the server
+    (/v1/client_link/send + WIDECAST_CLIENT_LINK_TTL_* in dashboard2.py).
+    Changing one side without the other breaks parity."""
+    assert CLIENT_LINK_TYPES == ("record", "content_plan", "setup",
+                                 "social_dashboard", "publish_schedule")
+    assert CLIENT_LINK_TTL_MIN == 1
+    assert CLIENT_LINK_TTL_MAX == 30
+    assert CLIENT_LINK_TTL_DEFAULT == 7
+
+
+def test_client_exposes_send_client_link():
+    assert callable(getattr(Widecast(api_key="dummy"), "send_client_link", None))
+
+
+def test_send_client_link_rejects_invalid_link_type():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.send_client_link("dashboard")
+    assert ei.value.code == "invalid_link_type"
+    assert ei.value.param == "link_type"
+
+
+def test_send_client_link_record_requires_topic_id():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.send_client_link("record")
+    assert ei.value.code == "missing_field"
+    assert ei.value.param == "topic_id"
+
+
+def test_send_client_link_rejects_bad_topic_id():
+    c = Widecast(api_key="dummy")
+    for bad in ("bad id!", "x" * 65):
+        with pytest.raises(InvalidRequestError) as ei:
+            c.send_client_link("record", topic_id=bad)
+        assert ei.value.code == "invalid_topic_id"
+        assert ei.value.param == "topic_id"
+
+
+def test_send_client_link_rejects_ttl_out_of_bounds():
+    c = Widecast(api_key="dummy")
+    for bad in (CLIENT_LINK_TTL_MIN - 1, CLIENT_LINK_TTL_MAX + 1, "7"):
+        with pytest.raises(InvalidRequestError) as ei:
+            c.send_client_link("setup", ttl_days=bad)
+        assert ei.value.code == "invalid_ttl_days"
+        assert ei.value.param == "ttl_days"
+
+
+def test_send_client_link_rejects_bad_channels():
+    c = Widecast(api_key="dummy")
+    # Not an object
+    with pytest.raises(InvalidRequestError) as ei:
+        c.send_client_link("content_plan", channels=["telegram"])
+    assert ei.value.code == "invalid_channels"
+    assert ei.value.param == "channels"
+    # Unknown channel key (recipients are server-resolved — no phone/email)
+    with pytest.raises(InvalidRequestError) as ei:
+        c.send_client_link("content_plan", channels={"whatsapp": True})
+    assert ei.value.code == "invalid_channels"
+    assert ei.value.param == "channels"
+
+
+def test_send_client_link_rejects_invalid_page():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.send_client_link("setup", page="index.html")
+    assert ei.value.code == "invalid_page"
+    assert ei.value.param == "page"
+
+
+def test_send_client_link_mint_only_passes_prevalidation():
+    """Mint-only (channels omitted) content_plan link must PASS validation
+    (the failure here is the network call, not InvalidRequestError)."""
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.send_client_link("content_plan")
+    assert not isinstance(ei.value, InvalidRequestError)
+
+
+def test_send_client_link_record_with_channels_passes_prevalidation():
+    """record + topic_id + channels + ttl at the max + page must all PASS
+    pre-validation → network failure, not InvalidRequestError."""
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.send_client_link("record", topic_id="widecastab12",
+                           channels={"telegram": True, "sms": False,
+                                     "email": True},
+                           ttl_days=CLIENT_LINK_TTL_MAX,
+                           page="record2.html")
+    assert not isinstance(ei.value, InvalidRequestError)
