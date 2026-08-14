@@ -46,6 +46,7 @@
   <header class="wc-nav">
     <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
     <nav>
+      <a href="guide/index.html">Guide</a>
       <a href="docs.html">Docs</a>
       <a href="playground.html">Playground</a>
       <a href="endpoints/create-video.html">API</a>
@@ -90,7 +91,7 @@
 </tr>
 <tr>
 <td><code>video_url</code></td>
-<td><code>video_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min</td>
+<td><code>video_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤5 min</td>
 <td><strong>Auto-Edit</strong> — the footage itself becomes the B-roll</td>
 </tr>
 <tr>
@@ -100,7 +101,7 @@
 </tr>
 <tr>
 <td><code>audio_url</code></td>
-<td><code>audio_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤2 min</td>
+<td><code>audio_url</code> — any public http(s) URL (direct file link OR YouTube / TikTok / Facebook), ≤5 min</td>
 <td><strong>Audio-to-Video</strong> — the audio becomes the narration, the AI builds matching scenes. <strong>The natural path for an AI agent forwarding a chat-attached voice memo:</strong> drop it on a public host (transfer.sh, file.io, S3 / R2, your CDN, …) and pass that URL.</td>
 </tr>
 <tr>
@@ -382,13 +383,13 @@
 <td><code>video_url</code> / <code>audio_url</code></td>
 <td>string (url)</td>
 <td>when <code>source=video_url</code> / <code>audio_url</code></td>
-<td><strong>Any public http(s) URL</strong> (≤2 min): a direct file link (S3, Cloudflare R2, transfer.sh, file.io, your CDN, …) OR a YouTube / TikTok / Facebook page URL. <code>video_url</code> → footage becomes B-roll (Auto-Edit); <code>audio_url</code> → audio becomes narration (Audio-to-Video). Over the cap → <code>media_too_long</code>. Loopback / private-network / link-local hosts (<code>localhost</code>, <code>10.x</code>, <code>192.168.x</code>, <code>169.254.x</code>, <code>.local</code>, …) are rejected as <code>unsupported_media_url</code>.</td>
+<td><strong>Any public http(s) URL</strong> (≤5 min): a direct file link (S3, Cloudflare R2, transfer.sh, file.io, your CDN, …) OR a YouTube / TikTok / Facebook page URL. <code>video_url</code> → footage becomes B-roll (Auto-Edit); <code>audio_url</code> → audio becomes narration (Audio-to-Video). Over the cap → <code>media_too_long</code>. Loopback / private-network / link-local hosts (<code>localhost</code>, <code>10.x</code>, <code>192.168.x</code>, <code>169.254.x</code>, <code>.local</code>, …) are rejected as <code>unsupported_media_url</code>.</td>
 </tr>
 <tr>
 <td><code>video_file</code> / <code>audio_file</code></td>
 <td>file</td>
 <td>when <code>source=video_file</code> / <code>audio_file</code></td>
-<td>The media file, sent as <strong>multipart/form-data</strong> (the request must be multipart). Caps: <strong>≤100 MB</strong> (<code>file_too_large</code>, pre-validated client-side) and <strong>≤2 min</strong> (<code>media_too_long</code>).</td>
+<td>The media file, sent as <strong>multipart/form-data</strong> (the request must be multipart). Caps: <strong>≤100 MB</strong> (<code>file_too_large</code>, pre-validated client-side) and <strong>≤5 min</strong> (<code>media_too_long</code>).</td>
 </tr>
 <tr>
 <td><code>language</code></td>
@@ -737,7 +738,7 @@ terminal <code>video.completed</code> webhook fires only when the MP4 is ready.<
 <tr>
 <td><code>media_too_long</code></td>
 <td>400</td>
-<td>The media exceeds the 2-minute duration cap (all media — URL, upload, or base64).</td>
+<td>The media exceeds the 5-minute duration cap (all media — URL, upload, or base64).</td>
 </tr>
 <tr>
 <td><code>file_too_large</code></td>

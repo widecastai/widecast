@@ -942,11 +942,28 @@ const TOOLS = [
             "via widecast_production_plan) with workflow_phase='queued' (or 'ab_roll' " +
             "when source='template' + a template is given). Self-notify style: the " +
             "account is resolved server-side from the API key — no company/user field " +
-            "in the body. Returns `{object:'production_plan_entry', added:true, " +
-            "topic_id, workflow_phase, industry, source, request_id}` — `topic_id` is " +
-            "the queued entry's id (auto-generated when you don't pass one). Errors: " +
-            "400 `missing_field` (idea_text) / `invalid_week_start`, 502 " +
-            "`production_plan_add_failed`.",
+            "in the body. RECOMMENDED IDEA: optionally pass `recommended:true` to " +
+            "flag this idea as your top pick when adding several — the plan list " +
+            "shows a 'Recommended' badge on it (idea-level flag; NOT the same as " +
+            "`recommended_format`, which picks the master script version). " +
+            "SCRIPT ATTACH: optionally pass `scripts` = 1-5 PRE-WRITTEN " +
+            "script versions (each {format: 'VE'|'QA'|'POV'|'CS'|'MB', text: the full " +
+            "spoken script, 80-1000 words}; formats unique) + `recommended_format` " +
+            "(defaults to the first entry's format) + `language`. The idea is then " +
+            "stored ALREADY 'Script ready' (no LLM, no credit): opening it in the " +
+            "dashboard goes straight into the Script Editor with the version(s) " +
+            "selectable — no writing/generation step. Use this when the user already " +
+            "wrote or approved the script(s) for the idea. Do NOT pass a topic_id " +
+            "that already has a video/script when attaching (409 `topic_exists`). " +
+            "Returns `{object:'production_plan_entry', added:true, topic_id, " +
+            "workflow_phase, industry, source, request_id}` — `topic_id` is the " +
+            "queued entry's id (auto-generated when you don't pass one) — plus, when " +
+            "scripts were sent: `scripts_attached` (formats stored), " +
+            "`recommended_format`, `script_ready:true`. Errors: 400 `missing_field` " +
+            "(idea_text) / `invalid_week_start` / `invalid_scripts` / " +
+            "`script_too_short` / `script_too_long` / `invalid_recommended_format`, " +
+            "409 `topic_exists`, 502 `production_plan_add_failed` / " +
+            "`script_seed_failed`.",
         inputSchema: {
             type: "object",
             required: ["idea_text"],
@@ -962,6 +979,27 @@ const TOOLS = [
                 core_topics: { type: "string", description: "Advanced: core topics for the idea." },
                 peripheral_topics: { type: "string", description: "Advanced: peripheral/related topics." },
                 short_headline: { type: "string", description: "Advanced: a short headline for the entry." },
+                recommended: { type: "boolean", description: "Optional. Set true to flag this idea as your recommended pick (e.g. when adding several generated ideas) — the plan list shows a 'Recommended' badge on it. Idea-level flag, NOT the script-version recommended_format." },
+                scripts: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 5,
+                    description: "Optional — SCRIPT ATTACH. 1-5 pre-written script versions, one per " +
+                        "format (formats unique). Each item's text = the FULL spoken script " +
+                        "for that angle, 80-1000 words. When sent, the idea lands 'Script " +
+                        "ready' — the dashboard opens it straight in the Script Editor (no " +
+                        "writing step, no credit) with the versions selectable.",
+                    items: {
+                        type: "object",
+                        required: ["format", "text"],
+                        properties: {
+                            format: { type: "string", enum: ["VE", "QA", "POV", "CS", "MB"], description: "Script angle: VE=Value Explainer, QA=Client Q&A, POV, CS=Case Study, MB=Myth-Buster." },
+                            text: { type: "string", description: "Full script text for this format (80-1000 words)." },
+                        },
+                    },
+                },
+                recommended_format: { type: "string", enum: ["VE", "QA", "POV", "CS", "MB"], description: "Optional. Which supplied format is the recommended/master version. Must be one of the supplied scripts[].format; defaults to the first entry's format." },
+                language: { type: "string", description: "Optional. Language of the attached scripts (e.g. 'English', 'Vietnamese'). Defaults to the account's saved output language." },
             },
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
@@ -975,6 +1013,10 @@ const TOOLS = [
                 industry: { type: "string" },
                 source: { type: "string" },
                 request_id: { type: "string" },
+                recommended: { type: "boolean", description: "Only when recommended:true was sent." },
+                scripts_attached: { type: "array", items: { type: "string", enum: ["VE", "QA", "POV", "CS", "MB"] }, description: "Only when scripts were sent — formats stored, fixed order." },
+                recommended_format: { type: "string" },
+                script_ready: { type: "boolean" },
             },
         },
     },
@@ -1372,7 +1414,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const body = { idea_text: String(args.idea_text ?? "") };
             for (const k of ["description", "industry", "source", "week_start", "topic_id",
                 "template", "sub_industry", "core_topics", "peripheral_topics",
-                "short_headline"]) {
+                "short_headline", "recommended", "scripts",
+                "recommended_format", "language"]) {
                 if (args[k] !== undefined && args[k] !== "")
                     body[k] = args[k];
             }

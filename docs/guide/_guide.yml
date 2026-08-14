@@ -1,0 +1,59 @@
+# _guide.yml — manifest for the User Guide build (see docs/build.py `_build_guide`).
+#
+# groups:              index + nav order for guide/index.html
+# ui_surfaces:         the UI-feature universe for the coverage check. The api:*
+#                      and mcp:* universes are derived automatically (openapi.yaml
+#                      + mcp-server/src/index.ts) — this map is the hand-curated
+#                      third leg, since the UI can't be enumerated from code.
+# coverage_exceptions: universe items deliberately NOT documented in the guide.
+#                      Every entry needs a reason. Stale entries fail the build.
+#
+# enforce_full_coverage: while false, missing coverage only prints warnings.
+# Flip to true once the full planned topic set has shipped — from then on,
+# adding an endpoint / MCP tool / ui_surface without a guide topic FAILS
+# `make check` (same discipline as HANDOFF A38).
+enforce_full_coverage: true
+
+groups:
+  - key: getting-started
+    title: Getting started
+  - key: creating
+    title: Creating content
+  - key: editing
+    title: Editing videos
+  - key: sharing
+    title: Sharing & clients
+  - key: publishing
+    title: Publishing
+  - key: help
+    title: Automation & help
+
+ui_surfaces:
+  home_dashboard: "Home dashboard: video list, statuses, Creator Tools cards"
+  setup_center: "Setup Center (#setup): Content Strategy, Notification, API Keys & MCP, Face Cloning, Voice Cloning, Connect Social Account"
+  recording: "Camera + teleprompter recording"
+  script_editor: "Script editor: 5 script formats, voice picker, Generate Full AI Video"
+  scene_editor: "Scene editor shell: scene list, reorder, trim/split, narrator toggle, preview"
+  broll_picker: "Background/footage picker: stock video, real image, AI image, upload, YouTube, UGC, paste URL"
+  overlay_editor: "Overlay text, captions, pencil text edit on poster/typography scenes"
+  thumbnail_editor: "Thumbnail scene + Generate Thumbnail"
+  avatars_voice: "Avatar photos, outfits, AI avatar video, voice cloning, dubbing"
+  music_audio: "Background music picker"
+  export: "Export / render the final MP4"
+  ai_images: "AI image generation for scene backgrounds"
+  blog_editor: "Blog post generation + rich-text editing"
+  production_plan: "Trending ideas + Production Plan backlog"
+  roadmap: "60-Video Authority Roadmap"
+  foundation_videos: "Foundation Videos template library"
+  client_links: "Client magic links: project workspace link + client setup link"
+  team_users: "Team / sub-user management"
+  notifications: "Notification channels (Telegram, email, SMS) + Send Notify"
+  platform_connect: "Connect social accounts + per-platform publish settings"
+  publish_schedule: "Publish now + Publish Schedule calendar"
+  social_dashboard: "Social analytics dashboard"
+  billing: "Subscription, credits, upgrade / cancel / pause"
+
+coverage_exceptions:
+  "api:GET /openapi.json": "spec self-reference, not a user feature"
+  "api:GET /openapi.yaml": "spec self-reference, not a user feature"
+  "api:GET /v1/skills/video-script-writing": "deprecated alias of GET /v1/skills/writing"

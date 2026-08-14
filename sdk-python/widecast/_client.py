@@ -52,6 +52,14 @@ IDEA_MIN_WORDS = 5        # source="idea" floor — reject if shorter
 IDEA_MAX_WORDS = 1000     # source="idea" ceiling — auto-truncate not reject
 BLOG_MIN_WORDS = 30       # source="blog" floor — reject if shorter (use idea)
 BLOG_MAX_WORDS = 3000     # source="blog" ceiling — auto-truncate not reject
+# Script attach on /v1/production_plan/add (A55): pre-written script versions
+# carried WITH an idea. Bounds are PER VERSION and mirror the server constants
+# WIDECAST_PLAN_SCRIPT_MIN_WORDS / MAX_WORDS in dashboard2.py. NOTE: distinct
+# from SCRIPT_MIN/MAX_WORDS above (80/500 = create_video source="text") — a
+# plan-attached script may run up to 1000 words.
+SCRIPT_FORMATS = ("VE", "QA", "POV", "CS", "MB")  # mirrors _SCRIPT_FORMAT_KEYS
+PLAN_SCRIPT_MIN_WORDS = 80
+PLAN_SCRIPT_MAX_WORDS = 1000
 OUTPUT_TYPES = ("text", "scene", "video")  # pipeline depth (A46)
 # blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
 # the script already lives in the media; output_type="text" = Remake (A50).
@@ -1815,7 +1823,11 @@ class Widecast:
                                sub_industry: Optional[str] = None,
                                core_topics: Optional[str] = None,
                                peripheral_topics: Optional[str] = None,
-                               short_headline: Optional[str] = None) -> dict:
+                               short_headline: Optional[str] = None,
+                               recommended: Optional[bool] = None,
+                               scripts: Optional[list] = None,
+                               recommended_format: Optional[str] = None,
+                               language: Optional[str] = None) -> dict:
         """POST /v1/production_plan/add — queue a new idea/topic into the
         account's production plan. SYNC, FREE. Readable back via
         :meth:`production_plan`.
@@ -1823,6 +1835,13 @@ class Widecast:
         The entry lands with ``workflow_phase="queued"`` — or ``"ab_roll"``
         when ``source="template"`` and a ``template`` is given. The account
         is resolved server-side from the API key.
+
+        **Script attach (A55).** Pass ``scripts`` — 1-5 pre-written script
+        versions ``[{"format": "VE", "text": "..."}]`` (formats unique, one
+        of :data:`SCRIPT_FORMATS`, each text 80-1000 words) — to store the
+        idea already "Script ready": opening it in the dashboard goes
+        straight into the Script Editor with the version(s) selectable,
+        skipping the writing/generation step (no LLM call, no credit).
 
         Args:
             idea_text:    REQUIRED. The idea / topic line to queue.
@@ -1832,11 +1851,27 @@ class Widecast:
             week_start:   Optional unix timestamp (seconds) for the plan
                           week; the entry's creation_time. Defaults to now.
             topic_id:     Optional stable id; auto-generated when omitted.
+                          Must NOT already have a video/script when
+                          ``scripts`` is sent (409 ``topic_exists``).
             template / sub_industry / core_topics / peripheral_topics /
             short_headline: advanced template-flow fields.
+            recommended:  Optional. ``True`` flags this idea as your
+                          recommended pick — the dashboard's plan list shows
+                          a "Recommended" badge on it. Idea-level flag, NOT
+                          the script-version ``recommended_format``.
+            scripts:      Optional list of 1-5 ``{"format","text"}`` dicts
+                          (see above).
+            recommended_format: Optional; which supplied format is the
+                          recommended/master version. Defaults to the first
+                          entry's format. Only sent alongside ``scripts``.
+            language:     Optional language of the attached scripts (e.g.
+                          ``"English"``); defaults to the account's output
+                          language. Only sent alongside ``scripts``.
 
         Returns ``{object:"production_plan_entry", added:True, topic_id,
-        workflow_phase, industry, source, request_id}``.
+        workflow_phase, industry, source, request_id}`` — plus, when
+        ``scripts`` was sent: ``scripts_attached`` (formats stored, fixed
+        VE→QA→POV→CS→MB order), ``recommended_format``, ``script_ready``.
         """
         if not isinstance(idea_text, str) or not idea_text.strip():
             raise InvalidRequestError(
@@ -1853,6 +1888,62 @@ class Widecast:
                 body[_k] = _v
         if week_start is not None:
             body["week_start"] = int(week_start)
+        if recommended:
+            body["recommended"] = True
+        if scripts is not None:
+            # Pre-validate client-side — mirrors _wc_validate_plan_scripts on
+            # the server (same codes) so bad payloads fail before the wire.
+            if not isinstance(scripts, (list, tuple)) or not (1 <= len(scripts) <= 5):
+                raise InvalidRequestError(
+                    "scripts must be a list of 1-5 {'format','text'} dicts.",
+                    code="invalid_scripts", param="scripts")
+            _seen = set()
+            _norm = []
+            for _i, _entry in enumerate(scripts):
+                _p = f"scripts[{_i}]"
+                if not isinstance(_entry, dict):
+                    raise InvalidRequestError(
+                        f"{_p} must be a dict with 'format' and 'text'.",
+                        code="invalid_scripts", param=_p)
+                _fmt = str(_entry.get("format") or "").strip().upper()
+                if _fmt not in SCRIPT_FORMATS:
+                    raise InvalidRequestError(
+                        f"{_p}.format must be one of {SCRIPT_FORMATS}.",
+                        code="invalid_scripts", param=f"{_p}.format")
+                if _fmt in _seen:
+                    raise InvalidRequestError(
+                        f"Duplicate format '{_fmt}' — each format at most once.",
+                        code="invalid_scripts", param=f"{_p}.format")
+                _text = _entry.get("text")
+                if not isinstance(_text, str) or not _text.strip():
+                    raise InvalidRequestError(
+                        f"{_p}.text (the full script text) is required.",
+                        code="invalid_scripts", param=f"{_p}.text")
+                _wc = len(_text.split())
+                if _wc < PLAN_SCRIPT_MIN_WORDS:
+                    raise InvalidRequestError(
+                        f"{_p}.text has {_wc} words; minimum is "
+                        f"{PLAN_SCRIPT_MIN_WORDS}.",
+                        code="script_too_short", param=f"{_p}.text")
+                if _wc > PLAN_SCRIPT_MAX_WORDS:
+                    raise InvalidRequestError(
+                        f"{_p}.text has {_wc} words; maximum is "
+                        f"{PLAN_SCRIPT_MAX_WORDS}.",
+                        code="script_too_long", param=f"{_p}.text")
+                _seen.add(_fmt)
+                _norm.append({"format": _fmt, "text": _text.strip()})
+            body["scripts"] = _norm
+            _rec = str(recommended_format or "").strip().upper()
+            if _rec:
+                if _rec not in _seen:
+                    raise InvalidRequestError(
+                        f"recommended_format '{_rec}' must be one of the "
+                        f"supplied script formats.",
+                        code="invalid_recommended_format",
+                        param="recommended_format")
+                body["recommended_format"] = _rec
+            if language:
+                body["language"] = language
         return self._request("POST", "/v1/production_plan/add", json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 

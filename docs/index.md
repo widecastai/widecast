@@ -3,6 +3,8 @@
 The complete reference for the WideCast.ai public API, SDKs, and integrations.
 
 > Looking for a 30-second pitch? Head to the [WideCast homepage](widecast.html).
+>
+> Using the WideCast studio (no code)? The [**User Guide**](guide/index.html) covers creating, editing, sharing, and publishing step by step.
 
 ## Quickstart
 

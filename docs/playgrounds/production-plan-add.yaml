@@ -42,6 +42,26 @@ fields:
     type: text
     label: "topic_id (optional — auto-generated if empty)"
     placeholder: ""
+  - name: recommended
+    type: boolean
+    label: "recommended (badge this idea as your top pick in the plan list)"
+  - name: scripts
+    type: json
+    label: "scripts[] — optional script attach: 1-5 {format, text}, formats VE/QA/POV/CS/MB unique, each text 80-1000 words"
+    rows: 8
+    placeholder: |
+      [
+        {"format": "VE", "text": "…full 80-1000 word script…"},
+        {"format": "MB", "text": "…full 80-1000 word script…"}
+      ]
+  - name: recommended_format
+    type: text
+    label: "recommended_format (optional — which supplied format is the master; defaults to the first)"
+    placeholder: "VE"
+  - name: language
+    type: text
+    label: "language (optional — language of the attached scripts; defaults to account setting)"
+    placeholder: "English"
 
 poll_after_create:
   enabled: false
@@ -54,3 +74,15 @@ use_cases:
       idea_text: "Why estate planning matters for young families"
       description: "Hook on the 40% who die intestate; CTA to book a consult."
       source: "idea"
+  - id: queue-idea-with-scripts
+    title: "🎬 Queue a RECOMMENDED idea WITH pre-written scripts (Script ready)"
+    description: "Script attach (A55): the idea lands already 'Script ready' — opening it in the dashboard goes straight into the Script Editor with the supplied versions selectable (no writing step, no credit). recommended:true adds a 'Recommended' badge in the plan list. Each text must be 80-1000 words; 409 topic_exists if the topic_id already has a video/script."
+    request:
+      idea_text: "3 estate-planning mistakes young parents make"
+      recommended: true
+      scripts:
+        - format: "VE"
+          text: "Three estate-planning mistakes I see young parents make every single week. Number one: they think a will is something you do at fifty. If you have a child and no will, a judge — not you — decides who raises them if the worst happens. Number two: they name godparents at church but never on paper. Courts do not care about ceremonies; they care about documents. Pick a guardian, write it down, tell them. Number three: they forget the beneficiary forms. Your 401k and life insurance skip the will entirely — whoever is on that form gets the money, even an ex. Twenty minutes fixes all three. Comment PLAN and I will send you the exact checklist I use with my own clients."
+        - format: "MB"
+          text: "You do not need a lawyer to protect your kids — you need a plan. Everyone tells young parents that estate planning means expensive attorneys and thick binders. Wrong. The three documents that matter most take one afternoon. A simple will names who raises your children — without it, a judge decides. A beneficiary check on your 401k and life insurance takes ten minutes online — and it overrides your will, which is why an ex-spouse still collects sometimes. A power of attorney means someone can pay your mortgage if you are in a hospital bed. Start with those three. A lawyer polishes a plan; the plan itself starts with you, today. Comment PLAN and I will send you the checklist my own clients use."
+      recommended_format: "VE"

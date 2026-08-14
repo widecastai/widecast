@@ -33,6 +33,15 @@ export const IDEA_MIN_WORDS = 5;       // source="idea" floor — reject if shor
 export const IDEA_MAX_WORDS = 1000;    // source="idea" ceiling — auto-truncate not reject
 export const BLOG_MIN_WORDS = 30;      // source="blog" floor — reject if shorter (use idea)
 export const BLOG_MAX_WORDS = 3000;    // source="blog" ceiling — auto-truncate not reject
+// Script attach on /v1/production_plan/add (A55): pre-written script versions
+// carried WITH an idea. Bounds are PER VERSION and mirror the server constants
+// WIDECAST_PLAN_SCRIPT_MIN/MAX_WORDS in dashboard2.py. NOTE: distinct from
+// SCRIPT_MIN/MAX_WORDS above (80/500 = create_video source="text") — a
+// plan-attached script may run up to 1000 words.
+export const SCRIPT_FORMATS = ["VE", "QA", "POV", "CS", "MB"] as const; // _SCRIPT_FORMAT_KEYS
+export type ScriptFormat = (typeof SCRIPT_FORMATS)[number];
+export const PLAN_SCRIPT_MIN_WORDS = 80;
+export const PLAN_SCRIPT_MAX_WORDS = 1000;
 export const OUTPUT_TYPES = ["text", "scene", "video"] as const;  // pipeline depth (A46)
 export type OutputType = (typeof OUTPUT_TYPES)[number];
 // blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
@@ -2049,7 +2058,16 @@ export class Widecast {
    *  entry lands with `workflow_phase="queued"` (or `"ab_roll"` when
    *  `source="template"` + a `template` is given). The account is resolved
    *  server-side. `idea_text` is required; `topic_id` auto-generates when
-   *  omitted; `industry` falls back to the account's industry. */
+   *  omitted; `industry` falls back to the account's industry.
+   *
+   *  SCRIPT ATTACH (A55): pass `scripts` — 1-5 pre-written script versions
+   *  `[{format: "VE"|"QA"|"POV"|"CS"|"MB", text}]` (formats unique, each text
+   *  80-1000 words; see PLAN_SCRIPT_MIN/MAX_WORDS) + optional
+   *  `recommended_format` (defaults to the first entry's format) + `language`
+   *  — to store the idea already "Script ready": opening it in the dashboard
+   *  goes straight into the Script Editor with the version(s) selectable,
+   *  skipping the writing step (no LLM, no credit). Response then also
+   *  carries `scripts_attached`, `recommended_format`, `script_ready:true`. */
   async add_to_production_plan(
     idea_text: string,
     opts: {
@@ -2063,6 +2081,13 @@ export class Widecast {
       core_topics?: string;
       peripheral_topics?: string;
       short_headline?: string;
+      /** Idea-level flag: true = show a "Recommended" badge on this entry in
+       *  the plan list (agent's top pick). NOT the script-version
+       *  recommended_format. */
+      recommended?: boolean;
+      scripts?: Array<{ format: ScriptFormat | string; text: string }>;
+      recommended_format?: ScriptFormat | string;
+      language?: string;
     } = {},
   ): Promise<any> {
     if (typeof idea_text !== "string" || idea_text.trim() === "") {
@@ -2078,6 +2103,69 @@ export class Widecast {
       if (v !== undefined && v !== "") body[k] = v;
     }
     if (opts.week_start !== undefined) body.week_start = opts.week_start;
+    if (opts.recommended === true) body.recommended = true;
+    if (opts.scripts !== undefined) {
+      // Pre-validate client-side — mirrors the server's
+      // _wc_validate_plan_scripts (same error codes), fast-fail before wire.
+      const scripts = opts.scripts;
+      if (!Array.isArray(scripts) || scripts.length < 1 || scripts.length > 5) {
+        throw new InvalidRequestError(
+          "scripts must be an array of 1-5 {format, text} objects.",
+          { code: "invalid_scripts", param: "scripts" });
+      }
+      const seen = new Set<string>();
+      const norm: Array<{ format: string; text: string }> = [];
+      scripts.forEach((entry, i) => {
+        const p = `scripts[${i}]`;
+        if (typeof entry !== "object" || entry === null) {
+          throw new InvalidRequestError(
+            `${p} must be an object with 'format' and 'text'.`,
+            { code: "invalid_scripts", param: p });
+        }
+        const fmt = String(entry.format ?? "").trim().toUpperCase();
+        if (!(SCRIPT_FORMATS as readonly string[]).includes(fmt)) {
+          throw new InvalidRequestError(
+            `${p}.format must be one of ${SCRIPT_FORMATS.join(", ")}.`,
+            { code: "invalid_scripts", param: `${p}.format` });
+        }
+        if (seen.has(fmt)) {
+          throw new InvalidRequestError(
+            `Duplicate format '${fmt}' — each format at most once.`,
+            { code: "invalid_scripts", param: `${p}.format` });
+        }
+        if (typeof entry.text !== "string" || entry.text.trim() === "") {
+          throw new InvalidRequestError(
+            `${p}.text (the full script text) is required.`,
+            { code: "invalid_scripts", param: `${p}.text` });
+        }
+        const wc = entry.text.trim().split(/\s+/).length;
+        if (wc < PLAN_SCRIPT_MIN_WORDS) {
+          throw new InvalidRequestError(
+            `${p}.text has ${wc} words; minimum is ${PLAN_SCRIPT_MIN_WORDS}.`,
+            { code: "script_too_short", param: `${p}.text` });
+        }
+        if (wc > PLAN_SCRIPT_MAX_WORDS) {
+          throw new InvalidRequestError(
+            `${p}.text has ${wc} words; maximum is ${PLAN_SCRIPT_MAX_WORDS}.`,
+            { code: "script_too_long", param: `${p}.text` });
+        }
+        seen.add(fmt);
+        norm.push({ format: fmt, text: entry.text.trim() });
+      });
+      body.scripts = norm;
+      const rec = String(opts.recommended_format ?? "").trim().toUpperCase();
+      if (rec !== "") {
+        if (!seen.has(rec)) {
+          throw new InvalidRequestError(
+            `recommended_format '${rec}' must be one of the supplied script formats.`,
+            { code: "invalid_recommended_format", param: "recommended_format" });
+        }
+        body.recommended_format = rec;
+      }
+      if (opts.language !== undefined && opts.language !== "") {
+        body.language = opts.language;
+      }
+    }
     return await this.#request("POST", "/v1/production_plan/add", body);
   }
 

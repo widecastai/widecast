@@ -207,7 +207,9 @@ info:
       unsupported_action |
       publisher_missing | mqtt_publish_failed | no_live_editor |
       no_active_editor | browser_error |
-      screenshot_publish_failed | server_fallback_failed`
+      screenshot_publish_failed | server_fallback_failed |
+      invalid_scripts | invalid_recommended_format | topic_exists |
+      script_seed_failed`
     - Headers (every response): `X-Request-Id`, `X-RateLimit-*`,
       `X-WideCast-Version`
     - Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)
@@ -2354,6 +2356,14 @@ paths:
         Shares its core (`_add_to_production_plan_core`) with the dashboard's
         legacy `/add_to_production_plan` route, so the stored row shape is
         identical across both flows.
+
+        **Script attach.** Optionally send `scripts` — 1-5 pre-written script
+        versions (one per format `VE|QA|POV|CS|MB`, each 80-1000 words) plus
+        `recommended_format` and `language`. The idea is then stored already
+        **Script ready** (no LLM call, no credit): opening it in the dashboard
+        goes straight into the Script Editor with the supplied version(s)
+        selectable in the 5-format strip, skipping the writing step. Formats
+        you did not supply stay generatable later from the editor as usual.
       requestBody:
         required: true
         content:
@@ -2371,13 +2381,31 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ProductionPlanEntryResponse' }
         '400':
-          description: "`missing_field` (idea_text) or `invalid_week_start` (not an integer)."
+          description: |
+            `missing_field` (idea_text), `invalid_week_start` (not an
+            integer), or — when `scripts` is sent — `invalid_scripts`
+            (malformed array / bad or duplicate format / missing text),
+            `script_too_short` / `script_too_long` (a version outside the
+            80-1000 word bounds), `invalid_recommended_format`
+            (recommended_format not among the supplied formats).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: |
+            `topic_exists` — `scripts` was sent with a `topic_id` that
+            already has a video/script attached. Omit `topic_id` (a fresh
+            one is generated) or use a different one.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '502':
-          description: "`production_plan_add_failed` — the plan write failed upstream."
+          description: |
+            `production_plan_add_failed` — the plan write failed upstream.
+            `script_seed_failed` — the plan entry was created but attaching
+            the scripts failed; the idea behaves like a normal (script-less)
+            idea.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -5017,6 +5045,51 @@ components:
         short_headline:
           type: string
           description: "Advanced: a short headline for the entry."
+        recommended:
+          type: boolean
+          default: false
+          description: |
+            Optional. Set `true` to flag this idea as your recommended pick —
+            useful when an agent adds several generated ideas and wants to
+            highlight one. The dashboard's plan list shows a **Recommended**
+            badge on the entry (top-right). Idea-level flag — NOT the same as
+            `recommended_format`, which picks the master script version.
+        scripts:
+          type: array
+          minItems: 1
+          maxItems: 5
+          description: |
+            Optional — **script attach**. 1-5 pre-written script versions,
+            one per format (formats must be unique). When sent, the idea is
+            stored already "Script ready" (no LLM call, no credit): opening
+            it in the dashboard goes straight into the Script Editor with
+            the supplied version(s) selectable in the 5-format strip. The
+            recommended version becomes the master script; the others land
+            as ready versions. Do not combine with a `topic_id` that
+            already has a video/script (409 `topic_exists`).
+          items:
+            type: object
+            required: [format, text]
+            properties:
+              format:
+                type: string
+                enum: [VE, QA, POV, CS, MB]
+                description: "Script angle: VE=Value Explainer, QA=Client Q&A, POV, CS=Case Study, MB=Myth-Buster."
+              text:
+                type: string
+                description: Full script text for this format — 80-1000 words.
+        recommended_format:
+          type: string
+          enum: [VE, QA, POV, CS, MB]
+          description: |
+            Optional. Which supplied format is the recommended/master
+            version. Must be one of the supplied `scripts[].format`;
+            defaults to the first entry's format.
+        language:
+          type: string
+          description: |
+            Optional. Language of the attached scripts (e.g. `English`,
+            `Vietnamese`). Defaults to the account's saved output language.
 
     ProductionPlanEntryResponse:
       type: object
@@ -5040,6 +5113,25 @@ components:
           type: string
         request_id:
           type: string
+        recommended:
+          type: boolean
+          description: Present (`true`) only when `recommended:true` was sent.
+        scripts_attached:
+          type: array
+          items:
+            type: string
+            enum: [VE, QA, POV, CS, MB]
+          description: |
+            Present only when `scripts` was sent — the formats stored, in
+            the fixed VE→QA→POV→CS→MB order.
+        recommended_format:
+          type: string
+          description: Present only when `scripts` was sent — the master format.
+        script_ready:
+          type: boolean
+          description: |
+            Present (`true`) only when `scripts` was sent — the idea already
+            carries its script(s); opening it skips the writing step.
 
     ClarificationResponse:
       type: object

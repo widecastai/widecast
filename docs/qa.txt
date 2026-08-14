@@ -1,0 +1,863 @@
+1. Q: What is WideCast?
+1. A: WideCast is an AI system that turns one idea into a finished video, a matching blog post, and a set of social media posts, then can publish all of it for you. You give it a topic, a script, or footage to start from, WideCast researches, writes, and builds the content, and you review everything before it goes out.
+
+2. Q: Does WideCast only create videos?
+2. A: No. From the same idea, WideCast can also write a blog post and social media captions to match, each with its own image. You end up with a video, a blog post, and social posts ready to publish from one piece of content.
+
+3. Q: What platforms can WideCast publish to?
+3. A: WideCast can publish to 11 platforms: YouTube, TikTok, Instagram, Facebook, LinkedIn, X, Threads, Pinterest, Reddit, Bluesky, and Google Business. Connect the accounts you want under "Connected Accounts" in the profile menu, then publish right away or schedule it for later with "Publish Schedule".
+
+4. Q: How do I sign in to WideCast?
+4. A: Go to widecast.ai and click "Sign In" in the top corner. Once you are signed in, the home screen becomes your starting point: your saved drafts, your finished videos, and every setting live there.
+
+5. Q: Where are my videos in WideCast?
+5. A: They are on the home screen under "Recent", listed newest first. Each entry shows its title and a status such as still generating, ready to edit, or ready to record, so you always know what needs your attention next.
+
+6. Q: What is the "Production Plan" card for?
+6. A: "Production Plan" is your saved backlog of ideas, topics, and drafts. Click it whenever you want to pick up something you started earlier or collected for later, instead of starting from a blank page every time.
+
+7. Q: What is the "Setup AI Agent" card for?
+7. A: "Setup AI Agent" opens the Setup Center, where you personalize how WideCast's automation works for your business. Most people visit it once when they start, then come back occasionally to adjust settings.
+
+8. Q: What is the "Creator Tools" card for?
+8. A: "Creator Tools" is where you start a new video. Click it to choose a source, such as an idea, a script, a blog post, or existing footage, and WideCast builds the video from there.
+
+9. Q: Someone sent me a script code. How do I open it in WideCast?
+9. A: On the home screen, click "Open video script by code" near your video list. In the "Open Video Script" window, paste the code they sent you (it looks like widecastXXXXXXXX) and press "Go". WideCast opens that script for you just like one of your own.
+
+10. Q: What is in the "Account" menu?
+10. A: Click "Account" in the top corner to open your profile menu. It has Profile, Connected Accounts, Statistics, Publish Schedule, Subscription & Credits, Users, Team, Send Newsletter, Live Support, and Sign out, everything you need to manage your account without leaving the home screen.
+
+11. Q: Where do I get help or support in WideCast?
+11. A: Click "Account" in the top corner, then choose "Live Support". It opens a live chat so you can talk directly to the WideCast support team without leaving WideCast.
+
+12. Q: What is the Setup Center?
+12. A: The Setup Center is where you configure how WideCast works with your business: your content strategy, notification channels, API keys for AI agents, your face and voice for personalized videos, and your connected social accounts. Open it from the home screen or by going straight to widecast.ai/#setup.
+
+13. Q: How do I open the Setup Center?
+13. A: Click the "Setup AI Agent" card on the home screen, or go to widecast.ai/#setup while you are signed in. Both open the same panel, with a progress bar showing how many of the six sections you have completed.
+
+14. Q: What is Content Strategy used for?
+14. A: Content Strategy is where you tell WideCast what your business does. WideCast uses this to personalize the daily video topic ideas it suggests for you, so you spend less time coming up with what to make next.
+
+15. Q: What does the Notification section do?
+15. A: Notification is where you connect Telegram, email, SMS, or Live Chat so WideCast can reach you with updates and reports. This is an overview only; see [Notifications](guide/notifications.html) for the full setup steps for each channel.
+
+16. Q: What is API Keys & MCP for?
+16. A: API Keys & MCP is where you generate API keys and MCP URLs so an AI agent or another AI tool can create and manage videos in your account on your behalf. Keep any key or URL you generate secret, since anyone who has it can spend your credits. See [API and MCP access](guide/api-and-mcp.html) for details.
+
+17. Q: What is Face Cloning?
+17. A: Face Cloning is where you upload a reference photo of your face so WideCast can use your likeness in personalized videos, such as an AI avatar reading your script.
+
+18. Q: Is Voice Cloning free?
+18. A: No. Voice Cloning, which clones your own voice for narration, shows a "Requires paid account" badge in the Setup Center until you are on a paid plan.
+
+19. Q: What does Connect Social Account do?
+19. A: Connect Social Account is where you link the social platforms you publish videos to. It shows a "Requires paid account" badge until you are on a paid plan. See [Connecting social platforms](guide/connect-platforms.html) for the full walkthrough.
+
+20. Q: Can my client fill in the setup for me?
+20. A: Yes. In the Setup Center, click "Generate setup link" to create a link that opens the Setup Center only, with no sign-in required. Send it to your client and they can fill in sections like Notification or Content Strategy themselves. Any changes they make, and any credits used, belong to your account.
+
+21. Q: How long does a client setup link stay active?
+21. A: You choose 1, 3, or 7 days when you create it, from the "Client setup link" panel in the Setup Center. After that time, the link stops working.
+
+22. Q: Is the client setup link the same as the magic link used for editing videos?
+22. A: No. The client setup link only opens the Setup Center, for filling in account configuration. A separate link, sent from the scene editor's Project tab, lets a client review and edit one specific video. See [Client links](guide/client-links.html) for that one.
+
+23. Q: How do I create my first video in WideCast?
+23. A: Sign in at widecast.ai, click the "Creator Tools" card, choose "Idea to Video", describe your idea, press "Next", pick your output settings, and press "Next" again. The AI researches the topic, writes the script, and builds the scenes while you watch the workflow progress.
+
+24. Q: What can I turn into a video?
+24. A: Creator Tools accepts many starting points: an idea, a ready script, a blog or article, an existing video to remake, an audio file, a voiceover, top YouTube videos on a topic, auto-editing your footage, bulk uploads, and tutorial or guide videos.
+
+25. Q: I have no idea what to make a video about. Can WideCast suggest topics?
+25. A: Yes. In the "Idea to Video" screen click "Ideation with AI" to open "Browse Trending Video Topics", then press "Show Me Ideas". You can also keep a backlog of topics in the Production Plan on the home screen.
+
+26. Q: How long does it take to generate a video?
+26. A: Usually a few minutes. The workflow card shows an estimated time and says "Feel free to do other tasks": you can close the page and come back. On the home screen the video shows "Generating" with a percentage until it is done.
+
+27. Q: What does the "Ready to Edit" status mean?
+27. A: The scenes and footage for your video are generated and waiting for you. Click the video, press "Video" on the script screen that opens, and you land in the scene editor to review each scene and export when happy.
+
+28. Q: What does the "Ready to Record" status mean?
+28. A: Your script is ready but the video expects your own recording. Open it to record yourself reading the script with the built-in camera and teleprompter.
+
+29. Q: What is the difference between "Full recording" and "Scene by scene"?
+29. A: "Full recording" keeps your script and you record the entire video yourself on camera. "Scene by scene" has WideCast build the video for you, scene by scene with B-roll footage, and uses 2 credits.
+
+30. Q: What does "Faceless" mean when generating scenes?
+30. A: A faceless video is built entirely from footage, images, and text, with a voiceover but without you (or an avatar) on camera. Choose "On camera" instead if you want a narrator in the frame.
+
+31. Q: What does the "Deep research, fact and compliance check" do?
+31. A: Before writing the script, the AI researches your topic and checks facts against real sources, so the narration quotes accurate, current information. It is built into every video run, so there is nothing you need to switch on.
+
+32. Q: My video shows "Failed". What should I do?
+32. A: Open Creator Tools and run the video again; occasional generation runs do fail. If the same video fails repeatedly, contact support through "Live Support" in the profile menu so the team can look at the run.
+
+33. Q: How long can my script be?
+33. A: A script you paste into "Script to Video" must be 80 to 500 words, used exactly as written, which is roughly 20 seconds to 2 minutes of narration. Starting from "Idea to Video" gives you more room: 5 to 1000 words, which WideCast turns into a script for you. From "Blog/Article to Video" you can paste 30 to 3000 words. If an idea or article runs past its limit, WideCast automatically shortens it to fit instead of rejecting it.
+
+34. Q: Can I make a video from a YouTube link?
+34. A: Yes. Paste the link into "Remake Video" to pull out the transcript as an editable script, or into "Auto-Edit Video" to turn the footage itself into a new video automatically. "Top Videos on YouTube" is different: it searches YouTube by keyword to help you find ideas, and does not build a video from a link on its own.
+
+35. Q: Can I make a video from a podcast or audio recording?
+35. A: Yes, using "Audio to Video". Upload the audio file or paste a link to it, up to 5 minutes long and up to 100 MB for uploads, and WideCast uses the recording as the narration while it builds matching visuals around it.
+
+36. Q: Can I use my own photos or clips inside the script?
+36. A: Yes. While writing a script in "Script to Video", place a direct image or video link right next to the sentence it belongs to. WideCast uses that file as the visual for that scene instead of choosing its own footage, and skips over it when the narrator reads the script aloud. This works with direct file links, like one ending in .jpg or .mp4, not a page link such as a YouTube watch page.
+
+37. Q: What does "Remake Video" do?
+37. A: It takes a video you already have, by upload or by pasting a link, and pulls out what's said into a new, editable script, without touching the original footage. From there you can revise the wording like any other script and generate a fresh video from it.
+
+38. Q: Is there a length limit for uploaded videos?
+38. A: Yes. Any video or audio you upload or link to, for "Remake Video", "Auto-Edit Video", "Voiceover Video", "Audio to Video", or "Make Tutorial/Guide Video", is capped at 5 minutes of footage. Files you upload directly also have a 100 MB size cap; pasting a link instead has no separate size limit. "Bulk Upload" has its own tighter cap: each clip in the batch can be at most 20 seconds long.
+
+39. Q: What is the difference between "Remake Video" and "Auto-Edit Video"?
+39. A: "Remake Video" pulls what's said in your video out into a new, editable script, without keeping the original clip. "Auto-Edit Video" keeps your original footage and edits that same footage automatically into finished scenes. Reach for "Remake Video" when you want to reuse the message, and "Auto-Edit Video" when you want to reuse the footage itself.
+
+40. Q: What does "Bulk Upload" do?
+40. A: It lets you add up to 20 short video clips in one go instead of one at a time, picked from your device (this card takes uploads only, not links). Each clip can be up to 20 seconds long, and WideCast lines them up as the scenes of a single new video.
+
+41. Q: Can I start a video without opening WideCast in my browser?
+41. A: Yes. An AI agent connected to your account through the WideCast connector can create a video for you from a chat, using the same script, idea, blog, or media sources described on this page. See the Agents & MCP guide for how to connect one.
+
+42. Q: Do I need an API key just to check a video's status?
+42. A: No. Once a video is created, its id alone is enough to check progress. This is what lets an AI agent, or a page you build yourself, poll for status without holding a key at all. Creating the video in the first place does still need a key.
+
+43. Q: How do I open the Script Editor?
+43. A: It opens automatically once your script is written: in the workflow, the "Video Script" step shows "Tap to edit" when the AI is done, and tapping it takes you straight into the Script Editor. You can also reopen it later from the home screen by clicking a video that is still marked "Ready to Record".
+
+44. Q: How do I know how long my script will run?
+44. A: A counter at the top of the Script Editor tracks this for you. It starts at "0 words • 0 seconds" and updates live as you type, showing your current word count and the estimated time the script takes to read aloud. Free-plan videos are capped at 60 seconds, so watch the counter if you need to stay under that.
+
+45. Q: Can I rewrite the script myself in the Script Editor?
+45. A: Yes. Click directly into the script text and edit it like any text box: fix a line, delete a sentence, or rewrite the whole thing. It is editable as soon as the Script Editor opens, with nothing to switch on first.
+
+46. Q: What are the five script formats in the Script Editor?
+46. A: WideCast writes every script five different ways: "Value Explainer" (explains the value of what you offer), "Client Q&A" (answers a client's question directly), "POV" (a first-person point of view), "Case Study" (walks through a specific example or result), and "Myth-Buster" (corrects a common misconception). All five appear in the accordion below the script text.
+
+47. Q: What does the "Recommended" badge mean in the Script Editor?
+47. A: It marks WideCast's official script for this video: the version shown in the editor and the one used if you continue to "Full recording" or "Scene by scene". The other four formats sit under "More angles" and do not affect your video unless you switch to one of them.
+
+48. Q: How do I get a different angle for my script?
+48. A: Open "More angles" below your current script, pick one of the other four formats, and click "Generate this angle". WideCast writes that version in about two minutes, and you can only generate one angle at a time. Once it is ready, click "Open" to make it your new official script.
+
+49. Q: Can I switch back to my original script angle later?
+49. A: Yes, as long as scenes have not been generated yet for this video. Every angle you generate stays saved under its own format in "More angles", so you can reopen any of them and switch back at any time before you continue to "Full recording" or "Scene by scene".
+
+50. Q: Why is angle switching locked on my script?
+50. A: Once WideCast has generated scenes for a video, the script that produced those scenes gets locked in so the video and script stay matched. The Script Editor shows a note naming the angle the scenes were built from when this happens.
+
+51. Q: Does trying a different script angle cost credits?
+51. A: No. Generating an alternate angle just takes a couple of minutes and does not use credits. Credits are spent later, when you turn the script into an actual video: "Scene by scene" uses 2 credits.
+
+52. Q: How do I change the voice for my video?
+52. A: It depends on how you built the video. Choose "Full recording" and it is your own voice throughout. Choose "Scene by scene" and WideCast narrates with a default AI voice at first; open any scene afterward to swap in your own recorded voice or a cloned version of your voice. See [Avatar and voice](guide/avatar-and-voice.html) for how voice cloning works.
+
+53. Q: What happens after I finish editing my script?
+53. A: Use the two buttons at the bottom of the Script Editor: "Full recording" to record the whole video yourself, or "Scene by scene" to have WideCast build it for you automatically. Either way, you then choose "Faceless" or "On camera" before the video gets created.
+
+54. Q: How does the teleprompter work?
+54. A: While you record, your script scrolls on screen in front of the camera so you can read it without memorizing it or looking away. Tap the teleprompter itself to switch between the condensed "Talking Points" view and the full word-for-word "Full Script" view.
+
+55. Q: What is the difference between "Talking Points" and "Full Script" mode?
+55. A: "Talking Points" shows a short, condensed, cue-style version of your line rather than full sentences, and you cannot edit it. "Full Script" shows your complete script exactly as written, and you can edit the text right there before or during recording. If a scene has no condensed version, only "Full Script" is available for it.
+
+56. Q: Why can't WideCast see my camera?
+56. A: Your browser needs your permission for both camera and microphone before the recording screen can show your preview. Look for your browser's permission prompt and allow access. If you already blocked it, WideCast shows "Camera Permission Required" with steps to turn access back on, plus a "Refresh Page" button to reload and try again.
+
+57. Q: Do I have to memorize my script?
+57. A: No. The recording screen includes a teleprompter that scrolls your script on screen while the camera records, so you can read it naturally instead of memorizing it.
+
+58. Q: Can I redo my recording?
+58. A: Yes. Right after you stop recording, WideCast plays it back and shows a "Retake" button to record that segment again, and a "Done" button to keep it. Later, from the scene editor, you can also re-record the voice or on-camera footage for a single scene without redoing the whole video.
+
+59. Q: How do I start and stop recording?
+59. A: Press the round record button, marked with a "00:00" timer, to start. Press the same button again when you are finished to stop.
+
+60. Q: Why do I need to fit inside the oval guide?
+60. A: The oval guide, labeled "Position your head within the oval guide", shows the framing your video will use. Keeping your face inside it keeps you properly centered and visible in the finished video.
+
+61. Q: How do I get to the recording screen?
+61. A: You get there by choosing "Full recording" instead of "Scene by scene" while creating a video, or by opening a video from your home screen whose status badge reads "Ready to Record".
+
+62. Q: Can I edit my script while I'm recording?
+62. A: Only in "Full Script" mode, which shows your complete script and lets you edit the text directly. "Talking Points" mode shows a condensed, cue-only version that cannot be edited.
+
+63. Q: Can I redo just one scene later without re-recording the whole video?
+63. A: Yes. Open the scene editor and use its per-scene recording option, such as "Record Your Voice" or "Record with Camera", to re-record only that scene. It opens the same camera and teleprompter screen used for full recordings. See [Scene editor basics](guide/scene-editor-basics.html) for more on the scene editor.
+
+64. Q: Can WideCast write a blog post from my video?
+64. A: Yes. Open your video's "Video Script" screen and tap the "Article" button (it relabels to "Blog"). The first time, the "Output settings" sheet opens: pick a language and press "Write now". WideCast writes a full article with a title, section headings, and images from your video's script.
+
+65. Q: Where do I find the blog post for a video?
+65. A: Open the video from "Recent" on the home screen while it shows "Ready to Edit". That opens the "Video Script" screen, where the "Article" or "Blog" button at the bottom opens the "Output settings" sheet if you have not generated a post yet, or reopens your saved post if you have.
+
+66. Q: How do I edit the blog post text?
+66. A: Open your blog post and tap "Edit". A rich-text toolbar appears with headings, bold, italic, links, and bulleted or numbered lists. Make your changes, then tap "Save" to keep them, or "Cancel" to discard them and return to the last saved version.
+
+67. Q: Can the blog post be in another language?
+67. A: Yes, two ways. Choose the language before generating in the "Output settings" sheet, which lists dozens of options, so the post is written directly in that language. Or tap "Languages" in the header to open the "Language" sheet, press "Add Translation" to add another version of the script, then generate or reopen the post while that language is active.
+
+68. Q: How do I publish the blog post?
+68. A: Open your blog post and tap "Publish" to open the "Publish Blog" modal. Choose which connected accounts to post to under "Platforms", pick "Post Now" or "Schedule", and press "Publish Article" (it reads "Schedule Article" for a scheduled post). WideCast shows a success message once it is posted or queued.
+
+69. Q: What happens while my blog post is being generated?
+69. A: A progress screen tracks WideCast writing the article's text and creating its images, with a live percentage, a countdown, and short status updates like "Writing main content..." and "Formatting and finalizing...". Press "Stop" if you want to cancel; you can pick up generation again later from the same button.
+
+70. Q: Can I copy the blog post to use somewhere else, like my website?
+70. A: Yes. Open your blog post and tap "Copy Content" to copy the full article text to your clipboard, ready to paste into a website, CMS, or email.
+
+71. Q: Do I need to connect social accounts before I can publish my blog post?
+71. A: Yes, at least one. The "Publish Blog" modal's "Platforms" list only shows accounts you have already connected. If none are connected yet, use "Connect more platforms" from that same list to add one.
+
+72. Q: Can I schedule my blog post to publish later instead of right away?
+72. A: Yes. In the "Publish Blog" modal, choose "Schedule" instead of "Post Now" to reveal a date and time picker, then press "Schedule Article" to queue the post for that time.
+
+73. Q: Does generating a blog post use credits?
+73. A: Yes, generating a new blog post uses credits, like other AI content WideCast creates for you. Editing text you already generated is free.
+
+74. Q: What is the difference between the blog post and social captions?
+74. A: The blog post is a full article, with a title, section headings, and its own images, generated from your video's script and edited in a rich-text editor. Social captions are the short per-platform text WideCast writes to go along with your video post on each platform.
+
+75. Q: Can WideCast write my social media posts?
+75. A: Yes. WideCast's content generator can turn a link, an idea, or your own notes into a ready-to-use Facebook, X, or LinkedIn post. Trigger it from inside the studio while reviewing a script, or have a connected AI assistant request it for you.
+
+76. Q: Which platforms can WideCast write a standalone post for?
+76. A: In the studio, the post generator's "Type" picker offers Facebook Post, Twitter/X Post, LinkedIn Post, Instagram Post, Reddit, and Quora. Through a connected AI assistant you can request Facebook, X, and LinkedIn posts. WideCast can also write a longer blog article from the same input; see "Blog posts" (guide/blog-posts.html) for how articles work.
+
+77. Q: How do I turn a link or an idea into a social post?
+77. A: Give WideCast a URL, a short idea or topic, or text you already wrote. You only need one of the three: the content generator researches the topic and writes the post from whichever one you provide.
+
+78. Q: Where do I generate a post inside the WideCast studio?
+78. A: While reviewing your video's script, look for the "Article" button next to the "Video" button at the bottom of the screen. Tap it, choose a post type such as "Facebook Post", "Twitter/X Post", or "LinkedIn Post", pick a language, and press "Write now".
+
+79. Q: Does writing a social post or article use credits?
+79. A: Yes. Generating written content draws from your monthly credit allowance, the same way creating a video does. See "Credits, plans, and billing" (guide/credits-and-billing.html) for how your balance works.
+
+80. Q: What happens after WideCast finishes writing my post?
+80. A: A progress screen titled "Creating your content" tracks the run. When it finishes, you can use "Edit" to change the wording, "Copy Content" to paste it elsewhere, or "Publish" to send it straight to a connected account.
+
+81. Q: What is the caption field I see when I publish?
+81. A: Whenever you publish a video, a photo, or a generated post, WideCast shows a "Title / Caption" box with the placeholder "Enter title or caption...", plus an optional description field. Whatever you type there is the exact text that goes out with your content.
+
+82. Q: Which platforms only need a caption, with no video or image?
+82. A: X, LinkedIn, Facebook, Threads, Reddit, Bluesky, and Google Business all accept a text-only post, so a caption alone is enough to publish to them, with no video or image required.
+
+83. Q: Do captions differ per platform, or is it the same text everywhere?
+83. A: One caption applies to every platform you select together in a single publish action. If you want different wording for different platforms, publish to each platform separately with its own caption.
+
+84. Q: Can I edit the caption before it goes out?
+84. A: Yes. The caption box is a plain text field, so you can rewrite, shorten, or replace whatever is already there before you publish.
+
+85. Q: Can my AI assistant write posts for me?
+85. A: Yes. Once your AI assistant is connected through "API Keys & MCP" in the Setup Center, you can ask it to write a Facebook, X, or LinkedIn post, or a blog article, from a link, an idea, or text, the same way the studio does. See "API and MCP" (guide/api-and-mcp.html) for setup.
+
+86. Q: How do I generate an AI image for a scene?
+86. A: Open the scene's footage picker from the "Background", "Footage", or "Find B-roll" button, then click the "Gen AI" tab. Type a description in "Image Prompt" and press "Generate". After a few seconds you see the result; press "Use" to apply it to the scene.
+
+87. Q: How much does an AI image cost?
+87. A: 1 credit per image. Pressing "Generate" again for a new attempt creates another image, so it uses another credit too.
+
+88. Q: Can I generate several AI image options at once?
+88. A: In the studio's "Gen AI" tab you generate one image at a time and can press "Generate" again for a new version. Through the API or an AI agent, a single request can generate 1 to 4 images from one prompt and return a numbered thumbnail set so you, or the agent, can pick the best one, at 1 credit per image generated.
+
+89. Q: The AI image I generated does not look right. Can I try again?
+89. A: Yes. Edit the text in "Image Prompt" and press "Generate" again for a new version. Each attempt, including a retry, is a separate 1-credit image, so a more specific prompt, naming concrete objects, setting, and lighting, gives better odds on the first try.
+
+90. Q: When should I use an AI image instead of a real photo or stock clip?
+90. A: Reach for an AI image when the exact shot does not exist as stock footage, like a specific metaphor or an invented scene that matches one line of your script, or when a stock search for the same idea comes up empty. Prefer a real photo or stock video when the subject is something real and recognizable, since genuine footage of a real product, place, or person tends to feel more credible than a generated one.
+
+91. Q: Can I reuse an AI image I already generated for this scene?
+91. A: Yes. Once you press "Use" on a generated image, it stays listed under "Saved Images" in that scene's "Gen AI" tab, so you can pick it again later without spending another credit. This list is specific to that one scene, not shared with the rest of the video.
+
+92. Q: Do I need to choose a size or shape for the AI image?
+92. A: No. The image is generated to match your video's shape automatically, so there is no separate size setting in the "Gen AI" tab. If you generate images through the API instead, you can set the shape explicitly with a ratio field: portrait, landscape, or square.
+
+93. Q: What should I write in the AI image prompt?
+93. A: Describe the picture you want in plain language: the subject, the setting, and the lighting or mood, for example "a wooden ladder leaning against a red brick wall, morning light". Concrete, visual descriptions generally produce better results than abstract ideas.
+
+94. Q: Can I generate an AI image without opening a specific video?
+94. A: Not in the studio; the "Gen AI" tab always generates for the scene you opened it from. Through the API, POST /v1/create_image can generate freeform images on their own, though the usual pattern is picking one to replace a scene's background on a video you already created.
+
+95. Q: Where does WideCast get video ideas?
+95. A: From the idea browser built into WideCast. Click "Ideation with AI" from the "Describe your idea" screen to open "Browse Trending Video Topics," describe what your business does, and press "Show Me Ideas" for a list of ideas matched to you. WideCast also has "Industry Topics" and "Viral Topics" browsers with more idea sources for your field. Every idea you see can be saved, turned straight into a video, or used to find more ideas like it.
+
+96. Q: How do I save an idea for later?
+96. A: Click "Save" on any idea card. WideCast adds it to your Production Plan and shows a confirmation with a "View Production Plan" button so you can jump straight to your backlog. Saving an idea never costs credits, so save as many as you like while you browse.
+
+97. Q: What is the Production Plan?
+97. A: The Production Plan is your backlog of saved ideas and in-progress drafts, opened from the "Production Plan" card on the home screen. Each entry shows its title, a short description, and a status such as "New," "Script ready," or "Exported," so you always know how far along it is. Click an entry's action button, for example "Start Process" or "Record," to keep working on it.
+
+98. Q: Can I turn a saved idea straight into a video?
+98. A: Yes. From an idea card, click "Make Video" and WideCast drops its title and description into the "Describe your idea" box so you can continue the normal video flow. From inside the Production Plan itself, click an entry's action button, such as "Start Process," to pick up where you left off. The full video-creation flow after that point is covered in [Create your first video](guide/first-video.html).
+
+99. Q: What does "More ideas like this" do?
+99. A: Every idea card has a "More ideas like this" option next to Save and Make Video. Click it to open a side panel of ideas similar to that one, so you can explore a theme further instead of starting a new search from scratch. The first click on an idea costs 1 credit; reopening the same idea's suggestions later is free.
+
+100. Q: Can I share my ideas list?
+100. A: Yes. Open the "Industry Topics" or "Viral Topics" browser and click "Share Ideas." WideCast formats your current idea list as text, complete with view counts and a short intro, and copies it to your clipboard so you can paste it into an email, text, or chat message. To let a client review your actual Production Plan without signing in, use a private client link instead, covered in [Client links](guide/client-links.html).
+
+101. Q: Can my AI assistant fill my Production Plan for me?
+101. A: Yes. Once an AI assistant, like Claude or ChatGPT, is connected through the WideCast connector, it can brainstorm video ideas for your business and queue the best ones straight into your Production Plan, so they are waiting the next time you open WideCast. Connect one from "API Keys & MCP" in the Setup Center. See [API and MCP access](guide/api-and-mcp.html) for how to connect one.
+
+102. Q: Does my AI assistant need to know my target market to brainstorm ideas?
+102. A: Yes, if your account does not already have one saved. WideCast needs to know which audience or market the ideas should target, like a city, state, or country, since that changes which trends and language show up. Your assistant will ask you for this before it brainstorms if it is not already on file.
+
+103. Q: Can I reorder or remove ideas in my Production Plan?
+103. A: Yes. Each entry has up and down arrows to move it within the list, and a trash icon (labeled "Remove from queue" on hover) to delete it. Reordering only changes the order you see entries in; it does not affect any credits or content you have already generated.
+
+104. Q: Does saving an idea to my Production Plan cost credits?
+104. A: No. Adding an idea to your Production Plan, whether you click "Save" yourself or an AI assistant queues one for you, never uses credits. Generating fresh ideas is what can spend credits: running a new brainstorm with "Show Me Ideas" consumes credits, and "More ideas like this" costs 1 credit the first time you use it on an idea.
+
+105. Q: What is the small "Production plan" list I see while describing my idea?
+105. A: When you open the "Describe your idea" screen, WideCast shows a short list labeled "Production plan" just below the input box. It previews ideas you have already saved, so you can tap one instead of typing something new. Before you save anything, it reads "No ideas in your production plan yet."
+
+106. Q: Can my AI assistant attach a finished script to an idea it adds?
+106. A: Yes. When a connected assistant adds an idea to your Production Plan, it can attach one to five finished script versions, each framed from a different angle. The idea then shows as "Script ready" in your plan, and clicking it opens the Script Editor with the script already loaded and any other attached versions available to compare. The writing step is skipped and no credits are spent on it.
+
+107. Q: What does the "Recommended" badge on a Production Plan idea mean?
+107. A: When an AI assistant adds several ideas at once, it can flag the one it thinks you should make first. That idea shows a "Recommended" badge in the top corner of its card in the Production Plan list. It is a highlight to help you choose; it does not change how the idea behaves or what it costs.
+
+108. Q: What is the 60-Video Authority Roadmap?
+108. A: It is WideCast's built-in content calendar. It plans out 60 videos across a 20-week cycle so you always know what to record next, and tracks how many you have finished. Inside the app the screen is titled "Your Authority Roadmap".
+
+109. Q: How does the weekly quota work?
+109. A: The Authority Roadmap divides your 60-video goal evenly across a 20-week cycle, which works out to about three videos a week. The overview marks your current stretch with a "THIS WEEK" label on the road, and shows a running count of videos completed so far, such as "4 / 60".
+
+110. Q: What are Foundation Videos?
+110. A: Foundation Videos are ready-made scripts built for your industry, covering topics your clients already ask about. Each one comes as a full script split into short segments you read on camera, grouped into categories and four phases so you can find a relevant topic fast.
+
+111. Q: How do I use a Foundation Video for my industry?
+111. A: Open the "Foundation Videos" button on your home screen, browse the templates, and tap "Show script" to preview one. When you are ready, tap "Try this video" to start recording it in your own words using the built-in teleprompter. If you already started that template, the button changes to "Edit now" so you can continue.
+
+112. Q: Which industries have Foundation Video templates?
+112. A: Real Estate, Insurance, Loan & Mortgage, Immigration, and Nail. If your account's industry matches one of these, the "Foundation Videos" button appears on your home screen automatically.
+
+113. Q: What do the phases in Foundation Videos mean?
+113. A: WideCast groups the 60 templates into four phases that match how your audience grows: "Break the Ice" for your first 15 videos, "Your Circle Notices" for people who already know you, "Strangers Find You" once new viewers start finding you, and "Leads Come to You" for turning viewers into leads.
+
+114. Q: How do I open my Authority Roadmap?
+114. A: WideCast opens it for you automatically as part of getting started, and it reopens whenever you follow a roadmap link WideCast sends you, such as a reminder.
+
+115. Q: Does browsing the roadmap or Foundation Videos use credits?
+115. A: No, browsing both is always free. You only spend credits once you actually generate something, like turning a Foundation Video script into finished video scenes. See [Credits, plans, and billing](guide/credits-and-billing.html) for what that costs.
+
+116. Q: What happens when I tap a week on the roadmap?
+116. A: It opens that week's own view, listing the videos and ideas planned for that specific week. A "Roadmap" link at the top takes you back to the full overview. You cannot open a week that has not started yet.
+
+117. Q: How many videos are in the roadmap, and how long does the cycle take?
+117. A: The Authority Roadmap plans for 60 videos in total, spread across a 20-week cycle. Each stop on the road is labeled by week number, from the "START YOUR JOURNEY" flag at the beginning to the "AUTHORITY ACHIEVED" trophy once you finish all 60.
+
+118. Q: Can an AI agent read my roadmap or browse Foundation Videos for me?
+118. A: Yes. An AI assistant connected to WideCast can read your Authority Roadmap progress and browse your Foundation Video library the same way the app does, then use a template as the starting point for a new video.
+
+119. Q: How do I open the scene editor?
+119. A: Sign in at widecast.ai, find your video under "Recent" on the home screen, and click it once its badge says "Ready to Edit". Press "Video" on the script screen that opens, and the scene editor shows all scenes in order.
+
+120. Q: How do I reorder scenes in my video?
+120. A: Drag a scene and drop it in the new position. The narration belongs to the scene, so it moves along with it.
+
+121. Q: How do I trim a scene?
+121. A: Press the scene's "Scene Action" button and choose "Trim Scene". Drag the selection handles and save. A trimmed scene keeps between 3 and 20 seconds of footage.
+
+122. Q: Can I split one scene into two?
+122. A: Yes. Press "Scene Action" on the scene and choose "Split Scene". Pick the split point, check the two part lengths shown, and press "Split & Save". Each part must be at least 2 seconds long.
+
+123. Q: Can I merge two scenes into one?
+123. A: Yes. Open the scene's "Scene Action" menu and choose "Merge with Previous" or "Merge with Next".
+
+124. Q: Can I add, duplicate, or delete a scene?
+124. A: Yes. The "Scene Action" menu has "Insert Scene Before", "Insert Scene After", "Duplicate Scene", and "Delete Scene". The only limit: the last remaining scene cannot be deleted.
+
+125. Q: How do I hide myself or my avatar from one scene?
+125. A: Turn off the NARRATOR switch on that scene. The background footage then fills the whole frame. Turn it back on any time.
+
+126. Q: How do I change the background footage of a scene?
+126. A: Click the scene's "Background" button (narrator scenes) or "Footage" button (footage scenes), or use "Find B-roll". The picker offers stock videos, real photos, AI-generated images, your own uploads, and clips from pasted video links.
+
+127. Q: How do I add or change background music?
+127. A: Open the gear icon in the scene editor and choose the BG Music tab. Preview tracks by category and press "Use This" on the one you want.
+
+128. Q: Are my edits saved automatically?
+128. A: Yes. The editor saves as you work. You can close the tab and continue later from where you left off.
+
+129. Q: How do I export the final video?
+129. A: Press "Export" in the scene editor and confirm "Start Export?". If scenes are incomplete you can review the warning or choose "Export Anyway". When rendering finishes, the "Exported" dialog lets you Download, Publish, or Share the MP4.
+
+130. Q: Where does the stock footage come from?
+130. A: The "Stock" tab searches licensed video clips from Pexels, Pixabay, and Shutterstock. The "Photos" tab searches real still photos from a Google image search. Both are searched by keyword and neither costs credits.
+
+131. Q: What is the difference between the Stock and Photos tabs?
+131. A: "Stock" searches video clips, so the background stays in motion. "Photos" searches real still images pulled from a Google image search. Use "Stock" when you want movement in the scene, and "Photos" when a still image fits better, for example a product shot or a portrait.
+
+132. Q: How do I search for a specific kind of footage?
+132. A: Open the footage picker and go to the "Stock", "Photos", or "UGC" tab. Type a keyword into the search box, for example "city skyline" or "coffee shop," and press "Search". Short, specific searches of one to three words tend to work best.
+
+133. Q: Can I upload my own video or photo as a background?
+133. A: Yes. Open the footage picker, click the "Upload" tab, and press "Browse File" to choose a file from your device. WideCast accepts MP4 and MOV video files and JPG and PNG images, up to 100MB each.
+
+134. Q: Can I use part of a YouTube video as my background footage?
+134. A: Not by pasting a YouTube link directly. The "URL" tab currently accepts direct video links from TikTok and Facebook only, up to 5 minutes long. For other footage, search the "Stock" tab for something similar, or upload your own file on the "Upload" tab.
+
+135. Q: Can I paste a video link instead of searching?
+135. A: Yes, for TikTok and Facebook. Open the footage picker, click the "URL" tab, paste a direct video link from either site, and press "Load Video". The clip can be up to 5 minutes long.
+
+136. Q: What is UGC footage?
+136. A: UGC stands for user-generated content: everyday clips that feel like something a real person filmed, rather than polished studio stock. The "UGC" tab in the footage picker lets you browse by category, like "Home tour," "Car accident," "Spa," or "Gym," or search it by keyword.
+
+137. Q: What is the Grid tab for?
+137. A: It shows a curated set of ready-made background videos picked by WideCast. Use it when you want a good-looking motion background fast, without typing a search.
+
+138. Q: Does picking new background footage cost credits?
+138. A: No, not for the "Stock", "Photos", "Grid", "UGC", "Upload", or "URL" tabs; searching and using any of them is free. Only the "Gen AI" tab costs credits, at 1 credit each time you generate a custom image.
+
+139. Q: Can I trim the new clip after I pick it?
+139. A: The footage picker itself does not trim your pick. Once you have applied it with "Use", open that scene's "Scene Action" menu and choose "Trim Scene" to shorten it, or "Split Scene" to cut it into parts.
+
+140. Q: Can my AI assistant search for B-roll on its own?
+140. A: Yes. An AI assistant connected through the WideCast API or MCP connector can search stock B-roll for a video you already created, and show you a numbered thumbnail list of clips or real photos to choose from by number. This updates a scene's background; it does not start a new video.
+
+141. Q: How do I change the words shown on a poster or typography scene?
+141. A: Click the text directly inside the scene's preview. A small pencil icon appears; click it to open a short edit sheet with your current wording in a text box. Edit the words and press "Save". WideCast reflows the lines and keeps the current style, and no credits are used since you are editing text you already have.
+
+142. Q: How do I change the color of the on-screen text?
+142. A: Click the text in the scene's preview to open its edit sheet, then use the "Color" option next to your wording to pick a new one. Press "Save" to apply it. You can also change color along with font and effect all at once by applying a text style preset instead.
+
+143. Q: What are text presets?
+143. A: Text presets are ready-made looks for your on-screen text. WideCast ships 50 presets for overlay text and 50 for captions, grouped into categories such as Popular, Bold, Minimal, Gaming, Vlog, Dramatic, Fun, and Professional. Open a scene's text edit sheet and scroll the row of style previews, each showing a live "Aa" sample, then click one to apply it to that scene right away.
+
+144. Q: Why does a pencil icon appear on some scenes only?
+144. A: The pencil only appears on poster and typography scenes, where your on-screen text is a designed graphic rather than a plain caption bar. Click that text in the scene's preview and the pencil shows up so you can open the edit sheet. On other scenes, click the caption text instead to open its own style editor.
+
+145. Q: What is the "Overlay" button on a scene?
+145. A: It appears on scenes built around a stat, fact, data point, key point, hook, or call to action. Click it to open a menu for that scene's overlay graphic: generate one from the scene's text, regenerate a new version, or upload your own image.
+
+146. Q: Can I use my own image as a scene's overlay instead of an AI-generated one?
+146. A: Yes. Click the scene's "Overlay" button and choose "Upload Overlay" to use your own image instead of an AI-generated graphic.
+
+147. Q: Can I generate a new version of an overlay graphic I do not like?
+147. A: Yes. Click the scene's "Overlay" button and choose "Regenerate Overlay" to roll a new animated version from the same scene text. Before a scene has an overlay yet, the same button reads "Generate Overlay".
+
+148. Q: Do the on-screen captions match what I actually say in the video?
+148. A: Yes. Captions are timed to your narration word by word, and each word highlights as it is spoken. This sync happens automatically, so you never have to adjust caption timing by hand.
+
+149. Q: Can I style the captions separately from the overlay text?
+149. A: Yes. Captions have their own 50 style presets, separate from the 50 for overlay text. Click the caption text directly in the scene's preview to open its style editor, then pick a preset from the row of live previews the same way you would for overlay text.
+
+150. Q: Does editing overlay text or its color use credits?
+150. A: No. Changing the wording or color of text you already have on a scene does not use credits, the same as other editing in the scene editor. Credits are only spent when WideCast generates something new for you.
+
+151. Q: How do I change my video's thumbnail?
+151. A: Open the scene editor and find the first scene, labeled "THUMBNAIL". Press "Generate Thumbnail" on it to create a new AI version of the cover image. If you have not customized it yet, editing your opening scene, the one right after it, also updates the thumbnail automatically, since it copies that scene's image until you generate one of your own.
+
+152. Q: What does "Generate Thumbnail" do?
+152. A: It creates a new AI version of your thumbnail scene's cover image, built from your video's own footage. You will see a "Saving thumbnail..." message while it works, then the new image loads into place. It also turns off the separate text overlay on that scene, since your title text gets baked directly into the generated image.
+
+153. Q: Can I use my own image as the thumbnail?
+153. A: Not by uploading one directly. The thumbnail scene has no "Background" or "Footage" button, so the usual footage picker is not available there. Its image either comes from your opening scene automatically or from "Generate Thumbnail". If you want a specific photo as your cover, set it as your opening scene's background first, before you generate a thumbnail or before it syncs from that scene.
+
+154. Q: Why does my video have a THUMBNAIL scene?
+154. A: It is the still image that represents your video before anyone presses play, wherever your video is listed. WideCast adds it automatically as the first scene in every video, separate from your narrated scenes, so you always have a dedicated cover image instead of a random frame from the video itself.
+
+155. Q: Can I trim, split, or delete the thumbnail scene?
+155. A: No. The thumbnail has no "Scene Action" menu, so none of the usual per-scene tools work on it: no trimming, splitting, merging, duplicating, or deleting. You also cannot drag it to a different position. It always stays the first scene in your video.
+
+156. Q: Will editing my opening scene also change my thumbnail?
+156. A: Yes, until you customize the thumbnail yourself. It starts out as a copy of the scene right after it, including the background image and your face if you narrate that scene. Change that scene's footage and the thumbnail updates to match. Once you press "Generate Thumbnail", that automatic copying stops and your generated version takes over.
+
+157. Q: Can I edit the text on my thumbnail?
+157. A: Yes. Text on the thumbnail scene works much like text on your other scenes; see the overlay text and captions guide for how to change it. There is no caption option on the thumbnail specifically, since it is a still image with no spoken narration.
+
+158. Q: Why won't "Generate Thumbnail" work?
+158. A: It needs the scene right after the thumbnail to already have real footage. If that scene is still empty or using placeholder media, WideCast shows "Please record the first scene before generating AI thumbnail" instead of generating one. Add footage to that scene, then try "Generate Thumbnail" again.
+
+159. Q: What happens if I export without generating a thumbnail?
+159. A: WideCast still lets your video export. A thumbnail left on placeholder media triggers the same "Incomplete Scenes Detected" warning as any other unfinished scene, with an option to export anyway, rather than blocking the export outright.
+
+160. Q: Does the thumbnail scene have sound like my other scenes?
+160. A: No. The thumbnail is a single still image, not a video clip, so it never carries narration or sound, even if the scene it was copied from had audio.
+
+161. Q: How do I change my avatar's reference photo?
+161. A: Open the Setup Center from widecast.ai/#setup and go to its "Face Cloning" section. Upload a new photo there and WideCast uses it to build your AI avatar going forward. See "The Setup Center" guide topic for more on that panel.
+
+162. Q: How do I re-record a single scene's voice?
+162. A: In the scene editor, click the scene's voice icon (its tooltip reads "Narrator" on an on-camera scene or "Voice" on a voice-only scene) to open its recording panel. Voice-only scenes show "Record Your Voice"; on-camera scenes show "Record with Camera" instead, since that one records video too. Both panels also offer an AI narration option and an "Upload" option for an existing file.
+
+163. Q: Can I change my avatar's outfit or background?
+163. A: Not as a standalone tool today. WideCast can style your avatar's outfit and background automatically as part of certain features, such as generating a video thumbnail, but there is no general-purpose outfit changer yet.
+
+164. Q: Can I switch a scene back to an AI voice after recording my own?
+164. A: Yes. Open that scene's voice panel and use the option to switch to AI voice narration. It replaces your recording with WideCast's AI narration for that scene only, without affecting any other scene.
+
+165. Q: How do I clone my voice?
+165. A: Open the Setup Center and go to its "Voice Cloning" section, then click "Setup" to open your voice picker and click "Setup Voice Cloning" inside it. Record at least 30 seconds of yourself talking, or upload an audio file instead, confirm the voice is yours, preview it, then click "Upload & Clone" to save it.
+
+166. Q: What happens if I try to clone my voice without a paid plan?
+166. A: WideCast shows an "Upgrade to clone your voice" message instead of opening the recording screen. Voice cloning is a paid feature; see the Setup Center guide topic for the "Requires paid account" details.
+
+167. Q: Can I upload an audio file instead of recording my voice?
+167. A: Yes. The Voice Cloning window has an "Upload File" tab alongside "Record Voice". Uploaded files must be MP3, WAV, M4A, MP4, or WebM, under 50MB, and up to 30 seconds long.
+
+168. Q: How long should my voice recording be for cloning?
+168. A: WideCast recommends at least 30 seconds of clear, uninterrupted audio. A longer, cleaner sample generally produces a more accurate clone.
+
+169. Q: How do I use my cloned voice in a video?
+169. A: Once your clone is ready, it becomes available as a voice option alongside WideCast's default AI voice. Set it as a scene's voice from that scene's voice panel in the scene editor, the same place you would choose "Record Your Voice" or an AI voice.
+
+170. Q: Can WideCast translate my video into another language?
+170. A: Yes, through dubbing. Export your video, then open the "Dubbing" option in the "Exported" dialog, choose a target language, and press "Start Dubbing". WideCast creates a fully narrated version of your video in that language.
+
+171. Q: How much does dubbing cost?
+171. A: Dubbing costs 20 credits for each language you dub into. The cost is shown right on the "Dubbing" button before you start.
+
+172. Q: How long does dubbing take, and where do I find the result?
+172. A: Dubbing takes about 5 to 10 minutes, and WideCast emails you when it is ready, so you do not have to wait on the page. Download it from the completion message, or anytime after from the "Dubbed Versions" list inside the "Exported" dialog.
+
+173. Q: Where do I find the background music picker in the scene editor?
+173. A: Open your video in the scene editor and click the gear icon to open project settings. Choose the "BG Music" tab and it opens on "Choose Background Music", showing your current track's name, a checkbox to turn music on or off, a play button to preview it, and a "Change" button to pick a different track from the library.
+
+174. Q: What music categories are there?
+174. A: WideCast's music library is one consistent style, tagged "Corporate • Professional" on every track in the list, rather than separate genres you can filter between. Open "Change" in the "BG Music" tab to see the full "Background Music" list; within that style you get close to 40 instrumental tracks to preview and choose from.
+
+175. Q: How do I preview a music track before using it?
+175. A: Open the gear icon's "BG Music" tab and press "Change" to open the "Background Music" list. Every track has its own play button; press it to hear a preview, and press it again, or let the clip finish, to stop. Previewing does not change anything in your video, your track is only applied once you press "Use This".
+
+176. Q: How do I apply or switch to a different music track?
+176. A: Open the "BG Music" tab, press "Change" to open the "Background Music" list, preview tracks with their play buttons, then press "Use This" on the one you want. That track becomes your video's music, the button changes to "Active", and every scene's preview updates right away. To switch again later, repeat the same steps and press "Use This" on a different track.
+
+177. Q: How do I remove music from my video?
+177. A: Open the gear icon's "BG Music" tab and uncheck the box next to "Music"; your video switches to "No Music" right away, with nothing else to confirm. You can also press "Change" to open the "Background Music" list, scroll to the "No Music" entry at the top, and press "Use This" on it. Background music is entirely optional, so it is fine to leave a video without any.
+
+178. Q: Will I hear the background music when I preview a scene in the editor?
+178. A: Yes. As soon as you apply a track with "Use This", WideCast updates every scene's live preview to include it, so playing any scene lets you hear your narration and the background music together. You do not need to export the video first to check how the music sounds.
+
+179. Q: Does the music cover the whole video or just one scene?
+179. A: The whole video. Background music in WideCast is one setting for the entire project, not something you pick scene by scene. Choosing a track, or choosing "No Music", updates every scene's preview at once. See [Scene editor basics](guide/scene-editor-basics.html) for how the BG Music tab fits alongside the rest of the project settings.
+
+180. Q: Can I upload my own music track?
+180. A: Not right now. The "Background Music" list only offers tracks from WideCast's own library; there is no button to upload an MP3 or other audio file of your own. Choose the closest match from the library, or turn music off with "No Music" if none of the available tracks fit.
+
+181. Q: Does adding background music use any credits?
+181. A: No. Previewing, applying, switching, or removing background music does not use any credits. Open the "Background Music" list and try as many tracks as you like before settling on one.
+
+182. Q: What happens when I press "Export" in WideCast?
+182. A: WideCast opens a "Start Export?" confirmation explaining that it will combine your scenes into one polished video. Confirm with "Export Final Video (~10min)" and rendering begins. A few minutes later, the "Exported" dialog gives you the finished MP4 to download, publish, or share.
+
+183. Q: Why does WideCast warn me before exporting?
+183. A: WideCast checks every scene first so you are not surprised by the result. If a scene is unfinished, using placeholder media, or relying on AI-generated narration because you have not recorded your voice, an "Incomplete Scenes Detected" warning lists exactly which scenes and why, before any credits are spent rendering them.
+
+184. Q: What does "Export Anyway" do?
+184. A: It renders the video even though the "Incomplete Scenes Detected" warning found scenes that are not fully finished. Those scenes are not skipped or removed; they render using their current fallback content, such as AI-generated narration or placeholder media, instead of blocking the export.
+
+185. Q: Why can't I export my video at all?
+185. A: If a B-roll scene has no image or video attached, WideCast blocks the export completely, and there is no "Export Anyway" option for that case. Open the scene, add a background image or video, and try exporting again.
+
+186. Q: Why is my export taking so long?
+186. A: A render typically takes about ten minutes, the same estimate shown on the "Export Final Video (~10min)" button. The "Exporting your video..." screen shows a progress bar, a percentage, and a countdown timer so you can see it is still working.
+
+187. Q: Can I cancel an export while it is running?
+187. A: Yes. Press "Stop Export" on the exporting screen. A stopped export cannot pick up where it left off, so starting again means rendering from the beginning.
+
+188. Q: Where is my MP4 after exporting?
+188. A: Once rendering finishes, WideCast shows the "Exported" dialog. Press "Download" there to save the MP4 to your device.
+
+189. Q: Can I export the same video twice?
+189. A: Yes. Press "Export Again" on the Exported dialog, or "Export" in the editor, any time you want a fresh render. The new export replaces the previous one at the same link, so anyone with that link sees the newest version.
+
+190. Q: I edited my video after exporting. Do I need to export again?
+190. A: Yes. Exporting only captures your scenes as they were at that moment, so any edits you make afterward will not appear in the MP4 you already downloaded or shared until you export again.
+
+191. Q: Does exporting cost credits?
+191. A: Yes. Exporting uses credits, and exporting again after edits uses credits again too. Check your balance under "Subscription & Credits" in the profile menu before starting a render.
+
+192. Q: Can I translate my exported video into another language?
+192. A: Yes. The "Exported" dialog offers "Dubbing" for 20 Credits right next to Download, Publish, and Share. It creates a version of your video narrated in another language.
+
+193. Q: Can an AI agent export my video for me?
+193. A: Yes, if you have connected one through the API or an MCP connector. The agent still has to ask you directly whether to render the final video, and it can only export after you explicitly confirm that specific request, not based on something you said earlier in the conversation.
+
+194. Q: How do I let my client review or edit a video without giving them an account?
+194. A: Send them a Client Magic Link. Open the video in the scene editor, click the gear icon for "Settings", choose the "Project" tab, and look under "Client Magic Link". Click "Copy link" to grab it yourself, or "Send to client" to deliver it right away through your connected notification channels. Your client opens the link and lands straight inside a simplified version of that project's editor, no account required.
+
+195. Q: How long does a Client Magic Link last?
+195. A: You choose, from 1 to 30 days, when you create it, with 7 days as the default. Set it with "Link valid for" next to "Client Magic Link" in the Project tab of the scene editor's Settings panel. Once it expires, your client needs a fresh link to get back in.
+
+196. Q: What can my client actually do with a Client Magic Link?
+196. A: They land inside a simplified version of the scene editor for that one project and can edit it much like you can: change scenes, swap backgrounds, adjust text, and use the everyday editing tools. They cannot leave that project, reach your dashboard, or touch anything outside it. It is full editing access to one workspace, with the rest of your account locked away.
+
+197. Q: Can my client accidentally see my billing or subscription through a Client Magic Link?
+197. A: No. "Subscription & Credits" is removed from their menu entirely, along with "Users", "Team", and "Send Newsletter". The Project tab that generated their link is hidden too, so they cannot reach export, import, clone, or generate another link for themselves. A Client Magic Link only ever exposes the one project's editor.
+
+198. Q: Can my client leave the shared project and browse the rest of my account?
+198. A: No. The button that would normally exit the editor and return to your dashboard is hidden for anyone using a Client Magic Link, so they stay inside that one project for as long as the link is active.
+
+199. Q: What is a client setup link, and how is it different from a Client Magic Link?
+199. A: A Client Magic Link opens one video's editor for hands-on editing. A client setup link, generated from the Setup Center, opens only the Setup Center, with no video-editing access, so a client or teammate can fill in things like your notification channels or content strategy instead. Anything they configure, and any credits it uses, belong to your account. See "The Setup Center" guide for how to create one.
+
+200. Q: Can my AI assistant send a client link to my client for me?
+200. A: Yes. If you use WideCast through a connected AI agent or the API, it can create and send a client link on its own, pointed at a specific video's editor, your content plan, the Setup Center, your Social Dashboard, or your Publish Schedule. It works the same as sending one yourself, using no credits, and you can also have it hand you the link to send instead.
+
+201. Q: Can my AI assistant text or email the link to any address it chooses?
+201. A: No. Every client link, whether you send it yourself or your AI agent sends it, goes out only through the notification channels already connected to your account, such as Telegram or email. Nobody, including your AI agent, can type in a one-off phone number or address, which keeps the link from being used to message people who never connected with your account.
+
+202. Q: Does creating or sending a client link cost credits?
+202. A: No. Creating and sending either kind of client link, the Client Magic Link or the client setup link, is free, whether you do it yourself or your AI agent does it for you.
+
+203. Q: My client says their link stopped working. What do I do?
+203. A: It likely expired. A Client Magic Link lasts 1 to 30 days, whichever you chose when you created it, and a client setup link expires sooner. Open the video's Project tab, or the Setup Center, and create a fresh link to send them.
+
+204. Q: How do I add a team member to my WideCast account?
+204. A: Open the profile menu and choose "Users". In the "Manage Users" window, click "Add Sub-User" under "People Who Can Access My Account", enter their email address, and click "Add User". They need to already have a WideCast account under that email. Once added, your account appears under their own "Manage Users" window, and they click "Switch" to work inside it.
+
+205. Q: What is the difference between a sub-user and a client link?
+205. A: A sub-user gets full access to your account, the same as you have, across every video. A client link is scoped to one specific video and hides account-admin controls, including the "Users" and "Team" menus. Add someone as a sub-user when they need ongoing access to help run your account, like a coworker or assistant. Use a client link when an outside client only needs to review or edit a single project.
+
+206. Q: Where do I manage my team?
+206. A: Open the profile menu in the top corner. "Users" opens the "Manage Users" window, where you add, view, and remove sub-users who can access your account. "Team" is a different feature: it opens the "Organization Program", a referral tool, not account access. If you want to give someone access to help make videos, choose "Users".
+
+207. Q: What does the "Team" menu item actually do?
+207. A: It opens the "Organization Program", a referral feature, not team-member access. You set an "Organization Name", then invite people by email from the "Send Invitations" tab. The "Members" tab tracks who you invited and their status. It does not give anyone access to your account; for that, use "Users" instead.
+
+208. Q: Can I remove a sub-user later?
+208. A: Yes. Open the profile menu, choose "Users", and find their row under "People Who Can Access My Account" in the "Manage Users" window. Click the remove icon, confirm in the "Remove Sub-User" prompt, and click "Remove". This immediately revokes their access to your account.
+
+209. Q: What can a sub-user see and do once I add them?
+209. A: A sub-user gets full access to your account, the same as you have. From their own "Manage Users" window, they see your account under "Accounts I Can Access" and click "Switch" to enter it and work inside it, including creating and editing videos. There is no separate role or permission level. While switched into your account, they cannot open their "Manage Users" window until they switch back.
+
+210. Q: Do I need a paid plan to add a sub-user?
+210. A: No. Adding a sub-user only requires you to be signed in; there is no separate plan requirement or limit on how many sub-users you can add.
+
+211. Q: Will a sub-user need their own WideCast account?
+211. A: Yes. Sub-users are matched by an existing email address, so the person needs a WideCast account of their own before you can add them. This is different from the "Team" menu's invitations, which can go to people who have not signed up yet. Once added as a sub-user, they work inside your account whenever they switch into it.
+
+212. Q: How do I switch into another account after someone adds me as a sub-user?
+212. A: Open the profile menu and choose "Users". In the "Manage Users" window, under "Accounts I Can Access", find the account and click "Switch". A "Current" badge marks whichever account you are actively working in, and you switch back to your own account the same way. You cannot open "Manage Users" again until you switch back first.
+
+213. Q: How do I get WideCast alerts on Telegram?
+213. A: Open the Setup Center, click "Notification", then click the "Telegram" row. That opens the "Telegram Assistant" panel; press "Connect" to open Telegram with a chat already started with WideCast's bot, press "Start" there, then come back to WideCast. The row updates to show your Telegram name once you are connected.
+
+214. Q: What kinds of updates can Telegram send me?
+214. A: Once Telegram is connected, a "Receive notifications for:" list lets you turn five updates on or off: "Video ready to record", "Publish results", "Daily summary", "Weekly report", and "Reminders". Check or uncheck the ones you want, then press "Save Preferences".
+
+215. Q: How do I disconnect Telegram from WideCast?
+215. A: Open the Setup Center, click "Notification", then click the "Telegram" row to open the "Telegram Assistant" panel. Press "Disconnect" and confirm. WideCast stops sending you Telegram messages until you connect again.
+
+216. Q: What does the "Send Notify" button do?
+216. A: It sits in the scene editor's gear icon, under the "Project" tab's "Share Project" section. Pressing it, then confirming, emails a "ready for review" reminder to your WideCast login email, with a link back to that project. Use it as a note-to-self to come finish recording or reviewing a video later.
+
+217. Q: Does "Send Notify" also message me on Telegram?
+217. A: No. "Send Notify" only sends an email to your login email, even though it sits in a notification-related part of the editor. To also get updates on Telegram, connect it separately from the Setup Center's "Notification" section.
+
+218. Q: Why did my Telegram notification fail?
+218. A: The most common reason is that Telegram is not connected yet; connect it from the Setup Center's "Notification" section first. If an AI agent is sending your notifications, you may have hit the limit of 60 notifications an hour per account; wait for the hour to reset and try again.
+
+219. Q: Will WideCast still notify me if I have not connected Telegram?
+219. A: Yes, by email. Email is the default channel and goes out automatically whenever your account has an address on file. Telegram is an extra channel on top of email, not a replacement for it.
+
+220. Q: Can my AI agent send me its own WideCast notifications?
+220. A: Yes. An AI agent connected through the API or MCP can call "POST /v1/notification/send" (MCP tool "widecast_send_notification") with a subject and a message. WideCast emails you automatically, using the notification email from the Setup Center if you set one, or your login email otherwise, and also sends it to Telegram if you have connected that. This only notifies you, the account owner; there is no way to send it to anyone else.
+
+221. Q: Can my AI agent attach a photo or video to a notification?
+221. A: Yes, one or the other, not both in the same notification. Give it a public web address, a "photo_url" or "video_url", and WideCast shows the photo inline, or a link to the video, next to your message.
+
+222. Q: Do WideCast notifications use credits?
+222. A: No. Sending a notification, whether through "Send Notify" in the editor or through an AI agent, never uses credits.
+
+223. Q: What is the Live Chat ID field for?
+223. A: It is the fourth field in the Setup Center's "Notification" section, separate from Telegram, email, and SMS. Enter the ID from your own LiveChatWithUs account there to show that live chat widget inside your scene editor.
+
+224. Q: How many notifications can an AI agent send me in an hour?
+224. A: Up to 60 per account. Beyond that, WideCast responds with a rate-limit error and tells you how many seconds to wait before trying again.
+
+225. Q: Which social platforms can I connect to WideCast?
+225. A: Eleven: YouTube, TikTok, Instagram, Facebook, LinkedIn, X, Threads, Pinterest, Reddit, Bluesky, and Google Business. Connect any of them from the Setup Center's "Connect Social Account" section, or from "Connected Accounts" in your profile menu.
+
+226. Q: How do I connect my YouTube channel to WideCast?
+226. A: Open the Setup Center at widecast.ai/#setup and choose "Connect Social Account" (or click "Connected Accounts" in your profile menu). Find YouTube in the list and click "Connect". A window opens where you sign in to YouTube and approve access; once you finish, the window closes and YouTube shows as connected.
+
+227. Q: Do I need a paid plan to connect a social account?
+227. A: Yes. "Connect Social Account" is marked "Requires paid account" in the Setup Center. On a free plan, clicking "Connect" next to a platform shows an upgrade prompt instead of connecting it. See [Credits, plans, and billing](guide/credits-and-billing.html) for plan details.
+
+228. Q: Can I make my YouTube uploads private by default?
+228. A: Yes. After connecting YouTube, click its "Settings" button and set "Privacy" to "Public", "Unlisted", or "Private", plus whether each video is "Made for Kids". Click "Save" and every video you publish to YouTube afterward uses that setting until you change it again.
+
+229. Q: Can I set a default privacy level for my TikTok posts?
+229. A: Yes. Open TikTok's "Settings" after connecting it and choose "Privacy": "Public", "Friends Only", "Followers Only", or "Only Me". WideCast saves your choice and reuses it automatically every time you publish to TikTok.
+
+230. Q: Can I post to Facebook as a draft instead of publishing right away?
+230. A: Yes. In Facebook's connected-account settings, set "Video State" to "Draft" instead of "Published (Public)". The same settings panel is also where you choose which Facebook Page WideCast posts to.
+
+231. Q: Which platforms have extra publish settings I can configure?
+231. A: YouTube, TikTok, Facebook, Instagram, LinkedIn, Pinterest, Reddit, and Google Business each get a "Settings" button once connected, covering things like privacy, page, board, or subreddit. Threads, X, and Bluesky have nothing extra to set up: connect them and you are ready to post.
+
+232. Q: How do I disconnect a social account?
+232. A: Open "Connect Social Account" in the Setup Center, or "Connected Accounts" in your profile menu, find the connected platform, and click "Disconnect". Confirm when asked, and WideCast stops publishing to that account until you connect it again.
+
+233. Q: Can my AI assistant see which accounts I have connected?
+233. A: Partly. An AI agent connected to your account can list your connected platforms and read your saved publish settings, but through the AI connector it cannot change them; updating settings happens in the studio. It also cannot connect a brand-new platform for you, since that first sign-in has to happen in your own browser at widecast.ai/#setup.
+
+234. Q: Does connecting or setting up a social account use credits?
+234. A: No. Connecting a platform, disconnecting it, and saving its publish settings are all free. Credits are only used for things like generating scenes, AI images, or dubbing, not for managing your platform connections.
+
+235. Q: Where do I connect accounts if I do not want to open the Setup Center?
+235. A: Click "Account" in the top corner of the home screen, then "Connected Accounts". It opens the same connect panel as "Connect Social Account" in the Setup Center, just from a shorter path.
+
+236. Q: How do I publish my video after I export it?
+236. A: Open the "Exported" dialog that appears once rendering finishes and click "Publish". That opens the "Publish Video" screen, where you pick which connected platforms to post to and choose "Post Now" or "Schedule" before confirming.
+
+237. Q: How do I post my video to all my platforms at once?
+237. A: On the "Publish Video" screen, select every platform you have connected under "Publish to Social Media", then press "Publish to Social". WideCast posts to all of them together in one action. Through the API or an AI agent, leave the platforms list blank and it defaults to every platform you have connected.
+
+238. Q: Can I publish the same video to some platforms only?
+238. A: Yes. Select only the platforms you want this particular post to reach before you press "Publish to Social" or "Schedule to Social". WideCast does not post to any platform you did not select.
+
+239. Q: How do I schedule my video to publish at a later time?
+239. A: On the "Publish Video" screen, switch the toggle from "Post Now" to "Schedule". A date field and a time field appear so you can pick exactly when it should go out, then press "Schedule to Social" to queue it.
+
+240. Q: Where do I see what I have scheduled or already published?
+240. A: Click "Account" in the top corner, then "Publish Schedule". It opens a calendar of everything you have scheduled or published, month by month, with a status on each entry: "Scheduled", "Publishing", "Published", or "Failed".
+
+241. Q: How do I find the link to my published post?
+241. A: Open "Publish Schedule" from the "Account" menu and find the post. Once it has actually gone out, its entry shows a "View post" link that opens the live post on that platform in a new tab.
+
+242. Q: What is the difference between "Schedule" on the publish screen and "Publish Schedule" in the Account menu?
+242. A: "Schedule" is the choice you make while publishing one post, so it goes out later instead of right away. "Publish Schedule" is the separate calendar where you can see every post you have scheduled or already published, across your whole account, browsable by month.
+
+243. Q: What do the statuses in Publish Schedule mean?
+243. A: "Scheduled" means the post is queued and waiting for its time. "Publishing" means it is going out right now. "Published" means it is live, with a "View post" link to see it. "Failed" means WideCast could not post it; try publishing that content again.
+
+244. Q: Can an AI agent publish or schedule my video for me?
+244. A: Yes, if you have connected one through the API or an MCP connector. It must confirm the exact content and the exact platforms with you in that conversation first, since publishing is public and cannot be undone. Once you confirm, it can post right away or schedule it for a specific date and time, the same choice you get in the studio.
+
+245. Q: Does publishing or scheduling a video use credits?
+245. A: Yes, publishing uses credits, whether you post it right away or schedule it for later; both cost the same. Check your balance under "Subscription & Credits" in the profile menu.
+
+246. Q: Where do I see views and likes for my posts?
+246. A: Open the profile menu in the top corner and choose "Statistics" to open the Social Dashboard. It shows Views/Reach, Likes, Comments, and Shares totals across every platform you have connected, for whatever time period you pick.
+
+247. Q: What metrics does the Social Dashboard show?
+247. A: Eight totals for your chosen time period: Accounts, Followers, Views/Reach, Content, Posts via WideCast, Likes, Comments, and Shares. Scroll down for an Engagement Trend chart, a Connected Accounts breakdown, an Upload Stats table, and a Recent Posts list.
+
+248. Q: What does "Posts via WideCast" mean on the Social Dashboard?
+248. A: It counts how many of your posts were actually published from inside WideCast. That is different from "Content," which counts everything WideCast can see across your connected accounts for the selected period, including posts made outside WideCast.
+
+249. Q: How do I change the time period on the Social Dashboard?
+249. A: Use the dropdown near the top: "Today," "Last 7 days," "Last 30 days," "Last 90 days," "Last 365 days," or "Custom range." Picking "Custom range" reveals a start date and an end date field; set both and press "Apply."
+
+250. Q: Why are my Social Dashboard numbers all zero?
+250. A: The Social Dashboard only counts platforms you have connected to WideCast. If you have not connected any social accounts yet, most numbers read zero. Connect one, then reopen "Statistics" to see real numbers.
+
+251. Q: Can I see analytics for one platform only?
+251. A: The Social Dashboard does not have a dedicated single-platform filter; the top numbers always combine every connected account. Scroll down to the "Connected Accounts" and "Upload Stats" sections, though, where the same numbers are broken out account by account and platform by platform.
+
+252. Q: Why do my follower numbers look behind?
+252. A: The Social Dashboard asks each connected platform for its current numbers every time you open it, instead of keeping its own separate count. If a number looks behind, that usually means the platform itself has not finished updating its own stats yet, not a problem with WideCast.
+
+253. Q: Does checking my Social Dashboard use credits?
+253. A: No. Opening the Social Dashboard, switching time periods, and pulling the same numbers through the API or an AI agent are all free.
+
+254. Q: Can my AI assistant read my analytics?
+254. A: Yes. Once you connect an AI assistant, like Claude or ChatGPT, through the WideCast connector, you can ask it things like how your last video performed or what your follower growth looks like, and it can pull the same numbers shown on your Social Dashboard. Connect one from "API Keys & MCP" in the Setup Center at widecast.ai/#setup.
+
+255. Q: How do I connect WideCast to Claude, ChatGPT, or another AI assistant?
+255. A: Open widecast.ai/#setup and choose "API Keys & MCP", then click "Generate API key and MCP url" to get your personal MCP URL. Paste that URL into your assistant's connector settings (in Claude, that is Settings, then Connectors, then Add custom connector), give it a name, and click "Connect". Turn the connector on for your chat, then ask it to do something, like "Use WideCast to make a video about a topic you choose." Menu names differ slightly by assistant, so check the setup page for yours if the wording does not match.
+
+256. Q: Which AI assistants can connect to WideCast?
+256. A: Claude, ChatGPT, Gemini, Grok, and Antigravity all support pasting in an MCP connector URL, and WideCast has a short setup page for each: Claude Web and Desktop, ChatGPT and Codex, a combined page for Gemini and Antigravity, and one for Grok. Other tools that support custom MCP connectors, like Cursor, can use the same MCP URL even without a dedicated WideCast setup page.
+
+257. Q: Where do I get a WideCast API key?
+257. A: From "API Keys & MCP" in the Setup Center at widecast.ai/#setup. Click "Generate API key and MCP url" and WideCast gives you both an API key, which starts with wc_live_, for calling WideCast directly from your own code, and an MCP URL for connecting an AI assistant, in the same step. You do not need to choose between them ahead of time. Developers integrating directly can find the full request and response reference in the developer docs.
+
+258. Q: What is the MCP connector URL?
+258. A: It is a personal link that stands in for your account, similar to an API key but built for pasting into a chat assistant instead of code. WideCast creates it at the same time as your API key when you click "Generate API key and MCP url" in "API Keys & MCP", inside the Setup Center. Paste the whole link, unedited, into your assistant's connector settings, and it can then use WideCast on your account without you typing anything else in. Treat it as a secret: anyone who has it can use your account.
+
+259. Q: What can my AI assistant actually do in WideCast?
+259. A: Once connected, it can do almost anything you would do yourself: start a new video, blog post, or social caption from an idea, script, link, or file; list your video library; read a video's scenes and fix individual ones, like swapping a background or correcting on-screen text; search stock footage; upload a file for you; and publish, notify you, or send a client a review link. It only acts on your account, using your own credits and connected platforms, and only when you ask it to.
+
+260. Q: Can my assistant fix or audit one scene in my video?
+260. A: Yes. A connected assistant first reads the video's scene-by-scene data, checks how things are laid out if it needs to, then makes one focused change at a time, the same moves available in the scene editor: swap a background, reposition an overlay, fix on-screen text or a caption, correct the narration wording, and more. If it is changing several scenes in one pass, it groups them into a single session so the changes do not conflict with each other. None of this spends a credit.
+
+261. Q: Do I have to teach my assistant how to write scripts or edit scenes?
+261. A: No. WideCast ships its own writing method and its own editing method, and a connected assistant fetches whichever one it needs automatically, right when it needs it, the moment you ask for a new video or ask it to fix an existing one. Both are free to look up and need no key. You do not have to upload a guide, paste instructions, or explain WideCast's conventions yourself; connecting the assistant is the only setup step.
+
+262. Q: Is it safe to give an AI assistant access to my WideCast account?
+262. A: Yes, with normal care. Your API key and MCP URL work like a password: anyone who has one can act on your account, so only paste them into an assistant or tool you trust, and never share them publicly. WideCast also builds in limits: checking on a video needs no key at all, editing a scene never spends credits, and exporting a finished video always needs your direct yes before it happens. You can revoke a key immediately from "API Keys & MCP" in the Setup Center if you ever have doubts.
+
+263. Q: Can my assistant spend my credits without asking me first?
+263. A: WideCast's own instructions tell a connected assistant to tell you the cost before it generates something new, so you can decide first rather than being surprised afterward. Exporting a finished video goes further: the assistant must ask you directly and can only proceed after you clearly say yes to that specific export, not something you agreed to earlier in the chat. Editing scenes you already have, searching footage, and checking status never use credits at all, connected or not.
+
+264. Q: Does connecting an AI assistant cost anything?
+264. A: No. Generating an API key and MCP URL, connecting an assistant, checking on a video's status, and having your assistant read or audit scenes are all free. Credits are only spent the same way they would be if you were clicking through the studio yourself, by generating something new, like a video, an image, or a final export. Connecting more than one assistant, or reconnecting after rotating your link, does not cost anything extra either.
+
+265. Q: Can I revoke my assistant's access to WideCast?
+265. A: Yes. Open "API Keys & MCP" in the Setup Center and click "Revoke" next to the key your assistant is using. This shuts off both the API key and its MCP URL immediately, so the assistant can no longer act on your account. To reconnect later, click "Generate API key and MCP url" to create a new one, then connect your assistant again with the fresh link.
+
+266. Q: My assistant lost access to WideCast. How do I reconnect it?
+266. A: Open widecast.ai/#setup, go to "API Keys & MCP", and find the key your assistant was using. If it still shows as "Active", click "Show API key & MCP url" to see the MCP URL again and paste it back into your assistant's connector settings. If the key was revoked, or you no longer have the URL, click "Generate API key and MCP url" to create a new one, then reconnect your assistant with the fresh link the same way you did the first time.
+
+267. Q: What do credits pay for in WideCast?
+267. A: Credits are spent when WideCast generates something new: creating a video or written post (scene-by-scene video generation uses 2 credits), generating AI images (1 credit per image), exporting the final MP4, and publishing to a connected platform (1 credit). Editing existing scenes is free.
+
+268. Q: Where can I see how many credits I have left?
+268. A: Open the profile menu and choose "Subscription & Credits". The "Your Subscription" dialog shows your remaining credits, your plan, and its "Valid until" date.
+
+269. Q: I ran out of credits. What do I do?
+269. A: Your monthly credit allowance is used up, so new generation is blocked. Upgrade to a bigger plan to get more credits immediately, or wait until your plan renews and the allowance resets. Your existing videos remain fully editable in the meantime.
+
+270. Q: What are the limits of the free plan?
+270. A: Free accounts can make videos up to 60 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
+
+271. Q: How do I upgrade my plan?
+271. A: Open the profile menu, choose "Subscription & Credits", and pick the plan you want. Upgrades take effect immediately and you are charged the pro-rated difference for the rest of the cycle.
+
+272. Q: If I downgrade, when does the cheaper plan start?
+272. A: At your next renewal. Your current plan stays active until the end of the billing cycle you already paid for.
+
+273. Q: How do I cancel my subscription?
+273. A: Open "Subscription & Credits" and choose "Cancel Subscription". The flow shows what you lose, offers a downgrade or a pause instead, and you can pick "Keep My Plan" at any step. After canceling you keep access until the end of the period you paid for.
+
+274. Q: Can I pause my subscription instead of canceling it?
+274. A: Yes. The cancel flow offers "Pause for 1 month?", which skips your next payment. Nothing is deleted, and you will not be charged for the next cycle.
+
+275. Q: My account says it is expired. What does that mean?
+275. A: Your subscription period has ended, so generation is blocked until you renew. Open "Subscription & Credits" in the profile menu to renew. Your videos and projects are still there.
+
+276. Q: Can I earn free credits?
+276. A: Yes. The "Your Subscription" dialog has a "Share to Earn Credits" button that rewards you for sharing WideCast.
+
+277. Q: My video has been stuck on "Generating" for over an hour. Is something wrong?
+277. A: Generating a video almost always takes just a few minutes. The workflow screen shows its own estimate and says "Feel free to do other tasks," so closing the tab and coming back later is fine; WideCast keeps working in the background regardless. If it has run far past that estimate, reopen WideCast and check the badge again; a badge that changed to "Failed" means that run hit a problem, not that it is still stuck. If it is still stuck on "Generating," reach out through "Live Support" in the Account menu with that video so the team can check the run.
+
+278. Q: My video's badge says "Failed". Did I lose my work or credits?
+278. A: A "Failed" badge means that specific run hit a problem; it does not affect your other videos. Sometimes it fails immediately with a popup starting "Failed to generate script:" followed by the reason; other times you only notice the "Failed" badge later on the home screen. Open Creator Tools and run it again first, since occasional runs do fail and a retry often succeeds. If the same input keeps failing, check that your plan and credit balance are current under [Credits, plans, and billing](guide/credits-and-billing.html), since an expired plan or empty balance can also show up as "Failed." Still stuck? Contact "Live Support" from the Account menu.
+
+279. Q: I clicked "Export" but WideCast won't let me. What's wrong?
+279. A: WideCast checks every scene first. If a scene is simply unfinished, using AI narration because you have not recorded your own voice, or still using placeholder media, an "Incomplete Scenes Detected" warning appears; press "Export Anyway" to render as-is, or fix those scenes first. If instead a B-roll scene has no image or video attached at all, export is blocked completely with no way around it until that scene is fixed; open it and use "Find B-roll" to add footage. See [Exporting the final video](guide/export-video.html) for the full walkthrough of both warnings.
+
+280. Q: Why did publishing my video fail?
+280. A: The most common reason is that the platform you picked is not connected yet. In the Publish panel, a platform with no connected account shows "No accounts connected." with a "Connect your accounts first" link; click it, sign in to that platform, and try publishing again. You can also connect ahead of time through "Connect Social Account" in the [Setup Center](https://widecast.ai/#setup), or "Connected Accounts" in the Account menu. See [Connect your social accounts](guide/connect-platforms.html) and [Publish and schedule](guide/publish-and-schedule.html) for the full flow.
+
+281. Q: The client link I sent stopped working. Why?
+281. A: A "Client Magic Link" from the scene editor's Project tab only stays valid for the window you chose when you created it, anywhere from 1 to 30 days. Once that window passes, it stops opening a working session for your client; there is no on-screen warning, the page just will not load properly for them. Open the Project tab in the scene editor, generate a fresh link with a new expiry, and resend it. This is different from the "Client setup link" created in the Setup Center, which expires on its own separate schedule. See [Client links](guide/client-links.html) for the full picture.
+
+282. Q: I set up Telegram for WideCast notifications, but they are not arriving. Why?
+282. A: Two common causes. First, the connection may not have actually finished: open the [Setup Center](https://widecast.ai/#setup)'s "Notification" section and confirm Telegram shows as connected, not just started. Second, WideCast limits automated notifications, including Telegram, to 60 per hour per account; if you or an automation go past that, further sends fail with a rate-limit error until the hour resets, so try again a little later. Either way, email still goes out as the default channel in the meantime, so check your inbox too. See [Notifications](guide/notifications.html) for the full setup.
+
+283. Q: I pasted a video or audio link and WideCast could not use it. Why?
+283. A: The link has to be a direct, public address WideCast can fetch on its own, not a page that requires you to be signed in, and not a file sitting only on your own network or computer. A share link that opens a player on someone else's site sometimes will not work either, even though it plays fine in your own browser. If a pasted link keeps failing, download the file yourself and upload it directly to WideCast instead of linking to it; direct uploads do not depend on WideCast being able to reach an outside address.
+
+284. Q: WideCast rejected my uploaded video or audio. What are the limits?
+284. A: Two caps apply. Video or audio you upload or link to can run up to 5 minutes; anything longer is rejected, so trim the clip or pick a shorter section. Files you upload directly are also capped at 100 MB; pasting a link instead has no separate size cap, only the 5-minute duration limit. If your file is over 100 MB, compress it or export a shorter or lower-resolution version before uploading again. Free plan accounts face a shorter duration cap on top of this; see [Credits, plans, and billing](guide/credits-and-billing.html) for plan limits.
+
+285. Q: WideCast rejected my script as too short or too long. How do I fix it?
+285. A: If it is too short, add real content: another example, more detail, or a closing call to action, until you clear the minimum. A full script you write or paste needs at least 80 words (500 words maximum); starting from an idea needs at least 5 words, and a blog article needs at least 30. If you are over the maximum on a full script, trim it down, since scripts are rejected for running too long. Ideas and blog articles work differently: go over their maximum, 1,000 words and 3,000 words, and WideCast just shortens them automatically instead of blocking you.
+
+286. Q: WideCast blocked my video for being too long, even though it's under 5 minutes. Why?
+286. A: The 5-minute cap is for paid plans. Free plan accounts have a separate, shorter limit of 60 seconds, whether the video is generated from a script or idea, or built from media you upload or link to directly. Go over that on a free account and WideCast blocks it and asks you to shorten it or upgrade. This is the same 60-second cap that limits how long a finished free-plan video can run; it just also applies on the way in, to whatever source you feed it. See [Credits, plans, and billing](guide/credits-and-billing.html) to check your plan or upgrade.
+
+287. Q: I tried to check on a video by its id and WideCast says it cannot find it. Why?
+287. A: The most common reason is a small typo or a dropped character when the id was copied; double-check it against wherever you got it from. Every video's id starts with "widecast," and checking its status only needs that id, nothing else, not even an API key, so this is not an access or login problem. If the id is exactly right and WideCast still cannot find it, that specific video genuinely does not exist under that id. Still stuck? Contact "Live Support" from the Account menu with the id you have.
+
+288. Q: None of this fixed my problem. How do I talk to a real person at WideCast?
+288. A: Open the Account menu in the top corner of WideCast and choose "Live Support" to start a live chat with the WideCast team without leaving the page. If you are signed out, or browsing widecast.ai itself, look for the "Support" link in the top navigation or footer instead; it opens WideCast's public support and discussion board in a new tab. Either way, mention the video's name or id and what you already tried, so the team can pick up where you left off.

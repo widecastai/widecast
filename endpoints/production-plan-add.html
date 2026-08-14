@@ -46,6 +46,7 @@
   <header class="wc-nav">
     <a class="wc-brand" href="widecast.html">WideCast<span>.ai</span></a>
     <nav>
+      <a href="guide/index.html">Guide</a>
       <a href="docs.html">Docs</a>
       <a href="playground.html">Playground</a>
       <a href="endpoints/create-video.html">API</a>
@@ -65,7 +66,12 @@
 <blockquote>
 <p><strong>Shared core.</strong> This endpoint and the dashboard's legacy <code>/add_to_production_plan</code> route both call the same server helper (<code>_add_to_production_plan_core</code>), so the stored row shape is identical across the UI flow and the public API.</p>
 </blockquote>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/production_plan/add</code></div><section class="wc-pg-example" data-cfg="playgrounds/production-plan-add.json" data-usecase-id="queue-idea" id="ex-production-plan-add--queue-idea"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Queue an idea into the plan</h3><p class="wc-pg-example-desc">Add a single idea. Returns {object:'production_plan_entry', added:true, topic_id, workflow_phase:'queued', industry, source, request_id}. Read it back with GET /v1/production_plan.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<h3 id="recommended-idea-a55">Recommended idea (A55)</h3>
+<p>Adding several generated ideas and want to highlight one? Pass <code>recommended: true</code> on that idea — the dashboard's plan list shows a <strong>Recommended</strong> badge on it (top-right). This is an <strong>idea-level</strong> flag; it is not <code>recommended_format</code>, which picks the master <em>script version</em> below.</p>
+<h3 id="script-attach-a55">Script attach (A55)</h3>
+<p>Optionally send <code>scripts</code> — <strong>1-5 pre-written script versions</strong>, one per format (<code>VE</code> Value Explainer, <code>QA</code> Client Q&amp;A, <code>POV</code>, <code>CS</code> Case Study, <code>MB</code> Myth-Buster), each <strong>80-1000 words</strong>. The idea is then stored already <strong>Script ready</strong> (no LLM call, no credit): opening it in the dashboard goes straight into the Script Editor with the supplied version(s) selectable in the 5-format strip — the writing/generation step is skipped. The <code>recommended_format</code> version becomes the master script; the others land as ready versions; formats you did not supply stay generatable later from the editor as usual.</p>
+<p>Do <strong>not</strong> combine <code>scripts</code> with a <code>topic_id</code> that already has a video/script — that returns <code>409 topic_exists</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/production_plan/add</code></div><section class="wc-pg-example" data-cfg="playgrounds/production-plan-add.json" data-usecase-id="queue-idea" id="ex-production-plan-add--queue-idea"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📝 Queue an idea into the plan</h3><p class="wc-pg-example-desc">Add a single idea. Returns {object:'production_plan_entry', added:true, topic_id, workflow_phase:'queued', industry, source, request_id}. Read it back with GET /v1/production_plan.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/production-plan-add.json" data-usecase-id="queue-idea-with-scripts" id="ex-production-plan-add--queue-idea-with-scripts"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Queue a RECOMMENDED idea WITH pre-written scripts (Script ready)</h3><p class="wc-pg-example-desc">Script attach (A55): the idea lands already 'Script ready' — opening it in the dashboard goes straight into the Script Editor with the supplied versions selectable (no writing step, no credit). recommended:true adds a 'Recommended' badge in the plan list. Each text must be 80-1000 words; 409 topic_exists if the topic_id already has a video/script.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <hr />
 <h2 id="request">Request</h2>
@@ -156,6 +162,30 @@
 <td>no</td>
 <td><em>Advanced.</em> A short headline for the entry.</td>
 </tr>
+<tr>
+<td><code>recommended</code></td>
+<td>boolean</td>
+<td>no</td>
+<td>Flag this idea as your recommended pick — the plan list shows a <strong>Recommended</strong> badge on it. Idea-level; not the script-version <code>recommended_format</code>.</td>
+</tr>
+<tr>
+<td><code>scripts</code></td>
+<td>array</td>
+<td>no</td>
+<td><em>Script attach.</em> 1-5 objects <code>{"format", "text"}</code> — formats unique, from <code>VE / QA / POV / CS / MB</code>; each <code>text</code> = the full spoken script, <strong>80-1000 words</strong>. Stores the idea already "Script ready".</td>
+</tr>
+<tr>
+<td><code>recommended_format</code></td>
+<td>string</td>
+<td>no</td>
+<td>Which supplied format is the recommended/<strong>master</strong> version. Must be one of the supplied <code>scripts[].format</code>; defaults to the first entry's format.</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td>string</td>
+<td>no</td>
+<td>Language of the attached scripts (e.g. <code>English</code>, <code>Vietnamese</code>). Defaults to the account's saved output language.</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -172,6 +202,16 @@
 </code></pre></div>
 
 <p><code>topic_id</code> is the id of the queued entry — the one you passed, or the one the server generated. Read the full plan back with <a href="library.md"><code>GET /v1/production_plan</code></a>.</p>
+<p>When <code>recommended: true</code> was sent, the response also carries <code>"recommended": true</code>. When <code>scripts</code> was sent, it also carries:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;recommended&quot;</span><span class="p">:</span><span class="w">        </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;scripts_attached&quot;</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="s2">&quot;VE&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;QA&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;MB&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;recommended_format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VE&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;script_ready&quot;</span><span class="p">:</span><span class="w">       </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><code>scripts_attached</code> lists the stored formats in the fixed <code>VE → QA → POV → CS → MB</code> order.</p>
 <h3 id="error-responses">Error responses</h3>
 <table>
 <thead>
@@ -193,14 +233,39 @@
 <td><code>week_start</code> is not an integer (unix seconds).</td>
 </tr>
 <tr>
+<td><code>invalid_scripts</code></td>
+<td>400</td>
+<td><code>scripts</code> malformed: not a 1-5 array, bad/duplicate <code>format</code>, or missing <code>text</code>.</td>
+</tr>
+<tr>
+<td><code>script_too_short</code> / <code>script_too_long</code></td>
+<td>400</td>
+<td>A <code>scripts[].text</code> is outside the <strong>80-1000</strong> word bounds.</td>
+</tr>
+<tr>
+<td><code>invalid_recommended_format</code></td>
+<td>400</td>
+<td><code>recommended_format</code> is not among the supplied <code>scripts[].format</code>.</td>
+</tr>
+<tr>
 <td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
 <td>401</td>
 <td>Auth.</td>
 </tr>
 <tr>
+<td><code>topic_exists</code></td>
+<td>409</td>
+<td><code>scripts</code> sent with a <code>topic_id</code> that already has a video/script.</td>
+</tr>
+<tr>
 <td><code>production_plan_add_failed</code></td>
 <td>502</td>
 <td>The plan write failed upstream.</td>
+</tr>
+<tr>
+<td><code>script_seed_failed</code></td>
+<td>502</td>
+<td>The plan entry was created, but attaching the scripts failed — the idea behaves like a normal (script-less) idea.</td>
 </tr>
 </tbody>
 </table>
@@ -215,6 +280,18 @@
     <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Hook on the 40% who die intestate; CTA to book a consult.&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;topic_id&quot;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;workflow_phase&quot;</span><span class="p">])</span>
+
+<span class="c1"># Recommended pick + pre-written scripts (idea lands &quot;Script ready&quot;):</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">add_to_production_plan</span><span class="p">(</span>
+    <span class="s2">&quot;3 estate-planning mistakes young parents make&quot;</span><span class="p">,</span>
+    <span class="n">recommended</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">scripts</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;VE&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">ve_script_text</span><span class="p">},</span>   <span class="c1"># 80-1000 words each</span>
+        <span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;MB&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">mb_script_text</span><span class="p">},</span>
+    <span class="p">],</span>
+    <span class="n">recommended_format</span><span class="o">=</span><span class="s2">&quot;VE&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;scripts_attached&quot;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;script_ready&quot;</span><span class="p">])</span>
 </code></pre></div>
 
 <h3 id="typescript">TypeScript</h3>
@@ -226,6 +303,20 @@
 <span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;Hook on the 40% who die intestate; CTA to book a consult.&quot;</span><span class="w"> </span><span class="p">},</span>
 <span class="p">);</span>
 <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">res</span><span class="p">.</span><span class="nx">topic_id</span><span class="p">,</span><span class="w"> </span><span class="nx">res</span><span class="p">.</span><span class="nx">workflow_phase</span><span class="p">);</span>
+
+<span class="c1">// Recommended pick + pre-written scripts (idea lands &quot;Script ready&quot;):</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">res2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">add_to_production_plan</span><span class="p">(</span>
+<span class="w">  </span><span class="s2">&quot;3 estate-planning mistakes young parents make&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">recommended</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">scripts</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">format</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;VE&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">veScriptText</span><span class="w"> </span><span class="p">},</span><span class="w">  </span><span class="c1">// 80-1000 words each</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">format</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;MB&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">mbScriptText</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nx">recommended_format</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;VE&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">res2</span><span class="p">.</span><span class="nx">scripts_attached</span><span class="p">,</span><span class="w"> </span><span class="nx">res2</span><span class="p">.</span><span class="nx">script_ready</span><span class="p">);</span>
 </code></pre></div>
 
 <h3 id="mcp">MCP</h3>
@@ -234,6 +325,21 @@
   &quot;arguments&quot;: {
     &quot;idea_text&quot;: &quot;Why estate planning matters for young families&quot;,
     &quot;source&quot;:    &quot;idea&quot;
+  }
+}
+</code></pre></div>
+
+<div class="highlight"><pre><span></span><code>// Recommended pick + pre-written scripts — lands &quot;Script ready&quot;:
+{
+  &quot;name&quot;: &quot;widecast_add_to_production_plan&quot;,
+  &quot;arguments&quot;: {
+    &quot;idea_text&quot;:          &quot;3 estate-planning mistakes young parents make&quot;,
+    &quot;recommended&quot;:        true,
+    &quot;scripts&quot;: [
+      { &quot;format&quot;: &quot;VE&quot;, &quot;text&quot;: &quot;…full 80-1000 word script…&quot; },
+      { &quot;format&quot;: &quot;MB&quot;, &quot;text&quot;: &quot;…full 80-1000 word script…&quot; }
+    ],
+    &quot;recommended_format&quot;: &quot;VE&quot;
   }
 }
 </code></pre></div>

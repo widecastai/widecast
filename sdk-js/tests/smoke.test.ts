@@ -9,6 +9,7 @@ import Widecast, {
   SCRIPT_MIN_WORDS, SCRIPT_MAX_WORDS,
   IDEA_MIN_WORDS, IDEA_MAX_WORDS,
   BLOG_MIN_WORDS, BLOG_MAX_WORDS,
+  SCRIPT_FORMATS, PLAN_SCRIPT_MIN_WORDS, PLAN_SCRIPT_MAX_WORDS,
   MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
   OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
   PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
@@ -81,6 +82,33 @@ describe("widecast SDK", () => {
   it("blog bounds are locked (A48 parity)", () => {
     expect(BLOG_MIN_WORDS).toBe(30);
     expect(BLOG_MAX_WORDS).toBe(3000);
+  });
+
+  it("plan script-attach vocabulary + bounds are locked (A55 parity)", () => {
+    // Mirrors dashboard2.py WIDECAST_PLAN_SCRIPT_MIN/MAX_WORDS +
+    // _SCRIPT_FORMAT_KEYS. Distinct from SCRIPT_MIN/MAX_WORDS (80/500).
+    expect(SCRIPT_FORMATS).toEqual(["VE", "QA", "POV", "CS", "MB"]);
+    expect(PLAN_SCRIPT_MIN_WORDS).toBe(80);
+    expect(PLAN_SCRIPT_MAX_WORDS).toBe(1000);
+  });
+
+  it("pre-validates scripts on add_to_production_plan (A55, server-mirrored codes)", async () => {
+    const c = new Widecast({ apiKey: "dummy" });
+    const ok = SCRIPT(80);
+    await expect(c.add_to_production_plan("idea", { scripts: [] as any }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.add_to_production_plan("idea", { scripts: [{ format: "XX", text: ok }] }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.add_to_production_plan("idea", {
+      scripts: [{ format: "VE", text: ok }, { format: "VE", text: ok }] }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.add_to_production_plan("idea", { scripts: [{ format: "VE", text: SCRIPT(79) }] }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.add_to_production_plan("idea", { scripts: [{ format: "VE", text: SCRIPT(1001) }] }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.add_to_production_plan("idea", {
+      scripts: [{ format: "VE", text: ok }], recommended_format: "QA" }))
+      .rejects.toThrow(InvalidRequestError);
   });
 
   it("faceless scope is locked (A38 parity)", () => {

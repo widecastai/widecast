@@ -10,6 +10,7 @@ from widecast import (
     SCRIPT_MIN_WORDS, SCRIPT_MAX_WORDS,
     IDEA_MIN_WORDS, IDEA_MAX_WORDS,
     BLOG_MIN_WORDS, BLOG_MAX_WORDS,
+    SCRIPT_FORMATS, PLAN_SCRIPT_MIN_WORDS, PLAN_SCRIPT_MAX_WORDS,
     MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
     OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
     PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
@@ -33,6 +34,7 @@ def test_public_surface_exports():
         "SCRIPT_MIN_WORDS", "SCRIPT_MAX_WORDS",
         "IDEA_MIN_WORDS", "IDEA_MAX_WORDS",
         "BLOG_MIN_WORDS", "BLOG_MAX_WORDS",
+        "SCRIPT_FORMATS", "PLAN_SCRIPT_MIN_WORDS", "PLAN_SCRIPT_MAX_WORDS",
         "MEDIA_MAX_DURATION_SECONDS", "MEDIA_MAX_FILE_BYTES",
         "FREE_TIER_MAX_SECONDS", "FREE_TIER_MAX_WORDS",
         "FREE_TIER_WORDS_PER_SECOND", "PRICING_URL",
@@ -76,6 +78,53 @@ def test_blog_bounds_locked():
     idea — blog is a generative source (auto-truncate over max, like idea)."""
     assert BLOG_MIN_WORDS == 30
     assert BLOG_MAX_WORDS == 3000
+
+
+def test_plan_script_attach_locked():
+    """A55 parity for script attach on /v1/production_plan/add. Server mirrors
+    these (WIDECAST_PLAN_SCRIPT_MIN_WORDS / MAX_WORDS / _SCRIPT_FORMAT_KEYS).
+    NOTE: distinct from SCRIPT_MIN/MAX_WORDS (80/500, create_video
+    source='text') — a plan-attached script may run up to 1000 words.
+    5-surface drift canary (server + OpenAPI + SDKs + docs + playground)."""
+    assert SCRIPT_FORMATS == ("VE", "QA", "POV", "CS", "MB")
+    assert PLAN_SCRIPT_MIN_WORDS == 80
+    assert PLAN_SCRIPT_MAX_WORDS == 1000
+
+
+def test_plan_script_attach_prevalidation():
+    """Client-side pre-validation of scripts mirrors the server's
+    _wc_validate_plan_scripts (same error codes) — bad payloads never hit
+    the wire."""
+    c = Widecast(api_key="wc_live_test")
+    ok = " ".join(["word"] * 80)
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[])
+    assert e.value.code == "invalid_scripts"
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[{"format": "XX", "text": ok}])
+    assert e.value.code == "invalid_scripts"
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[
+            {"format": "VE", "text": ok}, {"format": "VE", "text": ok}])
+    assert e.value.code == "invalid_scripts"
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[
+            {"format": "VE", "text": " ".join(["w"] * 79)}])
+    assert e.value.code == "script_too_short"
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[
+            {"format": "VE", "text": " ".join(["w"] * 1001)}])
+    assert e.value.code == "script_too_long"
+
+    with pytest.raises(InvalidRequestError) as e:
+        c.add_to_production_plan("idea", scripts=[{"format": "VE", "text": ok}],
+                                 recommended_format="QA")
+    assert e.value.code == "invalid_recommended_format"
 
 
 def test_media_caps_locked():

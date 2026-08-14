@@ -72,6 +72,13 @@ INDEX_MD = ROOT / "index.md"
 LLMS_TXT = ROOT / "llms.txt"
 OPENAPI_SRC = ROOT.parent / "openapi" / "openapi.yaml"
 LEGACY_SITE = ROOT.parent / "docs-html"          # stale after refactor — warn
+
+# ── User guide (end-user docs) ──────────────────────────────────────────
+GUIDE_SRC = ROOT / "guide"                       # docs/guide/*.md   (topic sources)
+GUIDE_META_FILE = GUIDE_SRC / "_guide.yml"       # groups + ui universe + exceptions
+GUIDE_OUT = SITE_ROOT / "guide"                  # widecast/guide/*.html (published)
+QA_TXT_OUT = ROOT / "qa.txt"                     # INTERNAL chatbot feed — never copied to site root
+MCP_SERVER_TS = SITE_ROOT / "mcp-server" / "src" / "index.ts"
 # test_cases.json lives at the project root (next to test_cases.txt).
 # Single source of truth for industry example content (script + idea +
 # label per case). Playground YAML references case IDs from here.
@@ -997,6 +1004,400 @@ def _check_llms_parity() -> None:
         )
 
 
+# ─── User guide (docs/guide/*.md → guide/*.html + docs/qa.txt) ──────────
+#
+# One topic file = ONE user-facing feature: guide prose + a `## Q&A` section.
+# The prose becomes widecast/guide/<slug>.html (same template as the rest of
+# the docs site); every Q/A pair is extracted into docs/qa.txt — the single
+# INTERNAL knowledge file for the livechatwith.us support chatbot. The owner
+# pastes it into the livechat admin custom-Q&A screen by hand (numbered
+# "N. Q:"/"N. A:" format, required by that screen's parser — dashboard2.py
+# parseQA). qa.txt stays out of the site root.
+#
+# Drift guards (same philosophy as A38 / _check_llms_parity):
+#   • coverage forward:  every public API op + MCP tool + ui_surface must be
+#     `covers:`-ed by ≥1 topic, or listed in _guide.yml coverage_exceptions.
+#     (Warn-only while _guide.yml enforce_full_coverage is false.)
+#   • coverage backward: every `covers:` entry must still exist in the
+#     universe — catches renamed/removed features leaving stale docs. FATAL.
+#   • Q/A grammar: strict `Q:` / `A:` pairs (blank-line separated) so the
+#     chatbot ES pusher parses the file deterministically. FATAL.
+#   • output hygiene: guide pages + qa.txt are end-user surfaces — internal
+#     terms (remotion / gubo.ai / vendor names), Vietnamese diacritics, and
+#     em-dashes fail the build.
+
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+_QA_HEADING_RE = re.compile(r"^##\s+Q&A\s*$", re.MULTILINE)
+_COVERS_PREFIXES = ("api:", "mcp:", "ui:")
+_GUIDE_BANNED_TERMS = ("remotion", "gubo.ai", "heygen")
+_VIET_DIACRITICS_RE = re.compile(
+    "[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]",
+    re.IGNORECASE,
+)
+
+
+def _load_guide_meta() -> dict:
+    if not GUIDE_META_FILE.exists():
+        raise SystemExit(
+            f"[build] FATAL: {GUIDE_META_FILE.relative_to(SITE_ROOT)} is missing — "
+            f"it defines guide groups, the ui_surfaces universe, and coverage exceptions."
+        )
+    try:
+        meta = yaml.safe_load(GUIDE_META_FILE.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as e:
+        raise SystemExit(f"[build] FATAL: _guide.yml is invalid YAML: {e}")
+    groups = meta.get("groups")
+    if (not isinstance(groups, list) or not groups
+            or not all(isinstance(g, dict) and g.get("key") and g.get("title") for g in groups)):
+        raise SystemExit("[build] FATAL: _guide.yml needs `groups: [{key, title}, ...]`.")
+    if not isinstance(meta.get("ui_surfaces"), dict) or not meta["ui_surfaces"]:
+        raise SystemExit("[build] FATAL: _guide.yml needs a non-empty `ui_surfaces: {key: description}` map.")
+    exc = meta.get("coverage_exceptions") or {}
+    if not isinstance(exc, dict) or not all(isinstance(v, str) and v.strip() for v in exc.values()):
+        raise SystemExit("[build] FATAL: _guide.yml coverage_exceptions must map item → non-empty reason.")
+    meta["coverage_exceptions"] = exc
+    return meta
+
+
+def _parse_qa_pairs(text: str, where: str) -> list[dict]:
+    """Strict grammar for the chatbot feed (docs/qa.txt):
+         Q: one line
+         A: the answer — may wrap onto following non-blank lines
+       A blank line ends the pair. Anything else is a build error — the ES
+       pusher and the chatbot rely on this file parsing deterministically.
+       Wrapped answer lines are collapsed to one line on output, so every
+       emitted pair is exactly `Q: ...\\nA: ...`."""
+    pairs: list[dict] = []
+    errors: list[str] = []
+    q: str | None = None
+    a_lines: list[str] = []
+    state = "idle"  # idle | want_a | in_a
+    last_line_no = 0
+
+    def _close(line_no: int) -> None:
+        nonlocal q, a_lines, state
+        answer = " ".join(a_lines).strip()
+        if not answer:
+            errors.append(f"line {line_no}: empty answer for Q {q!r}")
+        else:
+            pairs.append({"q": q, "a": answer})
+        q, a_lines, state = None, [], "idle"
+
+    for i, raw_line in enumerate(text.splitlines(), 1):
+        last_line_no = i
+        line = raw_line.strip()
+        if not line:
+            if state == "in_a":
+                _close(i)
+            elif state == "want_a":
+                errors.append(f"line {i}: Q without an A: {q!r}")
+                q, state = None, "idle"
+            continue
+        if line.startswith("Q:"):
+            if state == "in_a":
+                _close(i)
+            elif state == "want_a":
+                errors.append(f"line {i}: two Q lines in a row (missing A for {q!r})")
+            q = line[2:].strip()
+            state = "want_a"
+            if not q:
+                errors.append(f"line {i}: empty question")
+        elif line.startswith("A:"):
+            if state == "want_a":
+                a_lines = [line[2:].strip()]
+                state = "in_a"
+            elif state == "in_a":
+                errors.append(f"line {i}: A line without a new Q above it")
+            else:
+                errors.append(f"line {i}: A line without any Q")
+        else:
+            if state == "in_a":
+                a_lines.append(line)
+            else:
+                errors.append(f"line {i}: stray text outside a Q/A pair: {line[:60]!r}")
+    if state == "in_a":
+        _close(last_line_no + 1)
+    elif state == "want_a":
+        errors.append(f"end of section: Q without an A: {q!r}")
+    if not errors and not pairs:
+        errors.append("`## Q&A` section contains no pairs")
+    if errors:
+        raise SystemExit(
+            f"[build] FATAL: bad Q&A section in {where}:\n"
+            + "\n".join(f"  • {e}" for e in errors)
+        )
+    return pairs
+
+
+def _parse_guide_topic(md_file: Path) -> dict:
+    rel = md_file.relative_to(SITE_ROOT)
+    raw = md_file.read_text(encoding="utf-8")
+    fm = _FRONTMATTER_RE.match(raw)
+    if not fm:
+        raise SystemExit(f"[build] FATAL: {rel} is missing its `---` frontmatter block.")
+    try:
+        meta = yaml.safe_load(fm.group(1)) or {}
+    except yaml.YAMLError as e:
+        raise SystemExit(f"[build] FATAL: {rel} frontmatter is invalid YAML: {e}")
+    problems: list[str] = []
+    for key in ("slug", "title", "group", "summary", "updated", "covers"):
+        if not meta.get(key):
+            problems.append(f"missing frontmatter field `{key}`")
+    slug = str(meta.get("slug", ""))
+    if slug and slug != md_file.stem:
+        problems.append(
+            f"slug {slug!r} ≠ filename {md_file.stem!r} — the slug is the permanent URL; they must match"
+        )
+    covers = meta.get("covers") or []
+    if not isinstance(covers, list) or not covers:
+        problems.append("`covers` must be a non-empty list")
+    else:
+        for c in covers:
+            if not isinstance(c, str) or not c.startswith(_COVERS_PREFIXES):
+                problems.append(f"covers entry {c!r} must start with one of {_COVERS_PREFIXES}")
+    body = raw[fm.end():]
+    qa_m = _QA_HEADING_RE.search(body)
+    if not qa_m:
+        problems.append("missing `## Q&A` section — every topic ships chatbot Q&A")
+    if problems:
+        raise SystemExit(f"[build] FATAL: {rel}:\n" + "\n".join(f"  • {p}" for p in problems))
+    prose = body[: qa_m.start()].strip()
+    qa_text = body[qa_m.end():]
+    prose_no_code = re.sub(r"```.*?```", "", prose, flags=re.DOTALL)
+    if re.search(r"^#\s", prose_no_code, re.MULTILINE):
+        raise SystemExit(
+            f"[build] FATAL: {rel}: prose contains an H1 — the page H1 comes from "
+            f"frontmatter `title`; start sections at `##`."
+        )
+    return {
+        "slug": md_file.stem,
+        "title": str(meta["title"]),
+        "group": str(meta["group"]),
+        "summary": str(meta["summary"]),
+        "updated": str(meta["updated"]),
+        "order": int(meta.get("order", 999)),
+        "covers": [str(c) for c in covers],
+        "prose": prose,
+        "pairs": _parse_qa_pairs(qa_text, str(rel)),
+        "rel": str(rel),
+    }
+
+
+def _guide_universe(meta: dict) -> set[str]:
+    """api:* from openapi.yaml, mcp:* from mcp-server/src/index.ts, ui:* from
+    _guide.yml — the three-legged feature universe the guide must cover."""
+    universe: set[str] = set()
+    try:
+        spec = yaml.safe_load(OPENAPI_SRC.read_text(encoding="utf-8"))
+        for path, ops in (spec.get("paths") or {}).items():
+            for m in ("get", "post", "put", "patch", "delete"):
+                if isinstance(ops.get(m), dict):
+                    universe.add(f"api:{m.upper()} {path}")
+    except Exception as e:
+        raise SystemExit(f"[build] FATAL: cannot read {OPENAPI_SRC.name} for guide coverage: {e}")
+    try:
+        ts = MCP_SERVER_TS.read_text(encoding="utf-8")
+    except OSError as e:
+        raise SystemExit(f"[build] FATAL: cannot read {MCP_SERVER_TS} for guide coverage: {e}")
+    names = set(re.findall(r'name:\s*"(widecast_[a-z0-9_]+)"', ts))
+    if not names:
+        raise SystemExit(
+            "[build] FATAL: no widecast_* tool names found in mcp-server/src/index.ts — "
+            "did the declaration style change? Update the regex in _guide_universe()."
+        )
+    universe |= {f"mcp:{n}" for n in names}
+    universe |= {f"ui:{k}" for k in meta["ui_surfaces"]}
+    return universe
+
+
+def _check_guide_coverage(topics: list[dict], meta: dict) -> None:
+    universe = _guide_universe(meta)
+    covered: dict[str, list[str]] = {}
+    for t in topics:
+        for c in t["covers"]:
+            covered.setdefault(c, []).append(t["slug"])
+    exceptions = meta["coverage_exceptions"]
+
+    fatal: list[str] = []
+    for c, slugs in sorted(covered.items()):
+        if c not in universe:
+            fatal.append(
+                f"covers entry {c!r} (in {', '.join(slugs)}) matches nothing in the "
+                f"universe — feature renamed or removed? Fix the topic or _guide.yml."
+            )
+    for exc_item in sorted(exceptions):
+        if exc_item not in universe:
+            fatal.append(f"coverage_exceptions entry {exc_item!r} matches nothing — stale, remove it.")
+        elif exc_item in covered:
+            print(f"  ⚠ guide: {exc_item} is both excepted and covered by {covered[exc_item]} — drop the exception.")
+
+    missing = sorted(universe - set(covered) - set(exceptions))
+    if missing:
+        header = (f"guide coverage: {len(missing)} universe item(s) have no topic "
+                  f"(add a `covers:` entry in a topic, or an exception in _guide.yml):")
+        if meta.get("enforce_full_coverage"):
+            fatal.append(header + "\n" + "\n".join(f"      - {mi}" for mi in missing))
+        else:
+            print(f"  ⚠ {header}")
+            for mi in missing:
+                print(f"      - {mi}")
+            print("    (warn-only: _guide.yml enforce_full_coverage is false until the full topic set ships)")
+
+    if fatal:
+        raise SystemExit("[build] FATAL: guide coverage check failed:\n" + "\n".join(f"  • {f}" for f in fatal))
+    print(f"  coverage: {len(universe)} universe items · {len(covered)} covered · "
+          f"{len(exceptions)} excepted · {len(missing)} pending")
+
+
+def _check_guide_output_hygiene() -> None:
+    """Guide pages + qa.txt are end-user surfaces: no internal/vendor terms
+    (public naming is overlay.*/scene.*, never 'remotion'), English only
+    (no Vietnamese diacritics), and no em-dashes (house style)."""
+    problems: list[str] = []
+    targets = sorted(GUIDE_OUT.glob("*.html"))
+    if QA_TXT_OUT.exists():
+        targets.append(QA_TXT_OUT)
+    for f in targets:
+        text = f.read_text(encoding="utf-8")
+        if f.suffix == ".html":
+            # HTML comments come from the shared template shell and are not
+            # user-visible — exclude them so only real content is policed.
+            text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+        low = text.lower()
+        rel = f.relative_to(SITE_ROOT.parent)
+        for term in _GUIDE_BANNED_TERMS:
+            n = low.count(term)
+            if n:
+                problems.append(f"{rel}: banned term {term!r} ×{n}")
+        m = _VIET_DIACRITICS_RE.search(text)
+        if m:
+            problems.append(f"{rel}: Vietnamese diacritics ({m.group(0)!r}) — guide/QA are English-only")
+        if "—" in text:
+            problems.append(f"{rel}: em-dash found — use a period, comma, or colon instead")
+    if problems:
+        raise SystemExit("[build] FATAL: guide output hygiene:\n" + "\n".join(f"  • {p}" for p in problems))
+
+
+def _build_guide(template: str) -> None:
+    if not GUIDE_SRC.exists():
+        print("  (no docs/guide/ folder — skipping user guide)")
+        return
+    meta = _load_guide_meta()
+    topics = [_parse_guide_topic(p) for p in sorted(GUIDE_SRC.glob("*.md"))]
+    if not topics:
+        print("  (docs/guide/ has no topic .md files yet)")
+        return
+    gidx = {g["key"]: i for i, g in enumerate(meta["groups"])}
+    bad_groups = [f"{t['rel']}: unknown group {t['group']!r} (add it to _guide.yml groups)"
+                  for t in topics if t["group"] not in gidx]
+    if bad_groups:
+        raise SystemExit("[build] FATAL:\n" + "\n".join(f"  • {b}" for b in bad_groups))
+    topics.sort(key=lambda t: (gidx[t["group"]], t["order"], t["slug"]))
+
+    # The chatbot must have exactly ONE answer per question intent.
+    seen_q: dict[str, str] = {}
+    dups: list[str] = []
+    for t in topics:
+        for p in t["pairs"]:
+            norm = re.sub(r"\s+", " ", p["q"].strip().rstrip("?").lower())
+            if norm in seen_q:
+                dups.append(f"{p['q']!r} appears in both {seen_q[norm]} and {t['slug']}")
+            else:
+                seen_q[norm] = t["slug"]
+    if dups:
+        raise SystemExit("[build] FATAL: duplicate questions across topics:\n"
+                         + "\n".join(f"  • {d}" for d in dups))
+
+    # Pages carry base_href="../" so relative links resolve against the SITE
+    # ROOT: a sibling-topic link must be written `guide/<slug>.html`, never
+    # bare `<slug>.html` (that would resolve to the root and 404).
+    slugs = {t["slug"] for t in topics}
+    bad_links: list[str] = []
+    for t in topics:
+        for target in re.findall(r"\]\(([a-z0-9-]+\.html)[)#]", t["prose"] + " "):
+            if target[:-5] in slugs:
+                bad_links.append(f"{t['rel']}: link ({target}) must be (guide/{target})")
+    if bad_links:
+        raise SystemExit("[build] FATAL: guide cross-links must be prefixed with guide/ "
+                         "(pages use base_href='../'):\n" + "\n".join(f"  • {b}" for b in bad_links))
+
+    GUIDE_OUT.mkdir(parents=True, exist_ok=True)
+    total_pairs = 0
+    for t in topics:
+        qa_md = "\n\n## Common questions\n\n" + "\n\n".join(
+            f"**{p['q']}**\n\n{p['a']}" for p in t["pairs"]
+        )
+        page_md = f"# {t['title']}\n\n{t['prose']}{qa_md}"
+        html_body = _render_markdown(page_md)
+        crumb = '<p class="wc-guide-crumb"><a href="guide/index.html">‹ User Guide</a></p>'
+        full = _render_template(
+            template,
+            title=f"{t['title']} · WideCast Guide",
+            content=crumb + html_body,
+            description=t["summary"],
+            canonical=f"https://widecast.ai/guide/{t['slug']}.html",
+            page_class="endpoint-page guide-page",
+            base_href="../",
+        )
+        (GUIDE_OUT / f"{t['slug']}.html").write_text(full, encoding="utf-8")
+        total_pairs += len(t["pairs"])
+        print(f"  guide → guide/{t['slug']}.html ({len(t['pairs'])} Q&A)")
+
+    # index.html — grouped topic list
+    parts = [
+        "<h1>WideCast User Guide</h1>",
+        '<p class="wc-guide-intro">Step-by-step guides for the WideCast studio: '
+        'creating videos and posts, editing scenes, working with clients, and '
+        'publishing everywhere. No code required. Building on the API instead? '
+        'See the <a href="docs.html">developer docs</a>.</p>',
+    ]
+    for g in meta["groups"]:
+        in_group = [t for t in topics if t["group"] == g["key"]]
+        if not in_group:
+            continue
+        parts.append(f'<section class="wc-guide-group"><h2>{g["title"]}</h2><ul class="wc-guide-list">')
+        for t in in_group:
+            parts.append(
+                f'<li><a href="guide/{t["slug"]}.html">{t["title"]}</a>'
+                f'<span class="wc-guide-sum">{t["summary"]}</span></li>'
+            )
+        parts.append("</ul></section>")
+    index_html = _render_template(
+        template,
+        title="User Guide · WideCast",
+        content="\n".join(parts),
+        description="Step-by-step WideCast guides: create, edit, share, and publish videos, blogs, and social posts.",
+        canonical="https://widecast.ai/guide/index.html",
+        page_class="endpoint-page guide-page",
+        base_href="../",
+    )
+    (GUIDE_OUT / "index.html").write_text(index_html, encoding="utf-8")
+    print(f"  guide index → guide/index.html ({len(topics)} topics, {total_pairs} Q&A pairs)")
+
+    # Renamed/removed topics leave old HTML behind — surface them, never delete.
+    expected = {f"{t['slug']}.html" for t in topics} | {"index.html"}
+    strays = sorted(p.name for p in GUIDE_OUT.glob("*.html") if p.name not in expected)
+    if strays:
+        print(f"  ⚠ stale files in guide/ with no matching topic .md (delete manually): {', '.join(strays)}")
+
+    # qa.txt — the single internal chatbot Q&A bank. NUMBERED format
+    # ("N. Q:" / "N. A:", blank line between pairs) because the owner pastes
+    # it by hand into the livechatwith.us admin custom-Q&A screen, whose
+    # parser (dashboard2.py parseQA) requires the digit prefix. Nothing else
+    # in the file (no headers/comments). NOT copied to the site root.
+    qa_entries = []
+    n = 0
+    for t in topics:
+        for p in t["pairs"]:
+            n += 1
+            qa_entries.append(f"{n}. Q: {p['q']}\n{n}. A: {p['a']}\n")
+    QA_TXT_OUT.write_text("\n".join(qa_entries), encoding="utf-8")
+    print(f"  qa.txt (chatbot Q&A bank — paste into livechat admin UI) → docs/qa.txt ({total_pairs} pairs)")
+
+    _check_guide_coverage(topics, meta)
+    _check_guide_output_hygiene()
+
+
 def _write_sitemap_robots() -> None:
     """Emit a sitemap.xml of canonical public pages + a robots.txt that points
     to it. Self-maintaining: the page list is derived from files that actually
@@ -1043,6 +1444,14 @@ def _write_sitemap_robots() -> None:
         for html in sorted(endpoints_dir.glob("*.html")):
             rel = f"endpoints/{html.name}"
             urls.append((rel, _lastmod(rel), "monthly", "0.5"))
+
+    # Every built user-guide page (index ranks above individual topics).
+    guide_dir = SITE_ROOT / "guide"
+    if guide_dir.exists():
+        for html in sorted(guide_dir.glob("*.html")):
+            rel = f"guide/{html.name}"
+            prio = "0.7" if html.name == "index.html" else "0.5"
+            urls.append((rel, _lastmod(rel), "monthly", prio))
 
     def _xml_escape(s: str) -> str:
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -1094,6 +1503,9 @@ def main() -> int:
                            base_href="../",
                            canonical_path=f"endpoints/{md.stem}.html")
         print(f"  endpoint → endpoints/{info['href']}")
+
+    print("[build] User guide (docs/guide/*.md → guide/, base_href='../')")
+    _build_guide(template)
 
     print("[build] Docs landing + llms.txt + openapi.{yaml,json}")
     # IMPORTANT: widecast/widecast.html is the MARKETING HOMEPAGE — hand-crafted,

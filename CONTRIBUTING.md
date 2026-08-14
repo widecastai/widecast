@@ -83,9 +83,12 @@ make release VER=0.1.1     # 2. bump + check + sync + tag
 `make release` runs in order:
 
 1. **Bump** `widecast/VERSION` + 3 package metadata files (`sdk-python/pyproject.toml`, `sdk-js/package.json`, `mcp-server/package.json`).
-2. **Check** — full parity across 8 surfaces:
+2. **Check** — full parity across all surfaces (12 phases today):
    - `dashboard2.py` AST parse
-   - `docs/build.py` (OpenAPI ↔ llms.txt ↔ openapi-actions.json parity)
+   - `docs/build.py` (OpenAPI ↔ llms.txt ↔ openapi-actions.json parity, plus the
+     User Guide build: every public endpoint + MCP tool + UI surface must be
+     covered by a `docs/guide/` topic, and the chatbot Q&A feed `docs/qa.txt`
+     regenerates from the same topics — see HANDOFF A54)
    - `pytest sdk-python`
    - `npm run typecheck && npm test` on `sdk-js`
    - `npm run build && node --check dist/index.js` on `mcp-server`
@@ -107,7 +110,7 @@ make sync                  # push private → public (no tag)
 
 **Agent context for a new session** — read these in order:
 1. `~/.claude/projects/.../memory/MEMORY.md` (always auto-loaded; pointer index)
-2. `widecast/HANDOFF.md` (private — A1-A51 decision history)
+2. `widecast/HANDOFF.md` (private — A1-A54 decision history)
 3. The `project-widecast-surfaces-map` memory entry — which file owns which API contract
 4. This file (`CONTRIBUTING.md`) for the public-facing scope rules
 
