@@ -143,6 +143,18 @@ fields:
     label: "Faceless — every scene B-roll, no narrator (scene/video · text/idea/blog + audio_url)"
     required: false
     default: false
+  - name: adjust
+    type: select
+    label: "Adjust audio (audio sources) — off | auto (autotune) | last saved Adjust Audio profile (custom {speed,pitch,volume,cleanup,studio} object: see the code examples)"
+    required: false
+    default: "off"
+    options:
+      - value: "off"
+        label: "off — audio used exactly as ingested (default)"
+      - value: auto
+        label: "auto — autotune engine: shape each phrase, normalise pace and loudness"
+      - value: last_adjust_settings
+        label: "last_adjust_settings — apply the account's saved Adjust Audio profile"
   - name: callback_url
     type: text
     label: "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html"
@@ -313,10 +325,13 @@ use_cases:
     request_template:
       source: audio_url
       output_type: scene
+      adjust: "off"
       callback_url: ""
     choices:
       - field: output_type
         options: [text, scene, video]
+      - field: adjust
+        options: ["off", auto, last_adjust_settings]
     cases:
       - media_demo_bunny
       - media_demo_sintel
@@ -348,9 +363,12 @@ use_cases:
     request:
       source: audio_file
       output_type: scene
+      adjust: "off"
     choices:
       - field: output_type
         options: [text, scene, video]
+      - field: adjust
+        options: ["off", auto, last_adjust_settings]
     assertions:
       eventual_status: completed
       has_review_url: true

@@ -221,6 +221,7 @@ const TOOLS = [
                 blog_text: { type: "string", description: "Required when source='blog'. 30–3000 words." },
                 video_url: { type: "string", description: "Required when source='video_url'. Any public http(s) URL — direct video file (S3 / R2 / transfer.sh / your CDN) OR a YouTube / TikTok / Facebook page URL. ≤5 min. Loopback / private / link-local hosts rejected." },
                 audio_url: { type: "string", description: "Required when source='audio_url'. Any public http(s) URL — direct audio file (S3 / R2 / transfer.sh / file.io / your CDN) OR a YouTube / TikTok / Facebook page URL. ≤5 min. Loopback / private / link-local hosts rejected. THIS is the path for 'user attached a voice memo to the chat' → drop it on a public host, pass the URL. NARRATION: the user's original voice in the audio is kept verbatim as the narration in every production_mode (it is never re-synthesized via TTS). If they pick production_mode='face_clone', the clone's face is lip-synced to that original audio — voice stays the user's, only the on-screen face is the clone." },
+                adjust: { anyOf: [{ type: "string", enum: ["off", "auto", "last_adjust_settings"] }, { type: "object", additionalProperties: false, properties: { speed: { type: "number", minimum: 0.7, maximum: 1.5 }, pitch: { type: "integer", minimum: -5, maximum: 5 }, volume: { type: "number", minimum: 0.5, maximum: 2.0 }, cleanup: { type: "boolean" }, studio: { type: "boolean" } } }], description: "AUDIO SOURCES ONLY (audio_url) — how the ingested audio is treated BEFORE transcription + scene cutting. 'off' (default): untouched. 'auto': autotune engine — analyses the speech, shapes each phrase's delivery (lifts the lines carrying the message, settles the ones carrying weight), then normalises speaking pace and loudness; nothing to configure. Best choice for raw recordings, which are rarely consistent in pace or level. 'last_adjust_settings': apply the account's saved Adjust Audio profile from the dashboard modal (speed/pitch/volume/cleanup/studio; none saved → same as off). Or pass an object {speed?: 0.7-1.5, pitch?: -5..5 integer semitone notches (negative lowers the voice, positive raises it), volume?: 0.5-2.0 (>1 soft-clipped), cleanup?: noise/rumble/de-ess, studio?: compression+EQ} applied exactly (omitted keys = neutral). Treatment failures are fail-open (original audio continues). For a raw recording prefer 'auto'; reach for the explicit object only when the user names a setting ('speed it up 1.2x'). Do not ask a routine extra question about it." },
                 language: { type: "string", enum: ["English", "Vietnamese"], description: "Narration language (idea/blog)." },
                 video_length: { type: "string", enum: ["short", "normal"], description: "short ≈90s, normal ≈3 min (idea/blog)." },
                 output_type: { type: "string", enum: ["text", "scene"], default: "scene", description: "Reviewable stage only: 'text' for idea/blog (editable script), 'scene' otherwise (scenes to review). The final MP4 is rendered by the user from the WideCast UI." },
@@ -911,6 +912,46 @@ const TOOLS = [
         },
     },
     {
+        name: "widecast_report_error",
+        title: "WideCast: Report a WideCast problem to the WideCast team",
+        description: "Report a WideCast problem to the WideCast team. SYNC, FREE. Use this " +
+            "when a WideCast API or the video pipeline itself misbehaves and the " +
+            "user cannot act on it: a scene upload keeps failing, an export errors " +
+            "out, an overlay/spec fails to build, an endpoint returns a 5xx you " +
+            "cannot work around. It emails the report straight to the WideCast " +
+            "team. NOT for user-facing content problems you can fix yourself (a " +
+            "weak hook, a wrong background, a typo), and NOT a channel for " +
+            "messaging the user — to notify the USER use widecast_send_notification " +
+            "instead. The account (company + email) is resolved server-side from " +
+            "the API key and is never accepted in the body. Put the failing call's " +
+            "`request_id` into `context` whenever you have one — it is the single " +
+            "most useful field for tracing. Returns `{object:'error_report', " +
+            "reported:true, module, context_keys, request_id}`. Errors: 400 " +
+            "`missing_field` (error_message) / `error_message_too_long` / " +
+            "`module_too_long` / `invalid_module` / `invalid_context`, 502 " +
+            "`error_report_failed`.",
+        inputSchema: {
+            type: "object",
+            required: ["error_message"],
+            properties: {
+                error_message: { type: "string", maxLength: 4000, description: "REQUIRED. What went wrong — prefer the verbatim error text returned by the failing call." },
+                module: { type: "string", maxLength: 80, description: "Which part failed, e.g. 'export', 'scene_upload', 'spec', 'modify_scene', 'video_data'. Defaults to 'agent'." },
+                context: { type: "object", description: "Free-form debugging details: topic_id, voice_file, scene_id, the request_id of the failing call, what you were attempting. Include the failing request_id whenever you have one." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true, idempotentHint: false },
+        outputSchema: {
+            type: "object",
+            properties: {
+                object: { type: "string", const: "error_report" },
+                reported: { type: "boolean" },
+                module: { type: "string" },
+                context_keys: { type: "number" },
+                request_id: { type: "string" },
+            },
+        },
+    },
+    {
         name: "widecast_accounts",
         title: "WideCast: List connected accounts",
         description: "List the account's connected social platforms. Read-only, free.",
@@ -1047,14 +1088,16 @@ const TOOLS = [
             "channels were requested — per-channel `results` (status sent / skipped " +
             "/ failed with reason/error). Errors: 400 `invalid_link_type` / " +
             "`missing_field` (topic_id, when link_type=record without topic_id) / " +
-            "`invalid_topic_id` / `invalid_channels`, `client_link_failed` (500 " +
-            "when the API key has no account email, 502 when minting fails).",
+            "`invalid_topic_id` / `invalid_channels`, 409 `script_not_saved` " +
+            "(link_type=record whose video has no saved script yet — save the " +
+            "script first), `client_link_failed` (500 when the API key has no " +
+            "account email, 502 when minting fails).",
         inputSchema: {
             type: "object",
             required: ["link_type"],
             properties: {
                 link_type: { type: "string", enum: ["record", "content_plan", "setup", "social_dashboard", "publish_schedule"], description: "REQUIRED. record = one specific project's recording workspace (requires topic_id); content_plan = Saved Ideas / content-plan screen; setup = account Setup Center; social_dashboard = Social Dashboard (statistics); publish_schedule = Publish Schedule screen." },
-                topic_id: { type: "string", pattern: "^[A-Za-z0-9_-]{1,64}$", description: "Required IFF link_type='record': the project whose recording workspace the link opens." },
+                topic_id: { type: "string", pattern: "^[A-Za-z0-9_-]{1,64}$", description: "Required IFF link_type='record': the project whose recording workspace the link opens. The video must already have a saved script, otherwise the call returns 409 script_not_saved." },
                 ttl_days: { type: "integer", minimum: 1, maximum: 30, default: 7, description: "Link lifetime in days. Clamped to 1..30, default 7." },
                 channels: {
                     type: "object",
@@ -1408,6 +1451,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             if (args.video_url !== undefined && args.video_url !== "")
                 body.video_url = args.video_url;
             const data = await wc("POST", "/v1/notification/send", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_report_error") {
+            const body = { error_message: String(args.error_message ?? "") };
+            if (args.module !== undefined && args.module !== "")
+                body.module = args.module;
+            if (args.context !== undefined)
+                body.context = args.context;
+            const data = await wc("POST", "/v1/error/report", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         if (name === "widecast_add_to_production_plan") {

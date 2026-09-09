@@ -40,6 +40,17 @@ When `status == "completed"`:
 
 > **Why `text` is invalid only for `source=text`**: `output_type` is pipeline depth. `text` means "stop after the source→script-text phase". That phase exists for every source EXCEPT `text` — generative sources (idea/blog) generate the script, media sources (video/audio) extract it. For `source=text` the caller already provided the script, so `text` output would just echo the input.
 
+### `adjust` — treat the ingested audio (audio sources only)
+
+For `source=audio_url` / `audio_file`, `adjust` controls how the audio is treated **before** transcription and scene cutting (all timings are computed on the treated audio — same order as the dashboard's manual flow):
+
+* `"off"` (default) — audio used exactly as downloaded/uploaded.
+* `"auto"` — run the **autotune** engine: it analyses the speech, shapes each phrase's delivery (lifting the lines that carry the message, settling the ones that carry weight), then normalises speaking pace and loudness. Nothing to configure. Best choice for raw recordings, which are rarely consistent in pace or level.
+* `"last_adjust_settings"` — apply the account's saved **Adjust Audio** profile (the "Last used" settings from the dashboard's Adjust Audio modal). If the account never saved one, behaves like `"off"`.
+* An object `{speed?, pitch?, volume?, cleanup?, studio?}` — applied exactly; omitted keys stay neutral. `speed` 0.7-1.5 (playback-rate multiple), `pitch` integer -5..5 (semitone notches; negative lowers the voice, positive raises it), `volume` 0.5-2.0 (gain multiple, >1.0 soft-clipped), `cleanup` boolean (noise / rumble / de-ess), `studio` boolean (compression + EQ).
+
+Treatment failures are **fail-open** — the original audio continues and the request still succeeds. Sending `adjust` (non-`off`) for a non-audio source, or out-of-range values, returns 400 `invalid_adjust`. SDK constants `ADJUST_SOURCES` / `ADJUST_MODES` / `ADJUST_*_MIN/MAX`.
+
 ### `faceless` — all-B-roll (no narrator)
 
 By default scenes mix **A-roll** (narrator) and **B-roll** (stock video / AI image). Set **`faceless: true`** to make **every scene B-roll with no narrator anywhere** — a "faceless" video. It's orthogonal to `output_type` (controls A/B-roll, not pipeline depth) and valid with `output_type` `scene`/`video` for the script-based sources (`text`/`idea`/`blog`) AND for `source=audio_url` — the script lives in the user's audio but the visuals must still be generated, so the same toggle applies. Combining it with `output_type=text` (no scenes) or a video source (`video_url`/`video_file` — the footage IS the visuals) returns `invalid_faceless` (400). Default `false` leaves the normal A/B mix unchanged.
@@ -200,6 +211,7 @@ The SDKs wrap this: `client.create_video(source="video_file", video_file=open("c
 | `research_enabled` | bool | no (idea / blog) | Default `true`. Disable only if your input is self-contained and doesn't need AI fact-checking. Ignored when `source=text`. |
 | `output_type` | string | no | Pipeline depth. `"text"` stops after the source→script phase (any source except `text` — review_url opens Script Editor; for media = Remake/transcript). `"scene"` (default) stops at scenes-ready-for-review. `"video"` auto-chains into the renderer so the final MP4 is produced — no manual `/v1/export_video` call needed. |
 | `faceless` | bool | no | Default `false`. When `true`, **every scene is B-roll** (stock video / AI image) with **no narrator A-roll** anywhere — a "faceless" video. Orthogonal to `output_type`. Valid with `output_type` `scene`/`video` for `text`/`idea`/`blog` AND for `source=audio_url` — same A/B-roll toggle since the audio is the narration but the visuals are generated. Rejected with 400 `invalid_faceless` when `output_type=text` (no scenes) or for video sources (footage IS the visuals). SDK constant `FACELESS_SOURCES`. |
+| `adjust` | string \| object | no | **Audio sources only** (`audio_url`/`audio_file`). Default `"off"` (audio untouched). `"auto"` runs the autotune engine (per-phrase delivery shaping + pace + loudness; nothing to configure). `"last_adjust_settings"` applies the account's saved Adjust Audio profile (none saved → off). Or an object `{speed?: 0.7-1.5, pitch?: -5..5 int, volume?: 0.5-2.0, cleanup?: bool, studio?: bool}` applied exactly. Runs BEFORE transcription/scene cutting; fail-open on treatment errors. 400 `invalid_adjust` otherwise. SDK constants `ADJUST_SOURCES`, `ADJUST_MODES`, `ADJUST_*_MIN/MAX`. |
 | `media_pool` | array[string] | no | Direct image/video file URLs **not** placed inline. WideCast downloads each (+thumbnail) and adds them to the **first scene's** media library, so the scene editor lists them and the user can drop any into any scene. Use for images you can't confidently match to a beat (inline the ones you can). Best-effort: applies on the scene-producing path (`text`/`idea`/`blog`, `output_type` `scene`/`video`); ignored for `output_type=text` / media sources. Direct file links only. |
 | `wait_for_render` | bool | no | If `true`, block up to **60s** waiting for completion. If exceeded, return in-flight state and poll. |
 | `callback_url` | string (url) | no | HTTPS URL for completion webhook (HMAC-SHA256 signed). Fires `video.processing` immediately and one terminal event (`video.completed` or `video.failed`). For `output_type=video`, `video.completed` fires only when the final MP4 is ready. |
@@ -375,6 +387,7 @@ The server mirrors the legacy `/checkProgress` logic — it queries **both** `vi
 | `invalid_video_length` | 400 | `video_length` not in `VIDEO_LENGTHS` (source=idea). |
 | `invalid_research_enabled` | 400 | `research_enabled` is not a boolean (source=idea). |
 | `invalid_faceless` | 400 | `faceless` is not a boolean, OR `faceless=true` combined with `output_type=text` (no scenes) or a video source (`video_url`/`video_file` — the footage already supplies the visuals). `source=audio_url` accepts `faceless` — the script comes from the user's audio but the visuals are generated. |
+| `invalid_adjust` | 400 | `adjust` is not `off`/`auto`/`last_adjust_settings`/an object, has unknown keys or out-of-range values (`speed` 0.7-1.5, `pitch` -5..5 integer, `volume` 0.5-2.0, `cleanup`/`studio` boolean), or was sent (non-`off`) for a non-audio source. |
 | `missing_api_key` | 401 | API-key enforcement is on but no `Authorization: Bearer wc_live_...` header was sent. `error.type = authentication_error`. |
 | `invalid_api_key` | 401 | The API key is malformed, unknown, or revoked. `error.type = authentication_error`. |
 | `scenes_not_ready` | 409 | `/v1/export_video` called before scenes are ready. |

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WideCast Hero Motion — Loop Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100%; margin: 0; background: #060608; }
+    body { display: grid; min-height: 100svh; place-items: center; overflow: hidden; }
+    video {
+      display: block;
+      width: 100vw;
+      height: 100svh;
+      object-fit: contain;
+      background: #060608;
+    }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop playsinline preload="auto" aria-label="WideCast hero animation">
+    <source src="output/widecast-hero-motion-with-video-v2.mp4" type="video/mp4">
+  </video>
+  <script>
+    const video = document.querySelector('video');
+    video.play().catch(() => {
+      const resume = () => {
+        video.play();
+        window.removeEventListener('pointerdown', resume);
+      };
+      window.addEventListener('pointerdown', resume, {once: true});
+    });
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`\nare key-free.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,\n`/v1/solo/pubkey` are key-free.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_adjust | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -1699,6 +1699,16 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "409": {
+            "description": "`script_not_saved` (param=topic_id) — `link_type=record` and the\nvideo has no saved script on the server yet, so the link would open\non an empty waiting screen. Save the script first, then create the\nclient link.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "500": {
             "description": "`client_link_failed` — the API key has no account email.",
             "content": {
@@ -1711,6 +1721,87 @@
           },
           "502": {
             "description": "`client_link_failed` — minting the link failed upstream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/error/report": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "reportError",
+        "summary": "Report a WideCast problem to the WideCast team.",
+        "description": "Report a WideCast problem to the WideCast team.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorReportRequest"
+              },
+              "example": {
+                "module": "export",
+                "error_message": "export_failed: renderer exited with code 137 (OOM)",
+                "context": {
+                  "topic_id": "widecast7c0d4f8a9b1e2d3f",
+                  "request_id": "req_9f2c14ab",
+                  "attempted": "second export retry after scene 4 edit"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report delivered to the WideCast team.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`missing_field` (`error_message` empty), `error_message_too_long`,\n`module_too_long`, `invalid_module` (not a string), or\n`invalid_context` (not an object).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "`error_report_failed` — the report could not be delivered.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2230,6 +2321,341 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/solo/entitlement": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "getSoloEntitlement",
+        "summary": "Solo Agency tier for this key (Ed25519-signed JWS, 24h).",
+        "description": "Solo Agency tier for this key (Ed25519-signed JWS, 24h).",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "install_id",
+            "required": false,
+            "description": "The install's id; omit it and only the Free plan is issued.",
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "in": "query",
+            "name": "bridge_version",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          {
+            "in": "query",
+            "name": "dry_run",
+            "required": false,
+            "description": "`1` answers a `seat_probe` object instead of a token — what would\nhappen for this `install_id` (`ok`, `reason`, `seat.would_bind`,\n`seat.bound_here`) — without binding, touching or issuing anything.\nFor support and smoke tests.\n",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1",
+                "true"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entitlement (or a `seat_probe` object when `dry_run=1`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "entitlement"
+                    },
+                    "company_id": {
+                      "type": "string"
+                    },
+                    "tier": {
+                      "type": "string",
+                      "enum": [
+                        "free",
+                        "starter",
+                        "pro",
+                        "business",
+                        "enterprise"
+                      ]
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "limits": {
+                      "type": "object",
+                      "description": "0 means unlimited.",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "plan_source": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "widecast_plan",
+                        "widecast_expired",
+                        "solo_agency_plan"
+                      ]
+                    },
+                    "widecast_plan": {
+                      "type": "string",
+                      "example": "Pro"
+                    },
+                    "plan_valid_to": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "kid": {
+                      "type": "string"
+                    },
+                    "alg": {
+                      "type": "string",
+                      "example": "EdDSA"
+                    },
+                    "token": {
+                      "type": "string",
+                      "description": "Compact JWS (EdDSA / Ed25519)."
+                    },
+                    "upgrade_url": {
+                      "type": "string"
+                    },
+                    "seat": {
+                      "type": "object",
+                      "description": "Seat bookkeeping — `seats` the key may fill, `used`; on refusal also `bound` (masked ids, first/last seen) and `release_allowed_at`.",
+                      "additionalProperties": true
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Present only when the paid tier was NOT issued — `seat_limit` (another install holds the seat) or `install_id_required`.",
+                      "enum": [
+                        "seat_limit",
+                        "install_id_required"
+                      ]
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Human sentence for `reason`."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "description": "`entitlement_unavailable` — signing not available on this server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/solo/install/release": {
+      "post": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "releaseSoloSeat",
+        "summary": "Free this key's Solo Agency seat so the next install can take it.",
+        "description": "Free this key's Solo Agency seat so the next install can take it.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "install_id": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "description": "Informational."
+                  },
+                  "bridge_version": {
+                    "type": "string",
+                    "maxLength": 32
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Seat released (or nothing was bound).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "solo_seat_release"
+                    },
+                    "company_id": {
+                      "type": "string"
+                    },
+                    "released": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Masked install ids that were bound."
+                    },
+                    "next_release_allowed_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "seat": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "`seat_release_cooldown` — the seat was moved less than 7 days ago; `details.release_allowed_at` says when the next move is allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/solo/pubkey": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "getSoloPubkey",
+        "summary": "Public key that verifies Solo Agency entitlement tokens (key-free).",
+        "description": "Public key that verifies Solo Agency entitlement tokens (key-free).",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public key.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "solo_pubkey"
+                    },
+                    "kid": {
+                      "type": "string"
+                    },
+                    "alg": {
+                      "type": "string",
+                      "example": "EdDSA"
+                    },
+                    "crv": {
+                      "type": "string",
+                      "example": "Ed25519"
+                    },
+                    "public_key_hex": {
+                      "type": "string"
+                    },
+                    "public_key_b64url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -3600,6 +4026,54 @@
             "description": "**Used when `output_type` is `scene` or `video`** for sources\ntext / idea / blog AND for audio sources (`audio_url` /\n`audio_base64`) — the script comes from a text input OR from\ntranscribing the user's audio, but the visuals must still be\ngenerated, so the same A/B-roll toggle applies. When `true`,\nEVERY scene is rendered as B-roll (stock video / AI image) with\nNO narrator A-roll anywhere — a \"faceless\" video. When `false`\n(default), scenes mix narrator A-roll + B-roll as usual.\nRejected with HTTP 400 `invalid_faceless` when `output_type=\"text\"`\n(no scenes are produced) or for video sources (`video_url` /\n`video_file` — the footage IS the visuals).\n",
             "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\",\"audio_url\",\"audio_base64\")"
           },
+          "adjust": {
+            "default": "off",
+            "description": "**Audio sources only** (`audio_url` / `audio_file`) — how the\ningested audio is treated BEFORE the video pipeline (transcription,\nscene cutting and all timings run on the treated audio):\n\n* `\"off\"` (default) — audio used exactly as downloaded/uploaded.\n* `\"auto\"` — run the **autotune** engine: it analyses the speech\n  and shapes each phrase's delivery (lifting the lines that carry\n  the message, settling the ones that carry weight), then\n  normalises speaking pace and loudness. Nothing to configure —\n  the engine decides from the content. Best default for raw\n  recordings, which are rarely consistent in pace or level.\n* `\"last_adjust_settings\"` — apply the account's saved\n  **Adjust Audio** profile (the \"Last used\" settings from the\n  dashboard's Adjust Audio modal: speed / pitch / volume /\n  clean up / studio voice). If the account has never saved one,\n  behaves like `\"off\"`.\n* An object `{speed?, pitch?, volume?, cleanup?, studio?}` —\n  apply exactly this configuration. Omitted keys default to the\n  neutral value. `speed` 0.7-1.5 (playback-rate multiple),\n  `pitch` integer -5..5 (semitone notches; negative lowers\n  the voice, positive raises it), `volume` 0.5-2.0\n  (gain multiple; >1.0 soft-clipped), `cleanup` boolean\n  (noise / rumble / de-ess), `studio` boolean (compression + EQ).\n\nTreatment failures never fail the request — the original audio\ncontinues (fail-open). Rejected with HTTP 400 `invalid_adjust`\nfor non-audio sources or out-of-range values.\n",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "auto",
+                  "last_adjust_settings"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "speed": {
+                    "type": "number",
+                    "minimum": 0.7,
+                    "maximum": 1.5
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": -5,
+                    "maximum": 5
+                  },
+                  "volume": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.0
+                  },
+                  "cleanup": {
+                    "type": "boolean"
+                  },
+                  "studio": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            ],
+            "x-widecast-applies-when": "source in (\"audio_url\",\"audio_file\")",
+            "x-widecast-speed-min": 0.7,
+            "x-widecast-speed-max": 1.5,
+            "x-widecast-pitch-min": -5,
+            "x-widecast-pitch-max": 5,
+            "x-widecast-volume-min": 0.5,
+            "x-widecast-volume-max": 2.0
+          },
           "media_pool": {
             "type": "array",
             "items": {
@@ -4601,6 +5075,68 @@
             "type": "string",
             "format": "uri",
             "description": "Optional video to attach. Public http(s) URL — Telegram\ndownloads it; email shows a clickable link. Mutually exclusive\nwith `photo_url`.\n"
+          }
+        }
+      },
+      "ErrorReportRequest": {
+        "type": "object",
+        "required": [
+          "error_message"
+        ],
+        "description": "Body for `POST /v1/error/report`. The reporting account (company +\nemail) is resolved server-side from the API key — there is no\ncompany/user field by design.\n",
+        "properties": {
+          "error_message": {
+            "type": "string",
+            "maxLength": 4000,
+            "description": "REQUIRED. What went wrong. Prefer the verbatim error text the\nfailing call returned over a paraphrase.\n",
+            "example": "export_failed: renderer exited with code 137 (OOM)"
+          },
+          "module": {
+            "type": "string",
+            "maxLength": 80,
+            "default": "agent",
+            "description": "Which part of WideCast failed, e.g. `export`, `scene_upload`,\n`spec`, `modify_scene`, `video_data`. Free-form — it only groups\nreports for triage. Defaults to `agent` for API callers.\n",
+            "example": "export"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Free-form debugging details — `topic_id`, `voice_file`,\n`scene_id`, what you were attempting, and above all the\n`request_id` of the failing call when you have one. At most 50\nkeys are rendered into the report.\n",
+            "example": {
+              "topic_id": "widecast7c0d4f8a9b1e2d3f",
+              "request_id": "req_9f2c14ab"
+            }
+          }
+        }
+      },
+      "ErrorReportResponse": {
+        "type": "object",
+        "required": [
+          "object",
+          "reported",
+          "module",
+          "request_id"
+        ],
+        "description": "Success body for POST /v1/error/report.",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "error_report"
+          },
+          "reported": {
+            "type": "boolean",
+            "description": "Always `true` on a 200 — the report reached the WideCast team."
+          },
+          "module": {
+            "type": "string",
+            "description": "The module the report was filed under (after defaulting/truncation)."
+          },
+          "context_keys": {
+            "type": "integer",
+            "description": "How many `context` keys were included in the report."
+          },
+          "request_id": {
+            "type": "string"
           }
         }
       },

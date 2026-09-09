@@ -5,4 +5,4 @@
 curl -X POST "https://widecast.ai/app/dashboard/v1/create_video" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer wc_live_REPLACE_ME" \
-  -d '{"source": "audio_url", "output_type": "scene", "callback_url": "", "audio_url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"}'
+  -d '{"source": "audio_url", "output_type": "scene", "adjust": "off", "callback_url": "", "audio_url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"}'

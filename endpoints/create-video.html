@@ -156,6 +156,15 @@
 <blockquote>
 <p><strong>Why <code>text</code> is invalid only for <code>source=text</code></strong>: <code>output_type</code> is pipeline depth. <code>text</code> means "stop after the source→script-text phase". That phase exists for every source EXCEPT <code>text</code> — generative sources (idea/blog) generate the script, media sources (video/audio) extract it. For <code>source=text</code> the caller already provided the script, so <code>text</code> output would just echo the input.</p>
 </blockquote>
+<h3 id="adjust-treat-the-ingested-audio-audio-sources-only"><code>adjust</code> — treat the ingested audio (audio sources only)</h3>
+<p>For <code>source=audio_url</code> / <code>audio_file</code>, <code>adjust</code> controls how the audio is treated <strong>before</strong> transcription and scene cutting (all timings are computed on the treated audio — same order as the dashboard's manual flow):</p>
+<ul>
+<li><code>"off"</code> (default) — audio used exactly as downloaded/uploaded.</li>
+<li><code>"auto"</code> — run the <strong>autotune</strong> engine: it analyses the speech, shapes each phrase's delivery (lifting the lines that carry the message, settling the ones that carry weight), then normalises speaking pace and loudness. Nothing to configure. Best choice for raw recordings, which are rarely consistent in pace or level.</li>
+<li><code>"last_adjust_settings"</code> — apply the account's saved <strong>Adjust Audio</strong> profile (the "Last used" settings from the dashboard's Adjust Audio modal). If the account never saved one, behaves like <code>"off"</code>.</li>
+<li>An object <code>{speed?, pitch?, volume?, cleanup?, studio?}</code> — applied exactly; omitted keys stay neutral. <code>speed</code> 0.7-1.5 (playback-rate multiple), <code>pitch</code> integer -5..5 (semitone notches; negative lowers the voice, positive raises it), <code>volume</code> 0.5-2.0 (gain multiple, &gt;1.0 soft-clipped), <code>cleanup</code> boolean (noise / rumble / de-ess), <code>studio</code> boolean (compression + EQ).</li>
+</ul>
+<p>Treatment failures are <strong>fail-open</strong> — the original audio continues and the request still succeeds. Sending <code>adjust</code> (non-<code>off</code>) for a non-audio source, or out-of-range values, returns 400 <code>invalid_adjust</code>. SDK constants <code>ADJUST_SOURCES</code> / <code>ADJUST_MODES</code> / <code>ADJUST_*_MIN/MAX</code>.</p>
 <h3 id="faceless-all-b-roll-no-narrator"><code>faceless</code> — all-B-roll (no narrator)</h3>
 <p>By default scenes mix <strong>A-roll</strong> (narrator) and <strong>B-roll</strong> (stock video / AI image). Set <strong><code>faceless: true</code></strong> to make <strong>every scene B-roll with no narrator anywhere</strong> — a "faceless" video. It's orthogonal to <code>output_type</code> (controls A/B-roll, not pipeline depth) and valid with <code>output_type</code> <code>scene</code>/<code>video</code> for the script-based sources (<code>text</code>/<code>idea</code>/<code>blog</code>) AND for <code>source=audio_url</code> — the script lives in the user's audio but the visuals must still be generated, so the same toggle applies. Combining it with <code>output_type=text</code> (no scenes) or a video source (<code>video_url</code>/<code>video_file</code> — the footage IS the visuals) returns <code>invalid_faceless</code> (400). Default <code>false</code> leaves the normal A/B mix unchanged.</p>
 <h3 id="field-bounds-locked-a38-parity">Field bounds (LOCKED — A38 parity)</h3>
@@ -420,6 +429,12 @@
 <td>bool</td>
 <td>no</td>
 <td>Default <code>false</code>. When <code>true</code>, <strong>every scene is B-roll</strong> (stock video / AI image) with <strong>no narrator A-roll</strong> anywhere — a "faceless" video. Orthogonal to <code>output_type</code>. Valid with <code>output_type</code> <code>scene</code>/<code>video</code> for <code>text</code>/<code>idea</code>/<code>blog</code> AND for <code>source=audio_url</code> — same A/B-roll toggle since the audio is the narration but the visuals are generated. Rejected with 400 <code>invalid_faceless</code> when <code>output_type=text</code> (no scenes) or for video sources (footage IS the visuals). SDK constant <code>FACELESS_SOURCES</code>.</td>
+</tr>
+<tr>
+<td><code>adjust</code></td>
+<td>string | object</td>
+<td>no</td>
+<td><strong>Audio sources only</strong> (<code>audio_url</code>/<code>audio_file</code>). Default <code>"off"</code> (audio untouched). <code>"auto"</code> runs the autotune engine (per-phrase delivery shaping + pace + loudness; nothing to configure). <code>"last_adjust_settings"</code> applies the account's saved Adjust Audio profile (none saved → off). Or an object <code>{speed?: 0.7-1.5, pitch?: -5..5 int, volume?: 0.5-2.0, cleanup?: bool, studio?: bool}</code> applied exactly. Runs BEFORE transcription/scene cutting; fail-open on treatment errors. 400 <code>invalid_adjust</code> otherwise. SDK constants <code>ADJUST_SOURCES</code>, <code>ADJUST_MODES</code>, <code>ADJUST_*_MIN/MAX</code>.</td>
 </tr>
 <tr>
 <td><code>media_pool</code></td>
@@ -774,6 +789,11 @@ terminal <code>video.completed</code> webhook fires only when the MP4 is ready.<
 <td><code>invalid_faceless</code></td>
 <td>400</td>
 <td><code>faceless</code> is not a boolean, OR <code>faceless=true</code> combined with <code>output_type=text</code> (no scenes) or a video source (<code>video_url</code>/<code>video_file</code> — the footage already supplies the visuals). <code>source=audio_url</code> accepts <code>faceless</code> — the script comes from the user's audio but the visuals are generated.</td>
+</tr>
+<tr>
+<td><code>invalid_adjust</code></td>
+<td>400</td>
+<td><code>adjust</code> is not <code>off</code>/<code>auto</code>/<code>last_adjust_settings</code>/an object, has unknown keys or out-of-range values (<code>speed</code> 0.7-1.5, <code>pitch</code> -5..5 integer, <code>volume</code> 0.5-2.0, <code>cleanup</code>/<code>studio</code> boolean), or was sent (non-<code>off</code>) for a non-audio source.</td>
 </tr>
 <tr>
 <td><code>missing_api_key</code></td>

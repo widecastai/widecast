@@ -10,6 +10,7 @@ import Widecast, {
   IDEA_MIN_WORDS, IDEA_MAX_WORDS,
   BLOG_MIN_WORDS, BLOG_MAX_WORDS,
   SCRIPT_FORMATS, PLAN_SCRIPT_MIN_WORDS, PLAN_SCRIPT_MAX_WORDS,
+  ERROR_MESSAGE_MAX_CHARS, ERROR_MODULE_MAX_CHARS,
   MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
   OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
   PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
@@ -90,6 +91,23 @@ describe("widecast SDK", () => {
     expect(SCRIPT_FORMATS).toEqual(["VE", "QA", "POV", "CS", "MB"]);
     expect(PLAN_SCRIPT_MIN_WORDS).toBe(80);
     expect(PLAN_SCRIPT_MAX_WORDS).toBe(1000);
+  });
+
+  it("error-report bounds are locked (A60 parity)", () => {
+    // Mirrors dashboard2.py WIDECAST_ERROR_MESSAGE_MAX_CHARS /
+    // WIDECAST_ERROR_MODULE_MAX_CHARS + OpenAPI maxLength + MCP schemas.
+    expect(ERROR_MESSAGE_MAX_CHARS).toBe(4000);
+    expect(ERROR_MODULE_MAX_CHARS).toBe(80);
+  });
+
+  it("pre-validates report_error (A60, server-mirrored codes)", async () => {
+    const c = new Widecast({ apiKey: "dummy" });
+    await expect(c.report_error("")).rejects.toThrow(InvalidRequestError);
+    await expect(c.report_error("x".repeat(4001))).rejects.toThrow(InvalidRequestError);
+    await expect(c.report_error("boom", { module: "m".repeat(81) }))
+      .rejects.toThrow(InvalidRequestError);
+    await expect(c.report_error("boom", { context: ["nope"] as any }))
+      .rejects.toThrow(InvalidRequestError);
   });
 
   it("pre-validates scripts on add_to_production_plan (A55, server-mirrored codes)", async () => {

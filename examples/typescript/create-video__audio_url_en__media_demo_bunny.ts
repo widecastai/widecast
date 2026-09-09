@@ -10,6 +10,7 @@ const client = new Widecast({ apiKey: "wc_live_REPLACE_ME", baseUrl: "https://wi
 const resp = await client.create_video({
   "source": "audio_url",
   "output_type": "scene",
+  "adjust": "off",
   "callback_url": "",
   "audio_url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"
 });

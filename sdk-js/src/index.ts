@@ -42,6 +42,9 @@ export const SCRIPT_FORMATS = ["VE", "QA", "POV", "CS", "MB"] as const; // _SCRI
 export type ScriptFormat = (typeof SCRIPT_FORMATS)[number];
 export const PLAN_SCRIPT_MIN_WORDS = 80;
 export const PLAN_SCRIPT_MAX_WORDS = 1000;
+/** /v1/error/report bounds — mirror WIDECAST_ERROR_* in dashboard2.py. */
+export const ERROR_MESSAGE_MAX_CHARS = 4000;
+export const ERROR_MODULE_MAX_CHARS = 80;
 export const OUTPUT_TYPES = ["text", "scene", "video"] as const;  // pipeline depth (A46)
 export type OutputType = (typeof OUTPUT_TYPES)[number];
 // blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
@@ -56,6 +59,34 @@ export type Source = (typeof SOURCES)[number];
 // visuals must still be generated, so the same toggle applies. Video sources
 // are excluded (the footage IS the visuals — faceless would be meaningless).
 export const FACELESS_SOURCES = ["text", "idea", "blog", "audio_url"] as const;
+// adjust (A57): treatment of the INGESTED AUDIO before the video pipeline —
+// audio sources only. "off" (default) | "auto" (autotune engine: per-phrase
+// emotion shaping + pace + loudness, nothing to configure) |
+// "last_adjust_settings" (apply the
+// account's saved Adjust Audio profile; none saved → off) | an object
+// {speed,pitch,volume,cleanup,studio} applied exactly. Bounds mirror the
+// server literals (A38 parity).
+export const ADJUST_SOURCES = ["audio_url", "audio_file"] as const;
+export const ADJUST_MODES = ["off", "auto", "last_adjust_settings"] as const;
+export const ADJUST_SPEED_MIN = 0.7;
+export const ADJUST_SPEED_MAX = 1.5;
+export const ADJUST_PITCH_MIN = -5;
+export const ADJUST_PITCH_MAX = 5;
+export const ADJUST_VOLUME_MIN = 0.5;
+export const ADJUST_VOLUME_MAX = 2.0;
+/** Explicit Adjust Audio configuration — omitted keys default to neutral. */
+export interface AdjustSettings {
+  /** Playback-rate multiple, 0.7-1.5. */
+  speed?: number;
+  /** Semitone notches, integer -5..5. Negative lowers the voice, positive raises it. */
+  pitch?: number;
+  /** Gain multiple, 0.5-2.0 (>1.0 soft-clipped). */
+  volume?: number;
+  /** Noise / rumble / de-ess pass. */
+  cleanup?: boolean;
+  /** Compression + EQ ("studio voice"). */
+  studio?: boolean;
+}
 // Written content (/v1/create_content): friendly types → legacy content_type 3/4/5/6.
 export const CONTENT_TYPES = ["blog", "facebook", "x", "linkedin"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
@@ -513,6 +544,18 @@ export interface IdeasResponse {
  *  Email is the default channel; Telegram is additional when connected.
  *  `delivery` lists the channels that were delivered successfully; the
  *  per-channel `email` / `telegram` objects carry each channel's status. */
+/** Success body for POST /v1/error/report. */
+export interface ErrorReportResponse {
+  object: "error_report";
+  /** Always true on a 200 — the report reached the WideCast team. */
+  reported: boolean;
+  /** The module the report was filed under (after defaulting/truncation). */
+  module: string;
+  /** How many `context` keys were included in the report. */
+  context_keys?: number;
+  request_id: string;
+}
+
 export interface NotificationResponse {
   object: "notification";
   /** `"sent"` = every attempted channel succeeded; `"partial"` = at least
@@ -873,6 +916,14 @@ export interface CreateVideoOptions {
    *  with output_type scene/video for sources text/idea/blog (FACELESS_SOURCES);
    *  otherwise the server returns invalid_faceless. */
   faceless?: boolean;
+  /** Audio sources only (audio_url/audio_file) — treatment of the ingested
+   *  audio BEFORE transcription + scene cutting. "off" (default, untouched);
+   *  "auto" (autotune engine — shapes each phrase's delivery, then normalises
+   *  pace and loudness; nothing to configure, best for raw recordings);
+   *  "last_adjust_settings" (apply the account's saved Adjust Audio profile;
+   *  none saved → off); or an AdjustSettings object applied exactly.
+   *  Fail-open server-side. Otherwise invalid_adjust. */
+  adjust?: "off" | "auto" | "last_adjust_settings" | AdjustSettings;
   /** Extra direct image/video URLs you couldn't confidently place inline →
    *  added to the first scene's media library so the scene editor lists them
    *  for the user to drop into any scene. Direct file links only. */
@@ -1124,8 +1175,76 @@ export class Widecast {
         );
       }
     }
+    // adjust (A57) = audio-ingest treatment (audio_url/audio_file only).
+    // Mirrors the server's invalid_adjust rule; bounds are the ADJUST_* consts.
+    let adjustBody: unknown = undefined;
+    const rawAdjust = opts.adjust;
+    if (rawAdjust !== undefined && rawAdjust !== null) {
+      if (typeof rawAdjust === "string") {
+        const s = rawAdjust.trim().toLowerCase();
+        if (s === "" || s === "off") {
+          adjustBody = undefined;
+        } else if (s === "auto" || s === "last_adjust_settings") {
+          adjustBody = s;
+        } else {
+          throw new InvalidRequestError(
+            `adjust accepts 'off', 'auto', 'last_adjust_settings', or an object (got ${JSON.stringify(rawAdjust)}).`,
+            { code: "invalid_adjust", param: "adjust" },
+          );
+        }
+      } else if (typeof rawAdjust === "object") {
+        const allowed = ["speed", "pitch", "volume", "cleanup", "studio"];
+        const unknown = Object.keys(rawAdjust).filter((k) => !allowed.includes(k));
+        if (unknown.length) {
+          throw new InvalidRequestError(
+            `adjust has unknown key(s) ${JSON.stringify(unknown)} — allowed: ${JSON.stringify(allowed)}.`,
+            { code: "invalid_adjust", param: "adjust" },
+          );
+        }
+        const a = rawAdjust as AdjustSettings;
+        if (a.speed !== undefined && (typeof a.speed !== "number" || a.speed < ADJUST_SPEED_MIN || a.speed > ADJUST_SPEED_MAX)) {
+          throw new InvalidRequestError(
+            `adjust.speed must be a number between ${ADJUST_SPEED_MIN} and ${ADJUST_SPEED_MAX}.`,
+            { code: "invalid_adjust", param: "adjust" },
+          );
+        }
+        if (a.pitch !== undefined && (typeof a.pitch !== "number" || !Number.isInteger(a.pitch) || a.pitch < ADJUST_PITCH_MIN || a.pitch > ADJUST_PITCH_MAX)) {
+          throw new InvalidRequestError(
+            `adjust.pitch must be an integer between ${ADJUST_PITCH_MIN} and ${ADJUST_PITCH_MAX}.`,
+            { code: "invalid_adjust", param: "adjust" },
+          );
+        }
+        if (a.volume !== undefined && (typeof a.volume !== "number" || a.volume < ADJUST_VOLUME_MIN || a.volume > ADJUST_VOLUME_MAX)) {
+          throw new InvalidRequestError(
+            `adjust.volume must be a number between ${ADJUST_VOLUME_MIN} and ${ADJUST_VOLUME_MAX}.`,
+            { code: "invalid_adjust", param: "adjust" },
+          );
+        }
+        for (const bk of ["cleanup", "studio"] as const) {
+          if (a[bk] !== undefined && typeof a[bk] !== "boolean") {
+            throw new InvalidRequestError(
+              `adjust.${bk} must be a boolean.`,
+              { code: "invalid_adjust", param: "adjust" },
+            );
+          }
+        }
+        adjustBody = a;
+      } else {
+        throw new InvalidRequestError(
+          `adjust must be a string or an object (got ${typeof rawAdjust}).`,
+          { code: "invalid_adjust", param: "adjust" },
+        );
+      }
+      if (adjustBody !== undefined && !(ADJUST_SOURCES as readonly string[]).includes(source)) {
+        throw new InvalidRequestError(
+          `adjust is only supported for source in ${JSON.stringify(ADJUST_SOURCES)} (got source=${JSON.stringify(source)}).`,
+          { code: "invalid_adjust", param: "adjust" },
+        );
+      }
+    }
     const body: Record<string, unknown> = { source, output_type: outputType };
     if (faceless) body.faceless = true;
+    if (adjustBody !== undefined) body.adjust = adjustBody;
     if (Array.isArray(opts.media_pool) && opts.media_pool.length) {
       body.media_pool = opts.media_pool.filter((u) => typeof u === "string" && u.trim());
     }
@@ -2259,6 +2378,57 @@ export class Widecast {
     if (opts.photo_url) body.photo_url = opts.photo_url;
     if (opts.video_url) body.video_url = opts.video_url;
     return await this.#request<NotificationResponse>("POST", "/v1/notification/send", body);
+  }
+
+  /** POST /v1/error/report — report a WideCast problem to the WideCast team.
+   *  SYNC, FREE. The report is emailed straight to the team.
+   *
+   *  Use this when WideCast ITSELF misbehaves — a failing upload, a broken
+   *  export, an overlay that will not build, an endpoint returning a 5xx you
+   *  cannot work around. It is NOT a user-notification channel (use
+   *  `send_notification()` for that) and not for content problems you can fix
+   *  yourself.
+   *
+   *  The reporting account is resolved server-side from the API key and is
+   *  never sent in the body. Include the failing call's `request_id` in
+   *  `context` whenever you have one — it is the most useful tracing field. */
+  async report_error(
+    error_message: string,
+    opts: { module?: string; context?: Record<string, unknown> } = {},
+  ): Promise<ErrorReportResponse> {
+    if (typeof error_message !== "string" || error_message.trim() === "") {
+      throw new InvalidRequestError(
+        "error_message (non-empty string) is required.",
+        { code: "missing_field", param: "error_message" });
+    }
+    if (error_message.trim().length > ERROR_MESSAGE_MAX_CHARS) {
+      throw new InvalidRequestError(
+        `error_message exceeds the ${ERROR_MESSAGE_MAX_CHARS}-character limit.`,
+        { code: "error_message_too_long", param: "error_message" });
+    }
+    if (opts.module !== undefined) {
+      if (typeof opts.module !== "string") {
+        throw new InvalidRequestError(
+          "module must be a string.",
+          { code: "invalid_module", param: "module" });
+      }
+      if (opts.module.trim().length > ERROR_MODULE_MAX_CHARS) {
+        throw new InvalidRequestError(
+          `module exceeds the ${ERROR_MODULE_MAX_CHARS}-character limit.`,
+          { code: "module_too_long", param: "module" });
+      }
+    }
+    if (opts.context !== undefined
+        && (typeof opts.context !== "object" || opts.context === null
+            || Array.isArray(opts.context))) {
+      throw new InvalidRequestError(
+        "context must be an object (key/value pairs).",
+        { code: "invalid_context", param: "context" });
+    }
+    const body: Record<string, unknown> = { error_message: error_message.trim() };
+    if (opts.module !== undefined && opts.module.trim() !== "") body.module = opts.module.trim();
+    if (opts.context !== undefined) body.context = opts.context;
+    return await this.#request<ErrorReportResponse>("POST", "/v1/error/report", body);
   }
 
   /** POST /v1/client_link/send — mint a NO-LOGIN CLIENT LINK ("magic link")

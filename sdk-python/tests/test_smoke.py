@@ -35,10 +35,15 @@ def test_public_surface_exports():
         "IDEA_MIN_WORDS", "IDEA_MAX_WORDS",
         "BLOG_MIN_WORDS", "BLOG_MAX_WORDS",
         "SCRIPT_FORMATS", "PLAN_SCRIPT_MIN_WORDS", "PLAN_SCRIPT_MAX_WORDS",
+        "ERROR_MESSAGE_MAX_CHARS", "ERROR_MODULE_MAX_CHARS",
         "MEDIA_MAX_DURATION_SECONDS", "MEDIA_MAX_FILE_BYTES",
         "FREE_TIER_MAX_SECONDS", "FREE_TIER_MAX_WORDS",
         "FREE_TIER_WORDS_PER_SECOND", "PRICING_URL",
         "OUTPUT_TYPES", "SOURCES", "FACELESS_SOURCES", "CONTENT_TYPES",
+        "ADJUST_SOURCES", "ADJUST_MODES",
+        "ADJUST_SPEED_MIN", "ADJUST_SPEED_MAX",
+        "ADJUST_PITCH_MIN", "ADJUST_PITCH_MAX",
+        "ADJUST_VOLUME_MIN", "ADJUST_VOLUME_MAX",
         "INTERVENTION_LEVELS", "PUBLISH_PLATFORMS", "VIDEO_LENGTHS", "LANGUAGES",
         "CLIENT_LINK_TYPES", "CLIENT_LINK_TTL_MIN", "CLIENT_LINK_TTL_MAX",
         "CLIENT_LINK_TTL_DEFAULT",
@@ -341,6 +346,83 @@ def test_create_video_rejects_faceless_non_bool():
         c.create_video(script_text=_make_script(150), faceless="yes")
     assert ei.value.code == "invalid_faceless"
     assert ei.value.param == "faceless"
+
+
+def test_adjust_constants_locked():
+    """A38 canary for `adjust` (A57): bounds must match the server's
+    WIDECAST_ADJUST_* literals in dashboard2.py + OpenAPI x-widecast-* +
+    markdown docs + playground YAML. Change all together or not at all."""
+    from widecast import (ADJUST_SOURCES, ADJUST_MODES,
+                          ADJUST_SPEED_MIN, ADJUST_SPEED_MAX,
+                          ADJUST_PITCH_MIN, ADJUST_PITCH_MAX,
+                          ADJUST_VOLUME_MIN, ADJUST_VOLUME_MAX)
+    assert ADJUST_SOURCES == ("audio_url", "audio_file")
+    assert ADJUST_MODES == ("off", "auto", "last_adjust_settings")
+    assert (ADJUST_SPEED_MIN, ADJUST_SPEED_MAX) == (0.7, 1.5)
+    assert (ADJUST_PITCH_MIN, ADJUST_PITCH_MAX) == (-5, 5)
+    assert (ADJUST_VOLUME_MIN, ADJUST_VOLUME_MAX) == (0.5, 2.0)
+
+
+def test_error_report_constants_locked():
+    """A38 canary for `/v1/error/report` (A60): bounds must match the server's
+    WIDECAST_ERROR_MESSAGE_MAX_CHARS / WIDECAST_ERROR_MODULE_MAX_CHARS in
+    dashboard2.py + OpenAPI maxLength + MCP schemas + markdown docs.
+    Change all together or not at all."""
+    from widecast import ERROR_MESSAGE_MAX_CHARS, ERROR_MODULE_MAX_CHARS
+    assert ERROR_MESSAGE_MAX_CHARS == 4000
+    assert ERROR_MODULE_MAX_CHARS == 80
+
+
+def test_report_error_validates():
+    """report_error pre-validates client-side before any network call."""
+    from widecast import Widecast, InvalidRequestError
+    c = Widecast(api_key="wc_live_dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.report_error("")
+    assert ei.value.code == "missing_field"
+    assert ei.value.param == "error_message"
+    with pytest.raises(InvalidRequestError) as ei:
+        c.report_error("x" * 4001)
+    assert ei.value.code == "error_message_too_long"
+    with pytest.raises(InvalidRequestError) as ei:
+        c.report_error("boom", module="m" * 81)
+    assert ei.value.code == "module_too_long"
+    with pytest.raises(InvalidRequestError) as ei:
+        c.report_error("boom", context=["not", "a", "dict"])
+    assert ei.value.code == "invalid_context"
+
+
+def test_create_video_adjust_validation():
+    c = Widecast(api_key="dummy")
+    # wrong source (adjust is audio-only)
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(script_text=_make_script(150), adjust="last_adjust_settings")
+    assert ei.value.code == "invalid_adjust"
+    # junk string
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(source="audio_url", audio_url="https://x.test/a.mp3",
+                       adjust="banana")
+    assert ei.value.code == "invalid_adjust"
+    # out-of-range speed
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(source="audio_url", audio_url="https://x.test/a.mp3",
+                       adjust={"speed": 2.0})
+    assert ei.value.code == "invalid_adjust"
+    # fractional pitch
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(source="audio_url", audio_url="https://x.test/a.mp3",
+                       adjust={"pitch": 2.5})
+    assert ei.value.code == "invalid_adjust"
+    # unknown key
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(source="audio_url", audio_url="https://x.test/a.mp3",
+                       adjust={"tempo": 1.2})
+    assert ei.value.code == "invalid_adjust"
+    # non-bool cleanup
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_video(source="audio_url", audio_url="https://x.test/a.mp3",
+                       adjust={"cleanup": "true"})
+    assert ei.value.code == "invalid_adjust"
 
 
 def test_create_video_rejects_faceless_with_output_type_text():

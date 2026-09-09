@@ -28,7 +28,7 @@ Click **Copy link** to grab the link yourself and send it however you like, or c
 
 ## What your client can and cannot do
 
-Once your client opens the link, they land straight inside a simplified version of that video's scene editor, no account or sign-in required. From there they can edit much like you can: change scenes, swap backgrounds, adjust text, and use the everyday editing tools.
+Once your client opens the link, they land straight inside that video, no account or sign-in required. Where they land depends on how far the video has come: while the scenes are still being built they open the script editor, where they can read the script and record their voice or video; once the scenes exist they open a simplified version of the scene editor, and from there they can edit much like you can: change scenes, swap backgrounds, adjust text, and use the everyday editing tools. Coming back to the same link later takes them to whichever of the two fits the video at that moment.
 
 A few things stay out of their reach:
 
@@ -53,6 +53,8 @@ If you use WideCast through a connected AI agent or the API, it can create and s
 - Your Social Dashboard
 - Your Publish Schedule
 
+One rule applies to both the button and your agent: a video needs a saved script before a link can point at it. Ask for a link too early and the request comes back saying the script has not been saved yet, which is better than handing your client a link that opens on an empty waiting screen.
+
 Just like the manual **Send to client** button, your agent cannot pick a one-off phone number or email address. Every link it sends goes out only through the notification channels already connected to your account. If you have not connected an AI agent yet, see [API and MCP access](guide/api-and-mcp.html) to set one up.
 
 ## Q&A
@@ -64,7 +66,7 @@ Q: How long does a Client Magic Link last?
 A: You choose, from 1 to 30 days, when you create it, with 7 days as the default. Set it with "Link valid for" next to "Client Magic Link" in the Project tab of the scene editor's Settings panel. Once it expires, your client needs a fresh link to get back in.
 
 Q: What can my client actually do with a Client Magic Link?
-A: They land inside a simplified version of the scene editor for that one project and can edit it much like you can: change scenes, swap backgrounds, adjust text, and use the everyday editing tools. They cannot leave that project, reach your dashboard, or touch anything outside it. It is full editing access to one workspace, with the rest of your account locked away.
+A: Where they land depends on the video. While its scenes are still being built they open the script editor and can read the script and record their voice or video; once the scenes exist they open a simplified version of the scene editor and can edit it much like you can: change scenes, swap backgrounds, adjust text, and use the everyday editing tools. Coming back to the same link later takes them to whichever screen fits the video at that moment. What stays out of reach is your account: billing, team management, the Project tab, and the button that would exit to your dashboard.
 
 Q: Can my client accidentally see my billing or subscription through a Client Magic Link?
 A: No. "Subscription & Credits" is removed from their menu entirely, along with "Users", "Team", and "Send Newsletter". The Project tab that generated their link is hidden too, so they cannot reach export, import, clone, or generate another link for themselves. A Client Magic Link only ever exposes the one project's editor.
@@ -83,6 +85,9 @@ A: No. Every client link, whether you send it yourself or your AI agent sends it
 
 Q: Does creating or sending a client link cost credits?
 A: No. Creating and sending either kind of client link, the Client Magic Link or the client setup link, is free, whether you do it yourself or your AI agent does it for you.
+
+Q: Why does WideCast refuse to create a client link for one of my videos?
+A: The video has no saved script on the server yet, which happens when a script was only extracted or typed and never saved. Open the video, save the script, then create the link. Refusing is deliberate: a link made before the script is saved would open on an empty waiting screen for your client.
 
 Q: My client says their link stopped working. What do I do?
 A: It likely expired. A Client Magic Link lasts 1 to 30 days, whichever you chose when you created it, and a client setup link expires sooner. Open the video's Project tab, or the Setup Center, and create a fresh link to send them.

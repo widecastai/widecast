@@ -9,6 +9,7 @@ client = Widecast(api_key="wc_live_REPLACE_ME", base_url="https://widecast.ai/ap
 
 resp = client.create_video(**{ 'source': 'audio_url',
   'output_type': 'scene',
+  'adjust': 'off',
   'callback_url': '',
   'audio_url': 'https://www.youtube.com/watch?v=YE7VzlLtp-4'})
 print(resp)

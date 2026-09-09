@@ -4,9 +4,11 @@ title: Troubleshooting common problems
 group: help
 order: 3
 summary: "What each video status badge means, and how to fix the most common blocks: exports, publishing, uploads, client links, notifications, and word-count limits."
-updated: 2026-08-12
+updated: 2026-09-08
 covers:
   - api:GET /v1/status/{id}
+  - api:POST /v1/error/report
+  - mcp:widecast_report_error
 sources:
   - gubo-remotion-player/js/kara.js (status badges, "Failed to generate script" alert, Live Support menu item)
   - gubo-remotion-player/js/editor_main.js (export warning modal - Incomplete Scenes Detected, B-roll missing, Find B-roll)
@@ -16,6 +18,7 @@ sources:
   - widecast/docs/endpoints/notification-send.md (60/hour notification rate limit)
   - dashboard2.py (media_too_long, file_too_large, free_tier_limit_exceeded, magic link expiry)
   - widecast/widecast.html (Support link)
+  - widecast/docs/endpoints/error-report.md (agent-filed problem reports, A60)
 ---
 
 Most things that go wrong in WideCast show up as a plain status, not a cryptic error: a badge on your video, a warning before you export, or a short message when something is blocked. This page walks through the most common ones and what to do about each. If nothing here solves it, open the Account menu in the top corner and choose "Live Support" to talk to the WideCast team directly.
@@ -30,6 +33,12 @@ Every video on your home screen's Recent list carries a status badge:
 - **Failed** - that specific run hit a problem.
 
 Building with the API or an AI agent instead of the browser? The same status, pending, processing, completed, or failed, is available by checking the video's id directly, and it works without an API key. See the [developer docs](docs.html) for the exact fields it returns.
+
+## Letting your AI assistant report a problem
+
+If you drive WideCast through an AI assistant (see [Let your AI assistant run WideCast](guide/api-and-mcp.html)), it can file a problem report for you without you leaving the chat. When a WideCast action keeps failing and the assistant cannot work around it, ask it to report the problem. It sends the details straight to the WideCast team, including the internal id of the call that failed, which is exactly what the team needs to trace it.
+
+Reports are meant for WideCast itself misbehaving: an export that will not finish, an upload that keeps being rejected, an overlay that never builds. For anything about the content, a weak hook or the wrong background, just ask the assistant to change it instead. And a report goes to the team, not back to you, so when you want an actual conversation use "Live Support" below.
 
 ## Q&A
 Q: My video has been stuck on "Generating" for over an hour. Is something wrong?
@@ -67,3 +76,6 @@ A: The most common reason is a small typo or a dropped character when the id was
 
 Q: None of this fixed my problem. How do I talk to a real person at WideCast?
 A: Open the Account menu in the top corner of WideCast and choose "Live Support" to start a live chat with the WideCast team without leaving the page. If you are signed out, or browsing widecast.ai itself, look for the "Support" link in the top navigation or footer instead; it opens WideCast's public support and discussion board in a new tab. Either way, mention the video's name or id and what you already tried, so the team can pick up where you left off.
+
+Q: Can my AI assistant report a WideCast problem for me?
+A: Yes. If your assistant is connected to your account, ask it to report the problem and it files a report with the WideCast team directly, attaching the details of the call that failed so the team can trace it. Use it when WideCast itself goes wrong, such as an export that never finishes or an upload that keeps being rejected, rather than for content you simply want changed. Note that you will not get a reply inside the chat, because the report goes to the team rather than back to you; if you want a real conversation, open the Account menu and choose "Live Support" instead.

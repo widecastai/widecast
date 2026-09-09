@@ -1,0 +1,73 @@
+# Playground — POST /v1/error/report (SYNCHRONOUS, no credit).
+# Self-reporting: the body never names a reporter — company + email are
+# resolved server-side from the API key.
+
+endpoint:
+  method: POST
+  path: /v1/error/report
+
+title: Report a WideCast problem to the WideCast team
+description: |
+  Synchronous, no credit. Report a problem with WideCast itself — a failing
+  upload, a broken export, an overlay that will not build, an endpoint
+  returning a 5xx you cannot work around. The report is emailed straight to
+  the WideCast team.
+
+  This is NOT a user-notification channel: to tell the USER something, use
+  POST /v1/notification/send instead. And it is not for content problems you
+  can fix yourself (a weak hook, a wrong background, a typo) — only for
+  WideCast malfunctioning.
+
+  Whenever the failing call returned a request_id, put it in context. It is
+  the single most useful field for tracing a report back to the server log.
+
+fields:
+  - name: error_message
+    type: textarea
+    label: "Error message (required — what went wrong; prefer the verbatim error text; max 4000 chars)"
+    required: true
+    placeholder: "export_failed: renderer exited with code 137 (OOM)"
+  - name: module
+    type: text
+    label: "module (optional — which part failed; defaults to 'agent'; max 80 chars)"
+    placeholder: "export"
+  - name: context
+    type: json
+    label: "context — optional debugging details (object). Include the failing call's request_id."
+    rows: 6
+    placeholder: |
+      {
+        "topic_id": "widecast7c0d4f8a9b1e2d3f",
+        "request_id": "req_9f2c14ab",
+        "attempted": "second export retry after scene 4 edit"
+      }
+
+poll_after_create:
+  enabled: false
+
+use_cases:
+  - id: minimal
+    title: "🚩 Minimal report"
+    description: "Just the error text. module defaults to 'agent'. Returns {object:'error_report', reported:true, module, context_keys, request_id}."
+    request:
+      error_message: "video_data returned 502 script_parse_failed on a video that renders fine in the editor"
+  - id: with-context
+    title: "🔎 Report with tracing context (recommended)"
+    description: "The shape you should aim for: name the module, paste the verbatim error, and include the failing call's request_id plus the ids you were working on. This is what makes a report actionable."
+    request:
+      module: "export"
+      error_message: "export_failed: renderer exited with code 137 (OOM)"
+      context:
+        topic_id: "widecast7c0d4f8a9b1e2d3f"
+        request_id: "req_9f2c14ab"
+        attempted: "second export retry after scene 4 edit"
+  - id: scene-failure
+    title: "🎬 Scene-level failure"
+    description: "Reporting a per-scene problem — pass voice_file and scene_id so the team can reproduce on the exact scene."
+    request:
+      module: "scene_upload"
+      error_message: "upload_failed: 413 payload too large after auto-compression"
+      context:
+        topic_id: "widecast7c0d4f8a9b1e2d3f"
+        voice_file: "XcR0k"
+        scene_id: 3

@@ -167,6 +167,27 @@
       "default": false
     },
     {
+      "name": "adjust",
+      "type": "select",
+      "label": "Adjust audio (audio sources) — off | auto (autotune) | last saved Adjust Audio profile (custom {speed,pitch,volume,cleanup,studio} object: see the code examples)",
+      "required": false,
+      "default": "off",
+      "options": [
+        {
+          "value": "off",
+          "label": "off — audio used exactly as ingested (default)"
+        },
+        {
+          "value": "auto",
+          "label": "auto — autotune engine: shape each phrase, normalise pace and loudness"
+        },
+        {
+          "value": "last_adjust_settings",
+          "label": "last_adjust_settings — apply the account's saved Adjust Audio profile"
+        }
+      ]
+    },
+    {
       "name": "callback_url",
       "type": "text",
       "label": "Callback URL (webhook) — no server? grab a test inbox at /webhook-test.html",
@@ -943,6 +964,7 @@
       "request_template": {
         "source": "audio_url",
         "output_type": "scene",
+        "adjust": "off",
         "callback_url": ""
       },
       "choices": [
@@ -952,6 +974,14 @@
             "text",
             "scene",
             "video"
+          ]
+        },
+        {
+          "field": "adjust",
+          "options": [
+            "off",
+            "auto",
+            "last_adjust_settings"
           ]
         }
       ],
@@ -971,6 +1001,7 @@
           "request": {
             "source": "audio_url",
             "output_type": "scene",
+            "adjust": "off",
             "callback_url": "",
             "audio_url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"
           }
@@ -981,6 +1012,7 @@
           "request": {
             "source": "audio_url",
             "output_type": "scene",
+            "adjust": "off",
             "callback_url": "",
             "audio_url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"
           }
@@ -1017,7 +1049,8 @@
       "description": "**Upload an audio file** (≤5 min) — the audio becomes the narration and the AI builds matching scenes. **Output type**: `text` = transcript only; `scene` = scenes-ready; `video` = final MP4. Clicking **Run** uploads the file as multipart/form-data.",
       "request": {
         "source": "audio_file",
-        "output_type": "scene"
+        "output_type": "scene",
+        "adjust": "off"
       },
       "choices": [
         {
@@ -1026,6 +1059,14 @@
             "text",
             "scene",
             "video"
+          ]
+        },
+        {
+          "field": "adjust",
+          "options": [
+            "off",
+            "auto",
+            "last_adjust_settings"
           ]
         }
       ],

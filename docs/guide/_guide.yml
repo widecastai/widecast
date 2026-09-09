@@ -57,3 +57,11 @@ coverage_exceptions:
   "api:GET /openapi.json": "spec self-reference, not a user feature"
   "api:GET /openapi.yaml": "spec self-reference, not a user feature"
   "api:GET /v1/skills/video-script-writing": "deprecated alias of GET /v1/skills/writing"
+  # Solo Agency licensing plumbing: machine-to-machine only. The Solo Agency
+  # desktop app calls these to fetch/verify its Ed25519 entitlement token and
+  # to release its seat. A studio user never invokes them, so they have no
+  # user-guide topic. (Backfilled 2026-09-08 — these shipped with the LeadUp /
+  # Solo Agency work without a coverage entry, which left `make check` red.)
+  "api:GET /v1/solo/entitlement": "machine-to-machine licensing; Solo Agency app fetches its signed entitlement, not a studio-user feature"
+  "api:POST /v1/solo/install/release": "machine-to-machine licensing; Solo Agency app frees its install seat, not a studio-user feature"
+  "api:GET /v1/solo/pubkey": "machine-to-machine licensing; public key used to verify entitlement tokens, not a studio-user feature"

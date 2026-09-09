@@ -24,7 +24,7 @@ import os
 import re
 import time
 import uuid
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 from urllib.parse import urlencode
 
 import requests
@@ -60,6 +60,9 @@ BLOG_MAX_WORDS = 3000     # source="blog" ceiling — auto-truncate not reject
 SCRIPT_FORMATS = ("VE", "QA", "POV", "CS", "MB")  # mirrors _SCRIPT_FORMAT_KEYS
 PLAN_SCRIPT_MIN_WORDS = 80
 PLAN_SCRIPT_MAX_WORDS = 1000
+# /v1/error/report bounds — mirror WIDECAST_ERROR_* in dashboard2.py.
+ERROR_MESSAGE_MAX_CHARS = 4000
+ERROR_MODULE_MAX_CHARS = 80
 OUTPUT_TYPES = ("text", "scene", "video")  # pipeline depth (A46)
 # blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
 # the script already lives in the media; output_type="text" = Remake (A50).
@@ -72,6 +75,21 @@ SOURCES = ("text", "idea", "blog",
 # visuals must still be generated, so the same toggle applies. Video sources
 # are excluded (the footage IS the visuals — faceless would be meaningless).
 FACELESS_SOURCES = ("text", "idea", "blog", "audio_url")
+# adjust (A57): treatment of the INGESTED AUDIO before the video pipeline —
+# audio sources only. "off" (default) | "auto" (autotune engine: per-phrase
+# emotion shaping + pace + loudness, nothing to configure) |
+# "last_adjust_settings" (apply the
+# account's saved Adjust Audio profile; none saved → off) | a dict
+# {speed,pitch,volume,cleanup,studio} applied exactly. Bounds mirror the
+# server literals (asserted by the parity test).
+ADJUST_SOURCES = ("audio_url", "audio_file")
+ADJUST_MODES = ("off", "auto", "last_adjust_settings")
+ADJUST_SPEED_MIN = 0.7
+ADJUST_SPEED_MAX = 1.5
+ADJUST_PITCH_MIN = -5
+ADJUST_PITCH_MAX = 5
+ADJUST_VOLUME_MIN = 0.5
+ADJUST_VOLUME_MAX = 2.0
 VIDEO_LENGTHS = ("short", "normal")    # generative sources — maps to content_type 9/10
 LANGUAGES = ("English", "Vietnamese")  # generative sources — locked enum v0.1.0
 # Written content (/v1/create_content): friendly types → legacy content_type 3/4/5/6.
@@ -439,6 +457,7 @@ class Widecast:
                      research_enabled: bool = True,
                      output_type: str = "scene",
                      faceless: bool = False,
+                     adjust: Union[str, Mapping[str, Any], None] = "off",
                      media_pool: Optional[list] = None,
                      wait_for_render: bool = False,
                      callback_url: Optional[str] = None,
@@ -517,6 +536,20 @@ class Widecast:
                               with output_type scene/video for sources
                               text/idea/blog (see FACELESS_SOURCES); else
                               raises invalid_faceless.
+            adjust:           Audio sources only (audio_url/audio_file) —
+                              treatment of the ingested audio BEFORE the
+                              pipeline. "off" (default, untouched);
+                              "auto" (autotune engine: shapes each phrase's
+                              delivery, then normalises pace and loudness —
+                              nothing to configure; best for raw recordings),
+                              "last_adjust_settings" (apply the account's
+                              saved Adjust Audio profile; none saved → off);
+                              or a dict {speed: 0.7-1.5, pitch: -5..5 int,
+                              volume: 0.5-2.0, cleanup: bool, studio: bool}
+                              applied exactly (omitted keys = neutral).
+                              Fail-open server-side: a treatment failure
+                              never fails the request. Otherwise raises /
+                              returns invalid_adjust.
             wait_for_render:  If True, server blocks up to 60s waiting for
                               completion.
             callback_url:     HTTPS URL for webhook events.
@@ -578,10 +611,70 @@ class Widecast:
                     f"{list(FACELESS_SOURCES)} (got source={source!r}).",
                     code="invalid_faceless", param="faceless")
 
+        # adjust (A57) = audio-ingest treatment (audio_url/audio_file only).
+        # Mirrors the server's invalid_adjust rule; bounds are the ADJUST_*
+        # constants above.
+        adjust_body: Any = None
+        if adjust is None or (isinstance(adjust, str) and adjust.strip().lower() in ("", "off")):
+            adjust_body = None
+        elif isinstance(adjust, str):
+            _mode = adjust.strip().lower()
+            if _mode not in ("auto", "last_adjust_settings"):
+                raise InvalidRequestError(
+                    f"adjust accepts 'off', 'auto', 'last_adjust_settings', or a dict "
+                    f"{{speed,pitch,volume,cleanup,studio}} (got {adjust!r}).",
+                    code="invalid_adjust", param="adjust")
+            adjust_body = _mode
+        elif isinstance(adjust, Mapping):
+            _unknown = [k for k in adjust.keys()
+                        if k not in ("speed", "pitch", "volume", "cleanup", "studio")]
+            if _unknown:
+                raise InvalidRequestError(
+                    f"adjust has unknown key(s) {_unknown} — allowed: "
+                    f"['speed', 'pitch', 'volume', 'cleanup', 'studio'].",
+                    code="invalid_adjust", param="adjust")
+            _a = dict(adjust)
+            try:
+                if "speed" in _a and not (ADJUST_SPEED_MIN <= float(_a["speed"]) <= ADJUST_SPEED_MAX):
+                    raise InvalidRequestError(
+                        f"adjust.speed must be between {ADJUST_SPEED_MIN} and {ADJUST_SPEED_MAX}.",
+                        code="invalid_adjust", param="adjust")
+                if "pitch" in _a:
+                    _pf = float(_a["pitch"])
+                    if _pf != int(_pf) or not (ADJUST_PITCH_MIN <= int(_pf) <= ADJUST_PITCH_MAX):
+                        raise InvalidRequestError(
+                            f"adjust.pitch must be an integer between {ADJUST_PITCH_MIN} and {ADJUST_PITCH_MAX}.",
+                            code="invalid_adjust", param="adjust")
+                if "volume" in _a and not (ADJUST_VOLUME_MIN <= float(_a["volume"]) <= ADJUST_VOLUME_MAX):
+                    raise InvalidRequestError(
+                        f"adjust.volume must be between {ADJUST_VOLUME_MIN} and {ADJUST_VOLUME_MAX}.",
+                        code="invalid_adjust", param="adjust")
+            except (TypeError, ValueError):
+                raise InvalidRequestError(
+                    "adjust.speed / adjust.pitch / adjust.volume must be numbers.",
+                    code="invalid_adjust", param="adjust")
+            for _bk in ("cleanup", "studio"):
+                if _bk in _a and not isinstance(_a[_bk], bool):
+                    raise InvalidRequestError(
+                        f"adjust.{_bk} must be a boolean.",
+                        code="invalid_adjust", param="adjust")
+            adjust_body = _a
+        else:
+            raise InvalidRequestError(
+                f"adjust must be a string or a dict (got {type(adjust).__name__}).",
+                code="invalid_adjust", param="adjust")
+        if adjust_body is not None and source not in ADJUST_SOURCES:
+            raise InvalidRequestError(
+                f"adjust is only supported for source in {list(ADJUST_SOURCES)} "
+                f"(got source={source!r}).",
+                code="invalid_adjust", param="adjust")
+
         # ── Build body, pre-validating per source ─────────────────────────
         body: dict = {"source": source, "output_type": output_type}
         if faceless:
             body["faceless"] = True
+        if adjust_body is not None:
+            body["adjust"] = adjust_body
         if media_pool:
             # Extra image/video URLs the caller couldn't place inline → added to
             # the first scene's media library (scene editor lists them).
@@ -2062,6 +2155,65 @@ class Widecast:
             body["video_url"] = video_url
         return self._request("POST", "/v1/notification/send",
                              json_body=body,
+                             idempotency_key=str(uuid.uuid4()))
+
+    def report_error(self, error_message: str, *,
+                     module: Optional[str] = None,
+                     context: Optional[Mapping[str, Any]] = None) -> dict:
+        """POST /v1/error/report — report a WideCast problem to the WideCast
+        team. SYNC, FREE. The report is emailed straight to the team.
+
+        Use this when WideCast ITSELF misbehaves — a failing upload, a broken
+        export, an overlay that will not build, an endpoint returning a 5xx
+        you cannot work around. It is NOT a user-notification channel (use
+        :meth:`send_notification` for that) and not for content problems you
+        can fix yourself.
+
+        The reporting account is resolved server-side from the API key and is
+        never sent in the body.
+
+        Args:
+            error_message: REQUIRED. What went wrong — prefer the verbatim
+                           error text over a paraphrase. Max
+                           ``ERROR_MESSAGE_MAX_CHARS`` characters.
+            module:        Which part failed (``export``, ``scene_upload``,
+                           ``spec``, ...). Max ``ERROR_MODULE_MAX_CHARS``
+                           characters. Defaults server-side to ``"agent"``.
+            context:       Free-form debugging details. Include the
+                           ``request_id`` of the failing call whenever you
+                           have one — it is the most useful field for tracing.
+
+        Returns ``{object:"error_report", reported:True, module,
+        context_keys, request_id}``.
+        """
+        if not isinstance(error_message, str) or not error_message.strip():
+            raise InvalidRequestError(
+                "error_message (non-empty string) is required.",
+                code="missing_field", param="error_message")
+        if len(error_message.strip()) > ERROR_MESSAGE_MAX_CHARS:
+            raise InvalidRequestError(
+                f"error_message exceeds the {ERROR_MESSAGE_MAX_CHARS}-character limit.",
+                code="error_message_too_long", param="error_message")
+        if module is not None:
+            if not isinstance(module, str):
+                raise InvalidRequestError(
+                    "module must be a string.",
+                    code="invalid_module", param="module")
+            if len(module.strip()) > ERROR_MODULE_MAX_CHARS:
+                raise InvalidRequestError(
+                    f"module exceeds the {ERROR_MODULE_MAX_CHARS}-character limit.",
+                    code="module_too_long", param="module")
+        if context is not None and not isinstance(context, Mapping):
+            raise InvalidRequestError(
+                "context must be an object (key/value pairs).",
+                code="invalid_context", param="context")
+
+        body: Dict[str, Any] = {"error_message": error_message.strip()}
+        if module is not None and module.strip():
+            body["module"] = module.strip()
+        if context is not None:
+            body["context"] = dict(context)
+        return self._request("POST", "/v1/error/report", json_body=body,
                              idempotency_key=str(uuid.uuid4()))
 
     def send_client_link(self, link_type: str, *,

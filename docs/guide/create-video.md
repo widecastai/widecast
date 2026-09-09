@@ -74,6 +74,9 @@ A: Yes. Paste the link into "Remake Video" to pull out the transcript as an edit
 Q: Can I make a video from a podcast or audio recording?
 A: Yes, using "Audio to Video". Upload the audio file or paste a link to it, up to 5 minutes long and up to 100 MB for uploads, and WideCast uses the recording as the narration while it builds matching visuals around it.
 
+Q: Can the API polish my audio recording before it becomes a video?
+A: Yes. When a video is started from an audio link or audio file through the API, the request can include an "adjust" option. Leaving it off keeps the recording exactly as is. Setting it to "auto" lets the system listen to the recording and fix it for you: it lifts the lines that carry your message, settles the ones that carry weight, and evens out the speaking pace and the volume. There is nothing to set up, and it is the best choice for a raw recording. Setting it to "last_adjust_settings" reuses the settings you last saved in the studio's Adjust Audio screen, such as speed, pitch, volume, clean up and studio voice, and you can also pass an exact configuration instead. If the polish step ever fails, the video still gets made from the original recording. In the studio itself you do not need this option, because the Adjust Audio screen opens on its own when you upload audio.
+
 Q: Can I use my own photos or clips inside the script?
 A: Yes. While writing a script in "Script to Video", place a direct image or video link right next to the sentence it belongs to. WideCast uses that file as the visual for that scene instead of choosing its own footage, and skips over it when the narrator reads the script aloud. This works with direct file links, like one ending in .jpg or .mp4, not a page link such as a YouTube watch page.
 

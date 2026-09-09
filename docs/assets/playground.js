@@ -366,6 +366,7 @@ ${forms.join("\n")}
       "/v1/production_plan": "production_plan",
       "/v1/production_plan/add": "add_to_production_plan",
       "/v1/notification/send": "send_notification",
+      "/v1/error/report": "report_error",
       "/v1/create_image": "create_image",
       "/v1/search_broll": "search_broll",
       "/v1/video_data": "video_data",
