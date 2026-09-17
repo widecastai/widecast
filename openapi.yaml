@@ -2346,7 +2346,7 @@ paths:
         Chrome extension) to enforce plan limits offline: the bridge caches the
         raw `token` and re-verifies its EdDSA signature against the public key
         from `/v1/solo/pubkey`. `tier` follows the account's WideCast plan —
-        Free · Starter ($49) · Pro ($99) · Business ($199) · Enterprise — unless
+        Free · Starter · Pro · Business · Enterprise (each tier's price and limits ride in the token's `ladder` claim, from the server's plans.json) — unless
         an operator grant overrides it; an expired WideCast plan yields `free`.
         `limits` (0 = unlimited; max_groups / max_campaigns are per client) and
         `features` (enrich, write_actions, harvest, zillow, …) are what the
