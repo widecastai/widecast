@@ -5,11 +5,22 @@ endpoint:
 title: List connected accounts
 description: |
   Read-only, free. The social platforms currently connected to your account.
-fields: []
+  `channel_group` = one channel group (integer, 0 = primary) or `all`.
+fields:
+  - name: channel_group
+    type: text
+    label: "channel_group (integer, 0 = primary; or all)"
+    required: false
+    placeholder: "0"
 poll_after_create:
   enabled: false
 use_cases:
   - id: accounts
     title: "🔌 Connected accounts"
-    description: "No params — returns each connected platform + username + status."
+    description: "No params — returns each connected platform + username + status of the primary channel group."
     request: {}
+  - id: accounts_all_groups
+    title: "🌐 Every channel group"
+    description: "`channel_group=all` lists the accounts of every channel group; each row carries channel_group + channel_group_label."
+    request:
+      channel_group: all

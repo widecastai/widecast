@@ -65,9 +65,9 @@
 <li><strong><code>text</code></strong> — post arbitrary text (optionally with <code>photo_urls</code>).</li>
 <li><strong><code>video_url</code></strong> — a <strong>direct video FILE url</strong> (<code>.mp4</code>/<code>.mov</code>/…) to download + publish. Requires <code>title</code>.</li>
 </ul>
-<p><code>platforms</code> defaults to <strong>all connected</strong> platforms. Charges <strong>1 credit</strong> and posts <strong>publicly</strong>.</p>
+<p><code>platforms</code> defaults to <strong>all connected</strong> platforms of the chosen channel group. <code>channel_group</code> (integer, default <code>0</code> = primary) picks which <strong>channel group</strong> — a separate set of connected accounts, e.g. <em>Vietnamese channels</em> vs <em>English channels</em> — the post goes through; one call publishes through <strong>one</strong> group (list them with <code>GET /v1/channel_groups</code>). Charges <strong>1 credit</strong> and posts <strong>publicly</strong>.</p>
 <p>Publishing is asynchronous on the platform side: this returns the upstream <code>request_ids</code> <strong>immediately</strong> (<code>202</code>). Poll <code>GET /v1/status/{request_id}</code> for per-platform post URLs in <code>result.posts</code>. An article spanning text + photo platforms may return <strong>up to two</strong> <code>request_ids</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/publish</code></div><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_topic" id="ex-publish--publish_topic"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📣 Publish an existing WideCast video/blog</h3><p class="wc-pg-example-desc">Pass the `topic_id` from /v1/create_video or /v1/create_content. WideCast auto-detects article vs video (a video must be rendered first). Omit `platforms` to post to all connected.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_text" id="ex-publish--publish_text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✍️ Post arbitrary text</h3><p class="wc-pg-example-desc">Post text you provide directly (not from a WideCast topic) to all connected text platforms.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_external_video" id="ex-publish--publish_external_video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Post an external video URL</h3><p class="wc-pg-example-desc">Give a direct video FILE url + a `title`; WideCast downloads it and posts it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/publish</code></div><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_topic" id="ex-publish--publish_topic"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">📣 Publish an existing WideCast video/blog</h3><p class="wc-pg-example-desc">Pass the `topic_id` from /v1/create_video or /v1/create_content. WideCast auto-detects article vs video (a video must be rendered first). Omit `platforms` to post to all connected.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_topic_channel_group" id="ex-publish--publish_topic_channel_group"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Publish through a second channel group</h3><p class="wc-pg-example-desc">Accounts with several channel groups (e.g. Vietnamese + English channels) pass `channel_group` — one call posts through ONE group's accounts. List groups with GET /v1/channel_groups.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_text" id="ex-publish--publish_text"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">✍️ Post arbitrary text</h3><p class="wc-pg-example-desc">Post text you provide directly (not from a WideCast topic) to all connected text platforms.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/publish.json" data-usecase-id="publish_external_video" id="ex-publish--publish_external_video"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🎬 Post an external video URL</h3><p class="wc-pg-example-desc">Give a direct video FILE url + a `title`; WideCast downloads it and posts it.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h3 id="request-fields">Request fields</h3>
 <table>
@@ -120,7 +120,13 @@
 <td><code>platforms</code></td>
 <td>array[string]</td>
 <td>no</td>
-<td>Target platforms. Defaults to <strong>all connected</strong>. SDK constant <code>PUBLISH_PLATFORMS</code>: <code>youtube</code>, <code>tiktok</code>, <code>instagram</code>, <code>facebook</code>, <code>linkedin</code>, <code>x</code>, <code>threads</code>, <code>pinterest</code>, <code>reddit</code>, <code>bluesky</code>, <code>google_business</code>.</td>
+<td>Target platforms. Defaults to <strong>all connected</strong> in the chosen channel group. SDK constant <code>PUBLISH_PLATFORMS</code>: <code>youtube</code>, <code>tiktok</code>, <code>instagram</code>, <code>facebook</code>, <code>linkedin</code>, <code>x</code>, <code>threads</code>, <code>pinterest</code>, <code>reddit</code>, <code>bluesky</code>, <code>google_business</code>.</td>
+</tr>
+<tr>
+<td><code>channel_group</code></td>
+<td>integer</td>
+<td>no</td>
+<td>Channel group to publish through (<code>0</code> = primary, default). One call = one group. See <code>GET /v1/channel_groups</code>.</td>
 </tr>
 <tr>
 <td><code>scheduled_date</code></td>
@@ -193,9 +199,14 @@
 <td><code>platforms</code> not a list, or an unknown platform name.</td>
 </tr>
 <tr>
+<td><code>invalid_channel_group</code></td>
+<td>400 / 404</td>
+<td><code>channel_group</code> not an integer ≥ 0 (400) or the group does not exist (404).</td>
+</tr>
+<tr>
 <td><code>no_platforms_connected</code></td>
 <td>400</td>
-<td>No connected platforms (or none of the requested are connected).</td>
+<td>No connected platforms in the chosen channel group (or none of the requested are connected).</td>
 </tr>
 <tr>
 <td><code>video_not_found</code></td>

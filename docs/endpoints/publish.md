@@ -8,7 +8,7 @@ Provide **exactly one** content mode:
 - **`text`** — post arbitrary text (optionally with `photo_urls`).
 - **`video_url`** — a **direct video FILE url** (`.mp4`/`.mov`/…) to download + publish. Requires `title`.
 
-`platforms` defaults to **all connected** platforms. Charges **1 credit** and posts **publicly**.
+`platforms` defaults to **all connected** platforms of the chosen channel group. `channel_group` (integer, default `0` = primary) picks which **channel group** — a separate set of connected accounts, e.g. *Vietnamese channels* vs *English channels* — the post goes through; one call publishes through **one** group (list them with `GET /v1/channel_groups`). Charges **1 credit** and posts **publicly**.
 
 Publishing is asynchronous on the platform side: this returns the upstream `request_ids` **immediately** (`202`). Poll `GET /v1/status/{request_id}` for per-platform post URLs in `result.posts`. An article spanning text + photo platforms may return **up to two** `request_ids`.
 
@@ -24,7 +24,8 @@ Publishing is asynchronous on the platform side: this returns the upstream `requ
 | `title` | string | conditional | Caption/title. **Required** with `video_url`; optional override for `topic_id`. |
 | `description` | string | no | Optional body/description text. |
 | `photo_urls` | array[string] | no | Image URLs to attach (with `text`). |
-| `platforms` | array[string] | no | Target platforms. Defaults to **all connected**. SDK constant `PUBLISH_PLATFORMS`: `youtube`, `tiktok`, `instagram`, `facebook`, `linkedin`, `x`, `threads`, `pinterest`, `reddit`, `bluesky`, `google_business`. |
+| `platforms` | array[string] | no | Target platforms. Defaults to **all connected** in the chosen channel group. SDK constant `PUBLISH_PLATFORMS`: `youtube`, `tiktok`, `instagram`, `facebook`, `linkedin`, `x`, `threads`, `pinterest`, `reddit`, `bluesky`, `google_business`. |
+| `channel_group` | integer | no | Channel group to publish through (`0` = primary, default). One call = one group. See `GET /v1/channel_groups`. |
 | `scheduled_date` | string | no | ISO date/time to schedule the post (with `timezone`). |
 | `timezone` | string | no | Timezone for `scheduled_date` (default `UTC`). |
 | `metadata` | object | no | Echoed back on the response. |
@@ -66,7 +67,8 @@ const status = await client.get_status(pub.id);
 | `invalid_publish_input` | 400 | Not exactly one of `topic_id` / `text` / `video_url`. |
 | `missing_field` | 400 | `title` missing with `video_url`. |
 | `invalid_platforms` | 400 | `platforms` not a list, or an unknown platform name. |
-| `no_platforms_connected` | 400 | No connected platforms (or none of the requested are connected). |
+| `invalid_channel_group` | 400 / 404 | `channel_group` not an integer ≥ 0 (400) or the group does not exist (404). |
+| `no_platforms_connected` | 400 | No connected platforms in the chosen channel group (or none of the requested are connected). |
 | `video_not_found` | 404 | `topic_id` doesn't exist for your account. |
 | `publish_not_ready` | 409 | The topic's video isn't rendered yet — export it first. |
 | `download_failed` | 400 | The external `video_url` could not be downloaded. |

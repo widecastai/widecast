@@ -1819,7 +1819,13 @@ paths:
         - `video_url` — a **direct video file URL** (mp4/mov/…) to post; requires
           `title`. WideCast downloads it, then publishes.
 
-        `platforms` defaults to **all connected** platforms. Charges 1 credit.
+        `platforms` defaults to **all connected** platforms of the chosen
+        channel group. Charges 1 credit.
+
+        `channel_group` (integer, default 0 = primary) selects which CHANNEL
+        GROUP — a separate set of connected accounts, e.g. "Vietnamese
+        channels" vs "English channels" — the post goes through. One call
+        publishes through ONE group; list groups with `GET /v1/channel_groups`.
 
         Publishing is asynchronous on the platform side: this returns the
         upstream `request_ids` immediately (HTTP 202). Poll
@@ -1840,6 +1846,9 @@ paths:
               external_video:
                 summary: Post an external video file URL
                 value: { video_url: "https://cdn.example.com/clip.mp4", title: "Launch teaser" }
+              channel_group:
+                summary: Publish through the second channel group (e.g. English channels)
+                value: { topic_id: "widecast7c0d4f8a9b1e2d3f", platforms: ["youtube"], channel_group: 1 }
       responses:
         '202':
           description: Publish accepted — poll the returned request_id(s).
@@ -2314,7 +2323,17 @@ paths:
                   email: { type: string }
                   name: { type: string }
                   location: { type: string }
-                  connected_platforms: { type: array, items: { type: string } }
+                  connected_platforms: { type: array, items: { type: string }, description: "Platforms connected in ANY channel group (de-duplicated, primary first). Per-group lists live in `channel_groups`; with a single group this is exactly that group's list." }
+                  channel_groups:
+                    type: array
+                    description: Every channel group (primary first) with its connected platforms.
+                    items:
+                      type: object
+                      properties:
+                        channel_group: { type: integer }
+                        label: { type: string }
+                        is_primary: { type: boolean }
+                        connected_platforms: { type: array, items: { type: string } }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   /v1/solo/entitlement:
@@ -2477,6 +2496,18 @@ paths:
           schema: { type: string, enum: [last_day, last_week, last_month, last_3months, last_year, custom], default: last_week }
         - { name: start_date, in: query, required: false, schema: { type: string }, description: "For period=custom." }
         - { name: end_date, in: query, required: false, schema: { type: string }, description: "For period=custom." }
+        - name: channel_group
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            Optional. OMIT for the full picture: every channel group summed when
+            the account has several (per-platform maps are then keyed `platform`
+            for the primary group and `platform@N` for group N, and each
+            `accounts[]` / `recent_posts[]` row carries `channel_group` +
+            `channel_group_label`); with a single group this is the primary
+            group. Pass an integer (0 = primary, 1, 2, …) only to audit ONE
+            group; `all` forces the summed view.
       responses:
         '200':
           description: Analytics dashboard.
@@ -2488,8 +2519,10 @@ paths:
                 properties:
                   object: { type: string, example: analytics }
                   period: { type: string }
+                  channel_group: { description: "Echo of the selected group (integer) or `all`.", oneOf: [{ type: integer }, { type: string, enum: [all] }] }
                   dashboard: { type: object, additionalProperties: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # /v1/roadmap is intentionally REST + OpenAPI + docs only — NOT an MCP
   # tool (dashboard-facing read; agents don't need it). SDK client.roadmap()
@@ -2697,7 +2730,17 @@ paths:
       tags: [Connections]
       operationId: listAccounts
       summary: List the account's connected social platforms.
-      description: Free, read-only.
+      description: |
+        Free, read-only. OMIT `channel_group` for the full picture: every
+        channel group when the account has several, else the primary group.
+        Pass an integer (0 = primary, 1, …) to list ONE group, or `all`. Each
+        row carries `channel_group` + `channel_group_label`.
+      parameters:
+        - name: channel_group
+          in: query
+          required: false
+          schema: { type: string }
+          description: Optional. Omit = every group (full picture). Integer group number (0 = primary) = one group; `all` = every group.
       responses:
         '200':
           description: Connected accounts.
@@ -2708,23 +2751,30 @@ paths:
                 type: object
                 properties:
                   object: { type: string, example: list }
+                  channel_group: { description: "Echo of the selected group (integer) or `all`.", oneOf: [{ type: integer }, { type: string, enum: [all] }] }
                   data:
                     type: array
                     items:
                       type: object
                       properties:
                         platform: { type: string }
-                        username: { type: string }
+                        username: { type: string, description: "Handle on the platform." }
+                        display_name: { type: string, description: "Display name on the platform (may differ from the handle; empty when the provider gives none). Refreshed from the provider automatically — at most every 30 minutes while the account is in use, and whenever the WideCast Connect screen opens — so a rename on the platform shows up without reconnecting." }
                         status: { type: string, example: connected }
                         connected_at: { type: string, format: date-time, nullable: true }
+                        channel_group: { type: integer, description: "Group this account belongs to (0 = primary)." }
+                        channel_group_label: { type: string, example: Primary }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /v1/platform_settings:
     get:
       tags: [Connections]
       operationId: getPlatformSettings
       summary: Load saved per-platform publish settings.
-      description: Free, read-only. Returns the saved publish PREFERENCES (privacy / page / subreddit) per platform — not access controls.
+      description: Free, read-only. Returns the saved publish PREFERENCES (privacy / page / subreddit) per platform — not access controls. `channel_group` (integer, default 0 = primary) selects the channel group.
+      parameters:
+        - { name: channel_group, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 }, description: "Channel group (0 = primary)." }
       responses:
         '200':
           description: Saved settings.
@@ -2735,13 +2785,15 @@ paths:
                 type: object
                 properties:
                   object: { type: string, example: platform_settings }
+                  channel_group: { type: integer }
                   settings: { type: object, additionalProperties: true }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       tags: [Connections]
       operationId: setPlatformSettings
       summary: Save one platform's publish settings.
-      description: Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit subreddit, facebook page id).
+      description: Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit subreddit, facebook page id). `channel_group` (integer, default 0 = primary) selects the channel group the settings belong to.
       requestBody:
         required: true
         content:
@@ -2754,6 +2806,7 @@ paths:
                   type: string
                   enum: [youtube, tiktok, instagram, facebook, linkedin, x, threads, pinterest, reddit, bluesky, google_business]
                 settings: { type: object, additionalProperties: true }
+                channel_group: { type: integer, minimum: 0, default: 0, description: "Channel group (0 = primary)." }
       responses:
         '200':
           description: Updated settings.
@@ -2764,9 +2817,134 @@ paths:
                 type: object
                 properties:
                   object: { type: string, example: platform_settings }
+                  channel_group: { type: integer }
                   settings: { type: object, additionalProperties: true }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/channel_groups:
+    get:
+      tags: [Connections]
+      operationId: listChannelGroups
+      summary: List channel groups (separate sets of connected social accounts).
+      description: |
+        Free, read-only. A CHANNEL GROUP is a separate set of connected social
+        accounts backed by its own publishing profile — e.g. "Vietnamese
+        channels" and "English channels" under one WideCast account, each with
+        its own YouTube / TikTok / … account and its own publish settings.
+        Group 0 (primary) always exists and is what every endpoint uses when
+        `channel_group` is omitted. Pass a group's `channel_group` number to
+        `/v1/publish`, `/v1/accounts`, `/v1/platform_settings` and
+        `/v1/analytics`. Connecting platforms inside a group is done by the
+        user at https://widecast.ai/#setup (Connect Social Account).
+      responses:
+        '200':
+          description: Channel groups, primary first.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: list }
+                  data: { type: array, items: { $ref: '#/components/schemas/ChannelGroup' } }
+                  limit: { type: integer, description: Maximum number of groups per account (primary included). }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Connections]
+      operationId: createChannelGroup
+      summary: Create a channel group.
+      description: |
+        Free. Creates a channel group and provisions its publishing profile.
+        Group numbers are monotonic and never reused. 409 `profile_limit_reached`
+        when the publishing provider has no profile capacity left; 409
+        `channel_group_limit` at the per-account cap.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label]
+              properties:
+                label: { type: string, maxLength: 40, description: "Display name.", example: "English channels" }
+      responses:
+        '201':
+          description: Created.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelGroup' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/PreconditionFailed' }
+
+  /v1/channel_groups/{channel_group}:
+    parameters:
+      - { name: channel_group, in: path, required: true, schema: { type: integer, minimum: 1 }, description: "Group number (1 and up). The primary group 0 cannot be renamed or removed." }
+    get:
+      tags: [Connections]
+      operationId: getChannelGroup
+      summary: One channel group.
+      description: Free, read-only.
+      responses:
+        '200':
+          description: The channel group.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelGroup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Connections]
+      operationId: renameChannelGroup
+      summary: Rename a channel group.
+      description: Free. Changes the display label only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label]
+              properties:
+                label: { type: string, maxLength: 40, example: "English channels (US)" }
+      responses:
+        '200':
+          description: Renamed.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChannelGroup' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Connections]
+      operationId: deleteChannelGroup
+      summary: Remove a channel group.
+      description: |
+        Free. DESTRUCTIVE — deletes the group's publishing profile, which
+        disconnects every social account connected in that group. Posts already
+        published stay online. The group number is never reused.
+      responses:
+        '200':
+          description: Removed.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, const: channel_group }
+                  channel_group: { type: integer }
+                  label: { type: string }
+                  status: { type: string, enum: [deleted] }
+                  deleted: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /v1/mcp_token:
     post:
@@ -5531,7 +5709,16 @@ components:
           items:
             type: string
             enum: [youtube, tiktok, instagram, facebook, linkedin, x, threads, pinterest, reddit, bluesky, google_business]
-          description: Target platforms. Defaults to ALL connected platforms.
+          description: Target platforms. Defaults to ALL connected platforms of the chosen channel group.
+        channel_group:
+          type: integer
+          minimum: 0
+          default: 0
+          description: |
+            Channel group to publish through (0 = primary, default). A channel
+            group is a separate set of connected accounts (e.g. English vs
+            Vietnamese channels); one call publishes through ONE group. List
+            groups with GET /v1/channel_groups.
         scheduled_date:
           type: string
           description: Optional ISO date/time to schedule the post (with `timezone`).
@@ -5544,6 +5731,26 @@ components:
         metadata:
           type: object
           additionalProperties: true
+
+    ChannelGroup:
+      type: object
+      description: |
+        One CHANNEL GROUP — a separate set of connected social accounts backed
+        by its own publishing profile (e.g. "Vietnamese channels" vs "English
+        channels"). Group 0 is the primary group and always exists; every
+        endpoint that takes `channel_group` defaults to 0.
+      required: [channel_group, label, is_primary, status, connected_platforms]
+      properties:
+        channel_group:
+          type: integer
+          minimum: 0
+          description: Stable group number. 0 = primary. Numbers are never reused after removal.
+        label: { type: string, maxLength: 40, example: "English channels" }
+        is_primary: { type: boolean }
+        status: { type: string, enum: [active, deleted] }
+        connected_platforms: { type: array, items: { type: string } }
+        connected_count: { type: integer }
+        created_at: { type: integer, description: "Unix seconds (0 for the primary group)." }
 
     PublishResponse:
       type: object
@@ -5573,6 +5780,9 @@ components:
           type: array
           items: { type: string }
           description: Platforms skipped (not connected / missing required config).
+        channel_group:
+          type: integer
+          description: Channel group the post was dispatched through (0 = primary).
         metadata:
           type: object
           additionalProperties: true

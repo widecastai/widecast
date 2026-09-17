@@ -4,8 +4,16 @@
     "path": "/v1/platform_settings"
   },
   "title": "Load publish settings",
-  "description": "Read-only, free. The saved per-platform publish preferences (privacy / page /\nsubreddit) — not access controls.\n",
-  "fields": [],
+  "description": "Read-only, free. The saved per-platform publish preferences (privacy / page /\nsubreddit) — not access controls. `channel_group` (integer, 0 = primary)\nselects the channel group.\n",
+  "fields": [
+    {
+      "name": "channel_group",
+      "type": "text",
+      "label": "channel_group (integer, 0 = primary)",
+      "required": false,
+      "placeholder": "0"
+    }
+  ],
   "poll_after_create": {
     "enabled": false
   },

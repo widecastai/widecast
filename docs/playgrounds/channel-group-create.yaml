@@ -1,0 +1,26 @@
+# Playground — POST /v1/channel_groups (free). Create a channel group.
+# ⚠ Running provisions a publishing profile on the provider plan (counts toward
+# its profile quota). Remove with DELETE /v1/channel_groups/{channel_group}.
+endpoint:
+  method: POST
+  path: /v1/channel_groups
+title: Create a channel group
+description: |
+  Free. Creates a channel group — a separate set of connected social accounts
+  (e.g. "English channels") — and provisions its publishing profile. The group
+  number is never reused. ⚠ Running consumes provider profile quota; 409
+  `profile_limit_reached` when the plan is full.
+fields:
+  - name: label
+    type: text
+    label: "label (channel group name, ≤ 40 chars)"
+    required: true
+    placeholder: "English channels"
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: create_channel_group
+    title: "➕ Create a channel group"
+    description: "Give the group a name. Then connect its platforms at widecast.ai/#setup → Connect Social Account → pick the group tab. ⚠ Run provisions a provider profile."
+    request:
+      label: "English channels"

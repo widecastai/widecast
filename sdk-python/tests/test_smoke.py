@@ -733,6 +733,60 @@ def test_connection_methods_exist():
         assert callable(getattr(c, name)), name
 
 
+# ── Channel groups (2026-09-16) — multi Upload-Post profile per account ─────
+
+def test_channel_group_methods_exist():
+    c = Widecast(api_key="dummy")
+    for name in ("channel_groups", "create_channel_group",
+                 "rename_channel_group", "delete_channel_group"):
+        assert callable(getattr(c, name)), name
+
+
+def test_publish_rejects_bad_channel_group():
+    c = Widecast(api_key="dummy")
+    for bad in (-1, "1", 1.5, True):
+        with pytest.raises(InvalidRequestError) as ei:
+            c.publish(text="Launch day!", channel_group=bad)
+        assert ei.value.code == "invalid_channel_group", bad
+        assert ei.value.param == "channel_group"
+
+
+def test_publish_accepts_channel_group():
+    """channel_group=1 passes client validation → network failure, not InvalidRequestError."""
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.publish(text="Launch day!", channel_group=1)
+    assert not isinstance(ei.value, InvalidRequestError)
+
+
+def test_set_platform_settings_rejects_bad_channel_group():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.set_platform_settings("youtube", {"privacyStatus": "public"}, channel_group=-2)
+    assert ei.value.code == "invalid_channel_group"
+
+
+def test_accounts_accepts_all_channel_groups():
+    """accounts(channel_group='all') passes client validation (offline → APIError)."""
+    c = _offline_client()
+    with pytest.raises(WidecastError) as ei:
+        c.accounts(channel_group="all")
+    assert not isinstance(ei.value, InvalidRequestError)
+
+
+def test_channel_group_mutations_validate():
+    c = Widecast(api_key="dummy")
+    with pytest.raises(InvalidRequestError) as ei:
+        c.create_channel_group("   ")
+    assert ei.value.code == "missing_field"
+    with pytest.raises(InvalidRequestError) as ei2:
+        c.rename_channel_group(0, "Primary?")
+    assert ei2.value.code == "invalid_channel_group"
+    with pytest.raises(InvalidRequestError) as ei3:
+        c.delete_channel_group(0)
+    assert ei3.value.code == "invalid_channel_group"
+
+
 def test_create_video_idea_rejects_missing_idea_text():
     c = Widecast(api_key="dummy")
     with pytest.raises(InvalidRequestError) as ei:

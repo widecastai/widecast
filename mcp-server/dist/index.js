@@ -378,7 +378,8 @@ const TOOLS = [
         description: "Publish content to the user's CONNECTED social platforms (posts PUBLICLY, charges 1 credit). " +
             "Provide EXACTLY ONE of: `topic_id` (publish a WideCast video or blog you already created — a video must be rendered first), " +
             "`text` (post arbitrary text, optionally with `photo_urls`), or `video_url` (an external direct video FILE url — requires `title`). " +
-            "`platforms` defaults to ALL connected platforms. " +
+            "`platforms` defaults to ALL connected platforms of the chosen channel group. " +
+            "`channel_group` (integer, default 0 = primary) picks which CHANNEL GROUP — a separate set of connected accounts, e.g. 'Vietnamese channels' vs 'English channels' — the post goes through; one call = one group. When the account has more than one group (see widecast_channel_groups), confirm the group with the user too. " +
             "ALWAYS confirm the exact content AND the target platforms with the user in THIS conversation before calling — publishing is public and irreversible; a prior or implied request is NOT confirmation. Never guess platforms. " +
             "Returns request_id(s) immediately (publishing runs in the background); then poll widecast_get_status(request_id) for per-platform post URLs in result.posts.",
         inputSchema: {
@@ -393,8 +394,9 @@ const TOOLS = [
                 platforms: {
                     type: "array",
                     items: { type: "string", enum: ["youtube", "tiktok", "instagram", "facebook", "linkedin", "x", "threads", "pinterest", "reddit", "bluesky", "google_business"] },
-                    description: "Target platforms. Omit to post to ALL connected platforms (confirm with the user first).",
+                    description: "Target platforms. Omit to post to ALL connected platforms of the chosen channel group (confirm with the user first).",
                 },
+                channel_group: { type: "integer", minimum: 0, description: "Channel group to publish through. 0 (default) = primary. List groups with widecast_channel_groups." },
                 scheduled_date: { type: "string", description: "Optional ISO date/time to schedule (with `timezone`)." },
                 timezone: { type: "string", description: "Timezone for scheduled_date (default UTC)." },
             },
@@ -841,19 +843,20 @@ const TOOLS = [
     {
         name: "widecast_account",
         title: "WideCast: Account info",
-        description: "Account profile + remaining credits + connected platforms. Read-only, free.",
+        description: "Account profile + remaining credits + connected platforms. Read-only, free. `connected_platforms` is the union across every channel group; `channel_groups` gives the per-group breakdown.",
         inputSchema: { type: "object", properties: {} },
     },
     {
         name: "widecast_analytics",
         title: "WideCast: Analytics dashboard",
-        description: "Social analytics across connected platforms. Read-only, free, but SLOW (fans out to the provider).",
+        description: "Social analytics across connected platforms. Read-only, free, but SLOW (fans out to the provider). OMIT `channel_group` for the full picture: every channel group summed when the account has several (per-platform maps keyed 'platform' for the primary group and 'platform@N' for group N; accounts/recent_posts rows carry channel_group_label). Pass an integer (0 = primary, 1, 2, …) only to audit ONE group; 'all' forces the summed view.",
         inputSchema: {
             type: "object",
             properties: {
                 period: { type: "string", enum: ["last_day", "last_week", "last_month", "last_3months", "last_year", "custom"], default: "last_week" },
                 start_date: { type: "string", description: "For period=custom." },
                 end_date: { type: "string", description: "For period=custom." },
+                channel_group: { type: "string", description: "Optional. Omit = every group (full picture). Integer (0 = primary, 1, …) = one group only; 'all' = summed." },
             },
         },
     },
@@ -954,13 +957,30 @@ const TOOLS = [
     {
         name: "widecast_accounts",
         title: "WideCast: List connected accounts",
-        description: "List the account's connected social platforms. Read-only, free.",
-        inputSchema: { type: "object", properties: {} },
+        description: "List the account's connected social platforms. Read-only, free. OMIT `channel_group` for the full picture (every channel group when the account has several; each row carries channel_group + channel_group_label). Pass an integer (0 = primary, 1, …) only to list ONE group.",
+        inputSchema: { type: "object", properties: {
+                channel_group: { type: "string", description: "Optional. Omit = every group (full picture). Integer (0 = primary, 1, …) = one group only; 'all' = every group." },
+            } },
     },
     {
         name: "widecast_platform_settings",
         title: "WideCast: Load publish settings",
-        description: "Load the saved per-platform publish settings (privacy / page / subreddit). Read-only, free.",
+        description: "Load the saved per-platform publish settings (privacy / page / subreddit). Read-only, free. `channel_group` (integer, default 0 = primary) selects the channel group.",
+        inputSchema: { type: "object", properties: {
+                channel_group: { type: "integer", minimum: 0, description: "Channel group (0 = primary, default)." },
+            } },
+    },
+    // Channel groups (2026-09-16): READ-ONLY on MCP. Creating / renaming /
+    // removing a group is REST + SDK + UI only (creation consumes Upload-Post
+    // plan quota; connecting platforms is an OAuth flow the user completes at
+    // widecast.ai/#setup) — same policy as platform_settings save.
+    {
+        name: "widecast_channel_groups",
+        title: "WideCast: List channel groups",
+        description: "List the account's CHANNEL GROUPS — separate sets of connected social accounts (e.g. 'Primary', 'Vietnamese channels', 'English channels'), each backed by its own publishing profile. Read-only, free. " +
+            "Returns {object:'list', data:[{channel_group (integer, 0 = primary), label, is_primary, status, connected_platforms[], connected_count}]}. " +
+            "Use the `channel_group` number in widecast_publish / widecast_accounts / widecast_platform_settings / widecast_analytics. " +
+            "Creating or removing groups and connecting platforms are done by the user at https://widecast.ai/#setup (Connect Social Account).",
         inputSchema: { type: "object", properties: {} },
     },
     {
@@ -1423,7 +1443,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
         if (name === "widecast_publish") {
             const body = {};
-            for (const k of ["topic_id", "text", "video_url", "title", "description", "photo_urls", "platforms", "scheduled_date", "timezone", "callback_url", "metadata"]) {
+            for (const k of ["topic_id", "text", "video_url", "title", "description", "photo_urls", "platforms", "channel_group", "scheduled_date", "timezone", "callback_url", "metadata"]) {
                 if (args[k] !== undefined)
                     body[k] = args[k];
             }
@@ -1490,12 +1510,13 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         const READ_ROUTES = {
             widecast_list_videos: { path: "/v1/videos", params: ["from_record", "reconcile", "engagement"] },
             widecast_account: { path: "/v1/account", params: [] },
-            widecast_analytics: { path: "/v1/analytics", params: ["period", "start_date", "end_date"] },
+            widecast_analytics: { path: "/v1/analytics", params: ["period", "start_date", "end_date", "channel_group"] },
             widecast_production_plan: { path: "/v1/production_plan", params: ["page", "week_start", "week_end"] },
             widecast_foundation_videos: { path: "/v1/foundation_videos", params: ["industry", "sub_industry", "page"] },
             // widecast_recommendations withdrawn 2026-07-13 (Round 30) — REST-only now.
-            widecast_accounts: { path: "/v1/accounts", params: [] },
-            widecast_platform_settings: { path: "/v1/platform_settings", params: [] },
+            widecast_accounts: { path: "/v1/accounts", params: ["channel_group"] },
+            widecast_platform_settings: { path: "/v1/platform_settings", params: ["channel_group"] },
+            widecast_channel_groups: { path: "/v1/channel_groups", params: [] },
         };
         if (READ_ROUTES[name]) {
             const { path, params } = READ_ROUTES[name];

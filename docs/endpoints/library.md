@@ -21,13 +21,13 @@ List the account's recent videos/scripts (20 per page). Query: `from_record` (de
 
 ## `GET /v1/account`
 
-Account profile + remaining credits. Returns `{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, connected_platforms}`.
+Account profile + remaining credits. Returns `{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, connected_platforms, channel_groups}`. `connected_platforms` is the union across every channel group (de-duplicated); `channel_groups[]` gives the per-group breakdown.
 
 <!-- widecast-playground:account -->
 
 ## `GET /v1/analytics`
 
-Social analytics dashboard aggregated across connected platforms. **Slow** (fans out to the upstream provider). Query: `period` (`last_day`|`last_week`|`last_month`|`last_3months`|`last_year`|`custom`, default `last_week`), `start_date`/`end_date` (for `custom`). Returns `{object:"analytics", period, dashboard:{…}}`.
+Social analytics dashboard aggregated across connected platforms. **Slow** (fans out to the upstream provider). Query: `period` (`last_day`|`last_week`|`last_month`|`last_3months`|`last_year`|`custom`, default `last_week`), `start_date`/`end_date` (for `custom`), `channel_group` (omit = the **full picture**: every channel group summed when the account has several, per-platform maps keyed `platform` / `platform@N`; an integer `0`/`1`/… audits one group; `all` forces the summed view). Returns `{object:"analytics", period, channel_group, dashboard:{…}}`.
 
 <!-- widecast-playground:analytics -->
 

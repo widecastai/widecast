@@ -1,0 +1,18 @@
+# Playground — GET /v1/channel_groups (read, free). Synchronous, no polling.
+endpoint:
+  method: GET
+  path: /v1/channel_groups
+title: List channel groups
+description: |
+  Read-only, free. A channel group is a separate set of connected social accounts
+  backed by its own publishing profile (e.g. "Vietnamese channels" vs "English
+  channels"). Group 0 = primary, always exists. Pass a group's `channel_group`
+  number to /v1/publish, /v1/accounts, /v1/platform_settings and /v1/analytics.
+fields: []
+poll_after_create:
+  enabled: false
+use_cases:
+  - id: channel_groups
+    title: "🗂 Channel groups"
+    description: "No params — returns every channel group (primary first) with its connected platforms."
+    request: {}

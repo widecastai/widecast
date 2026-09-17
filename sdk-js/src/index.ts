@@ -499,8 +499,12 @@ export interface PublishOptions {
   description?: string;
   /** Image URLs to attach (with `text`). */
   photo_urls?: string[];
-  /** Target platforms. Defaults to ALL connected platforms. */
+  /** Target platforms. Defaults to ALL connected platforms of the chosen channel group. */
   platforms?: PublishPlatform[];
+  /** Channel group to publish through (0 = primary, default). A channel group is a
+   *  separate set of connected accounts (e.g. English vs Vietnamese channels); one
+   *  call publishes through ONE group. List groups with client.channel_groups(). */
+  channel_group?: number;
   scheduled_date?: string;
   timezone?: string;
   callback_url?: string;
@@ -518,10 +522,29 @@ export interface PublishResponse {
   status: "processing";
   platforms: string[];
   skipped?: string[];
+  /** Channel group the post was dispatched through (0 = primary). */
+  channel_group?: number;
   metadata?: Record<string, unknown>;
   links?: { status?: string };
   meta?: { request_id?: string; widecast_version?: string };
 }
+
+/** One channel group — a separate set of connected social accounts backed by its
+ *  own publishing profile (e.g. "Vietnamese channels" vs "English channels").
+ *  Group 0 is the primary group and always exists. */
+export interface ChannelGroup {
+  /** Stable group number. 0 = primary. Never reused after removal. */
+  channel_group: number;
+  label: string;
+  is_primary: boolean;
+  status: "active" | "deleted";
+  connected_platforms: string[];
+  connected_count?: number;
+  created_at?: number;
+}
+
+/** Selector for endpoints that take a channel group: an integer (0 = primary) or "all". */
+export type ChannelGroupSelector = number | "all";
 
 /** One idea in an IdeasResponse. */
 export interface Idea {
@@ -1859,12 +1882,27 @@ export class Widecast {
     if (opts.description) body.description = opts.description.trim();
     if (opts.photo_urls) body.photo_urls = opts.photo_urls;
     if (opts.platforms) body.platforms = opts.platforms;
+    const cg = this.#channelGroup(opts.channel_group);
+    if (cg) body.channel_group = cg;
     if (opts.scheduled_date) body.scheduled_date = opts.scheduled_date;
     if (opts.timezone) body.timezone = opts.timezone;
     if (opts.callback_url) body.callback_url = opts.callback_url;
     if (opts.metadata) body.metadata = opts.metadata;
     return await this.#request<PublishResponse>("POST", "/v1/publish", body,
       opts.idempotency_key);
+  }
+
+  /** Validate a channel_group argument → integer (0 = primary) or "all".
+   *  undefined/null → 0. Throws InvalidRequestError(code invalid_channel_group). */
+  #channelGroup(value: unknown, allowAll = false): number | "all" {
+    if (value === undefined || value === null) return 0;
+    if (allowAll && typeof value === "string" && value.trim().toLowerCase() === "all") return "all";
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+      throw new InvalidRequestError(
+        "channel_group must be an integer >= 0 (0 = primary group)" + (allowAll ? " or 'all'." : "."),
+        { code: "invalid_channel_group", param: "channel_group" });
+    }
+    return value;
   }
 
   // ── Read / library (Batch C — GET, synchronous, free) ───────────────────
@@ -2148,12 +2186,17 @@ export class Widecast {
     return await this.#get("/v1/account");
   }
 
-  /** GET /v1/analytics — social analytics dashboard. Free but SLOW. */
-  async analytics(opts: { period?: string; start_date?: string; end_date?: string } = {}): Promise<any> {
+  /** GET /v1/analytics — social analytics dashboard. Free but SLOW.
+   *  `channel_group`: omit for the full picture — every channel group summed when
+   *  the account has several (per-platform maps keyed platform / platform@N); an
+   *  integer (0 = primary, 1, …) audits ONE group; "all" forces the summed view. */
+  async analytics(opts: { period?: string; start_date?: string; end_date?: string; channel_group?: ChannelGroupSelector } = {}): Promise<any> {
+    const cg = this.#channelGroup(opts.channel_group, true);
     return await this.#get("/v1/analytics", {
       period: opts.period ?? "last_week",
       start_date: opts.start_date,
       end_date: opts.end_date,
+      channel_group: cg ? cg : undefined,
     });
   }
 
@@ -2310,18 +2353,26 @@ export class Widecast {
   // The REST endpoint /v1/connect still serves the dashboard UI; SDK
   // callers should send users to https://widecast.ai/#setup.
 
-  /** GET /v1/accounts — list the account's connected social platforms. Free. */
-  async accounts(): Promise<any> {
-    return await this.#get("/v1/accounts");
+  /** GET /v1/accounts — list the account's connected social platforms. Free.
+   *  `channel_group`: omit for the full picture — every channel group when the
+   *  account has several; an integer (0 = primary, 1, …) lists ONE group; "all" =
+   *  every group. Each row carries channel_group + channel_group_label. */
+  async accounts(opts: { channel_group?: ChannelGroupSelector } = {}): Promise<any> {
+    const cg = this.#channelGroup(opts.channel_group, true);
+    return await this.#get("/v1/accounts", { channel_group: cg ? cg : undefined });
   }
 
-  /** GET /v1/platform_settings — load saved per-platform publish settings. Free. */
-  async platform_settings(): Promise<any> {
-    return await this.#get("/v1/platform_settings");
+  /** GET /v1/platform_settings — load saved per-platform publish settings. Free.
+   *  `channel_group` (integer, default 0 = primary) selects the channel group. */
+  async platform_settings(opts: { channel_group?: number } = {}): Promise<any> {
+    const cg = this.#channelGroup(opts.channel_group);
+    return await this.#get("/v1/platform_settings", { channel_group: cg ? cg : undefined });
   }
 
-  /** POST /v1/platform_settings — save one platform's publish settings. Free. */
-  async set_platform_settings(platform: PublishPlatform, settings: Record<string, unknown>): Promise<any> {
+  /** POST /v1/platform_settings — save one platform's publish settings. Free.
+   *  `opts.channel_group` (integer, default 0 = primary) selects the channel group. */
+  async set_platform_settings(platform: PublishPlatform, settings: Record<string, unknown>,
+                              opts: { channel_group?: number } = {}): Promise<any> {
     if (!(PUBLISH_PLATFORMS as readonly string[]).includes(platform)) {
       throw new InvalidRequestError(
         `platform must be one of ${JSON.stringify(PUBLISH_PLATFORMS)} (got ${JSON.stringify(platform)}).`,
@@ -2331,7 +2382,55 @@ export class Widecast {
       throw new InvalidRequestError("settings (an object) is required.",
         { code: "missing_field", param: "settings" });
     }
-    return await this.#request<any>("POST", "/v1/platform_settings", { platform, settings });
+    const body: Record<string, unknown> = { platform, settings };
+    const cg = this.#channelGroup(opts.channel_group);
+    if (cg) body.channel_group = cg;
+    return await this.#request<any>("POST", "/v1/platform_settings", body);
+  }
+
+  // ── Channel groups (2026-09-16) — separate sets of connected accounts ────
+  /** GET /v1/channel_groups — list channel groups (0 = primary, always first).
+   *  A channel group is a separate set of connected social accounts backed by its
+   *  own publishing profile (e.g. English vs Vietnamese channels). Free. */
+  async channel_groups(): Promise<{ object: string; data: ChannelGroup[]; limit?: number }> {
+    return await this.#get("/v1/channel_groups");
+  }
+
+  /** POST /v1/channel_groups — create a channel group (provisions its publishing
+   *  profile; the number is never reused). Free. 409 profile_limit_reached /
+   *  channel_group_limit at capacity. */
+  async create_channel_group(label: string): Promise<ChannelGroup> {
+    if (typeof label !== "string" || !label.trim()) {
+      throw new InvalidRequestError("label (the channel group name) is required.",
+        { code: "missing_field", param: "label" });
+    }
+    return await this.#request<ChannelGroup>("POST", "/v1/channel_groups", { label: label.trim() });
+  }
+
+  /** PATCH /v1/channel_groups/{channel_group} — rename a channel group (1+). */
+  async rename_channel_group(channel_group: number, label: string): Promise<ChannelGroup> {
+    const cg = this.#channelGroup(channel_group);
+    if (!cg) {
+      throw new InvalidRequestError("Only additional channel groups (1+) can be renamed.",
+        { code: "invalid_channel_group", param: "channel_group" });
+    }
+    if (typeof label !== "string" || !label.trim()) {
+      throw new InvalidRequestError("label (the channel group name) is required.",
+        { code: "missing_field", param: "label" });
+    }
+    return await this.#request<ChannelGroup>("PATCH", `/v1/channel_groups/${cg}`, { label: label.trim() });
+  }
+
+  /** DELETE /v1/channel_groups/{channel_group} — remove a channel group (1+).
+   *  DESTRUCTIVE: deletes its publishing profile and disconnects every account in
+   *  it (published posts stay online). */
+  async delete_channel_group(channel_group: number): Promise<any> {
+    const cg = this.#channelGroup(channel_group);
+    if (!cg) {
+      throw new InvalidRequestError("The primary channel group (0) cannot be removed.",
+        { code: "invalid_channel_group", param: "channel_group" });
+    }
+    return await this.#request<any>("DELETE", `/v1/channel_groups/${cg}`);
   }
 
   /** POST /v1/notification/send — push a notification to the USER'S OWN

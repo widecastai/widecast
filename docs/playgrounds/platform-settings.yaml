@@ -5,8 +5,14 @@ endpoint:
 title: Load publish settings
 description: |
   Read-only, free. The saved per-platform publish preferences (privacy / page /
-  subreddit) — not access controls.
-fields: []
+  subreddit) — not access controls. `channel_group` (integer, 0 = primary)
+  selects the channel group.
+fields:
+  - name: channel_group
+    type: text
+    label: "channel_group (integer, 0 = primary)"
+    required: false
+    placeholder: "0"
 poll_after_create:
   enabled: false
 use_cases:

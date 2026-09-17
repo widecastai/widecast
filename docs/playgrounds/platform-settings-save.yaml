@@ -23,6 +23,11 @@ fields:
     label: "settings (JSON object)"
     required: true
     placeholder: '{"privacy": "public"}'
+  - name: channel_group
+    type: text
+    label: "channel_group (integer, 0 = primary)"
+    required: false
+    placeholder: "0"
 poll_after_create:
   enabled: false
 use_cases:

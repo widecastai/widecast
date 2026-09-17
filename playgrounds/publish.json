@@ -44,9 +44,16 @@
     {
       "name": "platforms",
       "type": "json",
-      "label": "platforms (JSON array; omit = all connected)",
+      "label": "platforms (JSON array; omit = all connected in the chosen channel group)",
       "required": false,
       "placeholder": "[\"youtube\", \"x\"]"
+    },
+    {
+      "name": "channel_group",
+      "type": "text",
+      "label": "channel_group (integer; omit or 0 = primary group — see GET /v1/channel_groups)",
+      "required": false,
+      "placeholder": "0"
     }
   ],
   "poll_after_create": {
@@ -63,6 +70,18 @@
           "youtube",
           "x"
         ]
+      }
+    },
+    {
+      "id": "publish_topic_channel_group",
+      "title": "🌐 Publish through a second channel group",
+      "description": "Accounts with several channel groups (e.g. Vietnamese + English channels) pass `channel_group` — one call posts through ONE group's accounts. List groups with GET /v1/channel_groups.",
+      "request": {
+        "topic_id": "widecast7c0d4f8a9b1e2d3f",
+        "platforms": [
+          "youtube"
+        ],
+        "channel_group": 1
       }
     },
     {

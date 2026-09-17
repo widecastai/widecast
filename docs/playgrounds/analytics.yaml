@@ -17,14 +17,25 @@ fields:
       - { value: last_month,   label: "last_month" }
       - { value: last_3months, label: "last_3months" }
       - { value: last_year,    label: "last_year" }
+  - name: channel_group
+    type: text
+    label: "channel_group (integer, 0 = primary; or all)"
+    required: false
+    placeholder: "0"
 poll_after_create:
   enabled: false
 use_cases:
   - id: dashboard
     title: "📊 Analytics dashboard"
-    description: "Aggregate follower / view / engagement stats for the chosen period."
+    description: "Aggregate follower / view / engagement stats for the chosen period (primary channel group)."
     request:
       period: last_week
     choices:
       - field: period
         options: [last_day, last_week, last_month, last_3months, last_year]
+  - id: dashboard_all_groups
+    title: "🌐 Every channel group summed"
+    description: "`channel_group=all` sums every channel group; per-platform maps are keyed `platform` (primary) and `platform@N` (group N)."
+    request:
+      period: last_month
+      channel_group: all

@@ -264,6 +264,33 @@ describe("widecast SDK", () => {
     await expect(c.set_platform_settings("myspace" as any, { a: 1 })).rejects.toThrow(InvalidRequestError);
   });
 
+  // ── Channel groups (2026-09-16) — multi Upload-Post profile per account ──
+  it("channel group methods exist on the client", () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    for (const name of ["channel_groups", "create_channel_group", "rename_channel_group", "delete_channel_group"]) {
+      expect(typeof (c as any)[name]).toBe("function");
+    }
+  });
+
+  it("publish rejects a bad channel_group", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    for (const bad of [-1, "1", 1.5, true]) {
+      await expect(c.publish({ text: "hi", channel_group: bad as any })).rejects.toThrow(InvalidRequestError);
+    }
+  });
+
+  it("set_platform_settings rejects a bad channel_group", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(c.set_platform_settings("youtube", { a: 1 }, { channel_group: -2 })).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("channel group mutations validate their inputs", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    await expect(c.create_channel_group("   ")).rejects.toThrow(InvalidRequestError);
+    await expect(c.rename_channel_group(0, "Primary?")).rejects.toThrow(InvalidRequestError);
+    await expect(c.delete_channel_group(0)).rejects.toThrow(InvalidRequestError);
+  });
+
   it("rejects non-boolean faceless", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
     await expect(

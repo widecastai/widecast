@@ -1812,7 +1812,7 @@
         ],
         "operationId": "publish",
         "summary": "Publish a video / blog / text to connected social platforms.",
-        "description": "Distribute content to the social platforms connected to your account\n(via Upload-Post). Provide **exactly one** content mode:\n\n- `topic_id` — publish a WideCast video OR blog/social post you already\n  created (`/v1/create_video` or `/v1/create_content`). Auto-detects\n  article vs video. A video must be finished (export the final MP4 with\n  `/v1/export_video` first) else `publish_not_ready` (409).\n- `text` — post arbitrary text (optionally with `photo_urls`).\n- `video_url` — a **direct video file URL** (mp4/mov/…) to post; requires\n  `title`. WideCast downloads it, then publishes.\n\n`platforms` defaults to **all connected** platforms. Charges 1 credit.\n\nPublishing is asynchronous on the platform side: this returns the\nupstream `request_ids` immediately (HTTP 202). Poll\n`GET /v1/status/{request_id}` for per-platform post URLs. An article\nspanning text + photo platforms may return up to two `request_ids`.\n",
+        "description": "Distribute content to the social platforms connected to your account\n(via Upload-Post). Provide **exactly one** content mode:\n\n- `topic_id` — publish a WideCast video OR blog/social post you already\n  created (`/v1/create_video` or `/v1/create_content`). Auto-detects\n  article vs video. A video must be finished (export the final MP4 with\n  `/v1/export_video` first) else `publish_not_ready` (409).\n- `text` — post arbitrary text (optionally with `photo_urls`).\n- `video_url` — a **direct video file URL** (mp4/mov/…) to post; requires\n  `title`. WideCast downloads it, then publishes.\n\n`platforms` defaults to **all connected** platforms of the chosen\nchannel group. Charges 1 credit.\n\n`channel_group` (integer, default 0 = primary) selects which CHANNEL\nGROUP — a separate set of connected accounts, e.g. \"Vietnamese\nchannels\" vs \"English channels\" — the post goes through. One call\npublishes through ONE group; list groups with `GET /v1/channel_groups`.\n\nPublishing is asynchronous on the platform side: this returns the\nupstream `request_ids` immediately (HTTP 202). Poll\n`GET /v1/status/{request_id}` for per-platform post URLs. An article\nspanning text + photo platforms may return up to two `request_ids`.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -1842,6 +1842,16 @@
                   "value": {
                     "video_url": "https://cdn.example.com/clip.mp4",
                     "title": "Launch teaser"
+                  }
+                },
+                "channel_group": {
+                  "summary": "Publish through the second channel group (e.g. English channels)",
+                  "value": {
+                    "topic_id": "widecast7c0d4f8a9b1e2d3f",
+                    "platforms": [
+                      "youtube"
+                    ],
+                    "channel_group": 1
                   }
                 }
               }
@@ -2304,6 +2314,31 @@
                       "type": "array",
                       "items": {
                         "type": "string"
+                      },
+                      "description": "Platforms connected in ANY channel group (de-duplicated, primary first). Per-group lists live in `channel_groups`; with a single group this is exactly that group's list."
+                    },
+                    "channel_groups": {
+                      "type": "array",
+                      "description": "Every channel group (primary first) with its connected platforms.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "channel_group": {
+                            "type": "integer"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "is_primary": {
+                            "type": "boolean"
+                          },
+                          "connected_platforms": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -2695,6 +2730,15 @@
               "type": "string"
             },
             "description": "For period=custom."
+          },
+          {
+            "name": "channel_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. OMIT for the full picture: every channel group summed when\nthe account has several (per-platform maps are then keyed `platform`\nfor the primary group and `platform@N` for group N, and each\n`accounts[]` / `recent_posts[]` row carries `channel_group` +\n`channel_group_label`); with a single group this is the primary\ngroup. Pass an integer (0 = primary, 1, 2, …) only to audit ONE\ngroup; `all` forces the summed view.\n"
           }
         ],
         "responses": {
@@ -2729,6 +2773,20 @@
                     "period": {
                       "type": "string"
                     },
+                    "channel_group": {
+                      "description": "Echo of the selected group (integer) or `all`.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "all"
+                          ]
+                        }
+                      ]
+                    },
                     "dashboard": {
                       "type": "object",
                       "additionalProperties": true
@@ -2740,6 +2798,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -3145,7 +3206,18 @@
         ],
         "operationId": "listAccounts",
         "summary": "List the account's connected social platforms.",
-        "description": "Free, read-only.",
+        "description": "Free, read-only. OMIT `channel_group` for the full picture: every\nchannel group when the account has several, else the primary group.\nPass an integer (0 = primary, 1, …) to list ONE group, or `all`. Each\nrow carries `channel_group` + `channel_group_label`.\n",
+        "parameters": [
+          {
+            "name": "channel_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. Omit = every group (full picture). Integer group number (0 = primary) = one group; `all` = every group."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Connected accounts.",
@@ -3175,6 +3247,20 @@
                       "type": "string",
                       "example": "list"
                     },
+                    "channel_group": {
+                      "description": "Echo of the selected group (integer) or `all`.",
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "all"
+                          ]
+                        }
+                      ]
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -3184,7 +3270,12 @@
                             "type": "string"
                           },
                           "username": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Handle on the platform."
+                          },
+                          "display_name": {
+                            "type": "string",
+                            "description": "Display name on the platform (may differ from the handle; empty when the provider gives none). Refreshed from the provider automatically — at most every 30 minutes while the account is in use, and whenever the WideCast Connect screen opens — so a rename on the platform shows up without reconnecting."
                           },
                           "status": {
                             "type": "string",
@@ -3194,6 +3285,14 @@
                             "type": "string",
                             "format": "date-time",
                             "nullable": true
+                          },
+                          "channel_group": {
+                            "type": "integer",
+                            "description": "Group this account belongs to (0 = primary)."
+                          },
+                          "channel_group_label": {
+                            "type": "string",
+                            "example": "Primary"
                           }
                         }
                       }
@@ -3205,6 +3304,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -3216,7 +3318,20 @@
         ],
         "operationId": "getPlatformSettings",
         "summary": "Load saved per-platform publish settings.",
-        "description": "Free, read-only. Returns the saved publish PREFERENCES (privacy / page / subreddit) per platform — not access controls.",
+        "description": "Free, read-only. Returns the saved publish PREFERENCES (privacy / page / subreddit) per platform — not access controls. `channel_group` (integer, default 0 = primary) selects the channel group.",
+        "parameters": [
+          {
+            "name": "channel_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Channel group (0 = primary)."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Saved settings.",
@@ -3246,6 +3361,9 @@
                       "type": "string",
                       "example": "platform_settings"
                     },
+                    "channel_group": {
+                      "type": "integer"
+                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": true
@@ -3257,6 +3375,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -3266,7 +3387,7 @@
         ],
         "operationId": "setPlatformSettings",
         "summary": "Save one platform's publish settings.",
-        "description": "Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit subreddit, facebook page id).",
+        "description": "Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit subreddit, facebook page id). `channel_group` (integer, default 0 = primary) selects the channel group the settings belong to.",
         "requestBody": {
           "required": true,
           "content": {
@@ -3297,6 +3418,12 @@
                   "settings": {
                     "type": "object",
                     "additionalProperties": true
+                  },
+                  "channel_group": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Channel group (0 = primary)."
                   }
                 }
               }
@@ -3332,6 +3459,9 @@
                       "type": "string",
                       "example": "platform_settings"
                     },
+                    "channel_group": {
+                      "type": "integer"
+                    },
                     "settings": {
                       "type": "object",
                       "additionalProperties": true
@@ -3346,6 +3476,321 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/channel_groups": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "listChannelGroups",
+        "summary": "List channel groups (separate sets of connected social accounts).",
+        "description": "Free, read-only. A CHANNEL GROUP is a separate set of connected social\naccounts backed by its own publishing profile — e.g. \"Vietnamese\nchannels\" and \"English channels\" under one WideCast account, each with\nits own YouTube / TikTok / … account and its own publish settings.\nGroup 0 (primary) always exists and is what every endpoint uses when\n`channel_group` is omitted. Pass a group's `channel_group` number to\n`/v1/publish`, `/v1/accounts`, `/v1/platform_settings` and\n`/v1/analytics`. Connecting platforms inside a group is done by the\nuser at https://widecast.ai/#setup (Connect Social Account).\n",
+        "responses": {
+          "200": {
+            "description": "Channel groups, primary first.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "list"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChannelGroup"
+                      }
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Maximum number of groups per account (primary included)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "createChannelGroup",
+        "summary": "Create a channel group.",
+        "description": "Free. Creates a channel group and provisions its publishing profile.\nGroup numbers are monotonic and never reused. 409 `profile_limit_reached`\nwhen the publishing provider has no profile capacity left; 409\n`channel_group_limit` at the per-account cap.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "description": "Display name.",
+                    "example": "English channels"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/PreconditionFailed"
+          }
+        }
+      }
+    },
+    "/v1/channel_groups/{channel_group}": {
+      "parameters": [
+        {
+          "name": "channel_group",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "Group number (1 and up). The primary group 0 cannot be renamed or removed."
+        }
+      ],
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "getChannelGroup",
+        "summary": "One channel group.",
+        "description": "Free, read-only.",
+        "responses": {
+          "200": {
+            "description": "The channel group.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelGroup"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "renameChannelGroup",
+        "summary": "Rename a channel group.",
+        "description": "Free. Changes the display label only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "example": "English channels (US)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Renamed.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "deleteChannelGroup",
+        "summary": "Remove a channel group.",
+        "description": "Free. DESTRUCTIVE — deletes the group's publishing profile, which\ndisconnects every social account connected in that group. Posts already\npublished stay online. The group number is never reused.\n",
+        "responses": {
+          "200": {
+            "description": "Removed.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "const": "channel_group"
+                    },
+                    "channel_group": {
+                      "type": "integer"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "deleted"
+                      ]
+                    },
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -6609,7 +7054,13 @@
                 "google_business"
               ]
             },
-            "description": "Target platforms. Defaults to ALL connected platforms."
+            "description": "Target platforms. Defaults to ALL connected platforms of the chosen channel group."
+          },
+          "channel_group": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Channel group to publish through (0 = primary, default). A channel\ngroup is a separate set of connected accounts (e.g. English vs\nVietnamese channels); one call publishes through ONE group. List\ngroups with GET /v1/channel_groups.\n"
           },
           "scheduled_date": {
             "type": "string",
@@ -6626,6 +7077,52 @@
           "metadata": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "ChannelGroup": {
+        "type": "object",
+        "description": "One CHANNEL GROUP — a separate set of connected social accounts backed\nby its own publishing profile (e.g. \"Vietnamese channels\" vs \"English\nchannels\"). Group 0 is the primary group and always exists; every\nendpoint that takes `channel_group` defaults to 0.\n",
+        "required": [
+          "channel_group",
+          "label",
+          "is_primary",
+          "status",
+          "connected_platforms"
+        ],
+        "properties": {
+          "channel_group": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Stable group number. 0 = primary. Numbers are never reused after removal."
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 40,
+            "example": "English channels"
+          },
+          "is_primary": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "deleted"
+            ]
+          },
+          "connected_platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connected_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix seconds (0 for the primary group)."
           }
         }
       },
@@ -6674,6 +7171,10 @@
               "type": "string"
             },
             "description": "Platforms skipped (not connected / missing required config)."
+          },
+          "channel_group": {
+            "type": "integer",
+            "description": "Channel group the post was dispatched through (0 = primary)."
           },
           "metadata": {
             "type": "object",

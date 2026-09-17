@@ -72,29 +72,60 @@
 <tbody>
 <tr>
 <td><code>GET /v1/accounts</code></td>
-<td>List connected platforms</td>
+<td>List connected platforms (<code>channel_group</code> = one group or <code>all</code>)</td>
 </tr>
 <tr>
 <td><code>GET /v1/platform_settings</code></td>
-<td>Load saved per-platform publish settings</td>
+<td>Load saved per-platform publish settings (per channel group)</td>
 </tr>
 <tr>
 <td><code>POST /v1/platform_settings</code></td>
-<td>Save one platform's publish settings</td>
+<td>Save one platform's publish settings (per channel group)</td>
+</tr>
+<tr>
+<td><code>GET /v1/channel_groups</code></td>
+<td>List channel groups (separate sets of connected accounts)</td>
+</tr>
+<tr>
+<td><code>POST /v1/channel_groups</code></td>
+<td>Create a channel group</td>
+</tr>
+<tr>
+<td><code>GET</code> / <code>PATCH</code> / <code>DELETE /v1/channel_groups/{channel_group}</code></td>
+<td>Read / rename / remove one channel group</td>
 </tr>
 </tbody>
 </table>
 <hr />
+<h2 id="channel-groups">Channel groups</h2>
+<p>A <strong>channel group</strong> is a separate set of connected social accounts backed by its own publishing profile — for example <em>Vietnamese channels</em> and <em>English channels</em> under one WideCast account, each with its own YouTube / TikTok / … account and its own publish settings. Group <strong>0 is the primary group</strong>: it always exists and is what every endpoint uses when <code>channel_group</code> is omitted, so accounts that only ever use one set of channels see no change.</p>
+<ul>
+<li><code>channel_group</code> is an <strong>integer</strong>: <code>0</code> = primary; new groups get the next number, which is never reused after removal.</li>
+<li><strong>Reporting reads show the full picture by default</strong>: <code>GET /v1/accounts</code>, <code>GET /v1/analytics</code> and <code>connected_platforms</code> on <code>GET /v1/account</code> cover <strong>every</strong> group when <code>channel_group</code> is omitted (with a single group that is simply the primary group). Pass a group number only to audit one group; <code>all</code> forces the summed view.</li>
+<li><strong>Writes and per-group config default to the primary group</strong>: <code>POST /v1/publish</code> and <code>GET</code>/<code>POST /v1/platform_settings</code> use group <code>0</code> when <code>channel_group</code> is omitted. One publish call goes through <strong>one</strong> group (the provider accepts one profile per request).</li>
+<li>Connecting platforms inside a group is done by the user at <a href="https://widecast.ai/#setup"><code>https://widecast.ai/#setup</code></a> → Connect Social Account → pick the group tab.</li>
+<li>MCP: <code>widecast_channel_groups</code> lists groups (read-only). Create / rename / remove are REST + SDK + UI only — creating a group consumes publishing-profile quota on the provider plan.</li>
+</ul>
+<h2 id="get-v1channel_groups"><code>GET /v1/channel_groups</code></h2>
+<p>List channel groups, primary first. Returns <code>{object:"list", data:[{channel_group, label, is_primary, status, connected_platforms, connected_count, created_at}], limit}</code>.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/channel_groups</code></div><section class="wc-pg-example" data-cfg="playgrounds/channel-groups.json" data-usecase-id="channel_groups" id="ex-channel-groups--channel_groups"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🗂 Channel groups</h3><p class="wc-pg-example-desc">No params — returns every channel group (primary first) with its connected platforms.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="post-v1channel_groups"><code>POST /v1/channel_groups</code></h2>
+<p>Create a channel group. Body: <code>{label}</code> (≤ 40 chars). Provisions the group's publishing profile; returns the new <code>ChannelGroup</code> (<code>201</code>). <code>409 profile_limit_reached</code> when the provider plan has no profile capacity left; <code>409 channel_group_limit</code> at the per-account cap.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/channel_groups</code></div><section class="wc-pg-example" data-cfg="playgrounds/channel-group-create.json" data-usecase-id="create_channel_group" id="ex-channel-group-create--create_channel_group"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">➕ Create a channel group</h3><p class="wc-pg-example-desc">Give the group a name. Then connect its platforms at widecast.ai/#setup → Connect Social Account → pick the group tab. ⚠ Run provisions a provider profile.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+
+<h2 id="get-patch-delete-v1channel_groupschannel_group"><code>GET</code> / <code>PATCH</code> / <code>DELETE /v1/channel_groups/{channel_group}</code></h2>
+<p><code>GET</code> returns one group. <code>PATCH {label}</code> renames it. <code>DELETE</code> <strong>removes the group and its publishing profile — every account connected in that group is disconnected</strong> (published posts stay online); the number is never reused. Group <code>0</code> cannot be renamed or removed.</p>
 <h2 id="get-v1accounts"><code>GET /v1/accounts</code></h2>
-<p>List the account's connected social platforms. Returns <code>{object:"list", data:[{platform, username, status, connected_at}]}</code>.</p>
-<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/accounts</code></div><section class="wc-pg-example" data-cfg="playgrounds/accounts.json" data-usecase-id="accounts" id="ex-accounts--accounts"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔌 Connected accounts</h3><p class="wc-pg-example-desc">No params — returns each connected platform + username + status.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
+<p>List the account's connected social platforms. Query <code>channel_group</code>: omit for <strong>every</strong> group (full picture), an integer (<code>0</code> = primary) for one group, or <code>all</code>. Returns <code>{object:"list", channel_group, data:[{platform, username, display_name, status, connected_at, channel_group, channel_group_label}]}</code>. <code>username</code> is the handle on the platform; <code>display_name</code> is the name shown there (empty when the provider gives none). Both are refreshed from the upstream provider automatically — at most every 30 minutes while the account is in use, and immediately whenever the WideCast Connect screen opens — so a rename on the platform shows up without reconnecting.</p>
+<div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/accounts</code></div><section class="wc-pg-example" data-cfg="playgrounds/accounts.json" data-usecase-id="accounts" id="ex-accounts--accounts"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🔌 Connected accounts</h3><p class="wc-pg-example-desc">No params — returns each connected platform + username + status of the primary channel group.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section><section class="wc-pg-example" data-cfg="playgrounds/accounts.json" data-usecase-id="accounts_all_groups" id="ex-accounts--accounts_all_groups"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">🌐 Every channel group</h3><p class="wc-pg-example-desc">`channel_group=all` lists the accounts of every channel group; each row carries channel_group + channel_group_label.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h2 id="get-v1platform_settings"><code>GET /v1/platform_settings</code></h2>
-<p>Load the saved per-platform publish settings (publish <strong>preferences</strong> like privacy / page / subreddit — not access controls). Returns <code>{object:"platform_settings", settings:{platform:{…}}}</code>.</p>
+<p>Load the saved per-platform publish settings (publish <strong>preferences</strong> like privacy / page / subreddit — not access controls). Query <code>channel_group</code> (integer, default <code>0</code>). Returns <code>{object:"platform_settings", channel_group, settings:{platform:{…}}}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-get">GET</span><code class="wc-pg-endpoint-path">/v1/platform_settings</code></div><section class="wc-pg-example" data-cfg="playgrounds/platform-settings.json" data-usecase-id="load_settings" id="ex-platform-settings--load_settings"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">⚙️ Load publish settings</h3><p class="wc-pg-example-desc">No params — returns the saved settings object keyed by platform.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h2 id="post-v1platform_settings"><code>POST /v1/platform_settings</code></h2>
-<p>Save one platform's publish settings. Body: <code>{platform, settings:{…}}</code> (e.g. <code>{"platform":"youtube","settings":{"privacy":"public"}}</code>, <code>{"platform":"reddit","settings":{"subreddit":"..."}}</code>). Returns the updated <code>{object:"platform_settings", settings:{…}}</code>.</p>
+<p>Save one platform's publish settings. Body: <code>{platform, settings:{…}, channel_group?}</code> (e.g. <code>{"platform":"youtube","settings":{"privacy":"public"}}</code>, <code>{"platform":"reddit","settings":{"subreddit":"..."}, "channel_group": 1}</code>). Returns the updated <code>{object:"platform_settings", channel_group, settings:{…}}</code>.</p>
 <div class="wc-pg-examples-group"><div class="wc-pg-endpoint-bar"><span class="wc-method wc-method-post">POST</span><code class="wc-pg-endpoint-path">/v1/platform_settings</code></div><section class="wc-pg-example" data-cfg="playgrounds/platform-settings-save.json" data-usecase-id="save_settings" id="ex-platform-settings-save--save_settings"><header class="wc-pg-example-head"><h3 class="wc-pg-example-title">💾 Save publish settings</h3><p class="wc-pg-example-desc">Pick a platform and provide its settings object. ⚠ Run writes to your account.</p></header><div class="wc-pg-mount"><p class="wc-playground-loading">Loading…</p></div></section></div>
 
 <h3 id="errors">Errors</h3>
@@ -115,7 +146,27 @@
 <tr>
 <td><code>missing_field</code></td>
 <td>400</td>
-<td><code>platform</code> / <code>settings</code> missing on save.</td>
+<td><code>platform</code> / <code>settings</code> missing on save; <code>label</code> missing on channel-group create/rename.</td>
+</tr>
+<tr>
+<td><code>invalid_channel_group</code></td>
+<td>400 / 404</td>
+<td><code>channel_group</code> not an integer ≥ 0 (400), or the group does not exist / is the primary group on rename/delete (404).</td>
+</tr>
+<tr>
+<td><code>channel_group_limit</code></td>
+<td>409</td>
+<td>Per-account cap on channel groups reached.</td>
+</tr>
+<tr>
+<td><code>profile_limit_reached</code></td>
+<td>409</td>
+<td>The publishing provider's plan has no profile capacity left.</td>
+</tr>
+<tr>
+<td><code>upstream_username_taken</code></td>
+<td>409</td>
+<td>The provider profile name is already taken.</td>
 </tr>
 <tr>
 <td><code>connect_failed</code></td>

@@ -1421,6 +1421,7 @@ class Widecast:
                 timezone: Optional[str] = None,
                 callback_url: Optional[str] = None,
                 metadata: Optional[Mapping[str, Any]] = None,
+                channel_group: Optional[int] = None,
                 idempotency_key: Optional[str] = None) -> dict:
         """POST /v1/publish — distribute content to connected social platforms.
 
@@ -1431,7 +1432,11 @@ class Widecast:
           * text      — post arbitrary text (optionally with photo_urls).
           * video_url — a direct video file URL to download + publish (needs title).
 
-        `platforms` defaults to ALL connected platforms. Charges 1 credit.
+        `platforms` defaults to ALL connected platforms of the chosen channel
+        group. `channel_group` (int, default 0 = primary) picks which CHANNEL
+        GROUP — a separate set of connected accounts, e.g. English vs
+        Vietnamese channels — the post goes through; one call = one group
+        (see channel_groups()). Charges 1 credit.
 
         Returns the accepted-publish dict (HTTP 202):
         `{"object": "publish", "id": "...", "request_ids": [...], "status":
@@ -1480,8 +1485,26 @@ class Widecast:
             body["callback_url"] = callback_url
         if metadata:
             body["metadata"] = dict(metadata)
+        cg = self._channel_group(channel_group)
+        if cg:
+            body["channel_group"] = cg
         return self._request("POST", "/v1/publish", json_body=body,
                              idempotency_key=idempotency_key or str(uuid.uuid4()))
+
+    @staticmethod
+    def _channel_group(value: Any, *, allow_all: bool = False) -> Any:
+        """Validate a channel_group argument → int (0 = primary) or 'all'.
+        None → 0. Raises InvalidRequestError(code='invalid_channel_group')."""
+        if value is None:
+            return 0
+        if allow_all and isinstance(value, str) and value.strip().lower() == "all":
+            return "all"
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise InvalidRequestError(
+                "channel_group must be an integer >= 0 (0 = primary group)"
+                + (" or 'all'." if allow_all else "."),
+                code="invalid_channel_group", param="channel_group")
+        return value
 
     # ── Read / library (Batch C — GET, synchronous, free) ───────────────────
     def _get(self, path: str, params: Optional[Mapping[str, Any]] = None) -> dict:
@@ -1888,11 +1911,18 @@ class Widecast:
 
     def analytics(self, *, period: str = "last_week",
                   start_date: Optional[str] = None,
-                  end_date: Optional[str] = None) -> dict:
+                  end_date: Optional[str] = None,
+                  channel_group: Optional[Any] = None) -> dict:
         """GET /v1/analytics — social analytics dashboard. Free but SLOW.
-        `period` ∈ last_day|last_week|last_month|last_3months|last_year|custom."""
+        `period` ∈ last_day|last_week|last_month|last_3months|last_year|custom.
+        `channel_group`: omit (None) for the full picture — every channel group
+        summed when the account has several (per-platform maps keyed
+        platform / platform@N); an int (0 = primary, 1, …) audits ONE group;
+        "all" forces the summed view."""
+        cg = self._channel_group(channel_group, allow_all=True)
         return self._get("/v1/analytics",
-                         {"period": period, "start_date": start_date, "end_date": end_date})
+                         {"period": period, "start_date": start_date, "end_date": end_date,
+                          "channel_group": cg if cg else None})
 
     def roadmap(self, *, cycle: int = 1) -> dict:
         """GET /v1/roadmap — the account's content roadmap. Free."""
@@ -2071,18 +2101,28 @@ class Widecast:
     # callers should send users to https://widecast.ai/#setup to connect
     # social platforms.
 
-    def accounts(self) -> dict:
+    def accounts(self, *, channel_group: Optional[Any] = None) -> dict:
         """GET /v1/accounts — list the account's connected social platforms. Free.
-        Returns `{object:"list", data:[{platform, username, status, connected_at}]}`."""
-        return self._get("/v1/accounts")
+        `channel_group`: omit (None) for the full picture — every channel group
+        when the account has several; an int (0 = primary, 1, …) lists ONE
+        group; "all" = every group.
+        Returns `{object:"list", data:[{platform, username, display_name, status,
+        connected_at, channel_group, channel_group_label}]}` (`username` = handle,
+        `display_name` = name shown on the platform, auto-refreshed)."""
+        cg = self._channel_group(channel_group, allow_all=True)
+        return self._get("/v1/accounts", {"channel_group": cg if cg else None})
 
-    def platform_settings(self) -> dict:
-        """GET /v1/platform_settings — load saved per-platform publish settings. Free."""
-        return self._get("/v1/platform_settings")
+    def platform_settings(self, *, channel_group: Optional[int] = None) -> dict:
+        """GET /v1/platform_settings — load saved per-platform publish settings. Free.
+        `channel_group` (int, default 0 = primary) selects the channel group."""
+        cg = self._channel_group(channel_group)
+        return self._get("/v1/platform_settings", {"channel_group": cg if cg else None})
 
-    def set_platform_settings(self, platform: str, settings: Mapping[str, Any]) -> dict:
+    def set_platform_settings(self, platform: str, settings: Mapping[str, Any], *,
+                              channel_group: Optional[int] = None) -> dict:
         """POST /v1/platform_settings — save one platform's publish settings (e.g.
-        youtube privacy, reddit subreddit, facebook page id). Free."""
+        youtube privacy, reddit subreddit, facebook page id). Free.
+        `channel_group` (int, default 0 = primary) selects the channel group."""
         if not isinstance(platform, str) or platform not in PUBLISH_PLATFORMS:
             raise InvalidRequestError(
                 f"platform must be one of {list(PUBLISH_PLATFORMS)} (got {platform!r}).",
@@ -2090,8 +2130,50 @@ class Widecast:
         if not isinstance(settings, Mapping):
             raise InvalidRequestError("settings (an object) is required.",
                                       code="missing_field", param="settings")
-        return self._request("POST", "/v1/platform_settings",
-                             json_body={"platform": platform, "settings": dict(settings)})
+        body: dict = {"platform": platform, "settings": dict(settings)}
+        cg = self._channel_group(channel_group)
+        if cg:
+            body["channel_group"] = cg
+        return self._request("POST", "/v1/platform_settings", json_body=body)
+
+    # ── Channel groups (2026-09-16) — separate sets of connected accounts ──
+    def channel_groups(self) -> dict:
+        """GET /v1/channel_groups — list channel groups (0 = primary, always first).
+        A channel group is a separate set of connected social accounts backed by
+        its own publishing profile (e.g. English vs Vietnamese channels). Free.
+        Returns `{object:"list", data:[{channel_group, label, is_primary, status,
+        connected_platforms, connected_count}], limit}`."""
+        return self._get("/v1/channel_groups")
+
+    def create_channel_group(self, label: str) -> dict:
+        """POST /v1/channel_groups — create a channel group (provisions its
+        publishing profile; the number is never reused). Free. 409
+        `profile_limit_reached` / `channel_group_limit` at capacity."""
+        if not isinstance(label, str) or not label.strip():
+            raise InvalidRequestError("label (the channel group name) is required.",
+                                      code="missing_field", param="label")
+        return self._request("POST", "/v1/channel_groups", json_body={"label": label.strip()})
+
+    def rename_channel_group(self, channel_group: int, label: str) -> dict:
+        """PATCH /v1/channel_groups/{channel_group} — rename a channel group (1+)."""
+        cg = self._channel_group(channel_group)
+        if not cg:
+            raise InvalidRequestError("Only additional channel groups (1+) can be renamed.",
+                                      code="invalid_channel_group", param="channel_group")
+        if not isinstance(label, str) or not label.strip():
+            raise InvalidRequestError("label (the channel group name) is required.",
+                                      code="missing_field", param="label")
+        return self._request("PATCH", f"/v1/channel_groups/{cg}", json_body={"label": label.strip()})
+
+    def delete_channel_group(self, channel_group: int) -> dict:
+        """DELETE /v1/channel_groups/{channel_group} — remove a channel group (1+).
+        DESTRUCTIVE: deletes its publishing profile and disconnects every account
+        in it (published posts stay online)."""
+        cg = self._channel_group(channel_group)
+        if not cg:
+            raise InvalidRequestError("The primary channel group (0) cannot be removed.",
+                                      code="invalid_channel_group", param="channel_group")
+        return self._request("DELETE", f"/v1/channel_groups/{cg}")
 
     def send_notification(self, subject: str, message: str, *,
                           parse_mode: Optional[str] = None,
