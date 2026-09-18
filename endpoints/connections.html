@@ -154,9 +154,14 @@
 <td><code>channel_group</code> not an integer ≥ 0 (400), or the group does not exist / is the primary group on rename/delete (404).</td>
 </tr>
 <tr>
+<td><code>plan_required</code></td>
+<td>402</td>
+<td>Free / Trial / expired plan: connecting social accounts and creating channel groups need a paid plan (<code>details.pricing_url</code>).</td>
+</tr>
+<tr>
 <td><code>channel_group_limit</code></td>
 <td>409</td>
-<td>Per-account cap on channel groups reached.</td>
+<td>The plan's channel-group allowance is used up (<code>limit</code> / <code>used</code> on <code>GET /v1/channel_groups</code>, primary included; <code>details.pricing_url</code>).</td>
 </tr>
 <tr>
 <td><code>profile_limit_reached</code></td>

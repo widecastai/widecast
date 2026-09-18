@@ -4,7 +4,7 @@
     "path": "/v1/channel_groups"
   },
   "title": "Create a channel group",
-  "description": "Free. Creates a channel group — a separate set of connected social accounts\n(e.g. \"English channels\") — and provisions its publishing profile. The group\nnumber is never reused. ⚠ Running consumes provider profile quota; 409\n`profile_limit_reached` when the plan is full.\n",
+  "description": "Free. Creates a channel group — a separate set of connected social accounts\n(e.g. \"English channels\") — and provisions its publishing profile. The group\nnumber is never reused. Every plan includes a fixed number of channel groups\n(`limit` on GET /v1/channel_groups, primary included): 409 `channel_group_limit`\nwhen it is used up, 402 `plan_required` on Free/Trial. ⚠ Running consumes\nprovider profile quota; 409 `profile_limit_reached` when the provider is full.\n",
   "fields": [
     {
       "name": "label",

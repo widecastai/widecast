@@ -3528,7 +3528,11 @@
                     },
                     "limit": {
                       "type": "integer",
-                      "description": "Maximum number of groups per account (primary included)."
+                      "description": "Maximum number of groups the account's plan allows (primary included). 0 on Free / Trial plans."
+                    },
+                    "used": {
+                      "type": "integer",
+                      "description": "Groups currently in use (primary included)."
                     }
                   }
                 }
@@ -3546,7 +3550,7 @@
         ],
         "operationId": "createChannelGroup",
         "summary": "Create a channel group.",
-        "description": "Free. Creates a channel group and provisions its publishing profile.\nGroup numbers are monotonic and never reused. 409 `profile_limit_reached`\nwhen the publishing provider has no profile capacity left; 409\n`channel_group_limit` at the per-account cap.\n",
+        "description": "Free. Creates a channel group and provisions its publishing profile.\nGroup numbers are monotonic and never reused. Every plan includes a fixed\nnumber of channel groups (`limit` on GET, primary included): 409\n`channel_group_limit` when it is used up and 402 `plan_required` on Free /\nTrial / expired plans — both carry `details.pricing_url`. 409\n`profile_limit_reached` when the publishing provider has no profile\ncapacity left.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -3601,6 +3605,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "409": {
             "$ref": "#/components/responses/PreconditionFailed"

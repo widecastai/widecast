@@ -2148,7 +2148,10 @@ class Widecast:
     def create_channel_group(self, label: str) -> dict:
         """POST /v1/channel_groups — create a channel group (provisions its
         publishing profile; the number is never reused). Free. 409
-        `profile_limit_reached` / `channel_group_limit` at capacity."""
+        409 `channel_group_limit` when the plan's channel-group allowance is used up
+        (`limit`/`used` on channel_groups()), 402 `plan_required` on Free/Trial/expired
+        plans (both carry `details.pricing_url`), 409 `profile_limit_reached` when the
+        publishing provider is full."""
         if not isinstance(label, str) or not label.strip():
             raise InvalidRequestError("label (the channel group name) is required.",
                                       code="missing_field", param="label")

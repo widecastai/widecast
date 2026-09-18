@@ -3536,7 +3536,11 @@
                     },
                     "limit": {
                       "type": "integer",
-                      "description": "Maximum number of groups per account (primary included)."
+                      "description": "Maximum number of groups the account's plan allows (primary included). 0 on Free / Trial plans."
+                    },
+                    "used": {
+                      "type": "integer",
+                      "description": "Groups currently in use (primary included)."
                     }
                   }
                 }
@@ -3609,6 +3613,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "409": {
             "$ref": "#/components/responses/PreconditionFailed"

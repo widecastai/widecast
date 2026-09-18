@@ -2398,7 +2398,9 @@ export class Widecast {
 
   /** POST /v1/channel_groups — create a channel group (provisions its publishing
    *  profile; the number is never reused). Free. 409 profile_limit_reached /
-   *  channel_group_limit at capacity. */
+   *  channel_group_limit when the plan's channel-group allowance is used up
+ *  (`limit`/`used` on channel_groups()), 402 plan_required on Free/Trial/expired
+ *  plans (both carry details.pricing_url). */
   async create_channel_group(label: string): Promise<ChannelGroup> {
     if (typeof label !== "string" || !label.trim()) {
       throw new InvalidRequestError("label (the channel group name) is required.",

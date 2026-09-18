@@ -120,7 +120,7 @@ Q: Where do I connect accounts if I do not want to open the Setup Center?
 A: Click "Account" in the top corner of the home screen, then "Connected Accounts". It opens the same connect panel as "Connect Social Account" in the Setup Center, just from a shorter path.
 
 Q: I have Vietnamese channels and English channels. Can I connect two YouTube accounts?
-A: Yes, with channel groups. Open "Connect Social Account", click "Add channel group" and name it, for example "English channels". A tab bar appears; pick the new tab and connect its YouTube account there. Your original accounts stay in the "Primary" group, and each group keeps its own publish settings.
+A: Yes, with channel groups. Open "Connect Social Account", click "Add channel group" and name it, for example "English channels". A tab bar appears; pick the new tab and connect its YouTube account there. Your original accounts stay in the "Primary" group, and each group keeps its own publish settings. How many groups you can have depends on your plan: the entry plan includes the Primary group only, and higher plans add one or two more. When your plan has no room left, the screen shows "Upgrade to add a channel group" instead.
 
 Q: When I publish, how do I choose which group's account a post goes to?
 A: Once you have more than one channel group, the platform chips in the publish screen are grouped under the group name, so "YouTube" under "English channels" is a different account from "YouTube" under "Primary". Select the chips you want; WideCast posts to each selected group in turn and reports the result per group.
@@ -132,7 +132,7 @@ Q: What happens when I remove a channel group?
 A: WideCast deletes that group's publishing profile, which disconnects every account connected in it. Posts that were already published stay online. The group's number is not reused, so nothing that referred to it can point at a different group later.
 
 Q: Why does "Add channel group" say the plan is full?
-A: Every channel group is a separate profile on the publishing provider, and that plan allows a fixed number of profiles. When the limit is reached, WideCast shows the message instead of creating an empty group. Remove a group you no longer use, or upgrade the provider plan, and try again.
+A: Two limits apply. Your WideCast plan includes a set number of channel groups, and the Primary group counts as one: the entry plan has the Primary group only, and higher plans add one or two more. When they are all used, the Connect screen shows "Upgrade to add a channel group" instead of "Add channel group", and upgrading your plan unlocks the next one. Separately, every group is a profile on the publishing provider, whose plan also allows a fixed number of profiles; if that is what is full, remove a group you no longer use or upgrade the provider plan, then try again.
 
 Q: Can my AI assistant publish through a specific channel group?
 A: Yes. Ask it to list your channel groups first; each has a number, and 0 is Primary. It passes that number when it publishes or reads publish settings, since those always target one group. When it pulls analytics or lists accounts without naming a group, it gets every group at once, the same full picture the daily Telegram report shows. It can read groups but cannot create or remove them; that stays in the studio.

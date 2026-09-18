@@ -66,7 +66,8 @@ Save one platform's publish settings. Body: `{platform, settings:{…}, channel_
 | `invalid_platforms` | 400 | Unknown `platform`. |
 | `missing_field` | 400 | `platform` / `settings` missing on save; `label` missing on channel-group create/rename. |
 | `invalid_channel_group` | 400 / 404 | `channel_group` not an integer ≥ 0 (400), or the group does not exist / is the primary group on rename/delete (404). |
-| `channel_group_limit` | 409 | Per-account cap on channel groups reached. |
+| `plan_required` | 402 | Free / Trial / expired plan: connecting social accounts and creating channel groups need a paid plan (`details.pricing_url`). |
+| `channel_group_limit` | 409 | The plan's channel-group allowance is used up (`limit` / `used` on `GET /v1/channel_groups`, primary included; `details.pricing_url`). |
 | `profile_limit_reached` | 409 | The publishing provider's plan has no profile capacity left. |
 | `upstream_username_taken` | 409 | The provider profile name is already taken. |
 | `connect_failed` | 500/502 | Could not generate a connection link. |

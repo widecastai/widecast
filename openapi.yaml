@@ -2849,7 +2849,8 @@ paths:
                 properties:
                   object: { type: string, example: list }
                   data: { type: array, items: { $ref: '#/components/schemas/ChannelGroup' } }
-                  limit: { type: integer, description: Maximum number of groups per account (primary included). }
+                  limit: { type: integer, description: "Maximum number of groups the account's plan allows (primary included). 0 on Free / Trial plans." }
+                  used: { type: integer, description: "Groups currently in use (primary included)." }
         '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       tags: [Connections]
@@ -2857,9 +2858,12 @@ paths:
       summary: Create a channel group.
       description: |
         Free. Creates a channel group and provisions its publishing profile.
-        Group numbers are monotonic and never reused. 409 `profile_limit_reached`
-        when the publishing provider has no profile capacity left; 409
-        `channel_group_limit` at the per-account cap.
+        Group numbers are monotonic and never reused. Every plan includes a fixed
+        number of channel groups (`limit` on GET, primary included): 409
+        `channel_group_limit` when it is used up and 402 `plan_required` on Free /
+        Trial / expired plans — both carry `details.pricing_url`. 409
+        `profile_limit_reached` when the publishing provider has no profile
+        capacity left.
       requestBody:
         required: true
         content:
@@ -2878,6 +2882,7 @@ paths:
               schema: { $ref: '#/components/schemas/ChannelGroup' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '402': { $ref: '#/components/responses/PaymentRequired' }
         '409': { $ref: '#/components/responses/PreconditionFailed' }
 
   /v1/channel_groups/{channel_group}:
