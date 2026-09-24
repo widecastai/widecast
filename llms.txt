@@ -7,6 +7,8 @@
 
 ## ⚠ AGENT PRE-FLIGHT RULES (read once)
 
+An install / set-up request (`hãy cài cho tôi WideCast.ai`, `install widecast`, `set up WideCast`) skips these skills: go straight to **Installing WideCast** below.
+
 Two skills define the FULL scope of WideCast workflows. **Load the relevant one BEFORE any other endpoint call** — they are key-free, idempotent, and cheap (~1 call). Skipping them is the #1 cause of weak/incomplete agent output.
 
 1. **Edit/audit an EXISTING video.** Trigger = user gives a WideCast scene-editor URL (`record2.html#scene_editor?topic_id=…`) OR a `topic_id` (`widecast…`/`gubo…`/current id) + edit intent (any language: "edit this video", "refine the scenes", "fix scene N", "review/audit the video", "improve overlay", "fix thumbnail", "audit backgrounds", "biên tập video", "chỉnh sửa cảnh", "编辑视频", "シーン編集"). **Call `GET /v1/skills/editing` FIRST — before `/v1/video_data`, before anything else.** The skill itself defines scope = full audit + fix; do NOT ask the user what to edit.
@@ -16,19 +18,48 @@ Two skills define the FULL scope of WideCast workflows. **Load the relevant one 
 
 ## Installing WideCast (if a user asks you to)
 
-If a user tells you something like `install https://widecast.ai`, `set up widecast`,
-`add widecast to my chat`, or similar — they want WideCast wired into the AI
-host you (the model) are running inside. Don't guess at the steps; fetch the
-machine-readable install manifest:
+If a user tells you something like `hãy cài cho tôi WideCast.ai`, `install https://widecast.ai`,
+`set up WideCast`, `cài WideCast` or similar — they want the WideCast system installed on their
+own computer: a sales & marketing team of AI agents run from this chat (you become Sam, the team
+leader), with a CRM on their own disk, lead finding, follow-ups, and the video / blog / social
+engine. Connecting the WideCast video API is one step inside that setup (its production step),
+not a separate install.
 
-- **Manifest:** https://widecast.ai/install.json
+It needs a shell on the user's own computer (Claude Code or the Code tab of the Claude desktop
+app, Codex, Hermes, OpenClaw, …). If this chat cannot run commands on their machine (a web chat,
+a cloud sandbox), say so in one sentence, give the user the two commands of step 2 to run in a
+terminal inside an empty folder, and ask them to open that folder in Claude Code or Codex and say
+`Set up WideCast`. Never install from a place the user cannot see.
 
-The manifest lists per-host install recipes (Claude Desktop, Claude Code CLI,
-ChatGPT Custom GPT, Codex, Grok, Gemini CLI, Gemini web app, Antigravity,
-Cursor, Windsurf, plus a `_fallback`). Identify which host you are, pick the
-matching `hosts.<key>` block, and walk the user through its `instructions`
-array literally. The user picks up an API key + MCP connect-link at
-https://widecast.ai/#setup as a one-time setup; you guide the rest.
+1. Work in the folder the user opened for WideCast (if there is none, create one such as
+   `~/WideCast` and tell them). That folder is the install root.
+2. Download the installer and run it there. It reads the release manifest, downloads the release
+   zip, verifies its sha256 and unpacks it into `solo-agency/`; it changes nothing else and starts
+   nothing. It is short — read it first if you like.
+
+   macOS / Linux:
+
+       curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh
+       bash widecast-install.sh
+
+   Windows (PowerShell):
+
+       Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1
+       powershell -ExecutionPolicy Bypass -File widecast-install.ps1
+
+   Its last line reads `WIDECAST_INSTALL status=installed release=… path=…`.
+3. Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words. Before
+   anything else is installed (the local bridge, the Chrome extension, the daily run) it tells the
+   user what setup puts on their computer, the platform rules and the licence, and asks whether
+   to begin.
+
+- **Release manifest:** https://origin.widecast.ai/agent/latest.json (`release`, `zip_url`,
+  `zip_sha256`, `bridge_base`). Use the `origin.` host exactly as written: it is never served
+  from a stale cache.
+- **Updating** later is the same installer run again (the installed system's own update stage
+  does it); the previous copy is kept in `.widecast-previous/`.
+
+## API overview
 
 WideCast.ai exposes a handful of REST endpoints under `/v1/`. Conventions are
 Stripe-style: id format `widecast<alphanumeric>` (the public id IS the internal
