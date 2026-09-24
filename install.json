@@ -1,179 +1,188 @@
 {
   "$schema": "https://widecast.ai/install.schema.json",
   "name": "WideCast",
-  "version": "0.1.0",
-  "tagline": "Give your AI agent a media team — 2-minute videos, blogs, and posts for 10 platforms.",
-  "description": "Content production & distribution layer for AI agents. Connect WideCast to your AI host and the host can research a topic, write a script, render scenes, and publish to TikTok / YouTube / Instagram / X / LinkedIn / Facebook / Threads / Pinterest / Reddit / Bluesky.",
+  "version": "0.2.0",
+  "tagline": "A sales & marketing team of AI agents for a one-person business — CRM, lead finding, follow-ups and a video / blog / social engine, run from the AI chat you already use.",
+  "description": "Installing WideCast installs the full WideCast system on the user's own computer: the agent in this chat becomes Sam, the team leader of a sales & marketing team of agents; a CRM lives on the user's disk; a small local program (the collector bridge) and a Chrome extension the user loads find leads on the web and social platforms; outreach goes out only after the user approves it; and the WideCast video / blog / social engine is connected inside setup. It is not only an MCP connector.",
   "homepage": "https://widecast.ai",
-  "documentation": "https://widecast.ai/docs.html",
+  "documentation": "https://widecast.ai/llms.txt",
   "github": "https://github.com/widecastai/widecast",
   "credential": {
     "url": "https://widecast.ai/#setup",
     "type": "wc_live_api_key",
-    "hint": "User obtains an API key (starts with `wc_live_`) AND an MCP connect-link (the URL contains a `wc_mcp_…` token) from the setup page. The connect-link IS the auth for the MCP path — paste it verbatim as the MCP server URL. The API key is a Bearer token for the Custom GPT Action path."
+    "hint": "Installing needs no key — the Free plan runs without one. A WideCast API key (wc_live_…) is added later, inside setup, when the user wants video production or a paid plan; setup asks for it at the right step. Do not ask for a key or an MCP link before installing."
   },
-  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. WideCast is a HOSTED commercial service at https://widecast.ai — NOT the user's own MCP server. Identify which host you are running inside (Claude Web, Claude Desktop, Claude Code CLI, ChatGPT, Codex, Grok, Gemini CLI, Gemini web app, Antigravity, Cursor, Windsurf, or another). Match the host to the matching `hosts.<key>` block below. Follow the `instructions` array LITERALLY — do NOT improvise URLs, transport types, or auth schemes from your training data. WideCast's auth is a `wc_mcp_…` token embedded directly in the connect-link URL; there is NO OAuth flow, NO /.well-known endpoint, NO transport choice. If your host isn't listed, use `hosts._fallback`.",
+  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. Installing WideCast means installing the FULL WideCast system on the user's own computer (a sales & marketing team of AI agents with a local CRM, lead finding and the video / blog / social engine) — NOT only connecting an MCP server, and not only video. It needs a shell on the user's own computer. Identify the host you are running inside, match it to `hosts.<key>`, and follow its `instructions` literally. In short: if you can run commands on the user's computer, run the installer (`https://origin.widecast.ai/agent/install.sh`, Windows `install.ps1`) in the folder the user opened, then open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words; if you cannot (a web chat), say so in one sentence and hand the user the installer commands plus the advice to open that folder in Claude Code or Codex and say `Set up WideCast`. Do not improvise other install paths from your training data. Full guide: https://widecast.ai/llms.txt, section 'Installing WideCast'. If your host is not listed, use `hosts._fallback`.",
   "hosts": {
     "claude_web": {
-      "detect_hints": ["Claude.ai", "claude.ai (web)", "Claude in browser", "Claude web app", "Anthropic web app", "Claude on the web"],
-      "method": "mcp_connector",
-      "summary": "Add a custom MCP connector via Settings → Connectors.",
+      "detect_hints": [
+        "Claude.ai",
+        "claude.ai (web)",
+        "Claude in browser",
+        "Claude web app",
+        "Anthropic web app",
+        "Claude on the web"
+      ],
+      "method": "handoff_to_local_agent",
+      "summary": "A web chat cannot install WideCast: hand the user the installer commands and send them to Claude Code or Codex.",
       "instructions": [
-        "WideCast is a hosted service — NOT the user's own MCP server. Do NOT guess at server URLs like `/mcp` or `/sse`, and do NOT ask the user which transport or auth scheme to pick.",
-        "Ask the user to open https://widecast.ai/#setup in a new tab and sign in. They will see (or create) an API key plus a one-click `Copy MCP URL` button. Have them copy the MCP URL — it is a long URL containing a `wc_mcp_…` token.",
-        "In Claude.ai (web): open Settings → Connectors → Add custom connector.",
-        "Paste the connect-link verbatim as the Server URL field, name it `WideCast`, click Connect.",
-        "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth flow, NO `/.well-known/oauth-authorization-server`, NO transport choice. Skip any 'configure auth' steps Claude offers.",
-        "Once connected, test: `Use WideCast to make a video about [topic]`."
+        "This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path.",
+        "Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`.",
+        "Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     },
     "claude_desktop": {
-      "detect_hints": ["Claude Desktop", "claude.ai/desktop", "Anthropic Desktop app", "Claude app for Mac", "Claude app for Windows"],
-      "method": "mcp_connector",
-      "summary": "Add a custom MCP connector via Settings.",
+      "detect_hints": [
+        "Claude Desktop",
+        "claude.ai/desktop",
+        "Anthropic Desktop app",
+        "Claude app for Mac",
+        "Claude app for Windows"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "WideCast is a hosted service — NOT the user's own MCP server. Do NOT guess at server URLs like `/mcp` or `/sse`, and do NOT ask the user which transport or auth scheme to pick.",
-        "Ask the user to open https://widecast.ai/#setup in a browser and sign in. They will see (or create) an API key plus a one-click `Copy MCP URL` button. Have them copy the MCP URL — it is a long URL containing a `wc_mcp_…` token.",
-        "In Claude Desktop: open Settings (cmd/ctrl+,) → Connectors → Add custom connector.",
-        "Paste the connect-link verbatim as the URL field, name it `WideCast`, click Connect.",
-        "The `wc_mcp_` token embedded in the URL IS the auth — there is NO OAuth, NO `/.well-known` endpoint. Skip any 'configure auth' steps Claude offers.",
-        "After Claude Desktop restarts the session, test: `Use WideCast to make a video about [topic]`."
+        "Use the Code tab (Claude Code) of the desktop app — the chat tab cannot run commands; if you are in the chat tab, follow the web-chat handoff instead.",
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "claude_code_cli": {
-      "detect_hints": ["Claude Code", "claude-code CLI", "running in terminal", "Anthropic CLI tool"],
-      "method": "shell_command",
-      "summary": "Single-line CLI install.",
-      "command_template": "claude mcp add widecast widecast-mcp --env WIDECAST_API_KEY=<USER_WC_LIVE_KEY>",
+      "detect_hints": [
+        "Claude Code",
+        "claude-code CLI",
+        "running in terminal",
+        "Anthropic CLI tool"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "WideCast is a hosted service. The Claude Code CLI install uses the `wc_live_` API key directly — NOT a connect-link URL (that pattern is for the GUI Claude apps). Do NOT guess at server URLs.",
-        "Ask the user for their `wc_live_…` API key from https://widecast.ai/#setup. Do NOT proceed without it; the install will fail.",
-        "Substitute the key into the command_template and run it in the user's shell (or ask them to run it if you can't).",
-        "Restart the Claude Code session so the new MCP server is discovered.",
-        "Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "chatgpt_custom_gpt": {
-      "detect_hints": ["ChatGPT", "OpenAI", "GPT-4", "Custom GPT", "chat.openai.com", "chatgpt.com"],
-      "method": "openapi_action",
-      "summary": "Create a Custom GPT with WideCast Action.",
-      "openapi_url": "https://origin.widecast.ai/openapi-actions.json",
-      "auth_type": "Bearer (API Key)",
+      "detect_hints": [
+        "ChatGPT",
+        "OpenAI",
+        "GPT-4",
+        "Custom GPT",
+        "chat.openai.com",
+        "chatgpt.com"
+      ],
+      "method": "handoff_to_local_agent",
+      "summary": "A web chat cannot install WideCast: hand the user the installer commands and send them to Claude Code or Codex.",
       "instructions": [
-        "Tell the user: ‘I can't create a Custom GPT for you (ChatGPT doesn't expose that capability to me), but here is the exact recipe — it takes ~90 seconds.’",
-        "Step 1: Get an API key at https://widecast.ai/#setup. They want the key that starts with `wc_live_`.",
-        "Step 2: In ChatGPT → Explore GPTs → + Create → Configure tab. Name: WideCast. Description: ‘Make videos with WideCast’.",
-        "Step 3: Scroll to Actions → + Create new action → Schema → Import from URL. Paste: https://origin.widecast.ai/openapi-actions.json (the origin host serves the schema fresh, bypassing CDN cache so your import always picks up the latest version).",
-        "Step 4: Authentication → API Key → paste the `wc_live_` key → Auth Type: Bearer → Save.",
-        "Step 5: Save the Custom GPT. Open it and try: ‘Use WideCast to make a video about [topic]’."
+        "This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path.",
+        "Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`.",
+        "Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     },
     "codex": {
-      "detect_hints": ["OpenAI Codex", "Codex desktop", "Codex CLI"],
-      "method": "mcp_connector",
-      "summary": "Add a Streamable HTTP MCP server.",
+      "detect_hints": [
+        "OpenAI Codex",
+        "Codex desktop",
+        "Codex CLI"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "Ask the user to copy their MCP connect-link from https://widecast.ai/#setup (a URL containing `wc_mcp_…`).",
-        "In Codex: Settings → MCP Servers → Add. Name: `widecast_mcp`. Type: Streamable HTTP. URL: paste the connect-link verbatim. Auth: leave empty (the URL contains the token).",
-        "Save. Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "grok": {
-      "detect_hints": ["Grok", "xAI", "grok.com", "X.AI"],
-      "method": "mcp_connector",
-      "summary": "Add a Custom MCP connector.",
+      "detect_hints": [
+        "Grok",
+        "xAI",
+        "grok.com",
+        "X.AI"
+      ],
+      "method": "handoff_to_local_agent",
+      "summary": "A web chat cannot install WideCast: hand the user the installer commands and send them to Claude Code or Codex.",
       "instructions": [
-        "Ask the user to get their MCP connect-link from https://widecast.ai/#setup (a URL with `wc_mcp_…`).",
-        "Web: grok.com/connectors → + New Connector → Custom. Mobile: Settings → Connectors → + Add custom MCP.",
-        "Name: `WideCast`. Server URL: paste the connect-link verbatim.",
-        "Click/tap Add Connector. Test: `Use WideCast to make a video about [topic]`."
+        "This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path.",
+        "Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`.",
+        "Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     },
     "gemini_cli": {
-      "detect_hints": ["Gemini CLI", "gemini-cli", "Google AI Studio CLI"],
-      "method": "config_file",
-      "summary": "Edit ~/.gemini/settings.json.",
-      "config_path": "~/.gemini/settings.json",
-      "config_snippet": {
-        "mcpServers": {
-          "widecast": {
-            "httpUrl": "<connect-link from widecast.ai/#setup>"
-          }
-        }
-      },
+      "detect_hints": [
+        "Gemini CLI",
+        "gemini-cli",
+        "Google AI Studio CLI"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
-        "Edit `~/.gemini/settings.json`. Merge in the `mcpServers.widecast.httpUrl` block above (substituting the real connect-link).",
-        "Restart the Gemini CLI session.",
-        "Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "antigravity": {
-      "detect_hints": ["Antigravity", "Google Antigravity", "agentic IDE"],
-      "method": "config_file",
-      "summary": "Edit MCP Config in Settings.",
-      "config_path": "Settings → Customizations → Open MCP Config",
-      "config_snippet": {
-        "mcpServers": {
-          "widecast": {
-            "serverUrl": "<connect-link from widecast.ai/#setup>"
-          }
-        }
-      },
+      "detect_hints": [
+        "Antigravity",
+        "Google Antigravity",
+        "agentic IDE"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
-        "In Antigravity: Settings → Customizations tab → Open MCP Config.",
-        "Merge in the `mcpServers.widecast.serverUrl` block above (substituting the real connect-link).",
-        "Important: Antigravity uses the field name `serverUrl` — NOT `httpUrl` (Gemini CLI) or `url` (Cursor/VS Code).",
-        "Save and restart. Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "gemini_web_app": {
-      "detect_hints": ["Gemini", "Google Gemini", "gemini.google.com"],
-      "method": "skill_upload",
-      "summary": "Create a Gem with the skill bundle.",
-      "skill_url": "https://origin.widecast.ai/skills/video-script-writing.zip",
+      "detect_hints": [
+        "Gemini",
+        "Google Gemini",
+        "gemini.google.com"
+      ],
+      "method": "handoff_to_local_agent",
+      "summary": "A web chat cannot install WideCast: hand the user the installer commands and send them to Claude Code or Codex.",
       "instructions": [
-        "Tell the user: ‘Gemini's consumer web/app can't call MCP tools directly. The workaround is to create a Gem with the WideCast skill loaded as Knowledge.’",
-        "Step 1: Visit https://origin.widecast.ai/skills/video-script-writing.zip and download the zip. Extract it locally.",
-        "Step 2: In Gemini → Explore Gems → + Create. Name: `WideCast Scriptwriter`.",
-        "Step 3: Under Knowledge → Add files → upload the `SKILL.md` file from the extracted folder. Save.",
-        "Step 4 (optional): Repeat with `blog-writing.zip` or `social-post-writing.zip` for those formats.",
-        "Note: Gemini app can't actually call WideCast's API to render the video. The Gem will write the script; the user then takes that script to https://widecast.ai/playground.html to render."
+        "This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path.",
+        "Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`.",
+        "Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     },
     "cursor": {
-      "detect_hints": ["Cursor", "cursor.com", "Cursor IDE"],
-      "method": "config_file",
-      "summary": "Edit ~/.cursor/mcp.json.",
-      "config_path": "~/.cursor/mcp.json",
-      "config_snippet": {
-        "mcpServers": {
-          "widecast": {
-            "url": "<connect-link from widecast.ai/#setup>"
-          }
-        }
-      },
+      "detect_hints": [
+        "Cursor",
+        "cursor.com",
+        "Cursor IDE"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
-        "Edit `~/.cursor/mcp.json`. Add the `mcpServers.widecast.url` block above. Cursor uses the field name `url` (NOT `httpUrl` or `serverUrl`).",
-        "Restart Cursor. Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "windsurf": {
-      "detect_hints": ["Windsurf", "Codeium Windsurf"],
-      "method": "config_file",
-      "summary": "Add a remote MCP server in MCP settings.",
+      "detect_hints": [
+        "Windsurf",
+        "Codeium Windsurf"
+      ],
+      "method": "local_install",
+      "summary": "Run the WideCast installer in the user's WideCast folder, then follow solo-agency/AGENTS.md.",
       "instructions": [
-        "Ask the user to copy the MCP connect-link from https://widecast.ai/#setup.",
-        "Open Windsurf → Settings → MCP → Add server. Type: Remote (HTTP). URL: paste the connect-link. Name: `widecast`.",
-        "Save. Test: `Use WideCast to make a video about [topic]`."
+        "Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root.",
+        "macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
     "_fallback": {
-      "summary": "Unknown host — send the user to widecast.ai for the latest manual guide.",
+      "summary": "Host not listed — decide by whether you can run commands on the user's own computer.",
       "instructions": [
-        "Tell the user: ‘I don't have a recipe for your host yet. Visit https://widecast.ai for the per-host install guides (Claude / ChatGPT / Codex / Grok / Gemini / Antigravity / Cursor / Windsurf). The setup page at https://widecast.ai/#setup gives you the API key + MCP connect-link you'll need.’"
+        "If you can run commands on the user's own computer: Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root. macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`. Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run).",
+        "If you cannot: This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path. Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     }
   },
@@ -185,11 +194,16 @@
     "llms_txt": "https://widecast.ai/llms.txt"
   },
   "test_after_install": {
-    "prompt": "Use WideCast to make a video about 5 things to do right after a car accident.",
-    "expected_behavior": "The host calls widecast_get_writing_skill(format=\"video\"), researches the topic, drafts a script with inline media URLs, fetches the user's credit balance via widecast_account, hands off with the script + cost estimate + the three-way production question. After the user picks one of faceless / face_clone / teleprompter, the host calls widecast_create_video and returns a review URL."
+    "prompt": "Hãy cài cho tôi WideCast.ai",
+    "expected_behavior": "The agent downloads install.sh (install.ps1 on Windows), runs it in the user's WideCast folder, sees `WIDECAST_INSTALL status=installed`, opens solo-agency/AGENTS.md and replies with the four-part First Words (who is speaking, what setup puts on the computer with the platform rules and licence, Sam's team introduction, 'Shall I begin?'). Nothing else is installed before the user says yes."
   },
   "support": {
     "email": "hello@widecast.ai",
     "docs": "https://widecast.ai/docs.html"
+  },
+  "release_manifest": "https://origin.widecast.ai/agent/latest.json",
+  "installer": {
+    "macos_linux": "https://origin.widecast.ai/agent/install.sh",
+    "windows": "https://origin.widecast.ai/agent/install.ps1"
   }
 }

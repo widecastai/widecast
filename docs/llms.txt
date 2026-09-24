@@ -1,9 +1,14 @@
 # WideCast.ai
 
-> Turn a script, idea, blog post, or an existing video/audio clip into a finished
-> short-form video (scenes + AI voice + B-roll) via a small REST API. Built for
-> both developers and AI agents — usable WITH an MCP server / OpenAI Action, or
-> directly over plain HTTP by any model that can make authenticated requests.
+> WideCast is a sales & marketing team of AI agents for a one-person business,
+> run from the AI chat the user already uses (Claude, Codex, …): a CRM on their own
+> computer, lead finding on the web and social platforms, follow-ups and outreach
+> the user approves, and a video / blog / social engine that turns a script, idea or
+> clip into finished short-form video (scenes + AI voice + B-roll) and publishes it.
+> **Asked to install or set up WideCast? Go to "Installing WideCast" below — it
+> installs the whole system on the user's computer, not just the video API.**
+> Everything after that section documents the video engine's REST API, usable WITH
+> an MCP server / OpenAI Action, or directly over plain HTTP.
 
 ## ⚠ AGENT PRE-FLIGHT RULES (read once)
 
