@@ -3,10 +3,10 @@
 
 # WideCast
 
-**Give your AI agent a media team.**
+**Your AI sales & marketing team.**
 
-2-minute videos, blogs, and posts for 10 platforms.
-Works with **Claude** · **ChatGPT** · **Grok** · **Gemini**.
+CRM, leads and content, run by AI agents from your chat.
+Runs in **Claude Code** · **Codex** · **Gemini CLI** · **Cursor** · **Windsurf**.
 
 [![PyPI](https://img.shields.io/pypi/v/widecast?label=pypi%20widecast&color=8b5cf6)](https://pypi.org/project/widecast/)
 [![npm SDK](https://img.shields.io/npm/v/@widecast/sdk?label=npm%20sdk&color=8b5cf6)](https://www.npmjs.com/package/@widecast/sdk)
@@ -142,19 +142,33 @@ The same engine, picking real-world topics across categories — every one drive
 
 ## ✨ Install in one prompt
 
-Tell your AI chat host: **`install https://widecast.ai`** — Claude, ChatGPT, Grok, or Gemini will fetch [`install.json`](install.json), detect itself, and walk you through the recipe.
+Open an empty folder in **Claude Code** (or the Code tab of the Claude desktop app) or **Codex** and say:
 
-If you'd rather click than type, pick your path below.
+```text
+Cài đặt WideCast cho tôi
+```
+
+(or `install https://widecast.ai`). Your agent reads [`install.json`](install.json), runs the installer and walks you
+through setup — it tells you what it puts on your computer and asks before installing anything. A web chat (Claude.ai,
+ChatGPT, Grok, Gemini web) cannot install WideCast; it will hand you the commands below.
+
+Or run the installer yourself in that folder, then say `Set up WideCast`:
+
+```bash
+curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh
+bash widecast-install.sh
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1
+powershell -ExecutionPolicy Bypass -File widecast-install.ps1
+```
 
 ---
 
-## Pick your path
+## For developers — the video engine API only
 
-### 🟣 I use ChatGPT, Claude, Grok, or Gemini
-
-Connect WideCast to your AI host. The AI writes the script, calls WideCast, hands you a review URL. No code.
-
-→ [Claude](https://widecast.ai/claude.html) · [ChatGPT](https://widecast.ai/chatgpt.html) · [Codex](https://widecast.ai/chatgpt.html) · [Grok](https://widecast.ai/grok.html) · [Gemini](https://widecast.ai/gemini.html) · [Antigravity](https://widecast.ai/gemini.html)
+The packages below call WideCast's video API from your own code or agent. They are **not** the WideCast install above.
 
 ### 🟣 I build AI agents
 
@@ -234,7 +248,7 @@ Get your API key at [widecast.ai/#setup](https://widecast.ai/#setup).
 | [`openapi/`](openapi/) | OpenAPI 3.1 spec (canonical source of truth) |
 | [`openapi.json`](openapi.json) · [`openapi-actions.json`](openapi-actions.json) | Generated specs (the Actions variant is optimized for ChatGPT Custom GPT imports) |
 | [`llms.txt`](llms.txt) | AI-readable API spec for HTTP-capable agents that don't run MCP |
-| [`install.json`](install.json) | Machine-readable install recipe for `install https://widecast.ai` prompts |
+| [`install.json`](install.json) | Machine-readable install recipe for `install https://widecast.ai` prompts (installs the full WideCast system) |
 | [`docs/`](docs/) · [`endpoints/`](endpoints/) | Reference documentation source |
 | [`integrations/`](integrations/) | Adapter stubs (LangChain, Vercel AI SDK, OpenAI tools, Postman) |
 | [`playgrounds/`](playgrounds/) | Per-endpoint playground HTML |
