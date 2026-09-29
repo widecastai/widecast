@@ -52,7 +52,7 @@ Most platforms have their own publish preferences you set once and reuse from th
 
 - **YouTube**: **Privacy** (**Public**, **Unlisted**, or **Private**) and **Made for Kids**.
 - **TikTok**: **Privacy** (**Public**, **Friends Only**, **Followers Only**, or **Only Me**).
-- **Facebook**: **Video State** (**Published (Public)** or **Draft**) and which **Facebook Page** to post to.
+- **Facebook**: **Post Type** (**Reel**, **Video**, or **Story**), **Video State** (**Published (Public)** or **Draft**) and which **Facebook Page** to post to. Reel is Facebook's default and trims videos longer than about 90 seconds; pick **Video** for long-form videos.
 - **Instagram**: **Post Type** (**Reels** or **Stories**).
 - **LinkedIn**: **Visibility** (**Public** or **Connections Only**) and an optional **LinkedIn Page**.
 - **Pinterest**: which **Pinterest Board** to pin to.
@@ -100,6 +100,9 @@ A: Yes. After connecting YouTube, click its "Settings" button and set "Privacy" 
 
 Q: Can I set a default privacy level for my TikTok posts?
 A: Yes. Open TikTok's "Settings" after connecting it and choose "Privacy": "Public", "Friends Only", "Followers Only", or "Only Me". WideCast saves your choice and reuses it automatically every time you publish to TikTok.
+
+Q: My long video was cut to 90 seconds on Facebook. How do I post the full video?
+A: Facebook posts videos as Reels by default, and Reels are trimmed to about 90 seconds. Open Facebook's "Settings" in "Connect Social Account" and set "Post Type" to "Video", then publish again. If you only want one post as a full video, an AI agent connected to your account can choose the post type for that single post without changing your saved setting.
 
 Q: Can I post to Facebook as a draft instead of publishing right away?
 A: Yes. In Facebook's connected-account settings, set "Video State" to "Draft" instead of "Published (Public)". The same settings panel is also where you choose which Facebook Page WideCast posts to.

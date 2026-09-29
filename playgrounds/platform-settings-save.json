@@ -4,7 +4,7 @@
     "path": "/v1/platform_settings"
   },
   "title": "Save publish settings",
-  "description": "Free. Save one platform's publish PREFERENCES (e.g. youtube privacy, reddit\nsubreddit, facebook page id). ⚠ Running writes to your account.\n",
+  "description": "Free. Save one platform's publish PREFERENCES (e.g. youtube privacy, reddit\nsubreddit, facebook page id). The save is a MERGE: sent keys overwrite, omitted\nkeys are kept, \"\" removes a key. Facebook `facebook_media_type`: REELS (default,\ntrims long videos to ~90 s) | VIDEO | STORIES. ⚠ Running writes to your account.\n",
   "fields": [
     {
       "name": "platform",

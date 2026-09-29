@@ -299,6 +299,42 @@ const TOOLS = [
         },
     },
     {
+        name: "widecast_generate_typography",
+        title: "WideCast: Render motion typography / posters for your own video",
+        description: "Render a phrase as WideCast motion typography for a video YOU are composing (your own HTML/After Effects/any renderer): WideCast only designs the text; you place, time and animate it. " +
+            "role='typography' = a key phrase mid-video (template typography, word-by-word or line-by-line); 'opening_poster' = the opening hook poster; 'cta_poster' = the closing call-to-action poster (UPPERCASE, max 3 lines x 4 words; a CTA may carry cta {company_name, phone, email}). " +
+            "Put the words to set in `quote`; '|' forces a line break (e.g. 'KHÔNG CẦN QUAY | VẪN CÓ KHÁCH'). Put the narration of that moment in `text`. " +
+            "Optional: `brand` {colors: ['#hex', ...], main first}; `look` (one id per video keeps one style); `exact`=true keeps poster copy as written; `show_narrator`=true when a narrator is on screen. " +
+            "Returns `objects[]` in paint order, each with `text`, `svg_url` (a self-contained SVG with the text already in outlines: no font needed, sharp at any size), `image_url` (transparent PNG at 2x) and `box` {x,y,w,h} on a 720x1280 canvas (x1.5 for 1080x1920); plus `preview_url` (the whole set as WideCast places it) and `overlay_svg_url` (the whole design as ONE SVG on that canvas: live text with its fonts embedded as subsets, every object a <g data-wc-object> named as in objects[]; inline it in an HTML page to animate each group, or each word, on its own; `fonts` lists the embedded fonts, `recolour` {from,to} which template colour the design shows as which) and `schedule` (WideCast's own timing and animation for these objects, from `words`: its Storyboard spec without pictures, screens from_sec..to_sec from the start of the moment, each object's entry / delay_sec / duration_sec, matched to objects[] by wc_object = name; the speech-motion-video skill's runtime/wc-storyboard.js plays it frame for frame, flat or in 3D). " +
+            "Draw each object at its box, reveal it on the word that says it and animate it in your video's style: timing, motion and sound effects are yours. Everything stays inside y 128-960 of 1280, clear of the platforms' dead zones. " +
+            "**1 credit per call.** Waits up to ~90 s; if `status` is still 'processing', call widecast_get_typography with the `id`.",
+        inputSchema: {
+            type: "object",
+            required: ["role", "text"],
+            properties: {
+                role: { type: "string", enum: ["typography", "opening_poster", "cta_poster"] },
+                text: { type: "string", maxLength: 2000, description: "The narration of this moment (context for the engines)." },
+                quote: { type: "string", maxLength: 300, description: "The words to set. '|' (or '->', a new line) = hard line break. Typography defaults to `text`; posters write their own copy unless `exact` is true." },
+                language: { type: "string", description: "Language code, e.g. 'vi', 'en'. Default 'vi'." },
+                words: { type: "array", description: "Optional word timings, seconds from the start of this moment.", items: { type: "object", required: ["word", "start", "end"], properties: { word: { type: "string" }, start: { type: "number" }, end: { type: "number" } } } },
+                duration: { type: "number", description: "Seconds this moment lasts (1-60). Default: from `words`." },
+                show_narrator: { type: "boolean", description: "A narrator is on screen: posters keep to the lower band, clear of the face." },
+                exact: { type: "boolean", description: "Posters: use `quote` exactly as written instead of writing new copy." },
+                brand: { type: "object", properties: { colors: { type: "array", items: { type: "string" }, description: "1-6 hex colours, the main one first." } } },
+                cta: { type: "object", properties: { company_name: { type: "string" }, phone: { type: "string" }, email: { type: "string" } } },
+                look: { type: "string", description: "One id per video: calls with the same look share one style." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+    },
+    {
+        name: "widecast_get_typography",
+        title: "WideCast: Read a typography job",
+        description: "Read a typography job created by widecast_generate_typography: status 'processing' | 'completed' | 'failed', and when completed the objects in paint order (text, svg_url, image_url, box on 720x1280), preview_url and overlay_svg_url (the whole design as one SVG, fonts embedded). Free. Poll no faster than every 5 seconds.",
+        inputSchema: { type: "object", required: ["id"], properties: { id: { type: "string", description: "The typo_... id returned by widecast_generate_typography." } } },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    },
+    {
         name: "widecast_search_broll",
         title: "WideCast: Search stock B-roll (numbered thumbnail list)",
         description: "Search stock B-roll for a keyword. SYNC, FREE. Two modes: **`kind='video'`** searches Pexels + Pixabay + Shutterstock for stock CLIPS (broll.js Stock tab). **`kind='image'`** searches Google for real PHOTOS (broll.js Photos tab). " +
@@ -397,6 +433,11 @@ const TOOLS = [
                     description: "Target platforms. Omit to post to ALL connected platforms of the chosen channel group (confirm with the user first).",
                 },
                 channel_group: { type: "integer", minimum: 0, description: "Channel group to publish through. 0 (default) = primary. List groups with widecast_channel_groups." },
+                platform_settings: {
+                    type: "object",
+                    additionalProperties: { type: "object" },
+                    description: "Per-call overrides {platform: {key: value}} merged over the saved settings for THIS post only (saved settings unchanged). Facebook: facebook_media_type REELS (default; Facebook trims long videos to ~90s) | VIDEO (long-form) | STORIES; facebook_page_id; facebook_video_state Published|Draft. Instagram: media_type REELS|STORIES. YouTube: privacyStatus public|unlisted|private. Example for a video over 90s: {facebook:{facebook_media_type:\"VIDEO\"}}.",
+                },
                 scheduled_date: { type: "string", description: "Optional ISO date/time to schedule (with `timezone`)." },
                 timezone: { type: "string", description: "Timezone for scheduled_date (default UTC)." },
             },
@@ -1325,6 +1366,25 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const data = await wc("POST", "/v1/create_image", body);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
+        if (name === "widecast_generate_typography") {
+            const body = {};
+            for (const k of ["role", "text", "quote", "language", "words", "duration", "show_narrator", "exact", "brand", "cta", "look"]) {
+                if (args[k] !== undefined)
+                    body[k] = args[k];
+            }
+            // each HTTP request stays under REQUEST_TIMEOUT_MS; the job keeps running server-side between them
+            body.wait = 20;
+            let data = await wc("POST", "/v1/typography", body);
+            const deadline = Date.now() + 70000;
+            while (data && data.status === "processing" && data.id && Date.now() < deadline) {
+                data = await wc("GET", `/v1/typography/${encodeURIComponent(String(data.id))}?wait=20`);
+            }
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_get_typography") {
+            const data = await wc("GET", `/v1/typography/${encodeURIComponent(String(args.id ?? ""))}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
         if (name === "widecast_search_broll") {
             const body = {
                 keyword: String(args.keyword ?? ""),
@@ -1443,7 +1503,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
         if (name === "widecast_publish") {
             const body = {};
-            for (const k of ["topic_id", "text", "video_url", "title", "description", "photo_urls", "platforms", "channel_group", "scheduled_date", "timezone", "callback_url", "metadata"]) {
+            for (const k of ["topic_id", "text", "video_url", "title", "description", "photo_urls", "platforms", "channel_group", "platform_settings", "scheduled_date", "timezone", "callback_url", "metadata"]) {
                 if (args[k] !== undefined)
                     body[k] = args[k];
             }

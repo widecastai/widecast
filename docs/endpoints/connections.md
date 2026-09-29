@@ -55,7 +55,7 @@ Load the saved per-platform publish settings (publish **preferences** like priva
 
 ## `POST /v1/platform_settings`
 
-Save one platform's publish settings. Body: `{platform, settings:{…}, channel_group?}` (e.g. `{"platform":"youtube","settings":{"privacy":"public"}}`, `{"platform":"reddit","settings":{"subreddit":"..."}, "channel_group": 1}`). Returns the updated `{object:"platform_settings", channel_group, settings:{…}}`.
+Save one platform's publish settings. Body: `{platform, settings:{…}, channel_group?}` (e.g. `{"platform":"youtube","settings":{"privacy":"public"}}`, `{"platform":"reddit","settings":{"subreddit":"..."}, "channel_group": 1}`). Returns the updated `{object:"platform_settings", channel_group, settings:{…}}`. The save is a **merge**: keys you send overwrite, keys you omit are kept, an empty string or `null` removes a key. Facebook keys: `facebook_media_type` = `REELS` (default; Facebook trims long videos to ~90 s) | `VIDEO` (long-form video post) | `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` | `Draft`. To choose the post type for **one** post without changing the saved settings, pass `platform_settings` on [`POST /v1/publish`](publish.md).
 
 <!-- widecast-playground:platform-settings-save -->
 

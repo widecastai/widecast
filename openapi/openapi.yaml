@@ -1365,6 +1365,111 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ImageSetResponse' }
 
+  /v1/typography:
+    post:
+      tags: [Assets]
+      operationId: createTypography
+      summary: Render motion typography or an opening / CTA poster for your own video.
+      description: |
+        For agents that compose their OWN video (HTML, After Effects, any
+        renderer): WideCast only draws the text, with the same engines the
+        editor uses — template typography for a key phrase mid-video, and the
+        SVG poster engine for the opening hook poster and the closing
+        call-to-action poster. **Charges 1 credit per call.**
+
+        Put the words to set in `quote`; `|` (also `->`, `→` or a new line)
+        forces a line break, e.g. `KHÔNG CẦN QUAY | VẪN CÓ KHÁCH`. Put the
+        narration of that moment in `text`.
+
+        The job runs in the background. The call waits up to `wait` seconds
+        (0-100) for the result; if `status` is still `processing`, poll
+        `GET /v1/typography/{id}`. A completed job returns the design only:
+        every object (a line, or a word in word-by-word layouts) as its own
+        self-contained SVG — text already converted to outlines with the
+        fonts WideCast renders with, so it needs no font and stays sharp at
+        any size — plus a transparent PNG of it at twice the canvas scale,
+        its `text` and its `box` on a 720×1280 canvas (×1.5 for 1080×1920),
+        in paint order, and `preview_url` (the whole set as WideCast places
+        it). Timing, motion and sound effects are yours: place each object
+        in your frame, reveal it on the word that says it and animate it in
+        your video's style. Everything stays inside y 128–960 of 1280, clear
+        of the platforms' dead zones (the top 10 % and the bottom 25 %).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TypographyRequest' }
+            examples:
+              phrase:
+                summary: A key phrase mid-video, two lines
+                value:
+                  role: typography
+                  text: "Không cần quay video mà vẫn có khách hàng mỗi ngày"
+                  quote: "KHÔNG CẦN QUAY | VẪN CÓ KHÁCH"
+                  language: vi
+                  look: my-video-01
+                  wait: 60
+              cta:
+                summary: A closing call-to-action poster, copy kept as written
+                value:
+                  role: cta_poster
+                  text: "Nhắn tin cho mình để nhận bản kế hoạch miễn phí"
+                  quote: "NHẮN TIN NGAY | NHẬN KẾ HOẠCH"
+                  exact: true
+                  cta: { company_name: "Acme Studio", phone: "0900 000 000" }
+                  brand: { colors: ["#0B3D91", "#F5B53D"] }
+                  look: my-video-01
+                  wait: 90
+      responses:
+        '200':
+          description: The job, completed or still processing (see `status`).
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TypographyJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          description: Out of credits. See CreditErrorDetails for upgrade/wait fields.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /v1/typography/{id}:
+    get:
+      tags: [Assets]
+      operationId: getTypography
+      summary: Read a typography job.
+      description: |
+        Free. Returns the job created by `POST /v1/typography`. Pass
+        `wait` (0-100 s) to wait for a job that is still processing.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^typo_[0-9a-f]{16}$' }
+        - name: wait
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200':
+          description: The job.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TypographyJob' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /v1/search_broll:
     post:
       tags: [Assets]
@@ -2793,7 +2898,16 @@ paths:
       tags: [Connections]
       operationId: setPlatformSettings
       summary: Save one platform's publish settings.
-      description: Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit subreddit, facebook page id). `channel_group` (integer, default 0 = primary) selects the channel group the settings belong to.
+      description: |
+        Free. Saves publish PREFERENCES for a platform (e.g. youtube privacy, reddit
+        subreddit, facebook page id). `channel_group` (integer, default 0 = primary)
+        selects the channel group the settings belong to. The save is a MERGE: keys
+        you send overwrite, keys you omit are kept, an empty string or null removes a
+        key. Facebook keys: `facebook_media_type` = `REELS` (default; Facebook trims
+        long videos to ~90 s) | `VIDEO` (long-form video post) | `STORIES`;
+        `facebook_page_id`; `facebook_video_state` = `Published` | `Draft`. To choose
+        the post type for ONE post without changing the saved settings, pass
+        `platform_settings` on `POST /v1/publish` instead.
       requestBody:
         required: true
         content:
@@ -4987,6 +5101,110 @@ components:
             failed_at_number: { type: integer }
         request_id: { type: string }
 
+    TypographyRequest:
+      type: object
+      required: [role, text]
+      description: Body for POST /v1/typography. 1 credit per call.
+      properties:
+        role:
+          type: string
+          enum: [typography, opening_poster, cta_poster]
+          description: |
+            `typography` = a key phrase mid-video (template typography, word by
+            word or line by line). `opening_poster` = the opening hook poster.
+            `cta_poster` = the closing call-to-action poster. Posters are
+            UPPERCASE, at most 3 lines of 4 words.
+        text:
+          type: string
+          maxLength: 2000
+          description: The narration of this moment (context for the engines).
+        quote:
+          type: string
+          maxLength: 300
+          description: |
+            The words to set. `|` (also `->`, `→`, a new line) is a hard line
+            break. Typography defaults to `text`; posters write their own copy
+            from `text` unless `exact` is true.
+        language: { type: string, description: "Language code, e.g. vi, en. Default vi." }
+        words:
+          type: array
+          maxItems: 600
+          description: Word timings of the narration, seconds from the start of this moment. Optional context for the engine's choice of layout (word by word or line by line).
+          items:
+            type: object
+            required: [word, start, end]
+            properties:
+              word: { type: string }
+              start: { type: number }
+              end: { type: number }
+        duration: { type: number, minimum: 1, maximum: 60, description: "Seconds this moment lasts. Default: from words." }
+        show_narrator: { type: boolean, description: "A narrator is on screen: posters keep to the lower band, clear of the face." }
+        exact: { type: boolean, description: "Posters: use quote exactly as written ('|' lines kept)." }
+        brand:
+          type: object
+          description: The brand's colours, main first. Pulls the engines' own palettes toward them.
+          properties:
+            colors: { type: array, minItems: 1, maxItems: 6, items: { type: string, pattern: '^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$' } }
+        cta:
+          type: object
+          description: Contact line for a cta_poster (else the account's profile is used).
+          properties:
+            company_name: { type: string, maxLength: 120 }
+            phone: { type: string, maxLength: 120 }
+            email: { type: string, maxLength: 120 }
+        look: { type: string, pattern: '^[A-Za-z0-9_-]{1,40}$', description: "One id per video: calls with the same look share one style." }
+        wait: { type: integer, minimum: 0, maximum: 100, default: 0, description: "Seconds to wait for the result." }
+    TypographyObject:
+      type: object
+      description: One object of the design, listed in paint order (back to front).
+      properties:
+        index: { type: integer, description: "1-based, in paint order." }
+        name: { type: [string, 'null'], description: "The engine's object id (e.g. p0_line2, p0_line2w1 for a word, p0_deco1)." }
+        kind: { type: string, description: "text | decoration | object" }
+        text: { type: [string, 'null'], description: "The text this object shows (null for decorations)." }
+        svg_url: { type: [string, 'null'], description: "Self-contained SVG of the object: text converted to outlines (no font needed), sized to its box, vector. Null only when the engine produced no SVG (then use image_url)." }
+        image_url: { type: [string, 'null'], description: "Transparent PNG of the object at twice the canvas scale (box.w×2 by box.h×2 pixels)." }
+        box:
+          type: [object, 'null']
+          description: Where WideCast places it on the canvas (720×1280). Draw the SVG or PNG at this box.
+          properties:
+            x: { type: number }
+            y: { type: number }
+            w: { type: number }
+            h: { type: number }
+        phase: { type: integer, description: "Present when the design has several phases (p0_, p1_ …) that replace each other over time." }
+    TypographyJob:
+      type: object
+      required: [object, id, status]
+      properties:
+        object: { type: string, const: typography }
+        id: { type: string }
+        status: { type: string, enum: [processing, completed, failed] }
+        role: { type: string }
+        look: { type: string }
+        lines: { type: array, items: { type: string }, description: "The phrase split at its line breaks." }
+        engine: { type: string }
+        canvas:
+          type: object
+          properties:
+            width: { type: integer }
+            height: { type: integer }
+            safe_top: { type: integer }
+            safe_bottom: { type: integer }
+            note: { type: string }
+        preview_url: { type: [string, 'null'], description: "PNG of the whole set as WideCast places it, on the transparent canvas: look at it before placing the objects." }
+        objects:
+          type: array
+          items: { $ref: '#/components/schemas/TypographyObject' }
+        brand: { type: [object, 'null'], description: "What the brand colours were mapped to." }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+        credits_charged: { type: integer }
+        request_id: { type: string }
+
     SearchBrollRequest:
       type: object
       required: [keyword, kind]
@@ -5736,6 +5954,21 @@ components:
         metadata:
           type: object
           additionalProperties: true
+        platform_settings:
+          type: object
+          description: |
+            Per-call overrides `{platform: {key: value}}`, merged over the saved
+            settings of the chosen channel group for THIS post only — the saved
+            settings are not changed. Use it to pick the post type / page / privacy
+            for one post. Facebook keys: `facebook_media_type` = `REELS` (default;
+            Facebook trims long videos to ~90 s) | `VIDEO` (long-form video post) |
+            `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` |
+            `Draft`. Instagram: `media_type` = `REELS` | `STORIES`. YouTube:
+            `privacyStatus` = `public` | `unlisted` | `private`.
+          additionalProperties:
+            type: object
+            additionalProperties: true
+          example: { facebook: { facebook_media_type: VIDEO } }
 
     ChannelGroup:
       type: object

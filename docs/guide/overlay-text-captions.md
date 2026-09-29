@@ -4,14 +4,20 @@ title: On-screen text and captions
 group: editing
 order: 3
 summary: "Add or regenerate a scene's overlay graphic, edit the wording and color of poster and typography text, apply text style presets, and see how captions track your narration."
-updated: 2026-08-12
+updated: 2026-09-26
 covers:
   - ui:overlay_editor
+  - api:POST /v1/typography
+  - api:GET /v1/typography/{id}
+  - mcp:widecast_generate_typography
+  - mcp:widecast_get_typography
 sources:
   - gubo-remotion-player/js/editor_main.js (Overlay button and overlay menu)
   - gubo-remotion-player/js/vpreview.js (click-to-edit text and captions in the scene preview, caption word timing)
   - gubo-remotion-player/js/remotion_textdesign.js (pencil edit sheet, Color field, Save/Cancel)
   - gubo-remotion-player/js/text_presets.js (preset names, count, categories)
+  - widecast/docs/endpoints/typography.md (typography and poster API for agents that build their own videos)
+  - typography_api.py (roles, line breaks with |, objects returned as outline SVG + PNG with text and position, 1 credit per call)
 ---
 
 Every scene in the editor can carry more than footage: an overlay graphic, styled poster or typography text, and captions that keep pace with your narration. This guide covers where each of these lives on a scene (see [Scene editor basics](guide/scene-editor-basics.html) for how to open the editor) and how to change them.
@@ -34,6 +40,10 @@ While the edit sheet is open, scroll the row of style previews below your text. 
 ## Captions synced to your narration
 
 Captions are timed to your narration automatically. As the video plays, each word highlights the moment it is spoken, so viewers can follow along even with the sound off. Captions have their own 50 style presets, separate from overlay text. Click the caption text directly in the scene's preview to open its style editor and pick a look the same way you would for overlay text.
+
+## Typography and posters for videos your AI assistant builds
+
+If your AI assistant edits videos on its own (for example in its own HTML or motion-graphics project), it can still use WideCast's typography. Through the API, `POST /v1/typography` (MCP tool `widecast_generate_typography`) renders a phrase as animated typography, an opening poster or a closing call-to-action poster, and returns each line or word as its own sharp vector graphic (and a transparent image), with its text and position, so the assistant can reveal and animate each one exactly when it is spoken, in the style of its own video. A `|` in the phrase starts a new line. Each call uses 1 credit.
 
 ## Q&A
 Q: How do I change the words shown on a poster or typography scene?
@@ -62,6 +72,12 @@ A: Yes. Captions are timed to your narration word by word, and each word highlig
 
 Q: Can I style the captions separately from the overlay text?
 A: Yes. Captions have their own 50 style presets, separate from the 50 for overlay text. Click the caption text directly in the scene's preview to open its style editor, then pick a preset from the row of live previews the same way you would for overlay text.
+
+Q: Can my AI assistant use WideCast's typography in a video it builds itself?
+A: Yes. With your API key or MCP connector, it can call `POST /v1/typography` (MCP `widecast_generate_typography`) with the phrase to show, for a key phrase, an opening poster or a call-to-action poster. It gets back each line or word as a vector graphic that needs no font (plus a transparent image) with its text and position, places them in its own video, and decides itself when and how each one appears. Put a `|` in the phrase wherever you want a new line.
+
+Q: Does generating typography through the API use credits?
+A: Yes, 1 credit per call, the same as regenerating an overlay in the editor. Reading the result again later with `GET /v1/typography/{id}` is free.
 
 Q: Does editing overlay text or its color use credits?
 A: No. Changing the wording or color of text you already have on a scene does not use credits, the same as other editing in the scene editor. Credits are only spent when WideCast generates something new for you.

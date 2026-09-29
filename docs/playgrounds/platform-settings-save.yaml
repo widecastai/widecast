@@ -6,7 +6,9 @@ endpoint:
 title: Save publish settings
 description: |
   Free. Save one platform's publish PREFERENCES (e.g. youtube privacy, reddit
-  subreddit, facebook page id). ⚠ Running writes to your account.
+  subreddit, facebook page id). The save is a MERGE: sent keys overwrite, omitted
+  keys are kept, "" removes a key. Facebook `facebook_media_type`: REELS (default,
+  trims long videos to ~90 s) | VIDEO | STORIES. ⚠ Running writes to your account.
 fields:
   - name: platform
     type: select

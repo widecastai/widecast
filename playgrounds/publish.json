@@ -54,6 +54,13 @@
       "label": "channel_group (integer; omit or 0 = primary group — see GET /v1/channel_groups)",
       "required": false,
       "placeholder": "0"
+    },
+    {
+      "name": "platform_settings",
+      "type": "json",
+      "label": "platform_settings (JSON; per-post overrides merged over saved settings, e.g. Facebook long video)",
+      "required": false,
+      "placeholder": "{\"facebook\": {\"facebook_media_type\": \"VIDEO\"}}"
     }
   ],
   "poll_after_create": {

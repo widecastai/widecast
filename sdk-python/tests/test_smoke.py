@@ -727,6 +727,21 @@ def test_set_platform_settings_validates():
     assert ei.value.code == "invalid_platforms"
 
 
+def test_publish_platform_settings_override_is_forwarded():
+    """2026-09-27: per-call overrides {platform: {key: value}} ride along unchanged."""
+    c = Widecast(api_key="dummy")
+    seen = {}
+
+    def fake(method, path, json_body=None, **kw):
+        seen.update(body=json_body)
+        return {"object": "publish"}
+    c._request = fake  # type: ignore[attr-defined]
+    c.publish(text="hi", platforms=["facebook"], platform_settings={"facebook": {"facebook_media_type": "VIDEO"}})
+    assert seen["body"]["platform_settings"] == {"facebook": {"facebook_media_type": "VIDEO"}}
+    c.publish(text="hi", platforms=["facebook"])
+    assert "platform_settings" not in seen["body"]
+
+
 def test_connection_methods_exist():
     c = Widecast(api_key="dummy")
     for name in ("accounts", "platform_settings", "set_platform_settings"):

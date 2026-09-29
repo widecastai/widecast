@@ -272,6 +272,17 @@ describe("widecast SDK", () => {
     }
   });
 
+  it("publish forwards platform_settings overrides (2026-09-27)", async () => {
+    let seen: any = null;
+    const fetchImpl = (async (_url: any, init: any) => {
+      seen = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ object: "publish" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+    const c = new Widecast({ apiKey: "wc_live_dummy", fetchImpl });
+    await c.publish({ text: "hi", platforms: ["facebook"], platform_settings: { facebook: { facebook_media_type: "VIDEO" } } });
+    expect(seen.platform_settings).toEqual({ facebook: { facebook_media_type: "VIDEO" } });
+  });
+
   it("publish rejects a bad channel_group", async () => {
     const c = new Widecast({ apiKey: "wc_live_dummy" });
     for (const bad of [-1, "1", 1.5, true]) {

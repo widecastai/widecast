@@ -1422,6 +1422,7 @@ class Widecast:
                 callback_url: Optional[str] = None,
                 metadata: Optional[Mapping[str, Any]] = None,
                 channel_group: Optional[int] = None,
+                platform_settings: Optional[Mapping[str, Mapping[str, Any]]] = None,
                 idempotency_key: Optional[str] = None) -> dict:
         """POST /v1/publish — distribute content to connected social platforms.
 
@@ -1488,6 +1489,10 @@ class Widecast:
         cg = self._channel_group(channel_group)
         if cg:
             body["channel_group"] = cg
+        if platform_settings:
+            # Per-call overrides {platform: {key: value}} merged over the saved
+            # settings for THIS post only, e.g. {"facebook": {"facebook_media_type": "VIDEO"}}.
+            body["platform_settings"] = {str(k): dict(v) for k, v in dict(platform_settings).items()}
         return self._request("POST", "/v1/publish", json_body=body,
                              idempotency_key=idempotency_key or str(uuid.uuid4()))
 
@@ -2122,7 +2127,11 @@ class Widecast:
                               channel_group: Optional[int] = None) -> dict:
         """POST /v1/platform_settings — save one platform's publish settings (e.g.
         youtube privacy, reddit subreddit, facebook page id). Free.
-        `channel_group` (int, default 0 = primary) selects the channel group."""
+        `channel_group` (int, default 0 = primary) selects the channel group.
+        The save is a MERGE: sent keys overwrite, omitted keys are kept, "" or None
+        removes a key. Facebook: facebook_media_type REELS (default, trims long
+        videos) | VIDEO | STORIES. For ONE post only, pass platform_settings to
+        publish() instead."""
         if not isinstance(platform, str) or platform not in PUBLISH_PLATFORMS:
             raise InvalidRequestError(
                 f"platform must be one of {list(PUBLISH_PLATFORMS)} (got {platform!r}).",

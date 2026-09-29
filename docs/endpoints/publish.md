@@ -29,6 +29,7 @@ Publishing is asynchronous on the platform side: this returns the upstream `requ
 | `scheduled_date` | string | no | ISO date/time to schedule the post (with `timezone`). |
 | `timezone` | string | no | Timezone for `scheduled_date` (default `UTC`). |
 | `metadata` | object | no | Echoed back on the response. |
+| `platform_settings` | object | no | Per-call overrides `{platform: {key: value}}` merged over the saved settings of the chosen group for **this post only** (saved settings unchanged). Facebook keys: `facebook_media_type` = `REELS` (default; Facebook trims long videos to ~90 s) | `VIDEO` (long-form video post) | `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` | `Draft`. Instagram `media_type` = `REELS` \| `STORIES`; YouTube `privacyStatus` = `public` \| `unlisted` \| `private`. Example: `{"facebook": {"facebook_media_type": "VIDEO"}}` for a video longer than 90 s. |
 
 ### Response — `202 Accepted` → poll `/v1/status`
 

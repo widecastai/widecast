@@ -509,6 +509,11 @@ export interface PublishOptions {
   timezone?: string;
   callback_url?: string;
   metadata?: Record<string, unknown>;
+  /** Per-call overrides `{platform: {key: value}}` merged over the saved settings of
+   *  the chosen group for THIS post only (saved settings unchanged), e.g.
+   *  `{ facebook: { facebook_media_type: "VIDEO" } }` for a video over 90 s
+   *  (`REELS` is Facebook's default and trims long videos). */
+  platform_settings?: Record<string, Record<string, unknown>>;
   idempotency_key?: string;
 }
 
@@ -1888,6 +1893,7 @@ export class Widecast {
     if (opts.timezone) body.timezone = opts.timezone;
     if (opts.callback_url) body.callback_url = opts.callback_url;
     if (opts.metadata) body.metadata = opts.metadata;
+    if (opts.platform_settings) body.platform_settings = opts.platform_settings;
     return await this.#request<PublishResponse>("POST", "/v1/publish", body,
       opts.idempotency_key);
   }
@@ -2370,7 +2376,10 @@ export class Widecast {
   }
 
   /** POST /v1/platform_settings — save one platform's publish settings. Free.
-   *  `opts.channel_group` (integer, default 0 = primary) selects the channel group. */
+   *  `opts.channel_group` (integer, default 0 = primary) selects the channel group.
+   *  The save is a MERGE (sent keys overwrite, omitted keys kept, "" / null removes).
+   *  Facebook: facebook_media_type REELS (default, trims long videos) | VIDEO | STORIES.
+   *  For ONE post only, pass `platform_settings` to publish() instead. */
   async set_platform_settings(platform: PublishPlatform, settings: Record<string, unknown>,
                               opts: { channel_group?: number } = {}): Promise<any> {
     if (!(PUBLISH_PLATFORMS as readonly string[]).includes(platform)) {
