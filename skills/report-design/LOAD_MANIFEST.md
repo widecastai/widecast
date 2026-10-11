@@ -5,4 +5,4 @@ After loading any module below, its actual LINE COUNT must match its row here (s
 
 | module | lines | sha256 | last_line |
 |---|---|---|---|
-| SKILL.md | 115 | c43c7b61ba9400b6c17c3d7054693d6eb6b53c8c33e2eb89ad0c8b7ab9b1d4f5 | - [ ] No fake buttons, remote dependencies, raw Markdown dump, or mobile body overflow. |
+| SKILL.md | 119 | 65d977db379a8feedc1580b569b0f67f762b8a61f06bec42f2ab3f1949325a03 | - [ ] No fake buttons, remote dependencies, raw Markdown dump, or mobile body overflow. |

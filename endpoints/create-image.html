@@ -103,7 +103,13 @@
 <td><code>ratio</code></td>
 <td>string</td>
 <td>no</td>
-<td><code>"portrait"</code> (default, 768×1344 — Reels/TikTok/Shorts), <code>"landscape"</code> (1344×768 — YouTube/blog hero), or <code>"square"</code> (768×768 — IG feed).</td>
+<td>With <code>purpose: "scene"</code> (default): <code>"portrait"</code> (default, 768×1344 — Reels/TikTok/Shorts), <code>"landscape"</code> (1344×768 — YouTube/blog hero), or <code>"square"</code> (768×768 — IG feed). With <code>purpose: "social"</code>: <code>"1:1"</code> (default), <code>"4:5"</code>, <code>"16:9"</code> or <code>"9:16"</code>; <code>portrait</code> / <code>landscape</code> / <code>square</code> are accepted as aliases for 9:16 / 16:9 / 1:1.</td>
+</tr>
+<tr>
+<td><code>purpose</code></td>
+<td>string</td>
+<td>no</td>
+<td><code>"scene"</code> (default, unchanged: a video background / scene image, kept inside the video safe zone) or <code>"social"</code> (a standalone <strong>post image</strong>: the requested <code>ratio</code> is honoured exactly, centre-cropped when the engine returns a near size, and no video safe-zone instruction is added). The response echoes <code>purpose: "social"</code>.</td>
 </tr>
 <tr>
 <td><code>count</code></td>
@@ -172,7 +178,12 @@
 <tr>
 <td><code>invalid_ratio</code></td>
 <td>400</td>
-<td><code>ratio</code> not in <code>["portrait","landscape","square"]</code>.</td>
+<td><code>ratio</code> not in <code>["portrait","landscape","square"]</code> (or, with <code>purpose: "social"</code>, not in <code>["1:1","4:5","16:9","9:16"]</code>).</td>
+</tr>
+<tr>
+<td><code>invalid_purpose</code></td>
+<td>400</td>
+<td><code>purpose</code> not <code>"scene"</code> or <code>"social"</code>.</td>
 </tr>
 <tr>
 <td><code>invalid_count</code></td>

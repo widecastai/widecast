@@ -667,7 +667,7 @@ const TOOLS = [
       type: "object",
       required: ["video_id"],
       properties: {
-        video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
+        video_id: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$", description: "Video id from widecast_create_video (widecast...), OR a publish request_id from widecast_publish." },
       },
     },
   },

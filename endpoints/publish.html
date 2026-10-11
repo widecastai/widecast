@@ -161,13 +161,19 @@
 <span class="w">  </span><span class="nt">&quot;request_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;abc123&quot;</span><span class="p">],</span>
 <span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;platforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;youtube&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;x&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;skipped&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">  </span><span class="nt">&quot;skipped&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">  </span><span class="nt">&quot;topic_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;widecast7c0d4f8a9b1e2d3f&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;content_kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;video&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;agent_note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Recording step, do not skip: ...&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
 
+<p><code>topic_id</code> is present only when you published a WideCast video or article. <code>content_kind</code> says what went out: <code>video</code>, <code>article</code>, <code>text</code> or <code>photo</code>. <code>agent_note</code> is a short, generic instruction for agents that keep a local dashboard library: poll the status id, then record the post (see <a href="#recording-what-you-publish">Recording what you publish</a>); ignore it if you keep none.</p>
 <p>Poll <code>GET /v1/status/{request_id}</code> (cadence 5s). For a publish id, <code>type</code> is <code>"publish"</code> and <code>result.posts[]</code> carries <code>{platform, success, post_url, post_id, error}</code>:
 - <code>status == "completed"</code> → all platforms reported back; check each <code>result.posts[].success</code>.
 - <code>status == "failed"</code> → the publish job failed upstream.</p>
+<h3 id="recording-what-you-publish">Recording what you publish</h3>
+<p>Once a publish-type status is <code>completed</code> or <code>failed</code>, the response also carries <code>agent_note</code> and <code>result.library_record</code>, a ready-to-file record (<code>{kind, status, source: "widecast", title, urls, external}</code>) for a local dashboard library: <code>urls</code> has one key per platform that went live (<code>facebook</code>, or <code>facebook@2</code> for channel group 2), <code>status</code> is <code>published</code> only when at least one platform succeeded (a fully failed publish is <code>draft</code>), and <code>external</code> carries <code>topic_id</code>, <code>request_id</code> and <code>channel_group</code>. Pass it to <code>&lt;bridge&gt; tool content import --json</code>, or let <code>&lt;bridge&gt; tool provider call --operation getStatus --path id=&lt;request_id&gt;</code> file it. A post that is never recorded does not show up in that dashboard. If you keep no local library, ignore both fields.</p>
 <h3 id="sdk">SDK</h3>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">widecast</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widecast</span>
 <span class="n">c</span> <span class="o">=</span> <span class="n">Widecast</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;wc_live_…&quot;</span><span class="p">)</span>

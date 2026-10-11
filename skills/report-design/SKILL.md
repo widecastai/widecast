@@ -1,16 +1,21 @@
 ---
 name: solo-agency-report-design
 description: >-
-  Use before generating, reviewing, fixing, or packaging any Solo Agency
-  client-facing report HTML/PDF. Adapts landing-page design discipline from
-  leonxlnx/taste-skill into a report-specific, client-blind, print-safe standard.
+  Use before generating, reviewing, or fixing any standalone HTML report rendered with
+  `tool render-report` (the weekly CRM client report, the master digest, any other
+  non-daily report). Adapts landing-page design discipline from leonxlnx/taste-skill
+  into a report-specific, client-blind, print-safe standard. HTML only: no PDF is produced.
 ---
 
 # Solo Agency Report Design Skill
 
-This is the report-specific design module. Load it before Stage 6 report
-generation or report repair, after the factual source record is ready and before
-writing HTML or PDF.
+This is the report-specific design module. Load it before rendering or repairing a
+standalone HTML report, after the factual source record is ready and before writing HTML.
+
+Scope: it governs standalone HTML reports rendered with `<bridge> tool render-report render`
+(the weekly CRM client report, the master digest, any other non-daily report). The Daily
+Report (`daily_report.md` + `daily_report.json`, Stage 6 "Daily Report Contract") is rendered
+by the dashboard Daily Reports page and needs no skill load.
 
 Source note: this module adapts the design-read, dial, anti-default, typography,
 layout, and preflight discipline from `leonxlnx/taste-skill` for Solo Agency
@@ -34,23 +39,23 @@ Report dials:
 ## Non-Negotiables
 
 - The report must feel like a premium agency deliverable, not exported Markdown.
-- The first viewport must work like a landing-page hero: report title, client/date context, decisive recommendation, lane status, and 3-5 scan-friendly highlights.
-- Client-facing reports and the PDF companion remain client-blind. Do not mention Solo Agency, WideCast, PDNA/provider tooling, OpenAPI, MCP, Local Collector, Chrome extensions, automation/scheduled tasks, API keys, Telegram, agent/debug details, or `INTERNAL_REPORT`.
+- The first viewport must work like a landing-page hero: report title, client/date context, decisive recommendation, source status, and 3-5 scan-friendly highlights.
+- Client-facing reports remain client-blind. Do not mention Solo Agency, WideCast, PDNA/provider tooling, OpenAPI, MCP, Local Collector, Chrome extensions, automation/scheduled tasks, API keys, Telegram, agent/debug details, or `INTERNAL_REPORT`.
 - No remote CSS, JavaScript, fonts, icons, images, tracking pixels, or CDNs.
 - No fake static action buttons. Use links only when they go somewhere real.
 - No raw Markdown dumps, plain default browser tables, or endless equal cards.
 - No document-level horizontal scroll on 390px mobile. Only dedicated table wrappers may scroll.
 - No long private data source excerpts or private source inventory in client-facing files.
-- The PDF source must be print-friendly without hover, copy buttons, collapses, or scripts.
+- Print CSS stays readable without hover, copy buttons, collapses, or scripts (a reader may print the page from the browser). No PDF file is produced or promised.
 
 ## Required Report Shape
 
 Use this order unless a specific client/report language requires a natural local
 translation:
 
-1. Hero: report promise, date, lane status, top recommendation, confidence.
+1. Hero: report promise, date, source status, top recommendation, confidence.
 2. Executive snapshot: what changed, why it matters, what to do next.
-3. Source coverage and data quality: public data sources or private data sources lane state.
+3. Source coverage and data quality: which sources were read and any coverage limit.
 4. Evidence ledger: compact, reference-linked, confidence-labeled.
 5. Lead & Competitor Opportunities: clear opportunity cards or a mobile-safe table.
 6. Idea Matrix: grouped by audience value, pain point, source signal, and business fit.
@@ -58,11 +63,8 @@ translation:
 8. Draft/recommendation: polished review blocks, not raw prompt output.
 9. Limits and blockers: client-safe coverage limits and next action.
 
-The daily report is a staging cover/index. It should be shorter, but the
-delivered client-facing HTML must be the combined `{client-name}-client-report.html`
-that includes the daily cover plus the full public data sources and private data
-sources sections in one standalone file. Do not make the human/client open
-separate lane HTML files.
+A report is one standalone HTML file. Do not make the reader open sibling HTML
+files; anything the reader needs is an anchor inside the same file.
 
 ## Visual System
 
@@ -79,23 +81,27 @@ Use a report-native visual language:
 
 ## Renderer Contract
 
-Use the shared renderer instead of writing ad hoc Python, shell, browser, or PDF
-scripts during each run:
+Use the bridge's built-in renderer instead of writing ad hoc Python, shell, or
+browser scripts during each run. It is part of the Go bridge binary: there is no
+Python renderer and nothing to install.
 
 ```sh
-python3 tools/solo_report_renderer.py render --input REPORT.md --output-html REPORT.html --title "Daily Intelligence Report" --client-name "Client Name" --report-kind "Daily Report"
+<bridge> tool render-report render --input REPORT.md --output-html REPORT.html --title "Report Title" --client-name "Client Name" --report-kind "Weekly Client Report" --client-facing --fail-on-scrub
 ```
 
-To create the single client-facing HTML report and mandatory PDF companion from
-the three scrubbed staging HTML files:
-
-```sh
-python3 tools/solo_report_renderer.py package --inputs CLIENT-daily-report.html CLIENT-public-data-sources-report.html CLIENT-private-data-sources-report.html --output-html CLIENT-client-report.html --output-pdf CLIENT-client-report.pdf --title "Client Report" --client-name "Client Name"
-```
+`--input` and `--output-html` are required; `--title`, `--client-name`, `--report-kind`,
+`--report-date`, `--subtitle` and `--status-note` are optional. `--client-facing
+--fail-on-scrub` runs the Client-Blind Scrub Gate: on a hit the real output file is
+NOT written, a `REPORT.blocked.html` sidecar is, and the command exits 3 - fix the
+source and re-run, and never deliver a `.blocked.html`. Pass those two flags only for a
+report a client will read; an operator-only report is rendered WITHOUT them. Every run
+writes `REPORT.html.render_status.json`; decide success from the exit code, never from
+file existence. HTML is the only output: do not pass `--output-pdf`, and do not promise
+a PDF.
 
 Allowed deviations:
 
-- If the renderer is missing or fails, fix `tools/solo_report_renderer.py` or log the exact blocker. Do not replace it with a one-off report script.
+- If the renderer fails, log the exact blocker (command, exit code, stderr line) and tell the human. Do not replace it with a one-off report script.
 - If a client has a custom approved report template, it may be layered into the renderer or a named reusable template file. Do not improvise a new unnamed renderer during the run.
 
 ## Preflight
@@ -103,13 +109,11 @@ Allowed deviations:
 Before handing off any report:
 
 - [ ] Loaded this module and Stage 6 in the current turn/run.
-- [ ] Used `tools/solo_report_renderer.py` or logged why the reusable renderer was unavailable.
+- [ ] Used `<bridge> tool render-report render` or logged why the reusable renderer was unavailable.
 - [ ] HTML is standalone, mobile-friendly, and visually polished.
 - [ ] The first viewport has a useful hero, not a file title plus wall of text.
-- [ ] Public data sources and private data sources remain separate sections inside the combined client report.
-- [ ] The delivered HTML is `{client-name}-client-report.html`, not the short daily staging index.
-- [ ] The combined HTML does not link out to sibling daily/public/private HTML files; any such references are internal section anchors or plain labels.
-- [ ] The PDF companion was generated from the same combined client-facing HTML, or the exact PDF blocker was recorded.
-- [ ] Client-Blind Scrub Gate passed for client-facing HTML/PDF.
+- [ ] The HTML does not link out to sibling HTML files; any such references are internal section anchors or plain labels.
+- [ ] Client-facing HTML was rendered with `--client-facing --fail-on-scrub` and exited 0 (no `.blocked.html`).
+- [ ] No PDF was produced or promised.
 - [ ] `INTERNAL_REPORT` contains all operations/provider/debug details excluded from client-facing files.
 - [ ] No fake buttons, remote dependencies, raw Markdown dump, or mobile body overflow.

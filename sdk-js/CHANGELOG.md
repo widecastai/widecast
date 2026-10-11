@@ -5,7 +5,13 @@ versioning: [Semver](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- `FREE_TIER_MAX_SECONDS` 60 -> 90, so `FREE_TIER_MAX_WORDS` 240 -> 360 (Free accounts: ~90 s / 360 spoken words of narration; mirrors the server's `WIDECAST_FREE_TIER_MAX_SECONDS`).
+
 ### Added
+- `create_video({ presenter: true })` — AI-presenter lane (needs `output_type: "video"`, source text/idea/blog, not combined with `faceless`; the server answers 402 `plan_required` on Free / Trial and 400 `presenter_not_ready` when no photo set exists). Default `false` = unchanged.
+- `create_image({ purpose: "social" })` — a standalone post image with an exact `ratio` of `"1:1"` / `"4:5"` / `"16:9"` / `"9:16"` (default `"1:1"` for social). `ImageSetResponse` gains optional `purpose`, `agent_note`, `result.library_record`.
+- `account()` documents the new `features.avatar_video`, `avatar_ready`, `voice_clone_ready` fields. Responses of publish / create_video / export_video / create_content / create_image may carry `agent_note` and `result.library_record`.
 - `send_client_link()` — POST `/v1/client_link/send`: mint a no-login client
   link ("magic link") to one of the account's client screens (`record` /
   `content_plan` / `setup` / `social_dashboard` / `publish_schedule`) and

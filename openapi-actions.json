@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,\n`/v1/solo/pubkey` are key-free.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_adjust | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,\n`/v1/solo/pubkey` are key-free.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_production_mode | invalid_presenter | presenter_not_ready | plan_required |\n  invalid_purpose | invalid_adjust | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -250,6 +250,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -2489,6 +2492,24 @@
                     "location": {
                       "type": "string"
                     },
+                    "features": {
+                      "type": "object",
+                      "description": "Plan-dependent capabilities of this account.",
+                      "properties": {
+                        "avatar_video": {
+                          "type": "boolean",
+                          "description": "`true` when the plan allows AI-presenter (\"avatar\") videos\n(`POST /v1/create_video` with `presenter: true`); `false` on Free / Trial\n(and expired) accounts, which can make faceless videos only.\n"
+                        }
+                      }
+                    },
+                    "avatar_ready": {
+                      "type": "boolean",
+                      "description": "`true` when at least one usable photo set (camera set) exists. Independent of the\nplan. Create it in WideCast Setup (https://widecast.ai/#setup).\n"
+                    },
+                    "voice_clone_ready": {
+                      "type": "boolean",
+                      "description": "`true` when a cloned voice exists. Independent of the plan. Create it in\nWideCast Setup (https://widecast.ai/#setup).\n"
+                    },
                     "connected_platforms": {
                       "type": "array",
                       "items": {
@@ -4531,7 +4552,8 @@
               "face_clone",
               "teleprompter"
             ],
-            "description": "User's explicit answer to the three-way production question.\nApplies to source=text/idea/blog AND source=audio_url\n(ignored for video sources — the footage IS the visuals).\nThree valid values, each with a different downstream UX:\n  * `faceless` — B-roll only, no narrator on screen. The video\n    is fully automated; user just reviews and renders.\n  * `face_clone` — the user's pre-trained Face clone + Voice\n    clone speaks the script. The user **must have set both up\n    at https://widecast.ai/#setup** before the render runs —\n    if they haven't, the AI agent should point them there\n    during the dialog.\n  * `teleprompter` — the user records themselves reading the\n    script via WideCast's built-in teleprompter (after the\n    scenes prepare). No clone needed; user physically records.\nBoth `face_clone` and `teleprompter` produce a \"normal\" video\n(narrator on screen) and map to the legacy `faceless=false`\non the REST endpoint — the distinction is purely so the AI\nagent tells the user the right next step.\n**Audio-source nuance** (source=audio_url): the user's original\nvoice in the recording IS the narration in every mode — it is\nnever re-synthesized via TTS. `face_clone` here means the clone's\nface is on screen lip-synced to the user's original audio (not\nto a clone-voice resynthesis); the clone contributes only the\nvisual face, the voice stays the user's.\n**MCP / Action callers**: pass the user's answer here; the MCP\nwrapper performs the mapping. **SDK / curl callers**: skip this\nfield, set `faceless` directly as before.\n"
+            "description": "User's explicit answer to the three-way production question.\nApplies to source=text/idea/blog AND source=audio_url\n(ignored for video sources — the footage IS the visuals — and\nfor `output_type=\"text\"`, which makes no scenes).\nThree valid values, each with a different downstream UX:\n  * `faceless` — B-roll only, no narrator on screen. The video\n    is fully automated; user just reviews and renders.\n  * `face_clone` — the user's pre-trained Face clone + Voice\n    clone speaks the script. The user **must have set both up\n    at https://widecast.ai/#setup** before the render runs —\n    if they haven't, the AI agent should point them there\n    during the dialog.\n  * `teleprompter` — the user records themselves reading the\n    script via WideCast's built-in teleprompter (after the\n    scenes prepare). No clone needed; user physically records.\n`faceless` maps to `faceless=true`. Both `face_clone` and\n`teleprompter` produce a \"normal\" video (narrator on screen)\nand map to `faceless=false` — the distinction is purely so the\nAI agent tells the user the right next step.\n**Audio-source nuance** (source=audio_url): the user's original\nvoice in the recording IS the narration in every mode — it is\nnever re-synthesized via TTS. `face_clone` here means the clone's\nface is on screen lip-synced to the user's original audio (not\nto a clone-voice resynthesis); the clone contributes only the\nvisual face, the voice stays the user's.\n**Every caller** (MCP, ChatGPT Action, SDK, curl) may pass the\nuser's answer here: the REST endpoint performs the same mapping\nas the MCP wrapper, so this field and `faceless` are two ways to\nsay the same thing. Sending both is fine only when they agree; a\ncontradiction (e.g. `production_mode: \"face_clone\"` with\n`faceless: true`) or a value outside the enum → HTTP 400\n`invalid_production_mode`. The effective value comes back in\nthe create response as `meta.faceless`.\n",
+            "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\",\"audio_url\")"
           },
           "source": {
             "type": "string",
@@ -4646,8 +4668,14 @@
           "faceless": {
             "type": "boolean",
             "default": false,
-            "description": "**Used when `output_type` is `scene` or `video`** for sources\ntext / idea / blog AND for audio sources (`audio_url` /\n`audio_base64`) — the script comes from a text input OR from\ntranscribing the user's audio, but the visuals must still be\ngenerated, so the same A/B-roll toggle applies. When `true`,\nEVERY scene is rendered as B-roll (stock video / AI image) with\nNO narrator A-roll anywhere — a \"faceless\" video. When `false`\n(default), scenes mix narrator A-roll + B-roll as usual.\nRejected with HTTP 400 `invalid_faceless` when `output_type=\"text\"`\n(no scenes are produced) or for video sources (`video_url` /\n`video_file` — the footage IS the visuals).\n",
-            "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\",\"audio_url\",\"audio_base64\")"
+            "description": "**Used when `output_type` is `scene` or `video`** for sources\ntext / idea / blog AND for `source=audio_url` — the script comes\nfrom a text input OR from transcribing the user's audio, but the\nvisuals must still be generated, so the same A/B-roll toggle\napplies. When `true`,\nEVERY scene is rendered as B-roll (stock video / AI image) with\nNO narrator A-roll anywhere — a \"faceless\" video. When `false`\n(default), scenes mix narrator A-roll + B-roll as usual.\nRejected with HTTP 400 `invalid_faceless` when `output_type=\"text\"`\n(no scenes are produced) or for video / uploaded-file sources\n(`video_url` / `video_file` / `audio_file`).\n`production_mode` is the same choice in the skill's words\n(`faceless` → true, `face_clone` / `teleprompter` → false); send\neither one. The effective value is echoed as `meta.faceless`.\n",
+            "x-widecast-applies-when": "output_type in (\"scene\",\"video\") and source in (\"text\",\"idea\",\"blog\",\"audio_url\")"
+          },
+          "presenter": {
+            "type": "boolean",
+            "default": false,
+            "description": "**AI-presenter (\"avatar\") lane.** When `true`, the video is rendered with\nyour AI presenter on screen (the account's photo set; the Video Wizard's\npresenter export) instead of the plain A/B-roll render. Omitted or `false` =\ntoday's behaviour exactly.\n\nRequirements, all checked **before any credit is charged**:\n* a paid plan (`GET /v1/account` → `features.avatar_video`) — Free / Trial\n  accounts get HTTP 402 `plan_required` and can make faceless videos only;\n* a ready photo set (`avatar_ready`) — otherwise HTTP 400\n  `presenter_not_ready` with `error.details.setup_url` (create the photo set,\n  and clone your voice, in WideCast Setup);\n* `source` in `text` / `idea` / `blog`, `output_type: \"video\"`, and not\n  combined with `faceless: true` (HTTP 400 `invalid_presenter` otherwise).\n\nThe presenter clips are generated while the final video renders, so expect a\nlonger render than a faceless video, and the presenter export may use\nadditional credits inside the render (same as the Video Wizard). The newest\nusable photo set is used; the response carries it in `meta.presenter.camera_set_id`.\n",
+            "x-widecast-applies-when": "output_type == \"video\" and source in (\"text\",\"idea\",\"blog\")"
           },
           "adjust": {
             "default": "off",
@@ -6106,15 +6134,28 @@
             "maxLength": 2000,
             "description": "Image description. Concrete visual nouns work better than\nabstract concepts — \"a wooden ladder against a red brick wall,\nmorning light\" beats \"climbing the corporate ladder\".\n"
           },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "scene",
+              "social"
+            ],
+            "default": "scene",
+            "description": "What the image is for. `scene` (default) = today's behaviour: a video\nbackground / scene image (video orientation, text kept inside the video safe\nzone). `social` = a standalone post image: the requested `ratio` is honoured\nexactly (centre-cropped when the engine returns a near size) and NO video\nsafe-zone instruction is added to the prompt.\n"
+          },
           "ratio": {
             "type": "string",
             "enum": [
               "portrait",
               "landscape",
-              "square"
+              "square",
+              "1:1",
+              "4:5",
+              "16:9",
+              "9:16"
             ],
             "default": "portrait",
-            "description": "Output aspect ratio. `portrait`=768×1344 (Reels/TikTok/Shorts),\n`landscape`=1344×768 (YouTube/blog hero), `square`=768×768 (IG feed).\n"
+            "description": "Output aspect ratio. With `purpose: scene` (default): `portrait`=768×1344\n(Reels/TikTok/Shorts), `landscape`=1344×768 (YouTube/blog hero),\n`square`=768×768 (IG feed). With `purpose: social`: one of `1:1`, `4:5`,\n`16:9`, `9:16` (default `1:1`; the words portrait / landscape / square are\naccepted as aliases for 9:16 / 16:9 / 1:1). A ratio from the wrong family\nis rejected with HTTP 400 `invalid_ratio`.\n"
           },
           "count": {
             "type": "integer",
@@ -6157,7 +6198,11 @@
             "enum": [
               "portrait",
               "landscape",
-              "square"
+              "square",
+              "1:1",
+              "4:5",
+              "16:9",
+              "9:16"
             ]
           }
         }
@@ -6194,8 +6239,17 @@
             "enum": [
               "portrait",
               "landscape",
-              "square"
+              "square",
+              "1:1",
+              "4:5",
+              "16:9",
+              "9:16"
             ]
+          },
+          "purpose": {
+            "type": "string",
+            "const": "social",
+            "description": "Echoed only when the request used purpose=social."
           },
           "prompt": {
             "type": "string"
@@ -6204,6 +6258,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GeneratedImage"
+            }
+          },
+          "agent_note": {
+            "type": "string",
+            "description": "Short instruction for AI agents: record the image(s) in the local dashboard\nlibrary (see `result.library_record`). Present on `completed` responses.\n"
+          },
+          "result": {
+            "type": "object",
+            "description": "Present on `completed` responses.",
+            "properties": {
+              "library_record": {
+                "$ref": "#/components/schemas/LibraryRecord"
+              }
             }
           },
           "error": {
@@ -7601,6 +7668,24 @@
             "type": "integer",
             "description": "Channel group the post was dispatched through (0 = primary)."
           },
+          "topic_id": {
+            "type": "string",
+            "description": "The WideCast video / article that was published. Present only when the request used `topic_id`."
+          },
+          "content_kind": {
+            "type": "string",
+            "enum": [
+              "video",
+              "article",
+              "text",
+              "photo"
+            ],
+            "description": "What was published: `video` (a WideCast video or an external `video_url`),\n`article` (a WideCast blog / social text), `text`, or `photo` (`text` + `photo_urls`).\n"
+          },
+          "agent_note": {
+            "type": "string",
+            "description": "Short instruction for AI agents: poll the status id, then record the post in the\nlocal dashboard library (`<bridge> tool provider call --operation getStatus --path id=<id>`\nfiles it; or pass the status response's `result.library_record` to\n`<bridge> tool content import --json`). Ignore it if you keep no local dashboard.\n"
+          },
           "metadata": {
             "type": "object",
             "additionalProperties": true
@@ -7697,6 +7782,10 @@
             "nullable": true,
             "description": "Informational nudge present on the `POST /v1/create_video` response\n(NOT on `/v1/status` polls) when the supplied `script_text` looks\nlike the caller skipped `widecast_get_writing_skill` — e.g. no\ninline `![alt](url)` markdown and no raw image/video URLs anywhere\nin the script. The render still proceeds (auto-B-roll fills the\ngap); this just teaches the AI to fetch the writing method next\ntime. The method is vendor-neutral — applies to any LLM.\n",
             "example": "script_text contains no inline media URLs. WideCast's writing method recommends …"
+          },
+          "agent_note": {
+            "type": "string",
+            "description": "Short instruction for AI agents that keep a local dashboard library: how to record this\npiece (pass `result.library_record` to `<bridge> tool content import --json`, or run\n`<bridge> tool provider call --operation getStatus --path id=<id>`). Present on the\n`create_video`, `export_video` and `create_content` responses, and on a `publish`-type\nstatus once it is `completed` / `failed`. Generic, harmless to ignore.\n"
           },
           "progress_hint": {
             "oneOf": [
@@ -7796,6 +7885,92 @@
             "format": "uri",
             "description": "Direct URL to the rendered MP4. Populated only for videos created\nwith `output_type: \"video\"` or exported via `POST /v1/export_video`.\n",
             "example": "https://widecast.ai/exports/huubinhnguyen/widecast7c0d4f8a9b1e2d3f/final.mp4"
+          },
+          "posts": {
+            "type": "array",
+            "description": "Per-platform results. Present only on a `publish`-type status (`type == \"publish\"`).",
+            "items": {
+              "$ref": "#/components/schemas/PublishPost"
+            }
+          },
+          "library_record": {
+            "$ref": "#/components/schemas/LibraryRecord"
+          }
+        }
+      },
+      "PublishPost": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "post_url": {
+            "type": "string",
+            "description": "Permalink; empty when the platform has none."
+          },
+          "post_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "description": "Empty on success."
+          }
+        }
+      },
+      "LibraryRecord": {
+        "type": "object",
+        "description": "A ready-to-file record of the piece for a local dashboard library — hand it to\n`<bridge> tool content import --json` as is. Added next to `agent_note` on\n`create_video`, `export_video`, `create_content`, `create_image` and (once final) a\n`publish`-type status. Only the fields the server knows are filled; complete or\ncorrect `title` / `body` with what you actually wrote or published.\n",
+        "required": [
+          "kind",
+          "status",
+          "source",
+          "title"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "video",
+              "blog",
+              "social_post",
+              "article",
+              "image"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ],
+            "description": "`published` only when at least one platform succeeded; `draft` for everything else, including a failed publish."
+          },
+          "source": {
+            "type": "string",
+            "const": "widecast"
+          },
+          "title": {
+            "type": "string"
+          },
+          "script": {
+            "type": "string",
+            "description": "Optional. The server never fills it (it does not echo your script back); add the narration script you sent when you record a create_video result."
+          },
+          "urls": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "`review` (viewer / editor), `public` (first live post or the first image), and one key per\nplatform that went live — `facebook`, or `facebook@2` for channel group 2.\n"
+          },
+          "external": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "`provider`, `topic_id`, `request_id`, `request_ids`, `channel_group`, `errors` (failed platforms), `ratio`, `image_urls`, `purpose` — whichever apply."
           }
         }
       },
@@ -8154,7 +8329,7 @@
         }
       },
       "PaymentRequired": {
-        "description": "The account cannot be charged for this operation — `error.code` is\n`credit_exhausted` (out of credits) or `account_expired`. The\nresponse carries an `error.details` object (see `CreditErrorDetails`)\nwith the upgrade URL, next monthly reset, and current/next plan info\nso AI clients can format a \"wait vs upgrade\" choice for the user\ninstead of just relaying the prose message.\n",
+        "description": "The account cannot be charged for this operation — `error.code` is\n`credit_exhausted` (out of credits), `account_expired`,\n`free_tier_limit_exceeded` (a Free account's script is over the Free\ncap — `error.details.free_tier_max_words`) or `plan_required` (a\nfeature the account's plan does not include, e.g. `presenter` on a\nFree / Trial account — `error.details.feature`). The\nresponse carries an `error.details` object (see `CreditErrorDetails`)\nwith the upgrade URL, next monthly reset, and current/next plan info\nso AI clients can format a \"wait vs upgrade\" choice for the user\ninstead of just relaying the prose message.\n",
         "content": {
           "application/json": {
             "schema": {

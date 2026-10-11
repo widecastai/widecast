@@ -20,7 +20,7 @@ You land here automatically the moment your script is ready. In the workflow tha
 
 ## Reading and editing your script
 
-A small counter above the script tracks it as you go. It starts at **0 words • 0 seconds** and updates live while you type, showing your current word count and the estimated time the script takes to read aloud. Watch it if you need a specific length: free-plan videos are capped at 60 seconds.
+A small counter above the script tracks it as you go. It starts at **0 words • 0 seconds** and updates live while you type, showing your current word count and the estimated time the script takes to read aloud. Watch it if you need a specific length: free-plan videos are capped at 90 seconds.
 
 To rewrite anything, click directly into the script text and edit it like any normal text box: fix a line, delete a sentence, or retype the whole thing.
 
@@ -57,7 +57,7 @@ Q: How do I open the Script Editor?
 A: It opens automatically once your script is written: in the workflow, the "Video Script" step shows "Tap to edit" when the AI is done, and tapping it takes you straight into the Script Editor. You can also reopen it later from the home screen by clicking a video that is still marked "Ready to Record".
 
 Q: How do I know how long my script will run?
-A: A counter at the top of the Script Editor tracks this for you. It starts at "0 words • 0 seconds" and updates live as you type, showing your current word count and the estimated time the script takes to read aloud. Free-plan videos are capped at 60 seconds, so watch the counter if you need to stay under that.
+A: A counter at the top of the Script Editor tracks this for you. It starts at "0 words • 0 seconds" and updates live as you type, showing your current word count and the estimated time the script takes to read aloud. Free-plan videos are capped at 90 seconds, so watch the counter if you need to stay under that.
 
 Q: Can I rewrite the script myself in the Script Editor?
 A: Yes. Click directly into the script text and edit it like any text box: fix a line, delete a sentence, or rewrite the whole thing. It is editable as soon as the Script Editor opens, with nothing to switch on first.

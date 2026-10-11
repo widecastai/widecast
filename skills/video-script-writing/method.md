@@ -22,9 +22,9 @@ Use your web search tool (ChatGPT `web.run` with `search_query`; Claude the `web
 
 Research anchors the **public tier** of the CORE RULE (laws, rates, stats, real events). **Practitioner-experience figures** (typical client costs/outcomes in the narrator's book of business) may instead be composite and true-to-context — see the two-tier CORE RULE in `SKILL.md`.
 
-### 3 — Write every fitting format (default all five; min 1) — compact narration, ~240–280 words each
+### 3 — Write every fitting format (default all five; min 1) — compact narration, ~240–280 words each (cap 360)
 
-Write the same idea in **every format that genuinely fits** — default all five, but only the ones that work honestly for this topic (see *Which formats to write* in `SKILL.md`); minimum one, maximize. For any format you skip, you'll show its coded heading + a one-line fit reason in step 4 (not a script). Keep each script at **~240–280 words (≈75–95s at 3.14 words/second; hard cap 300)** so the user can compare formats quickly. **Do NOT inline images yet** — Stage 1 is bare narration so the formats are easy to scan; the image work happens in Stage 2 only for the picked script(s). Follow each format's opening rule and spine (full per-format playbooks in `formats.md`):
+Write the same idea in **every format that genuinely fits** — default all five, but only the ones that work honestly for this topic (see *Which formats to write* in `SKILL.md`); minimum one, maximize. For any format you skip, you'll show its coded heading + a one-line fit reason in step 4 (not a script). Keep each script at **~240–280 words (≈75–95s at 3.14 words/second; hard cap 360)** so the user can compare formats quickly. **Do NOT inline images yet** — Stage 1 is bare narration so the formats are easy to scan; the image work happens in Stage 2 only for the picked script(s). Follow each format's opening rule and spine (full per-format playbooks in `formats.md`):
 
 - **VE — Value Explainer:** open with a 3-Layer Hook (10–22 words), then LIST or NORMAL body, then one CTA.
 - **QA — Client Q&A:** open with the customer's question verbatim (composite, signalled as common), then a crisp direct answer, then evidence/numbers, then the caveat/exception, then a soft CTA. No separate hook.

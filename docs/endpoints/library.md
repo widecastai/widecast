@@ -21,7 +21,7 @@ List the account's recent videos/scripts (20 per page). Query: `from_record` (de
 
 ## `GET /v1/account`
 
-Account profile + remaining credits. Returns `{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, connected_platforms, channel_groups}`. `connected_platforms` is the union across every channel group (de-duplicated); `channel_groups[]` gives the per-group breakdown.
+Account profile + remaining credits. Returns `{object:"account", company_id, plan, credits_remaining, valid_to, industry, sub_industry, email, name, location, features, avatar_ready, voice_clone_ready, connected_platforms, channel_groups}`. `features.avatar_video` is `true` when the plan allows AI-presenter videos (`create_video` with `presenter: true`; `false` on Free / Trial); `avatar_ready` is `true` when a usable photo set exists and `voice_clone_ready` when a cloned voice exists (both independent of the plan; create them in WideCast Setup). `connected_platforms` is the union across every channel group (de-duplicated); `channel_groups[]` gives the per-group breakdown.
 
 <!-- widecast-playground:account -->
 

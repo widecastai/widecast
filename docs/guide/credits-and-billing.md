@@ -33,7 +33,7 @@ Open the profile menu in the top corner and choose **Subscription & Credits**. T
 
 ## Free plan vs paid plans
 
-Free accounts can make videos up to **60 seconds** long. Paid accounts can make videos up to **5 minutes**. Most other features work the same, so you can try the flow end to end before upgrading; a few features are paid-only, such as connecting social accounts and voice cloning.
+Free accounts can make videos up to **90 seconds** long. Paid accounts can make videos up to **5 minutes**. Most other features work the same, so you can try the flow end to end before upgrading; a few features are paid-only, such as connecting social accounts and voice cloning.
 
 ## Upgrade or downgrade
 
@@ -68,7 +68,7 @@ Q: I ran out of credits. What do I do?
 A: Your monthly credit allowance is used up, so new generation is blocked. Upgrade to a bigger plan to get more credits immediately, or wait until your plan renews and the allowance resets. Your existing videos remain fully editable in the meantime.
 
 Q: What are the limits of the free plan?
-A: Free accounts can make videos up to 60 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
+A: Free accounts can make videos up to 90 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
 
 Q: How do I upgrade my plan?
 A: Open the profile menu, choose "Subscription & Credits", and pick the plan you want. Upgrades take effect immediately and you are charged the pro-rated difference for the rest of the cycle.

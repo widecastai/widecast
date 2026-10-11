@@ -131,7 +131,7 @@
 44. A: It opens automatically once your script is written: in the workflow, the "Video Script" step shows "Tap to edit" when the AI is done, and tapping it takes you straight into the Script Editor. You can also reopen it later from the home screen by clicking a video that is still marked "Ready to Record".
 
 45. Q: How do I know how long my script will run?
-45. A: A counter at the top of the Script Editor tracks this for you. It starts at "0 words • 0 seconds" and updates live as you type, showing your current word count and the estimated time the script takes to read aloud. Free-plan videos are capped at 60 seconds, so watch the counter if you need to stay under that.
+45. A: A counter at the top of the Script Editor tracks this for you. It starts at "0 words • 0 seconds" and updates live as you type, showing your current word count and the estimated time the script takes to read aloud. Free-plan videos are capped at 90 seconds, so watch the counter if you need to stay under that.
 
 46. Q: Can I rewrite the script myself in the Script Editor?
 46. A: Yes. Click directly into the script text and edit it like any text box: fix a line, delete a sentence, or rewrite the whole thing. It is editable as soon as the Script Editor opens, with nothing to switch on first.
@@ -842,7 +842,7 @@
 281. A: Your monthly credit allowance is used up, so new generation is blocked. Upgrade to a bigger plan to get more credits immediately, or wait until your plan renews and the allowance resets. Your existing videos remain fully editable in the meantime.
 
 282. Q: What are the limits of the free plan?
-282. A: Free accounts can make videos up to 60 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
+282. A: Free accounts can make videos up to 90 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
 
 283. Q: How do I upgrade my plan?
 283. A: Open the profile menu, choose "Subscription & Credits", and pick the plan you want. Upgrades take effect immediately and you are charged the pro-rated difference for the rest of the cycle.
@@ -890,7 +890,7 @@
 297. A: If it is too short, add real content: another example, more detail, or a closing call to action, until you clear the minimum. A full script you write or paste needs at least 80 words (500 words maximum); starting from an idea needs at least 5 words, and a blog article needs at least 30. If you are over the maximum on a full script, trim it down, since scripts are rejected for running too long. Ideas and blog articles work differently: go over their maximum, 1,000 words and 3,000 words, and WideCast just shortens them automatically instead of blocking you.
 
 298. Q: WideCast blocked my video for being too long, even though it's under 5 minutes. Why?
-298. A: The 5-minute cap is for paid plans. Free plan accounts have a separate, shorter limit of 60 seconds, whether the video is generated from a script or idea, or built from media you upload or link to directly. Go over that on a free account and WideCast blocks it and asks you to shorten it or upgrade. This is the same 60-second cap that limits how long a finished free-plan video can run; it just also applies on the way in, to whatever source you feed it. See [Credits, plans, and billing](guide/credits-and-billing.html) to check your plan or upgrade.
+298. A: The 5-minute cap is for paid plans. Free plan accounts have a separate, shorter limit of 90 seconds, whether the video is generated from a script or idea, or built from media you upload or link to directly. Go over that on a free account and WideCast blocks it and asks you to shorten it or upgrade. This is the same 90-second cap that limits how long a finished free-plan video can run; it just also applies on the way in, to whatever source you feed it. See [Credits, plans, and billing](guide/credits-and-billing.html) to check your plan or upgrade.
 
 299. Q: I tried to check on a video by its id and WideCast says it cannot find it. Why?
 299. A: The most common reason is a small typo or a dropped character when the id was copied; double-check it against wherever you got it from. Every video's id starts with "widecast," and checking its status only needs that id, nothing else, not even an API key, so this is not an access or login problem. If the id is exactly right and WideCast still cannot find it, that specific video genuinely does not exist under that id. Still stuck? Contact "Live Support" from the Account menu with the id you have.

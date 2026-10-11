@@ -183,7 +183,8 @@ info:
       unsupported_media_url | media_too_long | file_too_large |
       missing_api_key | invalid_api_key |
       invalid_language | invalid_video_length | invalid_research_enabled |
-      invalid_faceless | invalid_adjust | invalid_content_type | invalid_intervention_level |
+      invalid_faceless | invalid_production_mode | invalid_presenter | presenter_not_ready | plan_required |
+      invalid_purpose | invalid_adjust | invalid_content_type | invalid_intervention_level |
       ideas_failed | invalid_publish_input | invalid_platforms |
       no_platforms_connected | publish_not_ready | download_failed |
       publish_failed | free_tier_limit_exceeded | telegram_not_connected |
@@ -415,6 +416,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -2428,6 +2431,26 @@ paths:
                   email: { type: string }
                   name: { type: string }
                   location: { type: string }
+                  features:
+                    type: object
+                    description: Plan-dependent capabilities of this account.
+                    properties:
+                      avatar_video:
+                        type: boolean
+                        description: |
+                          `true` when the plan allows AI-presenter ("avatar") videos
+                          (`POST /v1/create_video` with `presenter: true`); `false` on Free / Trial
+                          (and expired) accounts, which can make faceless videos only.
+                  avatar_ready:
+                    type: boolean
+                    description: |
+                      `true` when at least one usable photo set (camera set) exists. Independent of the
+                      plan. Create it in WideCast Setup (https://widecast.ai/#setup).
+                  voice_clone_ready:
+                    type: boolean
+                    description: |
+                      `true` when a cloned voice exists. Independent of the plan. Create it in
+                      WideCast Setup (https://widecast.ai/#setup).
                   connected_platforms: { type: array, items: { type: string }, description: "Platforms connected in ANY channel group (de-duplicated, primary first). Per-group lists live in `channel_groups`; with a single group this is exactly that group's list." }
                   channel_groups:
                     type: array
@@ -3627,7 +3650,8 @@ components:
           description: |
             User's explicit answer to the three-way production question.
             Applies to source=text/idea/blog AND source=audio_url
-            (ignored for video sources — the footage IS the visuals).
+            (ignored for video sources — the footage IS the visuals — and
+            for `output_type="text"`, which makes no scenes).
             Three valid values, each with a different downstream UX:
               * `faceless` — B-roll only, no narrator on screen. The video
                 is fully automated; user just reviews and renders.
@@ -3639,19 +3663,25 @@ components:
               * `teleprompter` — the user records themselves reading the
                 script via WideCast's built-in teleprompter (after the
                 scenes prepare). No clone needed; user physically records.
-            Both `face_clone` and `teleprompter` produce a "normal" video
-            (narrator on screen) and map to the legacy `faceless=false`
-            on the REST endpoint — the distinction is purely so the AI
-            agent tells the user the right next step.
+            `faceless` maps to `faceless=true`. Both `face_clone` and
+            `teleprompter` produce a "normal" video (narrator on screen)
+            and map to `faceless=false` — the distinction is purely so the
+            AI agent tells the user the right next step.
             **Audio-source nuance** (source=audio_url): the user's original
             voice in the recording IS the narration in every mode — it is
             never re-synthesized via TTS. `face_clone` here means the clone's
             face is on screen lip-synced to the user's original audio (not
             to a clone-voice resynthesis); the clone contributes only the
             visual face, the voice stays the user's.
-            **MCP / Action callers**: pass the user's answer here; the MCP
-            wrapper performs the mapping. **SDK / curl callers**: skip this
-            field, set `faceless` directly as before.
+            **Every caller** (MCP, ChatGPT Action, SDK, curl) may pass the
+            user's answer here: the REST endpoint performs the same mapping
+            as the MCP wrapper, so this field and `faceless` are two ways to
+            say the same thing. Sending both is fine only when they agree; a
+            contradiction (e.g. `production_mode: "face_clone"` with
+            `faceless: true`) or a value outside the enum → HTTP 400
+            `invalid_production_mode`. The effective value comes back in
+            the create response as `meta.faceless`.
+          x-widecast-applies-when: 'output_type in ("scene","video") and source in ("text","idea","blog","audio_url")'
         source:
           type: string
           enum: [text, idea, blog, video_url, video_file, audio_url, audio_file]
@@ -3873,17 +3903,43 @@ components:
           default: false
           description: |
             **Used when `output_type` is `scene` or `video`** for sources
-            text / idea / blog AND for audio sources (`audio_url` /
-            `audio_base64`) — the script comes from a text input OR from
-            transcribing the user's audio, but the visuals must still be
-            generated, so the same A/B-roll toggle applies. When `true`,
+            text / idea / blog AND for `source=audio_url` — the script comes
+            from a text input OR from transcribing the user's audio, but the
+            visuals must still be generated, so the same A/B-roll toggle
+            applies. When `true`,
             EVERY scene is rendered as B-roll (stock video / AI image) with
             NO narrator A-roll anywhere — a "faceless" video. When `false`
             (default), scenes mix narrator A-roll + B-roll as usual.
             Rejected with HTTP 400 `invalid_faceless` when `output_type="text"`
-            (no scenes are produced) or for video sources (`video_url` /
-            `video_file` — the footage IS the visuals).
-          x-widecast-applies-when: 'output_type in ("scene","video") and source in ("text","idea","blog","audio_url","audio_base64")'
+            (no scenes are produced) or for video / uploaded-file sources
+            (`video_url` / `video_file` / `audio_file`).
+            `production_mode` is the same choice in the skill's words
+            (`faceless` → true, `face_clone` / `teleprompter` → false); send
+            either one. The effective value is echoed as `meta.faceless`.
+          x-widecast-applies-when: 'output_type in ("scene","video") and source in ("text","idea","blog","audio_url")'
+        presenter:
+          type: boolean
+          default: false
+          description: |
+            **AI-presenter ("avatar") lane.** When `true`, the video is rendered with
+            your AI presenter on screen (the account's photo set; the Video Wizard's
+            presenter export) instead of the plain A/B-roll render. Omitted or `false` =
+            today's behaviour exactly.
+
+            Requirements, all checked **before any credit is charged**:
+            * a paid plan (`GET /v1/account` → `features.avatar_video`) — Free / Trial
+              accounts get HTTP 402 `plan_required` and can make faceless videos only;
+            * a ready photo set (`avatar_ready`) — otherwise HTTP 400
+              `presenter_not_ready` with `error.details.setup_url` (create the photo set,
+              and clone your voice, in WideCast Setup);
+            * `source` in `text` / `idea` / `blog`, `output_type: "video"`, and not
+              combined with `faceless: true` (HTTP 400 `invalid_presenter` otherwise).
+
+            The presenter clips are generated while the final video renders, so expect a
+            longer render than a faceless video, and the presenter export may use
+            additional credits inside the render (same as the Video Wizard). The newest
+            usable photo set is used; the response carries it in `meta.presenter.camera_set_id`.
+          x-widecast-applies-when: 'output_type == "video" and source in ("text","idea","blog")'
         adjust:
           default: "off"
           description: |
@@ -5035,13 +5091,27 @@ components:
             Image description. Concrete visual nouns work better than
             abstract concepts — "a wooden ladder against a red brick wall,
             morning light" beats "climbing the corporate ladder".
+        purpose:
+          type: string
+          enum: [scene, social]
+          default: scene
+          description: |
+            What the image is for. `scene` (default) = today's behaviour: a video
+            background / scene image (video orientation, text kept inside the video safe
+            zone). `social` = a standalone post image: the requested `ratio` is honoured
+            exactly (centre-cropped when the engine returns a near size) and NO video
+            safe-zone instruction is added to the prompt.
         ratio:
           type: string
-          enum: [portrait, landscape, square]
+          enum: [portrait, landscape, square, "1:1", "4:5", "16:9", "9:16"]
           default: portrait
           description: |
-            Output aspect ratio. `portrait`=768×1344 (Reels/TikTok/Shorts),
-            `landscape`=1344×768 (YouTube/blog hero), `square`=768×768 (IG feed).
+            Output aspect ratio. With `purpose: scene` (default): `portrait`=768×1344
+            (Reels/TikTok/Shorts), `landscape`=1344×768 (YouTube/blog hero),
+            `square`=768×768 (IG feed). With `purpose: social`: one of `1:1`, `4:5`,
+            `16:9`, `9:16` (default `1:1`; the words portrait / landscape / square are
+            accepted as aliases for 9:16 / 16:9 / 1:1). A ratio from the wrong family
+            is rejected with HTTP 400 `invalid_ratio`.
         count:
           type: integer
           minimum: 1
@@ -5073,7 +5143,7 @@ components:
           description: URL to use as the thumbnail (currently same as `url`).
         ratio:
           type: string
-          enum: [portrait, landscape, square]
+          enum: [portrait, landscape, square, "1:1", "4:5", "16:9", "9:16"]
 
     ImageSetResponse:
       type: object
@@ -5087,11 +5157,25 @@ components:
             `completed` if every requested variant succeeded; `partial` if
             some variants failed (see `error` + the surviving `images`).
         count: { type: integer }
-        ratio: { type: string, enum: [portrait, landscape, square] }
+        ratio: { type: string, enum: [portrait, landscape, square, "1:1", "4:5", "16:9", "9:16"] }
+        purpose:
+          type: string
+          const: social
+          description: "Echoed only when the request used purpose=social."
         prompt: { type: string }
         images:
           type: array
           items: { $ref: '#/components/schemas/GeneratedImage' }
+        agent_note:
+          type: string
+          description: |
+            Short instruction for AI agents: record the image(s) in the local dashboard
+            library (see `result.library_record`). Present on `completed` responses.
+        result:
+          type: object
+          description: Present on `completed` responses.
+          properties:
+            library_record: { $ref: '#/components/schemas/LibraryRecord' }
         error:
           type: object
           description: Present only when `status == "partial"`.
@@ -6021,6 +6105,22 @@ components:
         channel_group:
           type: integer
           description: Channel group the post was dispatched through (0 = primary).
+        topic_id:
+          type: string
+          description: The WideCast video / article that was published. Present only when the request used `topic_id`.
+        content_kind:
+          type: string
+          enum: [video, article, text, photo]
+          description: |
+            What was published: `video` (a WideCast video or an external `video_url`),
+            `article` (a WideCast blog / social text), `text`, or `photo` (`text` + `photo_urls`).
+        agent_note:
+          type: string
+          description: |
+            Short instruction for AI agents: poll the status id, then record the post in the
+            local dashboard library (`<bridge> tool provider call --operation getStatus --path id=<id>`
+            files it; or pass the status response's `result.library_record` to
+            `<bridge> tool content import --json`). Ignore it if you keep no local dashboard.
         metadata:
           type: object
           additionalProperties: true
@@ -6103,6 +6203,14 @@ components:
             gap); this just teaches the AI to fetch the writing method next
             time. The method is vendor-neutral — applies to any LLM.
           example: "script_text contains no inline media URLs. WideCast's writing method recommends …"
+        agent_note:
+          type: string
+          description: |
+            Short instruction for AI agents that keep a local dashboard library: how to record this
+            piece (pass `result.library_record` to `<bridge> tool content import --json`, or run
+            `<bridge> tool provider call --operation getStatus --path id=<id>`). Present on the
+            `create_video`, `export_video` and `create_content` responses, and on a `publish`-type
+            status once it is `completed` / `failed`. Generic, harmless to ignore.
         progress_hint:
           oneOf:
             - { type: "null" }
@@ -6194,6 +6302,50 @@ components:
             Direct URL to the rendered MP4. Populated only for videos created
             with `output_type: "video"` or exported via `POST /v1/export_video`.
           example: https://widecast.ai/exports/huubinhnguyen/widecast7c0d4f8a9b1e2d3f/final.mp4
+        posts:
+          type: array
+          description: Per-platform results. Present only on a `publish`-type status (`type == "publish"`).
+          items: { $ref: '#/components/schemas/PublishPost' }
+        library_record:
+          $ref: '#/components/schemas/LibraryRecord'
+
+    PublishPost:
+      type: object
+      properties:
+        platform: { type: string }
+        success: { type: boolean }
+        post_url: { type: string, description: "Permalink; empty when the platform has none." }
+        post_id: { type: string }
+        error: { type: string, description: "Empty on success." }
+
+    LibraryRecord:
+      type: object
+      description: |
+        A ready-to-file record of the piece for a local dashboard library — hand it to
+        `<bridge> tool content import --json` as is. Added next to `agent_note` on
+        `create_video`, `export_video`, `create_content`, `create_image` and (once final) a
+        `publish`-type status. Only the fields the server knows are filled; complete or
+        correct `title` / `body` with what you actually wrote or published.
+      required: [kind, status, source, title]
+      properties:
+        kind: { type: string, enum: [video, blog, social_post, article, image] }
+        status:
+          type: string
+          enum: [draft, published]
+          description: "`published` only when at least one platform succeeded; `draft` for everything else, including a failed publish."
+        source: { type: string, const: widecast }
+        title: { type: string }
+        script: { type: string, description: "Optional. The server never fills it (it does not echo your script back); add the narration script you sent when you record a create_video result." }
+        urls:
+          type: object
+          additionalProperties: { type: string, format: uri }
+          description: |
+            `review` (viewer / editor), `public` (first live post or the first image), and one key per
+            platform that went live — `facebook`, or `facebook@2` for channel group 2.
+        external:
+          type: object
+          additionalProperties: true
+          description: "`provider`, `topic_id`, `request_id`, `request_ids`, `channel_group`, `errors` (failed platforms), `ratio`, `image_urls`, `purpose` — whichever apply."
 
     ProgressHint:
       type: object
@@ -6501,7 +6653,11 @@ components:
     PaymentRequired:
       description: |
         The account cannot be charged for this operation — `error.code` is
-        `credit_exhausted` (out of credits) or `account_expired`. The
+        `credit_exhausted` (out of credits), `account_expired`,
+        `free_tier_limit_exceeded` (a Free account's script is over the Free
+        cap — `error.details.free_tier_max_words`) or `plan_required` (a
+        feature the account's plan does not include, e.g. `presenter` on a
+        Free / Trial account — `error.details.feature`). The
         response carries an `error.details` object (see `CreditErrorDetails`)
         with the upgrade URL, next monthly reset, and current/next plan info
         so AI clients can format a "wait vs upgrade" choice for the user

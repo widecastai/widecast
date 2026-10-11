@@ -144,14 +144,21 @@ MEDIA_MAX_DURATION_SECONDS = 300                 # 5 min — server enforces (me
 MEDIA_MAX_FILE_BYTES = 100 * 1024 * 1024         # 100 MB — uploads only (file_too_large)
 
 # Free-tier (paid=0) cap. Paid accounts hit the 80-500 / 5-1000 / 30-3000 word
-# bounds + 5-min media duration above; free accounts hit a stricter ~60s
-# narration cap at 4 words/second = 240 effective spoken words for text/idea/
-# blog, and 60s media duration for audio_*/video_*. Server rejects with
-# 402 free_tier_limit_exceeded + details.pricing_url.
-FREE_TIER_MAX_SECONDS = 60
+# bounds + 5-min media duration above; free accounts hit a stricter ~90s
+# narration cap at 4 words/second = 360 effective spoken words for text/idea/
+# blog, and 90s media duration for audio_*/video_*. Server rejects with
+# 402 free_tier_limit_exceeded + details.pricing_url. (Was 60s / 240 words until 2026-10-09.)
+FREE_TIER_MAX_SECONDS = 90
 FREE_TIER_WORDS_PER_SECOND = 4
 FREE_TIER_MAX_WORDS = FREE_TIER_MAX_SECONDS * FREE_TIER_WORDS_PER_SECOND
 PRICING_URL = "https://widecast.ai/#pricing_plans"
+
+# AI-presenter ("avatar") lane of create_video(presenter=True) — mirrors the server's
+# _WIDECAST_PRESENTER_SOURCES. Private on purpose (the public surface is locked by a test).
+_PRESENTER_SOURCES = ("text", "idea", "blog")
+# create_image(purpose="social"): the exact post ratios (and the legacy words accepted as aliases).
+_SOCIAL_IMAGE_RATIOS = ("1:1", "4:5", "16:9", "9:16")
+_SOCIAL_IMAGE_RATIO_ALIASES = {"square": "1:1", "landscape": "16:9", "portrait": "9:16"}
 
 
 def _default_base_url() -> str:
@@ -457,6 +464,7 @@ class Widecast:
                      research_enabled: bool = True,
                      output_type: str = "scene",
                      faceless: bool = False,
+                     presenter: bool = False,
                      adjust: Union[str, Mapping[str, Any], None] = "off",
                      media_pool: Optional[list] = None,
                      wait_for_render: bool = False,
@@ -536,6 +544,16 @@ class Widecast:
                               with output_type scene/video for sources
                               text/idea/blog (see FACELESS_SOURCES); else
                               raises invalid_faceless.
+            presenter:        If True, render with your AI presenter on screen
+                              (your photo set) instead of the plain A/B-roll
+                              render. Default False = unchanged behaviour.
+                              Needs output_type="video", source text/idea/blog
+                              and not faceless (else invalid_presenter); a
+                              paid plan (402 plan_required on Free / Trial —
+                              see account()["features"]["avatar_video"]) and a
+                              ready photo set (400 presenter_not_ready —
+                              account()["avatar_ready"]; create it in WideCast
+                              Setup). Checked before any credit is charged.
             adjust:           Audio sources only (audio_url/audio_file) —
                               treatment of the ingested audio BEFORE the
                               pipeline. "off" (default, untouched);
@@ -611,6 +629,28 @@ class Widecast:
                     f"{list(FACELESS_SOURCES)} (got source={source!r}).",
                     code="invalid_faceless", param="faceless")
 
+        # presenter = AI-presenter lane. Mirrors the server's invalid_presenter rules.
+        if not isinstance(presenter, bool):
+            raise InvalidRequestError(
+                f"presenter must be a bool (got {type(presenter).__name__}).",
+                code="invalid_presenter", param="presenter")
+        if presenter:
+            if faceless:
+                raise InvalidRequestError(
+                    "presenter and faceless are mutually exclusive: faceless forces every "
+                    "scene to B-roll, presenter puts your AI presenter on screen.",
+                    code="invalid_presenter", param="presenter")
+            if source not in _PRESENTER_SOURCES:
+                raise InvalidRequestError(
+                    f"presenter is only supported for source in {list(_PRESENTER_SOURCES)} "
+                    f"(got source={source!r}).",
+                    code="invalid_presenter", param="presenter")
+            if output_type != "video":
+                raise InvalidRequestError(
+                    "presenter requires output_type='video': the presenter clips are "
+                    "generated while the final video is rendered.",
+                    code="invalid_presenter", param="presenter")
+
         # adjust (A57) = audio-ingest treatment (audio_url/audio_file only).
         # Mirrors the server's invalid_adjust rule; bounds are the ADJUST_*
         # constants above.
@@ -673,6 +713,8 @@ class Widecast:
         body: dict = {"source": source, "output_type": output_type}
         if faceless:
             body["faceless"] = True
+        if presenter:
+            body["presenter"] = True
         if adjust_body is not None:
             body["adjust"] = adjust_body
         if media_pool:
@@ -1261,9 +1303,10 @@ class Widecast:
     # or do the rewrite locally instead.
 
     def create_image(self, prompt: str, *,
-                     ratio: str = "portrait",
+                     ratio: Optional[str] = None,
                      count: int = 1,
-                     topic_id: Optional[str] = None) -> dict:
+                     topic_id: Optional[str] = None,
+                     purpose: str = "scene") -> dict:
         """POST /v1/create_image — generate 1-4 AI images from a text prompt.
 
         **Synchronous.** Charges **1 credit per image** (count=4 → 4 credits).
@@ -1280,10 +1323,15 @@ class Widecast:
             prompt:    Required. Image description (≤2000 chars).
             ratio:     "portrait" (default, 768×1344), "landscape"
                        (1344×768), or "square" (768×768). Match the
-                       target video's aspect ratio.
+                       target video's aspect ratio. With purpose="social"
+                       see `purpose` (default "1:1").
             count:     1-4 (default 1). Each variation = 1 credit.
             topic_id:  Optional. Link to an existing video's asset
                        folder; omit for freeform generation.
+            purpose:   "scene" (default, unchanged: a video background image)
+                       or "social" (a standalone post image: pass
+                       ratio="1:1" | "4:5" | "16:9" | "9:16" — default "1:1",
+                       honoured exactly, no video safe-zone in the prompt).
 
         Returns dict ``{"object":"image_set", "status":"completed"|"partial",
         "count", "ratio", "prompt", "images":[{"number","url",
@@ -1293,7 +1341,21 @@ class Widecast:
             raise InvalidRequestError(
                 "prompt (image description) is required.",
                 code="missing_field", param="prompt")
-        if ratio not in ("portrait", "landscape", "square"):
+        if purpose not in ("scene", "social"):
+            raise InvalidRequestError(
+                f"purpose must be 'scene' or 'social' (got {purpose!r}).",
+                code="invalid_purpose", param="purpose")
+        if ratio is None:                    # not chosen: scene keeps "portrait", a social post defaults to 1:1
+            ratio = "1:1" if purpose == "social" else "portrait"
+        if purpose == "social":
+            # a post image: the exact social ratios; the legacy words are aliases
+            ratio = _SOCIAL_IMAGE_RATIO_ALIASES.get(ratio, ratio)
+            if ratio not in _SOCIAL_IMAGE_RATIOS:
+                raise InvalidRequestError(
+                    f"with purpose='social', ratio must be one of {list(_SOCIAL_IMAGE_RATIOS)} "
+                    f"(got {ratio!r}).",
+                    code="invalid_ratio", param="ratio")
+        elif ratio not in ("portrait", "landscape", "square"):
             raise InvalidRequestError(
                 f"ratio must be one of ['portrait','landscape','square'] "
                 f"(got {ratio!r}).",
@@ -1303,6 +1365,8 @@ class Widecast:
                 "count must be an integer 1-4.",
                 code="invalid_count", param="count")
         body: dict = {"prompt": prompt.strip(), "ratio": ratio, "count": count}
+        if purpose == "social":
+            body["purpose"] = "social"
         if topic_id:
             body["topic_id"] = str(topic_id)
         return self._request("POST", "/v1/create_image",
@@ -1911,7 +1975,12 @@ class Widecast:
         return self._request("POST", "/v1/scene_inspector", json_body=body)
 
     def account(self) -> dict:
-        """GET /v1/account — account profile + remaining credits. Free."""
+        """GET /v1/account — account profile + remaining credits. Free.
+
+        Also reports the AI-presenter ("avatar") readiness the daily-content flow checks before
+        offering it: ``features["avatar_video"]`` (the plan allows presenter videos; False on
+        Free / Trial), ``avatar_ready`` (a usable photo set exists) and ``voice_clone_ready``
+        (a cloned voice exists). The last two are independent of the plan."""
         return self._get("/v1/account")
 
     def analytics(self, *, period: str = "last_week",

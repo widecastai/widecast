@@ -141,12 +141,16 @@ export interface CreateImageOptions {
   prompt: string;
   /** Output ratio. `portrait`=768×1344 (Reels/TikTok/Shorts),
    *  `landscape`=1344×768 (YouTube/blog hero), `square`=768×768 (IG feed).
-   *  Default `portrait`. */
-  ratio?: "portrait" | "landscape" | "square";
+   *  Default `portrait`. With `purpose: "social"` use `"1:1"` | `"4:5"` |
+   *  `"16:9"` | `"9:16"` instead (default `"1:1"`). */
+  ratio?: "portrait" | "landscape" | "square" | "1:1" | "4:5" | "16:9" | "9:16";
   /** How many variations in one call (1-4, default 1). Each = 1 credit. */
   count?: number;
   /** Optional. Link to an existing video's asset folder. */
   topic_id?: string;
+  /** `"scene"` (default, unchanged: a video background image) or `"social"` (a
+   *  standalone post image: the `ratio` is honoured exactly, no video safe-zone). */
+  purpose?: "scene" | "social";
 }
 
 /** One image in the create_image response. */
@@ -157,7 +161,7 @@ export interface GeneratedImage {
   url: string;
   /** URL to use as the thumbnail (currently same as `url`). */
   thumbnail_url: string;
-  ratio: "portrait" | "landscape" | "square";
+  ratio: "portrait" | "landscape" | "square" | "1:1" | "4:5" | "16:9" | "9:16";
 }
 
 /** Response of client.create_image(). */
@@ -165,10 +169,16 @@ export interface ImageSetResponse {
   object: "image_set";
   status: "completed" | "partial";
   count: number;
-  ratio: "portrait" | "landscape" | "square";
+  ratio: "portrait" | "landscape" | "square" | "1:1" | "4:5" | "16:9" | "9:16";
+  /** Echoed only when the request used `purpose: "social"`. */
+  purpose?: "social";
   prompt: string;
   images: GeneratedImage[];
   request_id: string;
+  /** Short instruction for agents that keep a local dashboard library (see `result.library_record`). */
+  agent_note?: string;
+  /** Present on completed responses: a ready-to-file library record of the image(s). */
+  result?: { library_record?: Record<string, unknown> };
   /** Present only when `status === "partial"` (some variants failed). */
   error?: { code: string; message: string; failed_at_number: number };
 }
@@ -788,13 +798,20 @@ export const MEDIA_MAX_FILE_BYTES = 100 * 1024 * 1024;    // 100 MB (file_too_la
 
 // Free-tier (paid=0) cap. Paid accounts hit the 80-500 / 5-1000 / 30-3000
 // word bounds + 5-min media duration above; free accounts hit a stricter
-// ~60s narration cap at 4 words/second = 240 effective spoken words for
-// text/idea/blog, and 60s media duration for audio_*/video_*. Server
+// ~90s narration cap at 4 words/second = 360 effective spoken words for
+// text/idea/blog, and 90s media duration for audio_*/video_*. Server
 // rejects with 402 `free_tier_limit_exceeded` + `details.pricing_url`.
-export const FREE_TIER_MAX_SECONDS = 60;
+// (Was 60s / 240 words until 2026-10-09.)
+export const FREE_TIER_MAX_SECONDS = 90;
 export const FREE_TIER_WORDS_PER_SECOND = 4;
-export const FREE_TIER_MAX_WORDS = FREE_TIER_MAX_SECONDS * FREE_TIER_WORDS_PER_SECOND; // 240
+export const FREE_TIER_MAX_WORDS = FREE_TIER_MAX_SECONDS * FREE_TIER_WORDS_PER_SECOND; // 360
 export const PRICING_URL = "https://widecast.ai/#pricing_plans";
+// create_video({ presenter: true }) — AI-presenter lane; mirrors the server's
+// _WIDECAST_PRESENTER_SOURCES. Not exported (the public surface is locked by a test).
+const PRESENTER_SOURCES = ["text", "idea", "blog"] as const;
+// create_image({ purpose: "social" }) — the exact post ratios (+ the legacy words as aliases).
+const SOCIAL_IMAGE_RATIOS = ["1:1", "4:5", "16:9", "9:16"] as const;
+const SOCIAL_IMAGE_RATIO_ALIASES: Record<string, string> = { square: "1:1", landscape: "16:9", portrait: "9:16" };
 export const VIDEO_LENGTHS = ["short", "normal"] as const;
 export type VideoLength = (typeof VIDEO_LENGTHS)[number];
 export const LANGUAGES = ["English", "Vietnamese"] as const;
@@ -944,6 +961,14 @@ export interface CreateVideoOptions {
    *  with output_type scene/video for sources text/idea/blog (FACELESS_SOURCES);
    *  otherwise the server returns invalid_faceless. */
   faceless?: boolean;
+  /** If true, render with your AI presenter on screen (your photo set) instead of
+   *  the plain A/B-roll render. Default false = unchanged behaviour. Needs
+   *  output_type "video", source text/idea/blog and not `faceless` (else
+   *  invalid_presenter); a paid plan (402 plan_required on Free / Trial — see
+   *  `account().features.avatar_video`) and a ready photo set (400
+   *  presenter_not_ready — `account().avatar_ready`; create it in WideCast
+   *  Setup). Checked server-side before any credit is charged. */
+  presenter?: boolean;
   /** Audio sources only (audio_url/audio_file) — treatment of the ingested
    *  audio BEFORE transcription + scene cutting. "off" (default, untouched);
    *  "auto" (autotune engine — shapes each phrase's delivery, then normalises
@@ -1203,6 +1228,37 @@ export class Widecast {
         );
       }
     }
+    // presenter = AI-presenter lane. Mirrors the server's invalid_presenter rules.
+    const presenter = opts.presenter === true;
+    if (opts.presenter !== undefined && typeof opts.presenter !== "boolean") {
+      throw new InvalidRequestError(
+        `presenter must be a boolean (got ${JSON.stringify(opts.presenter)}).`,
+        { code: "invalid_presenter", param: "presenter" },
+      );
+    }
+    if (presenter) {
+      if (faceless) {
+        throw new InvalidRequestError(
+          "presenter and faceless are mutually exclusive: faceless forces every scene to " +
+          "B-roll, presenter puts your AI presenter on screen.",
+          { code: "invalid_presenter", param: "presenter" },
+        );
+      }
+      if (!(PRESENTER_SOURCES as readonly string[]).includes(source)) {
+        throw new InvalidRequestError(
+          `presenter is only supported for source in ${JSON.stringify(PRESENTER_SOURCES)} ` +
+          `(got source=${JSON.stringify(source)}).`,
+          { code: "invalid_presenter", param: "presenter" },
+        );
+      }
+      if (outputType !== "video") {
+        throw new InvalidRequestError(
+          "presenter requires output_type='video': the presenter clips are generated while " +
+          "the final video is rendered.",
+          { code: "invalid_presenter", param: "presenter" },
+        );
+      }
+    }
     // adjust (A57) = audio-ingest treatment (audio_url/audio_file only).
     // Mirrors the server's invalid_adjust rule; bounds are the ADJUST_* consts.
     let adjustBody: unknown = undefined;
@@ -1272,6 +1328,7 @@ export class Widecast {
     }
     const body: Record<string, unknown> = { source, output_type: outputType };
     if (faceless) body.faceless = true;
+    if (presenter) body.presenter = true;
     if (adjustBody !== undefined) body.adjust = adjustBody;
     if (Array.isArray(opts.media_pool) && opts.media_pool.length) {
       body.media_pool = opts.media_pool.filter((u) => typeof u === "string" && u.trim());
@@ -1767,8 +1824,22 @@ export class Widecast {
       throw new InvalidRequestError("prompt (image description) is required.",
         { code: "missing_field", param: "prompt" });
     }
-    const ratio = opts.ratio ?? "portrait";
-    if (!(["portrait", "landscape", "square"] as const).includes(ratio as any)) {
+    const purpose = opts.purpose ?? "scene";
+    if (purpose !== "scene" && purpose !== "social") {
+      throw new InvalidRequestError(
+        `purpose must be 'scene' or 'social' (got ${JSON.stringify(opts.purpose)}).`,
+        { code: "invalid_purpose", param: "purpose" });
+    }
+    // not chosen: scene keeps "portrait", a social post defaults to 1:1
+    let ratio: string = opts.ratio ?? (purpose === "social" ? "1:1" : "portrait");
+    if (purpose === "social") {
+      ratio = SOCIAL_IMAGE_RATIO_ALIASES[ratio] ?? ratio;
+      if (!(SOCIAL_IMAGE_RATIOS as readonly string[]).includes(ratio)) {
+        throw new InvalidRequestError(
+          `with purpose='social', ratio must be one of ${JSON.stringify(SOCIAL_IMAGE_RATIOS)} (got ${JSON.stringify(opts.ratio)}).`,
+          { code: "invalid_ratio", param: "ratio" });
+      }
+    } else if (!(["portrait", "landscape", "square"] as const).includes(ratio as any)) {
       throw new InvalidRequestError(
         `ratio must be one of ["portrait","landscape","square"] (got ${JSON.stringify(opts.ratio)}).`,
         { code: "invalid_ratio", param: "ratio" });
@@ -1781,6 +1852,7 @@ export class Widecast {
     const body: Record<string, unknown> = {
       prompt: opts.prompt.trim(), ratio, count,
     };
+    if (purpose === "social") body.purpose = "social";
     if (opts.topic_id) body.topic_id = opts.topic_id;
     return await this.#request<ImageSetResponse>("POST", "/v1/create_image", body);
   }
@@ -2187,7 +2259,12 @@ export class Widecast {
       "POST", "/v1/scene_inspector", body);
   }
 
-  /** GET /v1/account — account profile + remaining credits. Free. */
+  /** GET /v1/account — account profile + remaining credits. Free.
+   *
+   *  Also reports the AI-presenter ("avatar") readiness the daily-content flow checks before
+   *  offering it: `features.avatar_video` (the plan allows presenter videos; false on Free /
+   *  Trial), `avatar_ready` (a usable photo set exists) and `voice_clone_ready` (a cloned
+   *  voice exists). The last two are independent of the plan. */
   async account(): Promise<any> {
     return await this.#get("/v1/account");
   }

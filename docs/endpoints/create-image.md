@@ -38,7 +38,8 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/create_image" \
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `prompt` | string | yes | Image description (≤ 2000 chars). Concrete visual nouns work better than abstract concepts. |
-| `ratio` | string | no | `"portrait"` (default, 768×1344 — Reels/TikTok/Shorts), `"landscape"` (1344×768 — YouTube/blog hero), or `"square"` (768×768 — IG feed). |
+| `ratio` | string | no | With `purpose: "scene"` (default): `"portrait"` (default, 768×1344 — Reels/TikTok/Shorts), `"landscape"` (1344×768 — YouTube/blog hero), or `"square"` (768×768 — IG feed). With `purpose: "social"`: `"1:1"` (default), `"4:5"`, `"16:9"` or `"9:16"`; `portrait` / `landscape` / `square` are accepted as aliases for 9:16 / 16:9 / 1:1. |
+| `purpose` | string | no | `"scene"` (default, unchanged: a video background / scene image, kept inside the video safe zone) or `"social"` (a standalone **post image**: the requested `ratio` is honoured exactly, centre-cropped when the engine returns a near size, and no video safe-zone instruction is added). The response echoes `purpose: "social"`. |
 | `count` | integer | no | 1-4 (default 1). Each variation = **1 credit**. Use `count=3..4` when the user wants options to pick from. |
 | `topic_id` | string | no | Link the generated image to an existing video's asset folder so the scene editor can reuse it. Omit for freeform/standalone generation. |
 
@@ -84,7 +85,8 @@ If a later variant fails after earlier ones succeeded (paid + delivered), the re
 |---|---|---|
 | `missing_field` | 400 | `prompt` is empty. |
 | `prompt_too_long` | 400 | `prompt` > 2000 chars. |
-| `invalid_ratio` | 400 | `ratio` not in `["portrait","landscape","square"]`. |
+| `invalid_ratio` | 400 | `ratio` not in `["portrait","landscape","square"]` (or, with `purpose: "social"`, not in `["1:1","4:5","16:9","9:16"]`). |
+| `invalid_purpose` | 400 | `purpose` not `"scene"` or `"social"`. |
 | `invalid_count` | 400 | `count` outside 1-4. |
 | `credit_exhausted` / `account_expired` | 402 | Out of credits (see `error.details` for upgrade/wait info). |
 | `image_generation_failed` | 502 | Underlying engine failed on a variant. `status: "partial"` carries survivors. |

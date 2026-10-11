@@ -40,13 +40,22 @@ Publishing is asynchronous on the platform side: this returns the upstream `requ
   "request_ids": ["abc123"],
   "status": "processing",
   "platforms": ["youtube", "x"],
-  "skipped": []
+  "skipped": [],
+  "topic_id": "widecast7c0d4f8a9b1e2d3f",
+  "content_kind": "video",
+  "agent_note": "Recording step, do not skip: ..."
 }
 ```
+
+`topic_id` is present only when you published a WideCast video or article. `content_kind` says what went out: `video`, `article`, `text` or `photo`. `agent_note` is a short, generic instruction for agents that keep a local dashboard library: poll the status id, then record the post (see [Recording what you publish](#recording-what-you-publish)); ignore it if you keep none.
 
 Poll `GET /v1/status/{request_id}` (cadence 5s). For a publish id, `type` is `"publish"` and `result.posts[]` carries `{platform, success, post_url, post_id, error}`:
 - `status == "completed"` → all platforms reported back; check each `result.posts[].success`.
 - `status == "failed"` → the publish job failed upstream.
+
+### Recording what you publish
+
+Once a publish-type status is `completed` or `failed`, the response also carries `agent_note` and `result.library_record`, a ready-to-file record (`{kind, status, source: "widecast", title, urls, external}`) for a local dashboard library: `urls` has one key per platform that went live (`facebook`, or `facebook@2` for channel group 2), `status` is `published` only when at least one platform succeeded (a fully failed publish is `draft`), and `external` carries `topic_id`, `request_id` and `channel_group`. Pass it to `<bridge> tool content import --json`, or let `<bridge> tool provider call --operation getStatus --path id=<request_id>` file it. A post that is never recorded does not show up in that dashboard. If you keep no local library, ignore both fields.
 
 ### SDK
 
