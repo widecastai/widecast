@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "sensory-journal",
+  "display_name": "Nhật ký giàu cảm giác",
+  "language": "en",
+  "source_author": "Jonna Jinton",
+  "source_author_type": "person",
+  "source_profile_url": "https://jonnajintonsweden.com/our-story/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "jonna-jinton-been-a-while",
+      "title": "It’s been a while",
+      "source_url": "https://jonnajintonsweden.com/2026/05/04/its-been-a-while/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "jonna-jinton-ice-melting",
+      "title": "The ice is melting",
+      "source_url": "https://jonnajintonsweden.com/2025/04/22/the-ice-is-melting/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "jonna-jinton-hello",
+      "title": "A little hello",
+      "source_url": "https://jonnajintonsweden.com/2024/02/10/a-little-hello/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

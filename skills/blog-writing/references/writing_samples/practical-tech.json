@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "practical-tech",
+  "display_name": "Phân tích từ thực tế kỹ thuật",
+  "language": "en",
+  "source_author": "Gergely Orosz",
+  "source_author_type": "person",
+  "source_profile_url": "https://blog.pragmaticengineer.com/about/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "gergely-orosz-code-reviews",
+      "title": "Good Code Reviews, Better Code Reviews",
+      "source_url": "https://blog.pragmaticengineer.com/good-code-reviews-better-code-reviews/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "gergely-orosz-readable-code",
+      "title": "Readable Code",
+      "source_url": "https://blog.pragmaticengineer.com/readable-code/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "gergely-orosz-product-minded",
+      "title": "The Product-Minded Software Engineer",
+      "source_url": "https://blog.pragmaticengineer.com/the-product-minded-engineer/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

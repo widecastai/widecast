@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "candid-conversation",
+  "display_name": "Tâm tình thẳng thắn",
+  "language": "vi",
+  "source_author": "Thông Phan",
+  "source_author_type": "person",
+  "source_profile_url": "https://www.thongphan.com/blog",
+  "examples": [
+    {
+      "id": "thong-phan-content-bang-chung",
+      "title": "Muốn tồn tại (và kiếm được NHIỀU tiền) nhất định phải làm content",
+      "file": "references/writing_samples/texts/thong-phan-content-bang-chung.txt",
+      "source_url": "https://www.vietnambusinessinsider.vn/muon-ton-tai-va-kiem-duoc-nhieu-tien-nhat-dinh-phai-lam-content-dac-biet-la-o-thoi-dai-ai-nay-a53849.html",
+      "rights_status": "user_supplied",
+      "rights_url": null,
+      "provenance": "user_supplied_chat",
+      "word_count_whitespace": 792,
+      "sha256": "a22a8cf3d6e9703a001a3aa795f88c8737c096b92cd71a37645a96233ad0bf3e",
+      "use": "style_reference_only",
+      "claims_verified": false,
+      "user_requested_word_replacements": {
+        "anh em": "mọi người",
+        "tui": "mình"
+      }
+    },
+    {
+      "id": "thong-phan-brain2-ba-nang-luc",
+      "title": "Tuổi 3x muốn 2026 đạt 60tr+/tháng",
+      "file": "references/writing_samples/texts/thong-phan-brain2-ba-nang-luc.txt",
+      "source_url": "https://vietnambusinessinsider.vn/vi-sao-nguoi-ga-mo-dung-ai-lai-thang-nguoi-biet-het-moi-tinh-nang-a53212.html",
+      "rights_status": "user_supplied",
+      "rights_url": null,
+      "provenance": "user_supplied_chat",
+      "word_count_whitespace": 3844,
+      "sha256": "3d3f1d5bc8d4c7ccc99f139fd49daf90b3fc981d22a6794e5a712892d9896545",
+      "use": "style_reference_only",
+      "claims_verified": false,
+      "user_requested_word_replacements": {
+        "anh em": "mọi người",
+        "tui": "mình"
+      }
+    }
+  ],
+  "not_bundled": [
+    {
+      "id": "thong-phan-brain2-obsidian",
+      "title": "Xây Brain2 với Obsidian, bộ não thứ 2 của tui",
+      "source_url": "https://www.thongphan.com/blog/xay-brain2-voi-obsidian/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

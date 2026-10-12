@@ -36,6 +36,17 @@ a cloud sandbox), say so in one sentence, give the user the two commands of step
 terminal inside an empty folder, and ask them to open that folder in Claude Code or Codex and say
 `Set up WideCast`. Never install from a place the user cannot see.
 
+**Cloud agents install as HOSTED.** A cloud agent with its own shell, a persistent disk and a
+scheduler (Muse, dots, Manus, Codex cloud, Grok Bot and the like) does not hand off: it installs
+WideCast in its own workspace as a HOSTED runtime. It runs steps 1 to 3 below there, from the
+release manifest (https://origin.widecast.ai/agent/latest.json), then follows the HOSTED setup
+branch in `solo-agency/playbooks/SETUP_FLOW_ENTRYPOINT.md`: the bridge binary is unpacked without
+starting (`SOLO_AGENCY_SETUP_NO_START=1`), `tool runtime set hosted` marks the install, and
+nothing keeps running in the background or in a browser. The user then works on three pages of
+their WideCast account: the daily report (linked in each run notice), Approvals
+(https://widecast.ai/approve.html) and the CRM page (https://widecast.ai/crm.html). The install
+manifest's `hosts.hosted` entry (https://widecast.ai/install.json) carries the same recipe.
+
 1. Work in the folder the user opened for WideCast (if there is none, create one such as
    `~/WideCast` and tell them). That folder is the install root.
 2. Download the installer and run it there. It reads the release manifest, downloads the release

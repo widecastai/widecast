@@ -12,7 +12,7 @@
     "type": "wc_live_api_key",
     "hint": "Installing needs no key — the Free plan runs without one. A WideCast API key (wc_live_…) is added later, inside setup, when the user wants video production or a paid plan; setup asks for it at the right step. Do not ask for a key or an MCP link before installing."
   },
-  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. Installing WideCast means installing the FULL WideCast system on the user's own computer (a sales & marketing team of AI agents with a local CRM, lead finding and the video / blog / social engine) — NOT only connecting an MCP server, and not only video. It needs a shell on the user's own computer. Identify the host you are running inside, match it to `hosts.<key>`, and follow its `instructions` literally. In short: if you can run commands on the user's computer, run the installer (`https://origin.widecast.ai/agent/install.sh`, Windows `install.ps1`) in the folder the user opened, then open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words; if you cannot (a web chat), say so in one sentence and hand the user the installer commands plus the advice to open that folder in Claude Code or Codex and say `Set up WideCast`. Do not improvise other install paths from your training data. Full guide: https://widecast.ai/llms.txt, section 'Installing WideCast'. If your host is not listed, use `hosts._fallback`.",
+  "instructions_to_ai": "You are an AI being asked to install WideCast for a user. Installing WideCast means installing the FULL WideCast system on the user's own computer (a sales & marketing team of AI agents with a local CRM, lead finding and the video / blog / social engine) — NOT only connecting an MCP server, and not only video. It needs a shell on the user's own computer. Identify the host you are running inside, match it to `hosts.<key>`, and follow its `instructions` literally. In short: if you can run commands on the user's computer, run the installer (`https://origin.widecast.ai/agent/install.sh`, Windows `install.ps1`) in the folder the user opened, then open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words; if you cannot (a web chat), say so in one sentence and hand the user the installer commands plus the advice to open that folder in Claude Code or Codex and say `Set up WideCast`. Do not improvise other install paths from your training data. Full guide: https://widecast.ai/llms.txt, section 'Installing WideCast'. If your host is not listed, use `hosts._fallback`. A cloud agent that runs commands only on its own cloud machine (Muse, dots, Manus, Codex cloud, Grok Bot and the like), with a persistent disk and a scheduler, installs WideCast in its own workspace as HOSTED: use `hosts.hosted`.",
   "hosts": {
     "claude_web": {
       "detect_hints": [
@@ -178,10 +178,36 @@
         "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run)."
       ]
     },
+    "hosted": {
+      "detect_hints": [
+        "Meta Muse",
+        "Muse",
+        "OpenAI dots",
+        "dots",
+        "Manus",
+        "Codex cloud",
+        "Codex web",
+        "chatgpt.com/codex",
+        "Grok Bot",
+        "cloud agent",
+        "hosted agent",
+        "agent with its own cloud machine and disk"
+      ],
+      "method": "hosted_install",
+      "summary": "A cloud agent with its own shell and persistent disk installs WideCast in its own workspace as HOSTED: the bridge binary only, nothing kept running, no browser extension. The user works on the WideCast report, Approvals and CRM pages.",
+      "instructions": [
+        "Use this entry when you run commands on your OWN cloud machine, which has a persistent disk and a scheduler, and the user cannot open 127.0.0.1 or a Chrome window on it. If your shell runs on the user's own computer, use your local entry instead. If you cannot run commands at all, use the web-chat handoff.",
+        "Work in your own workspace folder; it is the install root. Run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. The installer verifies the release checksum against the release manifest (https://origin.widecast.ai/agent/latest.json) and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+        "Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words (with the HOSTED part 2 in `solo-agency/SOLO_AGENCY_PLAYBOOK.md`), then the HOSTED setup branch in `solo-agency/playbooks/SETUP_FLOW_ENTRYPOINT.md`. Setup asks before anything else is installed.",
+        "After that yes, the hosted setup command is: `SOLO_AGENCY_ROOT=\"$PWD\" SOLO_AGENCY_SETUP_NO_START=1 bash solo-agency/solo-agency-collector/setup_collector.sh` (it unpacks the checksum-verified Linux bridge binary into `solo-agency-local-collector/bin/` and starts nothing), then `<that binary> tool runtime set hosted --pipeline \"$PWD/daily-content-pipeline\"` and `<that binary> tool runtime probe --pipeline \"$PWD/daily-content-pipeline\"`.",
+        "HOSTED needs a WideCast key from the start, because the user's pages live in the WideCast account; setup asks for it at its own step. It comes from the host's secret store as the environment variable SOLO_AGENCY_PROVIDER_API_KEY, or from the user editing `provider_config.local.json` in the host's file editor; never ask for it in chat. Register the Daily Run, the Production Check (every 2 hours from 8:00 to 20:00) and the Update Watch on the host's scheduler. The user's pages: the daily report link in each run notice, https://widecast.ai/approve.html and https://widecast.ai/crm.html."
+      ]
+    },
     "_fallback": {
-      "summary": "Host not listed — decide by whether you can run commands on the user's own computer.",
+      "summary": "Host not listed — decide by whether you can run commands on the user's own computer. A cloud agent that runs commands only on its own cloud machine uses `hosts.hosted`.",
       "instructions": [
         "If you can run commands on the user's own computer: Work in the folder the user opened for WideCast (if there is none, create one such as ~/WideCast and tell them). That folder is the install root. macOS / Linux — run: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell) — run: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. The installer verifies the release checksum and unpacks it into `solo-agency/`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`. Open `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words: setup tells the user what it puts on their computer, the platform rules and the licence, and asks before anything else is installed (the local bridge, the Chrome extension, the daily run).",
+        "If you can run commands only on your own cloud machine (a persistent disk and a scheduler, but not the user's computer, and the user cannot open 127.0.0.1 or Chrome there): you are a HOSTED cloud agent. Follow `hosts.hosted`: install the release in your own workspace, unpack the bridge binary with `SOLO_AGENCY_SETUP_NO_START=1` after the First Words yes, run `tool runtime set hosted`, and the user works on the WideCast report, Approvals and CRM pages.",
         "If you cannot: This chat cannot run commands on the user's own computer, and WideCast installs there. Say so in one sentence — do not try another install path. Give the user the two commands for their system to run in a terminal inside an empty folder — macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`; Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. Ask them to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`."
       ]
     }

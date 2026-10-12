@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "data-stories",
+  "display_name": "Kể chuyện bằng dữ liệu",
+  "language": "en",
+  "source_author": "Tim Harford",
+  "source_author_type": "person",
+  "source_profile_url": "https://timharford.com/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "tim-harford-bookshop",
+      "title": "I was wrong about Bad Girl Books",
+      "source_url": "https://timharford.com/2026/10/i-was-wrong-about-bad-girl-books/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "tim-harford-random",
+      "title": "Random is as random does",
+      "source_url": "https://timharford.com/2026/09/random-is-as-random-does/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "tim-harford-vegetable-lamb",
+      "title": "Why the story of the Vegetable Lamb was believed",
+      "source_url": "https://timharford.com/2026/09/why-the-story-of-the-vegetable-lamb-was-believed/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

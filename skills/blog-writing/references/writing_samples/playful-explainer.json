@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "playful-explainer",
+  "display_name": "Giải thích dí dỏm",
+  "language": "en",
+  "source_author": "Tim Urban — Wait But Why",
+  "source_author_type": "person",
+  "source_profile_url": "https://waitbutwhy.com/wait-but-who",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "tim-urban-life-weeks",
+      "title": "Your Life in Weeks",
+      "source_url": "https://waitbutwhy.com/2014/05/life-weeks.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "tim-urban-tail-end",
+      "title": "The Tail End",
+      "source_url": "https://waitbutwhy.com/2015/12/the-tail-end.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "tim-urban-pixel",
+      "title": "Life is a Picture, But You Live in a Pixel",
+      "source_url": "https://waitbutwhy.com/2013/11/life-is-picture-but-you-live-in-pixel.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

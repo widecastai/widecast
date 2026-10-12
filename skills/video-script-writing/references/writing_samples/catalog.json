@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "mode": "bundled_references",
+  "backend_connected": true,
+  "runtime_sample_web_fetch": false,
+  "people_count": 15,
+  "additional_sources_count": 1,
+  "bundled_example_count": 8,
+  "styles": [
+    {
+      "id": "candid-conversation",
+      "display_name": "Tâm tình thẳng thắn",
+      "lookup_aliases": [
+        "thong-phan",
+        "Thông Phan"
+      ],
+      "language": "vi",
+      "available_offline": true,
+      "example_count": 2,
+      "manifest_file": "references/writing_samples/candid-conversation.json",
+      "topic_hints": [
+        "personal brand",
+        "work",
+        "business",
+        "opinion",
+        "everyday advice"
+      ],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "reflective-personal",
+      "display_name": "Tự sự điềm đạm",
+      "lookup_aliases": [
+        "chi-nguyen",
+        "Chi Nguyễn — The Present Writer",
+        "Chi Nguyễn"
+      ],
+      "language": "vi",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/reflective-personal.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "grounded-reflections",
+      "display_name": "Chiêm nghiệm gần gũi",
+      "lookup_aliases": [
+        "hieu-tv",
+        "Hiếu TV — Ngọc Hiếu",
+        "Hiếu TV"
+      ],
+      "language": "vi",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/grounded-reflections.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "growth-stories",
+      "display_name": "Kể chuyện trưởng thành",
+      "lookup_aliases": [
+        "rosie-nguyen",
+        "Rosie Nguyễn"
+      ],
+      "language": "vi",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/growth-stories.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "travel-impressions",
+      "display_name": "Du ký giàu hình ảnh",
+      "lookup_aliases": [
+        "ly-thanh-co",
+        "Lý Thành Cơ"
+      ],
+      "language": "vi",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/travel-impressions.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "blunt-perspective",
+      "display_name": "Phản biện bộc trực",
+      "lookup_aliases": [
+        "mark-manson",
+        "Mark Manson"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/blunt-perspective.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "stories-to-insight",
+      "display_name": "Kể chuyện để lý giải",
+      "lookup_aliases": [
+        "morgan-housel",
+        "Morgan Housel"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/stories-to-insight.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "compact-insight",
+      "display_name": "Ý ngắn, góc nhìn sắc",
+      "lookup_aliases": [
+        "seth-godin",
+        "Seth Godin"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/compact-insight.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "playful-explainer",
+      "display_name": "Giải thích dí dỏm",
+      "lookup_aliases": [
+        "tim-urban",
+        "Tim Urban — Wait But Why",
+        "Tim Urban"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/playful-explainer.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "simple-practice",
+      "display_name": "Giản dị và thực hành",
+      "lookup_aliases": [
+        "leo-babauta",
+        "Leo Babauta — Zen Habits",
+        "Leo Babauta"
+      ],
+      "language": "en",
+      "available_offline": true,
+      "example_count": 3,
+      "manifest_file": "references/writing_samples/simple-practice.json",
+      "topic_hints": [
+        "habits",
+        "reflection",
+        "creativity",
+        "practical guidance"
+      ],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "wry-reflection",
+      "display_name": "Chiêm nghiệm với nét hài kín đáo",
+      "lookup_aliases": [
+        "oliver-burkeman",
+        "Oliver Burkeman"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/wry-reflection.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "data-stories",
+      "display_name": "Kể chuyện bằng dữ liệu",
+      "lookup_aliases": [
+        "tim-harford",
+        "Tim Harford"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/data-stories.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "curious-thinking",
+      "display_name": "Khám phá tư duy",
+      "lookup_aliases": [
+        "anne-laure-le-cunff",
+        "Anne-Laure Le Cunff"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/curious-thinking.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "practical-tech",
+      "display_name": "Phân tích từ thực tế kỹ thuật",
+      "lookup_aliases": [
+        "gergely-orosz",
+        "Gergely Orosz"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/practical-tech.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "sensory-journal",
+      "display_name": "Nhật ký giàu cảm giác",
+      "lookup_aliases": [
+        "jonna-jinton",
+        "Jonna Jinton"
+      ],
+      "language": "en",
+      "available_offline": false,
+      "example_count": 0,
+      "manifest_file": "references/writing_samples/sensory-journal.json",
+      "topic_hints": [],
+      "auto_selection_scope": "general"
+    },
+    {
+      "id": "tech-news-analysis",
+      "display_name": "Tin công nghệ có phân tích",
+      "lookup_aliases": [
+        "ai-tech-news",
+        "AI TECH NEWS"
+      ],
+      "language": "vi",
+      "available_offline": true,
+      "example_count": 3,
+      "manifest_file": "references/writing_samples/tech-news-analysis.json",
+      "topic_hints": [
+        "technology",
+        "AI",
+        "software",
+        "research reporting"
+      ],
+      "auto_selection_scope": "technology"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "stories-to-insight",
+  "display_name": "Kể chuyện để lý giải",
+  "language": "en",
+  "source_author": "Morgan Housel",
+  "source_author_type": "person",
+  "source_profile_url": "https://collabfund.com/blog/authors/morgan/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "morgan-housel-practical",
+      "title": "Beautiful vs. Practical Advice",
+      "source_url": "https://collabfund.com/blog/beautiful-vs-practical-advice/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "morgan-housel-your-way",
+      "title": "Do It Your Way",
+      "source_url": "https://collabfund.com/blog/your-way-is-the-only-way/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "morgan-housel-repeatable",
+      "title": "Lucky vs. Repeatable",
+      "source_url": "https://collabfund.com/blog/lucky-vs-repeatable/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

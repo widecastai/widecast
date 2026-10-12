@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "travel-impressions",
+  "display_name": "Du ký giàu hình ảnh",
+  "language": "vi",
+  "source_author": "Lý Thành Cơ",
+  "source_author_type": "person",
+  "source_profile_url": "https://lythanhco.com/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "ly-thanh-co-dan-mach",
+      "title": "Đan Mạch Những Ngày Thu",
+      "source_url": "https://lythanhco.com/2025/11/01/dan-mach-nhung-ngay-thu/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "ly-thanh-co-seoul",
+      "title": "Quay lại Seoul khoảnh khắc giao mùa Hạ – Thu",
+      "source_url": "https://lythanhco.com/2025/10/09/quay-lai-seoul-khoanh-khac-giao-mua-ha-thu/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "ly-thanh-co-sapporo",
+      "title": "Đi Trượt Tuyết Tự Túc & Một Mình Ở Sapporo, Hokkaido",
+      "source_url": "https://lythanhco.com/2026/03/18/di-truot-tuyet-tu-tuc-mot-minh-o-sapporo-hokkaido/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

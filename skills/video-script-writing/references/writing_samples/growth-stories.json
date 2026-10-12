@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "growth-stories",
+  "display_name": "Kể chuyện trưởng thành",
+  "language": "vi",
+  "source_author": "Rosie Nguyễn",
+  "source_author_type": "person",
+  "source_profile_url": "https://rosienguyen.net/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "rosie-nguyen-nguoi-viet",
+      "title": "Tự sự của một người viết sách",
+      "source_url": "https://rosienguyen.net/2017/03/tu-su-cua-mot-nguoi-viet-sach.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "rosie-nguyen-nguoi-hoc",
+      "title": "Tự sự của một người thích học",
+      "source_url": "https://rosienguyen.net/2019/04/tu-su-cua-mot-nguoi-thich-hoc.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "rosie-nguyen-chap-canh",
+      "title": "Chắp cánh cho con",
+      "source_url": "https://rosienguyen.net/2013/10/chap-canh-cho-con.html",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

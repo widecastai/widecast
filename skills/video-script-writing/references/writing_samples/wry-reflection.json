@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "wry-reflection",
+  "display_name": "Chiêm nghiệm với nét hài kín đáo",
+  "language": "en",
+  "source_author": "Oliver Burkeman",
+  "source_author_type": "person",
+  "source_profile_url": "https://www.oliverburkeman.com/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "oliver-burkeman-fourhours",
+      "title": "The three-or-four-hours rule for getting creative work done",
+      "source_url": "https://www.oliverburkeman.com/fourhours",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "oliver-burkeman-never",
+      "title": "What if you never sort your life out?",
+      "source_url": "https://www.oliverburkeman.com/never",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "oliver-burkeman-river",
+      "title": "Treat your to-read pile like a river, not a bucket",
+      "source_url": "https://www.oliverburkeman.com/river",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

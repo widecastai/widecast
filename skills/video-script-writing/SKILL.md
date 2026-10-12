@@ -7,7 +7,7 @@ description: >-
   narration, or to create a video with WideCast (source="text" or "idea").
   This skill writes the SAME topic FIVE ways — one script in each of five
   formats (VE / QA / POV / CS / MB) — so the user can compare angles and pick
-  the one that fits, by short code. ALSO use for "make a video about [a real or
+  the one that fits. ALSO use for "make a video about [a real or
   current event / news story]": research the facts with web search, write the
   five scripts, AND (for the chosen one) harvest real direct image URLs to
   inline at the matching beats so each scene shows the actual photo. Covers the
@@ -27,6 +27,17 @@ Version: `modular-3.0` · This file is the **MASTER INDEX**. Detailed protocols 
 
 > **This is a personal-brand video, not a broadcast.** One person talking to one person across a table. The narrator may never have spoken on camera and will read the script off a teleprompter — so the script is also their coach: written so that simply reading it aloud comes out as a warm, plain, face-to-face conversation, with the feeling already placed in the words.
 ---
+
+## Read real writing samples before drafting
+
+Before writing the title, hook or first draft, read [writing_samples.md](writing_samples.md)
+and load the selected original reference text(s). Honor a sample supplied by the
+user or their selected style; otherwise choose from the available offline catalog.
+Keep the user's facts, speaker and language separate from the reference author's
+identity and examples. This is an additive, bundled reference library: the writing method below
+still applies, and no new WideCast API call is needed. For revisions, keep the same
+reference selection unless the user changes it. If they request no samples, follow
+the original method directly.
 
 ## What this skill produces — up to FIVE scripts, not one
 
@@ -169,6 +180,7 @@ The **Module id** column is what you pass to `widecast_get_writing_skill(format=
 
 | When you reach this step | Module id to load |
 |---|---|
+| Before drafting, and when the user changes the requested style | **`writing_samples`** — offline original-text references and selection |
 | Stage 1 + Stage 2 method (research → write five → pick → vet visuals → produce) | **`method`** — full 8-step workflow with all sub-steps |
 | Writing per-format spines (VE / QA / POV / CS / MB) | **`formats`** — per-format playbooks |
 | Stage 1 step 3 for the VE format — drafting the 3-Layer Hook | **`hooks`** — hook playbook + 12 templates |
@@ -257,5 +269,7 @@ Deliver the **clean spoken narration** for each of the five formats (Stage 1), u
 ---
 
 ## next_action
+
+**First → read `writing_samples.md` and load the selected reference text(s), unless the user opted out.**
 
 **Right now → load `method` (the full 8-step workflow) AND `formats` (per-format playbooks).** Then start Stage 1 step 1: lock the audience + the angle, research the facts, write every fitting format. Reach hook drafting → load `hooks`. Reach CTA → load `ctas`. Reach Stage 2 step 5 → load `research_visuals`. Reach hand-off → load `handoff`.

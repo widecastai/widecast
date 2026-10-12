@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "id": "simple-practice",
+  "display_name": "Giản dị và thực hành",
+  "language": "en",
+  "source_author": "Leo Babauta — Zen Habits",
+  "source_author_type": "person",
+  "source_profile_url": "https://zenhabits.net/about/",
+  "examples": [
+    {
+      "id": "leo-babauta-start",
+      "title": "A Short Guide to Starting, if You're Struggling",
+      "file": "references/writing_samples/texts/leo-babauta-start.txt",
+      "source_url": "https://zenhabits.net/start/",
+      "rights_status": "public_domain",
+      "rights_url": "https://zenhabits.net/uncopyright/",
+      "provenance": "author_website",
+      "word_count_whitespace": 443,
+      "sha256": "0b96262cae707b9d941ecc7fb9fe84ba98e454109dafe9fe55275338b2cb7886",
+      "use": "style_reference_only",
+      "claims_verified": false
+    },
+    {
+      "id": "leo-babauta-nothing",
+      "title": "The Art of Doing Nothing",
+      "file": "references/writing_samples/texts/leo-babauta-nothing.txt",
+      "source_url": "https://zenhabits.net/the-art-of-doing-nothing/",
+      "rights_status": "public_domain",
+      "rights_url": "https://zenhabits.net/uncopyright/",
+      "provenance": "author_website",
+      "word_count_whitespace": 1722,
+      "sha256": "789f481827f83e6ad6fc5ad8f6623b83c4d35bc3eaba03574cab00da013b99c9",
+      "use": "style_reference_only",
+      "claims_verified": false
+    },
+    {
+      "id": "leo-babauta-influence",
+      "title": "The Quiet Theory of Influence",
+      "file": "references/writing_samples/texts/leo-babauta-influence.txt",
+      "source_url": "https://zenhabits.net/shhh/",
+      "rights_status": "public_domain",
+      "rights_url": "https://zenhabits.net/uncopyright/",
+      "provenance": "author_website",
+      "word_count_whitespace": 353,
+      "sha256": "40b2b5a9ae681ade078ae7cad3b258bba7dff8ecb79e6b6cce3caa579f9e171f",
+      "use": "style_reference_only",
+      "claims_verified": false
+    }
+  ],
+  "not_bundled": []
+}

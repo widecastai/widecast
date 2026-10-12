@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "tech-news-analysis",
+  "display_name": "Tin công nghệ có phân tích",
+  "language": "vi",
+  "source_author": "AI TECH NEWS",
+  "source_author_type": "publication_or_page",
+  "source_profile_url": null,
+  "examples": [
+    {
+      "id": "technology-humanizer",
+      "title": "Model mới: Humanizer — AI viết xong, AI lại viết lại cho nó giống người",
+      "file": "references/writing_samples/texts/technology-humanizer.txt",
+      "source_url": null,
+      "rights_status": "user_supplied",
+      "rights_url": null,
+      "provenance": "user_supplied_chat",
+      "word_count_whitespace": 380,
+      "sha256": "9f6acfe18a1c33772dd3e2870515a5efff06060c0d72db7406f136edc0488519",
+      "use": "style_reference_only",
+      "claims_verified": false,
+      "raw_file": "references/writing_samples/raw/technology-humanizer.md",
+      "normalization": "Render Markdown link labels, remove link targets and bold delimiters, decode trailing HTML space; no prose rewriting.",
+      "user_requested_word_replacements": {
+        "anh em": "mọi người",
+        "tui": "mình"
+      }
+    },
+    {
+      "id": "technology-decision-model",
+      "title": "Microsoft Decision-1 — model trả về quyết định",
+      "file": "references/writing_samples/texts/technology-decision-model.txt",
+      "source_url": null,
+      "rights_status": "user_supplied",
+      "rights_url": null,
+      "provenance": "user_supplied_chat",
+      "word_count_whitespace": 470,
+      "sha256": "c6d7a4adacd0a326b743c25711cfcf61fa257fe5de6582e1e7ceb7277d8eb53f",
+      "use": "style_reference_only",
+      "claims_verified": false,
+      "raw_file": "references/writing_samples/raw/technology-decision-model.md",
+      "normalization": "Render Markdown link labels, remove link targets and bold delimiters, decode trailing HTML space; no prose rewriting."
+    },
+    {
+      "id": "technology-agent-persistence",
+      "title": "Claude bị chặn giữa bài test, và nó không chịu dừng lại",
+      "file": "references/writing_samples/texts/technology-agent-persistence.txt",
+      "source_url": null,
+      "rights_status": "user_supplied",
+      "rights_url": null,
+      "provenance": "user_supplied_chat",
+      "word_count_whitespace": 740,
+      "sha256": "a8e1cb9eed5a2d4051d1b117fb49d53593ab4530457b1ae20839f632c22c9dde",
+      "use": "style_reference_only",
+      "claims_verified": false,
+      "raw_file": "references/writing_samples/raw/technology-agent-persistence.md",
+      "normalization": "Render Markdown link labels, remove link targets and bold delimiters, decode trailing HTML space; no prose rewriting."
+    }
+  ],
+  "not_bundled": []
+}

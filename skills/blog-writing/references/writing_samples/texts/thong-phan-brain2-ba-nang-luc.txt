@@ -1,0 +1,116 @@
+Tuổi 3x muốn 2026 đạt 60tr+/tháng (trong khi nửa công ty bị đuổi, thị trường bị càn quét), thì mọi người cần thấm 3 thứ mà dù AI có thông minh tới đâu cũng không cướp được. 
+(Bài này mình viết dựa trên quan sát của Andrew Ng, thiên tài AI, người đặt nền móng cho Google Brain, top những người có ảnh hưởng lớn nhất đến sự phát triển của AI)
+Bài này dài, khoảng 16' đọc nhưng đáng từng giây, vì nó sẽ thay đổi toàn bộ cách mà mọi người đang dùng AI (và mọi người sẽ học được cách dùng của nhóm power user top 0.1% thế giới)
+Nếu chưa đọc được luôn thì lưu lại, tối đọc. Nếu có bạn bè đang vật vã với công việc và AI thì gửi cho nó, cái này là cửa thoát hiểm tức thời.
+Oke, dzô.
+--------------------
+VÌ SAO NGƯỜI "GÀ MỜ" DÙNG AI LẠI THẮNG NGƯỜI BIẾT HẾT MỌI TÍNH NĂNG?
+--------------------
+Mình quan sát trong 2 năm vừa rồi thứ khiến mình đứng hình, đó là sự chênh lệch kết quả giữa hai nhóm người dùng AI trông từ ngoài có vẻ y như nhau, cùng dùng ChatGPT, Claude, Gemini,... Cùng biết cách ra lệnh cho AI, cùng siêng năng, nhưng "sản phẩm" của nhóm này đọc xong phải wow, ấn tượng nhớ cả tuần còn của nhóm kia thì đọc xong người ta âm thầm chửi vì sặc mùi AI (nó nghe rất hay nhưng chả có gì đọng lại cả, sáo rỗng).
+Sự khác biệt không phải ở công cụ, không phải ở cách ra lệnh, mà là ở thứ họ đưa vào cho AI xử lý.
+AI giống một đầu bếp hạng nhất vậy, đầu bếp giỏi cỡ nào mà nguyên liệu tệ thì món cũng tệ, còn đầu bếp tầm tầm mà nguyên liệu ngon, xịn, có chất lượng thì vẫn ra được đĩa ăn ngon (hé hé).
+Người hiểu điều này thì dành thời gian tích luỹ "nguyên liệu" riêng của mình, còn người chưa hiểu thì cứ chạy đi học thêm kỹ thuật nấu trong khi tủ lạnh vẫn đang trống.
+Mình thấy một người bạn mình gọi đùa là "người dùng AI kiểu đồ đá" vì ổng không biết mấy tính năng fancy, không biết agent, không biết API, nhưng ổng chỉ làm mỗi một việc là viết xuống mọi thứ ổng học, mọi thứ ổng trải nghiệm, mọi quyết định và lý do tại sao, vào một hệ thống ghi chú có tổ chức trong 5 năm qua. 
+Rồi khi dùng AI, ổng đổ toàn bộ cái kho đó vào, và output của ổng có giọng điệu, có quan điểm, có tình huống thực tế ổng đã sống qua mà không một AI hay không một đồng nghiệp nào copy được vì họ không có 5 năm trải nghiệm đó trong đầu họ.
+Đây chính xác là thứ mà Alvin Toffler đã cảnh báo từ những năm 1970 trong Future Shock, bán hơn 6 triệu bản: xã hội thông tin không đào thải người kém thông minh, nó đào thải người không có cơ chế lọc và tổ chức thông tin riêng của mình (và trong thời đại AI thì câu đó đúng gấp 10 lần vì thông tin không khan hiếm nữa, cái khan hiếm là góc nhìn có chiều sâu mà chỉ mọi người mới có).
+Mọi người thử ngẫm lại 2 thứ thôi:
+1 - Lần cuối mọi người dùng AI ra được thứ gì thật sự độc đáo, mang giọng của mọi người, người khác đọc biết ngay là của mọi người, xảy ra trong hoàn cảnh nào?
+2- Lần mọi người dùng AI ra được thứ vừa tốt, vừa mượt, đầy đủ nhưng đọc xong y như 50 bài khác trên mạng, xảy ra sau thời điểm nào?
+Tự nhiên mọi người hiểu luôn.
+----------------------
+1 - BỘ NÃO THỨ 2, NGUYÊN LIỆU ĐỘC QUYỀN MÀ AI CỦA MỌI NGƯỜI CẦN
+----------------------
+Nói sợ mọi người buồn chứ bộ não sinh học của mình được thiết kế để quên, không phải để nhớ, và bao nhiêu năm đi học, đi làm, đọc sách, tham gia khoá học, trải qua sai lầm và thành công, rồi 80-90% trong số đó bay mất vì không có chỗ chứa có tổ chức. 
+Đó là lý do mà 10 năm sau nhiều người nhìn lại thấy mình "biết nhiều mà chẳng có gì trong tay", và đây là loại câu nói nghe quen nhưng khi tự áp vào mình thì đau hơn tưởng nhiều lắm (hic).
+Bộ não thứ 2 là hệ thống ghi chép và tổ chức tri thức cá nhân theo cách AI có thể đọc và dùng được, tức là mọi trải nghiệm mọi người đã sống qua, mọi góc nhìn mọi người hình thành, mọi quyết định và lý do đằng sau, mọi bài học rút ra, mọi quan sát về ngành mình đang làm.
+Cái tư tưởng hay ở đây mình đã mất gần 2 năm mới thật sự hiểu là AI chỉ xử lý dữ liệu đầu vào thôi. Và nếu dữ liệu đầu vào là cuộc đời, kinh nghiệm, góc nhìn riêng của mọi người thì đầu ra sẽ mang dấu vân tay của mọi người mà không ai copy được (vì đầu vào là độc bản, cuộc sống mỗi người đều khác nhau). 
+Nghe hiển nhiên nhưng 95% người dùng AI đang bỏ qua điều này vì cứ tập trung vào cách ra lệnh thay vì cách tích luỹ.
+Hay bị hiểu sai nhất là "viết nhật ký" hay "ghi chú linh tinh". 
+Không phải vậy.
+Nhật ký là để đọc lại cho vui, còn bộ não thứ 2 là để AI của mọi người đọc và xử lý thành sản phẩm, nội dung, quyết định. Khi mọi người hỏi AI "dựa trên những gì mình đã học và trải nghiệm, mình nên làm gì với vấn đề này", AI có thể trả lời bằng giọng của mọi người, không phải giọng chung chung mà đọc lên ai cũng thấy nó áp được cho bất kỳ ai.
+Mình bắt đầu xây thứ này 2 năm trước khi AI còn chưa phổ biến như bây giờ, và đó là quyết định mình thấy lãi nhất, sáng suốt nhất, dù hồi đó mình cũng không biết nó sẽ quan trọng đến mức này (hic).
+---
+Oke nghe hay đó, vậy giờ bắt đầu từ đâu, làm gì ngay hôm nay?
+Bước đầu tiên không cần mua phần mềm, không cần học gì thêm.
+Lấy bất kỳ thứ ghi chú nào mọi người đang có, Notion, Apple Notes, hay thậm chí file Docs và bắt đầu với 1 thói quen đơn giản này:
+Mỗi khi mọi người học được gì, đọc được gì, hay trải qua gì đáng nhớ, viết xuống 3 câu theo kiểu:
+(1) Bài học là gì,
+(2) Tại sao nó quan trọng với mọi người,
+(3) Mọi người sẽ áp dụng nó như thế nào vào công việc hiện tại. Không cần dài, 5-10 phút là đủ. 
+Mọi người sẽ thấy lợi ích ngay trong vài ngày là khi mọi người đưa đống ghi chú đó cho AI và hỏi về bất kỳ vấn đề gì trong công việc, AI sẽ  trả lời theo chính xác cách của mọi người thay vì trả lời kiểu chung chung mà đọc xong không biết áp dụng vào đâu.
+Bước tiếp theo, sau khi đã có thói quen ghi chú khoảng 2-3 tuần, mọi người bắt đầu tổ chức lại theo chủ đề, ngành, dự án. 
+Không cần hoàn hảo ngay từ đầu, hệ thống tốt nhất là hệ thống mọi người thật sự dùng được, không phải hệ thống trông đẹp trên ảnh chụp màn hình. 
+Sau đó thay vì mỗi lần cần viết một bài, làm một proposal hay chuẩn bị một buổi thuyết trình mọi người phải bắt đầu từ tờ giấy trắng, thì giờ mọi người có ngay kho tài liệu của mình để AI xử lý thành bản nháp đầu tiên trong vài phút, và bản nháp đó nghe như của mọi người chứ không phải của ai khác.
+(đây chính xác là cách mình tạo slide trình bày workshop chỉ trong 10 phút, lúc ăn cơm tối thì AI nô lệ làm cho mình =)))) )
+Mọi người có thể đọc thêm để đi sâu hơn:
+1 - "Building a Second Brain" của Tiago Forte là điểm khởi đầu tốt nhất, ổng là người đầu tiên hệ thống hoá khái niệm này thành phương pháp cụ thể có thể làm theo ngay, khoảng 250 trang, đọc một buổi chiều là xong phần lý thuyết và có thể bắt đầu thực hành ngay hôm sau. 
+Ổng có một khái niệm gọi là CODE (Capture, Organize, Distill, Express) tức là ghi lại, sắp xếp, cô đọng, và thể hiện ra. Và framework này dùng được ngay dù mọi người đang làm ngành gì.
+2 - "How to Take Smart Notes" của Sonke Ahrens mỏng hơn nhưng sâu hơn về cách tư duy khi ghi chép. Ổng dạy hệ thống Zettelkasten mà nhà triết học Niklas Luhmann đã dùng để viết hơn 70 cuốn sách và 400 bài báo học thuật trong đời mình, và điểm mấu chốt là ghi chú theo kiểu liên kết ý tưởng với nhau thay vì ghi chú theo kiểu lưu trữ thụ động. 
+Hai quyển này đọc cùng nhau sẽ hiểu cả "tại sao" lẫn "làm thế nào."
+Nếu muốn có góc nhìn từ thế giới AI cụ thể hơn thì kênh YouTube "Ali Abdaal" có một playlist về Second Brain và Personal Knowledge Management rất thực tế, ổng là bác sĩ người Anh bỏ việc đi làm creator và dùng hệ thống này để quản lý toàn bộ nội dung, lịch làm việc và tri thức của mình. 
+Xem playlist đó mất khoảng 3 tiếng nhưng tiết kiệm được cả tháng mò mẫm.
+-----------------------
+2 - NĂNG LỰC ĐÁNH GIÁ, THỨ DUY NHẤT QUYẾT ĐỊNH AI DÙNG AI TỐT HƠN AI
+-----------------------
+Đây là thứ mình muốn nói kỹ nhất vì nó vừa là lợi thế lớn nhất vừa là thứ ít người để ý nhất, và cũng là thứ mình thấy đang bị bỏ qua hoàn toàn trong hầu hết các khoá học AI hiện tại.
+Rồi sẽ đến lúc tất cả mọi người dùng được AI, đây là chuyện chắc chắn xảy ra giống như tất cả mọi người giờ đều biết dùng Google Search vậy. 
+Và khi ai cũng dùng được AI thì sự khác biệt không còn nằm ở "biết nhiều công cụ hay không" nữa, mà nằm ở câu hỏi này: khi AI cho ra một output, mọi người nhìn vào và biết ngay nó ổn hay chưa ổn, tại sao ổn, tại sao chưa, cần cải tiến chỗ nào, theo hướng nào? 
+Người không có năng lực đánh giá đó thì chấp nhận hết, người có thì biết sửa đúng chỗ, và kết quả cuối cùng khác nhau một trời một vực.
+Hãy nghĩ đến một em gái editor giỏi vừa xinh, cái làm ẻm khác biệt không phải biết nhiều từ hay nhiều ngữ pháp hơn, mà là khi đọc một đoạn văn ẻm ngửi ra ngay chỗ nào gãy nhịp, chỗ nào thừa, chỗ nào người đọc sẽ bỏ qua. Rồi ẻm sửa đúng chỗ đó. 
+(Và sau khi sửa thì khác biệt như ban ngày ban đêm)
+Đó là năng lực đánh giá được tích luỹ qua hàng ngàn giờ đọc và sửa bản thảo. Khi ẻm bắt AI viết, AI viết theo chuẩn của ẻm vì bả có thể giải thích được chuẩn đó là gì và tại sao.
+Paul Graham, người sáng lập Y Combinator nuôi lớn Airbnb, Dropbox, Stripe, ổng có một câu về writing nhưng mình thấy áp cho mọi nghề: "Nếu anh không thể giải thích tại sao cái này tốt, thì anh chỉ đang may mắn, không phải tốt." 
+Năng lực đánh giá chính là khả năng giải thích được "tại sao tốt" và hệ thống hoá nó thành tiêu chuẩn AI có thể học.
+Không phải mọi người sai vì không có thứ này từ trước, mà vì chưa ai nói cho mọi người biết rằng đây là thứ cần tài liệu hoá, chứ không chỉ để trong đầu rồi để nó bay mất theo thời gian.
+Và đây là chỗ không thể bắt chước được. Kể cả khi mọi người đưa năng lực đánh giá của mình cho người khác, họ cũng không dùng được vì nó gắn liền với bối cảnh, kinh nghiệm, và chuẩn riêng của mọi người. 
+Đây là thứ không thể copy, không thể mua, và thế giới AI nhân bản mọi thứ nhanh như điện thì thứ không copy được mới là thứ đáng giá nhất (hé hé).
+---
+Oke, ngon, thế giờ bắt đầu từ đâu, làm gì ngay hôm nay?
+Mỗi lần mọi người đưa ra một đánh giá bất kỳ trong công việc (hoặc là phản hồi từ AI) như kiểu bài viết này ổn hay không, thiết kế này đạt hay chưa, cuộc họp này hiệu quả hay lãng phí... Thì hãy viết xuống ngay 3 câu:
+(1) đánh giá là gì, 
+(2) tại sao, 
+(3) cần cải tiến chỗ nào theo hướng nào cụ thể. 
+Không cần dài, không cần hay, chỉ cần thật và cụ thể, thô càng tốt, gai góc càng tốt hơn.
+Sau 1 tháng mọi người sẽ có một bộ tiêu chí đánh giá trong ngành của mình mà mọi người có thể đưa thẳng cho AI để xài luôn. Chỉ cần nói "đây là chuẩn của mình, viết/làm theo chuẩn này", và AI sẽ ra kết quả khác hẳn so với khi không có chuẩn đó. 
+Sau 6 tháng, khi mọi người review công việc của người khác (nhân viên, đối tác, freelancer) mọi người có thể chỉ ra vấn đề cụ thể ngay lập tức thay vì cảm giác mơ hồ "hình như chưa ổn mà không biết chưa ổn ở đâu" (có AI hỗ trợ được luôn, trong chớp mắt), và đây là thứ làm cho mọi người trở thành người đáng để nghe trong ngành, không phải vì mọi người biết nhiều mà vì mọi người biết rõ.
+Một thực hành nâng cao hơn là mỗi tuần chọn 1 sản phẩm trong ngành mình thấy thật sự tốt và 1 thứ thấy tệ, viết xuống tại sao tốt và tại sao tệ, tối thiểu 3 lý do mỗi loại với ví dụ cụ thể. 
+Làm liên tục 3 tháng thì năng lực đánh giá của mọi người sẽ đi trước đồng nghiệp cùng ngành ít nhất 1-2 năm về độ sâu, không phải vì mọi người thông minh hơn mà vì mọi người đã luyện tập có hệ thống trong khi họ chưa bắt đầu.
+Mọi người có thể đọc thêm để đi sâu hơn:
+1- "So Good They Can't Ignore You" của Cal Newport là quyển quan trọng nhất mình gợi ý cho mục này, ổng dạy một khái niệm gọi là "career capital" (vốn nghề nghiệp) và lý giải tại sao người có vốn nghề nghiệp cao tích luỹ được lợi thế không thể bắt chước.
+Và cách duy nhất để có vốn đó là thực hành có chủ ý với phản hồi rõ ràng. 
+(Áp vào thế giới AI thì career capital của mọi người chính là năng lực đánh giá được tài liệu hoá này).
+2- "The E-Myth Revisited" của Michael Gerber, dù viết cho doanh nghiệp nhỏ nhưng cái framework về tài liệu hoá quy trình thì áp dụng cho cá nhân rất hay. Ổng có một câu mình không quên: "Nếu doanh nghiệp của anh phụ thuộc vào anh thì anh không có doanh nghiệp, anh chỉ có công việc". 
+Nếu thay "doanh nghiệp" bằng "hệ thống AI" thì cũng y vậy, nếu AI của mọi người phụ thuộc vào mọi người phải ra lệnh chi tiết từng bước một thay vì có thể tự chạy theo chuẩn đã được tài liệu hoá, thì mọi người không có hệ thống, anh chỉ có công cụ.
+Blog của Paul Graham là nơi đọc miễn phí (thuộc dạng đáng đọc nhất internet mất), đặc biệt bài "Taste" và "What You'll Wish You'd Known", ổng viết về cách phát triển khẩu vị thẩm mỹ và năng lực đánh giá trong bất kỳ lĩnh vực nào, và dù ổng viết về writing và startup nhưng framework thì áp dụng được cho mọi ngành.
+-------------------------
+3 - MỐI QUAN HỆ NGƯỜI VỚI NGƯỜI THẬT, LOẠI VỐN KHÔNG AI DOWNLOAD ĐƯỢC
+-------------------------
+Không có gì bí ẩn ở đây cả, đơn giản là trong cơn bão AI thì con người sẽ càng đói khát sự kết nối thật sự hơn bao giờ hết. Người nào xây dựng được mạng lưới quan hệ thật, có chiều sâu, dựa trên tin tưởng thật sự thì sẽ có một loại vốn mà AI muôn kiếp không thay thế được.
+Không phải thi nhau kết bạn, không phải networking kiểu phát danh thiếp rồi thôi, mà là những người thật sự biết mọi người là ai, biết mọi người giỏi cái gì và cần gì, và họ nhớ đến mọi người đúng vào lúc quan trọng nhất. 
+Đó là loại quan hệ mà thêm bất kỳ AI nào vào cũng không giả lập được vì nó có lịch sử thật, có trải nghiệm chung thật, và có sự chịu trách nhiệm bằng danh dự cá nhân thật.
+Cal Newport trong Deep Work có một góc nhìn hay. Trong thế giới kết nối quá mức (add friend dễ ồm, 1 click) thì thứ hiếm lại là sự chú ý và sự hiện diện thật sự. 
+Hai thứ đó AI không thể cung cấp vì AI không có cơ thể, không có lịch sử cảm xúc chung với ai, và không chịu trách nhiệm kết quả bằng danh dự cá nhân.
+Mình nói điều này không phải dạy đời đâu, mà vì mình tự thấy trong 3 năm qua, những cơ hội tốt nhất mình có được đều đến từ quan hệ người thật.
+(thậm chí cách dùng AI đúng nữa)
+Vậy nên ngay từ hôm nay mọi người cần thay đổi.
+Mỗi tuần chọn 1 người trong mạng lưới của mình (đồng nghiệp cũ, người quen trong ngành, ai đó từng giúp mình... ai cũng được) và gửi cho họ một thứ gì đó có giá trị thật sự với họ mà không kèm bất kỳ yêu cầu nào. (không chào bán không động cơ ngầm gì hết nghen)
+Nó có thể là một bài viết liên quan đến vấn đề họ đang làm, một thông tin về ngành và nó thú vị mà mọi người nghĩ họ chưa biết (bài viết kiểu này là 1 ví dụ như thế).
+Sau vài tháng mọi người sẽ bất ngờ vì tự nhiên mọi người có nhiều người inbox hỏi han nói chuyện, mang cơ hội đến sẵn trước của luôn. Không phải vì mọi người giỏi nhất mà vì mọi người là người mà người ta nhớ đến thật sự, đầu tiên.
+Thay vì chỉ tham dự sự kiện networking, hãy chủ động tạo ra không gian kết nối nhỏ sau đó. Có thể là cà phê nhóm 3-4 người cùng ngành mỗi tháng một lần, nhóm đọc sách nhỏ, hay một buổi chia sẻ không chính thức về thứ gì đó mọi người đang học. 
+Người tổ chức không gian luôn có lợi thế về quan hệ hơn người tham dự, vì họ là trung tâm kết nối chứ không phải một điểm trong mạng lưới.
+Như mình tham gia Black Table hàng tuần thứ 2 nè, tuần nào cũng 12h đêm mới về, nhưng trong đó học được nhiều thứ cực kỳ, toàn người xịn ở đa lĩnh vực, đa ngành và mấu chốt là rất tử tế. (nhiều mọi người hỏi sao mình cái gì cũng biết, đi cũng nhanh thì nó là đây, tận dụng tri thức của nhóm tinh hoa trong nhiều ngành, hé hé)
+Mọi người có thể đọc thêm để đi sâu hơn:
+1 - "Never Eat Alone" của Keith Ferrazzi là quyển kinh điển nhất về xây dựng mạng lưới theo hướng cho đi thật sự. Ổng có một triết lý xuyên suốt quyển sách là "generosity first" (cho trước, không tính toán), và mạng lưới tự nhiên sẽ lớn theo cách không thể bắt chước bằng networking có toan tính. Quyển này đọc trong 1 tuần và áp dụng được ngay luôn, rất đáng đầu tư thời gian.
+2- "The Art of Gathering" của Priya Parker, mỏng và dễ đọc hơn nhưng sẽ thay đổi cách mọi người nghĩ về việc tạo ra không gian kết nối thật sự. Thay vì chỉ tụ tập hình thức, ổng có một câu mình áp dụng mỗi lần tổ chức bất kỳ buổi gặp nào là:
+"Mỗi cuộc tụ họp phải có lý do cụ thể để mọi người có mặt ở đó, không phải chỉ là 'gặp nhau cho vui'".
+(Hiểu đơn giản là gặp nhau xong rồi được gì á)
+3 - "The Relationship Economy" của John DiJulius thì đi thẳng vào vấn đề kết nối trong thời đại AI. Ổng lập luận rằng khi tự động hoá thay thế càng nhiều công việc thì giá trị của kết nối người thật càng tăng theo cấp số nhân, và đây là quyển hiếm vì nó nói thẳng vào bối cảnh AI chứ không phải lý thuyết chung chung.
+---------
+KẾT
+---------
+Hết năm nay, mọi người sẽ thấy hai người bạn cùng làm trong ngành mình. 
+Một người đang cuống cuồng vì AI vừa ra công cụ mới, phải học liên tục chạy đua liên tục, cuống cuồng vì AI (nhưng trong tay không có gì vì chưa bao giờ tích luỹ thứ gì nằm ngoài tool).
+Một người ngồi uống cà phê, AI vừa ra công cụ mới thì ổng cũng chill, không quan tâm mấy. Ổng không hoảng vì ổng có thứ quan trọng nhất mà AI nào cũng cần, là cái lõi của việc dùng AI có hiệu quả hay không, có x3 x5 hiệu suất, tiền bạc như người ta kháo nhau không.
+Sự khác biệt này không phải tự nhiên hên hên mà có, mà nó là kết quả của việc chọn đúng cái cốt lõi để tập trung ngay từ đầu.
+Mọi người đoán xem mình đang ở đâu trong 2 nhóm này?
+Mình thì thích nhóm chill hơn, nên mình đang chạy thử thách 21 ngày xây Brain2 (chính là cái số 1 nãy mình nói). Từng bước nhỏ, mỗi ngày 10-15 phút, có checklist cụ thể để mọi người biết chính xác hôm nay làm gì, ngày mai làm gì, và cuối 21 ngày mọi người có gì trong tay.

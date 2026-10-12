@@ -645,7 +645,7 @@ const TOOLS = [
             type: "object",
             required: ["video_id"],
             properties: {
-                video_id: { type: "string", pattern: "^widecast[a-zA-Z0-9]{12,32}$", description: "Video id from widecast_create_video." },
+                video_id: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$", description: "Video id from widecast_create_video (widecast...), OR a publish request_id from widecast_publish." },
             },
         },
     },
@@ -1075,7 +1075,7 @@ const TOOLS = [
                 industry: { type: "string", description: "Optional industry tag. Falls back to the account's saved industry when omitted." },
                 source: { type: "string", description: "Optional provenance tag (default 'idea'). Use 'template' together with `template` to start the entry in the 'ab_roll' workflow phase instead of 'queued'." },
                 week_start: { type: "number", description: "Optional unix timestamp (seconds) for the plan week; used as the entry's creation_time. Defaults to now." },
-                topic_id: { type: "string", description: "Optional stable id for the entry. Auto-generated (widecast<hex>) when omitted." },
+                topic_id: { type: "string", description: "Optional stable id for the entry: 8-128 characters of letters, digits, _ or -, starting with a letter or digit. Auto-generated (widecast<hex>) when omitted." },
                 template: { type: "string", description: "Advanced: template id when queuing from a foundation template (source='template')." },
                 sub_industry: { type: "string", description: "Advanced: narrower sub-industry tag." },
                 core_topics: { type: "string", description: "Advanced: core topics for the idea." },

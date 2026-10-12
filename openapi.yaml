@@ -5833,7 +5833,7 @@ components:
           description: Optional unix timestamp (seconds) for the plan week; used as the entry's creation_time. Defaults to now.
         topic_id:
           type: string
-          description: Optional stable id for the entry. Auto-generated (`widecast<hex>`) when omitted.
+          description: "Optional stable id for the entry: 8-128 characters of letters, digits, `_` or `-`, starting with a letter or digit (else 400 `invalid_topic_id`). Auto-generated (`widecast<hex>`) when omitted."
         template:
           type: string
           description: "Advanced: template id when queuing from a foundation template (source='template')."

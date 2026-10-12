@@ -5,4 +5,8 @@ After loading any module below, its actual LINE COUNT must match its row here (s
 
 | module | lines | sha256 | last_line |
 |---|---|---|---|
-| SKILL.md | 179 | 49119b27fe6633fdb93e5cc5ecdbaf4017b5ee8fab0db6fe21304685b46d36c1 | user is technical and asks. |
+| SKILL.md | 190 | debd64e177db4e6f2bdd7418659d1f4b06e1159c49c35980bb2b885ce3324f47 | user is technical and asks. |
+| references/writing_samples/raw/technology-agent-persistence.md | 16 | d1ec0cea7ac0f36909c72f8bba076070a9d3c9ea2c6f540ccd645a64e208266e | Anthropic nói rõ họ không muốn xem nhẹ các phát hiện này, vì cùng những hành vi đó có thể gây hại lớn hơn nhiều khi mô hình mạnh hơn.&#x20; |
+| references/writing_samples/raw/technology-decision-model.md | 9 | b498c1fe1dfd255e796f9e4f2f7fecbc6bdab8a0e29564ce8f7add4902b797fe | Có hai điều nên nhớ khi đọc các con số này. Thứ nhất, mọi số liệu hiệu năng của Decision-1 đều do Microsoft tự đo, chưa có bên thứ ba kiểm chứng. Thứ hai, Decision-1 được huấn luyện thêm (post-train) từ Qwen3.5-9B của Alibaba chứ không xây từ đầu, và Microsoft mới nói là đang thử nghiệm, chưa phải đã triển khai rộng.&#x20; |
+| references/writing_samples/raw/technology-humanizer.md | 12 | de7ec0f5d3d680199fddb327ef1f00b5d8e589b16b374558611c041996657d3a | Tất nhiên vẫn phải đọc lại. Model còn lệch số, lệch ngày, lệch tên, thỉnh thoảng còn trả cả bài bằng tiếng Trung khi draft tiếng Anh quá ngắn và nhiều jargon. Tiếng Trung vẫn đang đuổi theo tiếng Anh. |
+| writing_samples.md | 93 | 39104520459595a499283f312c4efe3162e4040b9b021df20ff722e94c2bf434 | reference was loaded unless its actual text was read. |

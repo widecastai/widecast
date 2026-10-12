@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "reflective-personal",
+  "display_name": "Tự sự điềm đạm",
+  "language": "vi",
+  "source_author": "Chi Nguyễn — The Present Writer",
+  "source_author_type": "person",
+  "source_profile_url": "https://thepresentwriter.com/gioi_thieu/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "chi-nguyen-tu-choi",
+      "title": "Từ chối, thất bại, và “tiến hóa”",
+      "source_url": "https://thepresentwriter.com/tu-choi-that-bai-tien-hoa/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "chi-nguyen-offline",
+      "title": "Mình học được gì sau một tháng “offline”",
+      "source_url": "https://thepresentwriter.com/minh-hoc-duoc-gi/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "chi-nguyen-tai-nan",
+      "title": "Một ngày “tai nạn” của mình",
+      "source_url": "https://thepresentwriter.com/mot-ngay-tai-nan/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

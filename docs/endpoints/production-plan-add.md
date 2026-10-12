@@ -44,7 +44,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/production_plan/add" \
 | `industry` | string | no | Industry tag. **Falls back to the account's saved industry** when omitted. |
 | `source` | string | no | Provenance tag (default `idea`). Use `template` together with `template` to start the entry in the `ab_roll` phase instead of `queued`. |
 | `week_start` | integer | no | Unix timestamp (seconds) for the plan week; used as the entry's `creation_time`. Defaults to now. |
-| `topic_id` | string | no | Stable id for the entry. **Auto-generated** (`widecast<hex>`) when omitted. |
+| `topic_id` | string | no | Stable id for the entry: 8-128 characters of letters, digits, `_` or `-`, starting with a letter or digit. **Auto-generated** (`widecast<hex>`) when omitted. |
 | `template` | string | no | *Advanced.* Template id when queuing from a foundation template. |
 | `sub_industry` | string | no | *Advanced.* Narrower sub-industry tag. |
 | `core_topics` | string | no | *Advanced.* Core topics for the idea. |
@@ -92,6 +92,7 @@ When `recommended: true` was sent, the response also carries `"recommended": tru
 |---|---|---|
 | `missing_field` | 400 | `idea_text` is empty. |
 | `invalid_week_start` | 400 | `week_start` is not an integer (unix seconds). |
+| `invalid_topic_id` | 400 | `topic_id` is not 8-128 letters, digits, `_` or `-` (starting with a letter or digit). Omit it to get a generated one. |
 | `invalid_scripts` | 400 | `scripts` malformed: not a 1-5 array, bad/duplicate `format`, or missing `text`. |
 | `script_too_short` / `script_too_long` | 400 | A `scripts[].text` is outside the **80-1000** word bounds. |
 | `invalid_recommended_format` | 400 | `recommended_format` is not among the supplied `scripts[].format`. |

@@ -130,7 +130,7 @@
 <td><code>topic_id</code></td>
 <td>string</td>
 <td>no</td>
-<td>Stable id for the entry. <strong>Auto-generated</strong> (<code>widecast&lt;hex&gt;</code>) when omitted.</td>
+<td>Stable id for the entry: 8-128 characters of letters, digits, <code>_</code> or <code>-</code>, starting with a letter or digit. <strong>Auto-generated</strong> (<code>widecast&lt;hex&gt;</code>) when omitted.</td>
 </tr>
 <tr>
 <td><code>template</code></td>
@@ -231,6 +231,11 @@
 <td><code>invalid_week_start</code></td>
 <td>400</td>
 <td><code>week_start</code> is not an integer (unix seconds).</td>
+</tr>
+<tr>
+<td><code>invalid_topic_id</code></td>
+<td>400</td>
+<td><code>topic_id</code> is not 8-128 letters, digits, <code>_</code> or <code>-</code> (starting with a letter or digit). Omit it to get a generated one.</td>
 </tr>
 <tr>
 <td><code>invalid_scripts</code></td>

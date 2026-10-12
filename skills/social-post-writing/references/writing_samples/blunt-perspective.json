@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "blunt-perspective",
+  "display_name": "Phản biện bộc trực",
+  "language": "en",
+  "source_author": "Mark Manson",
+  "source_author_type": "person",
+  "source_profile_url": "https://markmanson.net/about",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "mark-manson-question",
+      "title": "The Most Important Question of Your Life",
+      "source_url": "https://markmanson.net/question",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "mark-manson-enough",
+      "title": "Do We Ever Feel Like We Have Enough?",
+      "source_url": "https://markmanson.net/do-we-ever-feel-we-have-enough",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "mark-manson-passion",
+      "title": "Screw Finding Your Passion",
+      "source_url": "https://markmanson.net/screw-finding-your-passion",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

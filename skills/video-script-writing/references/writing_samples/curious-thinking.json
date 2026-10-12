@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "curious-thinking",
+  "display_name": "Khám phá tư duy",
+  "language": "en",
+  "source_author": "Anne-Laure Le Cunff",
+  "source_author_type": "person",
+  "source_profile_url": "https://nesslabs.com/author/annelaure",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "anne-laure-le-cunff-optionality",
+      "title": "Unlocking the power of optionality",
+      "source_url": "https://nesslabs.com/optionality-fallacy",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "anne-laure-le-cunff-mind-garden",
+      "title": "You and your mind garden",
+      "source_url": "https://nesslabs.com/mind-garden",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "anne-laure-le-cunff-fail",
+      "title": "Fail like a scientist",
+      "source_url": "https://nesslabs.com/fail-like-a-scientist",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

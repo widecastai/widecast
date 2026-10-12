@@ -38,6 +38,17 @@ and E-E-A-T practice. A WideCast blog can also be **repurposed into a video** vi
 - **Humble authority.** Show experience; never declare "I'm an expert."
 - **Search-aligned but human-first.** Written for a person, structured for a crawler.
 
+## Read real writing samples before drafting
+
+Before writing the title, hook or first draft, read [writing_samples.md](writing_samples.md)
+and load the selected original reference text(s). Honor a sample supplied by the
+user or their selected style; otherwise choose from the available offline catalog.
+Keep the user's facts, speaker and language separate from the reference author's
+identity and examples. This is an additive, bundled reference library: the writing method below
+still applies, and no new WideCast API call is needed. For revisions, keep the same
+reference selection unless the user changes it. If they request no samples, follow
+the original method directly.
+
 ## The method
 
 ### 1 — Intent + audience + angle

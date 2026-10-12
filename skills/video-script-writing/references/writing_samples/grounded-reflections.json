@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "grounded-reflections",
+  "display_name": "Chiêm nghiệm gần gũi",
+  "language": "vi",
+  "source_author": "Hiếu TV — Ngọc Hiếu",
+  "source_author_type": "person",
+  "source_profile_url": "https://ngochieu.com/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "hieu-tv-con-dao",
+      "title": "Chuyện ở Côn Đảo",
+      "source_url": "https://ngochieu.com/chuyen-o-con-dao/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "hieu-tv-nuoc-nao",
+      "title": "Đang ở nước nào rồi?",
+      "source_url": "https://ngochieu.com/dang-o-nuoc-nao-roi/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "hieu-tv-chu-my",
+      "title": "Chú Mỹ",
+      "source_url": "https://ngochieu.com/chu-my/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}

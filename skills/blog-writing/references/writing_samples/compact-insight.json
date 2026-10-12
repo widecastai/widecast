@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "compact-insight",
+  "display_name": "Ý ngắn, góc nhìn sắc",
+  "language": "en",
+  "source_author": "Seth Godin",
+  "source_author_type": "person",
+  "source_profile_url": "https://seths.blog/top-100/",
+  "examples": [],
+  "not_bundled": [
+    {
+      "id": "seth-godin-trust",
+      "title": "The most important question",
+      "source_url": "https://seths.blog/2014/02/the-most-important-question/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "seth-godin-sunk-costs",
+      "title": "Ignore sunk costs",
+      "source_url": "https://seths.blog/2009/05/ignore-sunk-costs/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    },
+    {
+      "id": "seth-godin-online-trust",
+      "title": "Evoking online trust",
+      "source_url": "https://seths.blog/2013/11/evoking-online-trust/",
+      "availability": "not_bundled",
+      "runtime_fetch_allowed": false
+    }
+  ]
+}
