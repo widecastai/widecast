@@ -1,7 +1,7 @@
 {
   "name": "@widecast/sdk",
-  "version": "0.1.3",
-  "description": "WideCast.ai TypeScript/JavaScript SDK — generate videos from scripts, ideas, audio, or existing videos.",
+  "version": "0.1.4",
+  "description": "Developer client for the WideCast.ai video and content API (TypeScript/JavaScript). Installing WideCast (the AI agent with its own CRM) for a user? Follow https://widecast.ai/install.json instead.",
   "keywords": [
     "widecast",
     "video",

@@ -31,7 +31,7 @@ On the **New link** tab, paste the address you want to share into **Long link** 
 
 Leave **Custom ID** empty and WideCast picks a short random ID for you. Random IDs never use the number 0 or the letter O, so nobody mixes the two up when reading the link.
 
-If you would rather choose the ID, type it into **Custom ID** before you click **Shorten**. It can be 6 to 32 letters or numbers, with no spaces, dashes or other symbols. Capitals do not matter: `Sale2026` is saved as `SALE2026`, and a visitor who types `widecast.ai/s/sale2026` still lands in the right place. Your own IDs may use 0 and O. Each ID can exist only once, so if someone already uses the one you want, the page asks you to pick another.
+If you would rather choose the ID, type it into **Custom ID** before you click **Shorten**. It can be 4 to 32 letters or numbers, with no spaces, dashes or other symbols. Capitals do not matter: `Sale2026` is saved as `SALE2026`, and a visitor who types `widecast.ai/s/sale2026` still lands in the right place. Your own IDs may use 0 and O. Each ID can exist only once, so if someone already uses the one you want, the page asks you to pick another.
 
 ## Change where a link goes
 
@@ -53,7 +53,7 @@ Q: How do I make a short link with WideCast?
 A: Go to widecast.ai/shorten.html and sign in with your WideCast email if asked. On the "New link" tab, paste your address into "Long link" and click "Shorten". Your link appears under "Your short link" with a "Copy" button next to it.
 
 Q: Can I choose the letters in my short link?
-A: Yes. Type your own ID into "Custom ID" before clicking "Shorten". It must be 6 to 32 letters or numbers, with no spaces, dashes or other symbols. Leave it empty and WideCast picks a random ID for you.
+A: Yes. Type your own ID into "Custom ID" before clicking "Shorten". It must be 4 to 32 letters or numbers, with no spaces, dashes or other symbols. Leave it empty and WideCast picks a random ID for you.
 
 Q: Does it matter if I type my short link in capitals or small letters?
 A: No. IDs are saved in capitals, so "Sale2026" becomes "SALE2026", and opening widecast.ai/s/sale2026 or widecast.ai/s/SALE2026 takes visitors to the same place.

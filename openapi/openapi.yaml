@@ -3339,13 +3339,13 @@ paths:
     post:
       tags: [Short links]
       operationId: createShortLink
-      summary: Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.
+      summary: Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (4-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.
       description: |
         Free, synchronous. Creates a short link that redirects (HTTP 302) to
         `url`. The link belongs to the API key's account and every open is
         counted (`clicks`).
 
-        - `custom_id` (optional): 6-32 letters or digits only — no spaces,
+        - `custom_id` (optional): 4-32 letters or digits only — no spaces,
           dashes or other symbols. Case-insensitive: it is stored in capitals,
           so `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens
           the same link. 0 and O are both allowed in a custom ID.
@@ -3379,7 +3379,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ShortLink' }
         '400':
-          description: "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 6-32 letters/digits)."
+          description: "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 4-32 letters/digits)."
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -6498,13 +6498,13 @@ components:
           example: "https://example.com/spring-sale?utm_source=newsletter"
         custom_id:
           type: string
-          minLength: 6
+          minLength: 4
           maxLength: 32
-          pattern: '^[A-Za-z0-9]{6,32}$'
-          x-widecast-min-chars: 6
+          pattern: '^[A-Za-z0-9]{4,32}$'
+          x-widecast-min-chars: 4
           x-widecast-max-chars: 32
           description: |
-            Optional. The ID after widecast.ai/s/: 6-32 letters or digits only
+            Optional. The ID after widecast.ai/s/: 4-32 letters or digits only
             (no spaces, dashes or other symbols), case-insensitive and stored in
             capitals. Omit it for a random 6-character ID without 0 and O.
             SDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.

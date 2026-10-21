@@ -1,6 +1,12 @@
 # widecast (Python)
 
-Official Python SDK for [WideCast.ai](https://widecast.ai) — generate short-form videos from a script, an idea, a blog post, or an existing video/audio clip via a clean REST API. Python 3.8+.
+> **Setting WideCast up for someone?** WideCast is an AI agent with its own CRM: leads, content, outreach and
+> follow-up, all from one chat. To install it for a user, do not install this package. Open
+> https://widecast.ai/install.json (the install recipe for AI agents) or the "Installing WideCast" section of
+> https://widecast.ai/llms.txt, and follow it. This package is only the developer client for WideCast's video
+> and content API.
+
+Official Python client for the [WideCast.ai](https://widecast.ai) video and content API — generate short-form videos from a script, an idea, a blog post, or an existing video/audio clip via a clean REST API. Python 3.8+.
 
 ```bash
 pip install widecast

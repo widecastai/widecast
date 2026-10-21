@@ -767,7 +767,7 @@ describe("short links (A63)", () => {
   it("short-link bounds are locked (A38 parity)", () => {
     // Mirrors dashboard2.py WIDECAST_SHORT_LINK_* + OpenAPI maxLength/pattern + MCP schemas.
     expect(SHORT_LINK_URL_MAX_CHARS).toBe(2048);
-    expect(SHORT_LINK_CUSTOM_ID_MIN_CHARS).toBe(6);
+    expect(SHORT_LINK_CUSTOM_ID_MIN_CHARS).toBe(4);
     expect(SHORT_LINK_CUSTOM_ID_MAX_CHARS).toBe(32);
     expect(SHORT_LINK_CREATES_PER_HOUR).toBe(10);
     expect(SHORT_LINK_EDITS_PER_HOUR).toBe(100);
@@ -787,7 +787,7 @@ describe("short links (A63)", () => {
       ["ftp://x.com/f", "invalid_url"], ["https://x.com/a b", "invalid_url"], ["https://x.com/" + "a".repeat(2048), "invalid_url"]] as const) {
       expect(await code(c.create_short_link(u))).toBe(want);
     }
-    for (const cid of ["spring-sale", "a_b_c_d", "abc12", "x".repeat(33), "sale 26", 123456 as any]) {
+    for (const cid of ["spring-sale", "a_b_c_d", "abc", "x".repeat(33), "sale 26", 123456 as any]) {
       expect(await code(c.create_short_link("https://example.com", { custom_id: cid }))).toBe("invalid_custom_id");
     }
     for (const sid of ["", "sale-2026", "x".repeat(33), null as any, "https://widecast.ai/s/"]) {

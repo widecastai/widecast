@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "widecast"
-version = "0.1.3"
-description = "WideCast.ai Python SDK — generate videos from scripts, ideas, audio, or existing videos."
+version = "0.1.4"
+description = "Developer client for the WideCast.ai video and content API. Installing WideCast (the AI agent with its own CRM) for a user? Follow https://widecast.ai/install.json instead."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Apache-2.0" }
@@ -32,6 +32,7 @@ dev = ["pytest>=7", "pytest-cov>=4"]
 
 [project.urls]
 Homepage = "https://widecast.ai"
+"Install WideCast (for AI agents)" = "https://widecast.ai/install.json"
 Documentation = "https://widecast.ai/docs.html"
 Source = "https://github.com/widecastai/widecast"
 Changelog = "https://github.com/widecastai/widecast/releases"

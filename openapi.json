@@ -4537,8 +4537,8 @@
           "Short links"
         ],
         "operationId": "createShortLink",
-        "summary": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
-        "description": "Free, synchronous. Creates a short link that redirects (HTTP 302) to\n`url`. The link belongs to the API key's account and every open is\ncounted (`clicks`).\n\n- `custom_id` (optional): 6-32 letters or digits only — no spaces,\n  dashes or other symbols. Case-insensitive: it is stored in capitals,\n  so `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens\n  the same link. 0 and O are both allowed in a custom ID.\n- Without `custom_id` WideCast picks a random 6-character ID from\n  A-Z and 1-9, leaving out 0 and O so it is easy to read.\n- An ID is never reused and never overwritten: 409 `custom_id_taken`\n  when it already exists (in any account).\n- Limit: 10 new links per account per hour, shared with the\n  widecast.ai/shorten.html page — 429 `rate_limited` with\n  `Retry-After` and `error.details.retry_after_seconds`. A request\n  that creates nothing (409, 5xx) does not use up the limit.\n\nGive the user `short_url` exactly as returned.\n",
+        "summary": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (4-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
+        "description": "Free, synchronous. Creates a short link that redirects (HTTP 302) to\n`url`. The link belongs to the API key's account and every open is\ncounted (`clicks`).\n\n- `custom_id` (optional): 4-32 letters or digits only — no spaces,\n  dashes or other symbols. Case-insensitive: it is stored in capitals,\n  so `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens\n  the same link. 0 and O are both allowed in a custom ID.\n- Without `custom_id` WideCast picks a random 6-character ID from\n  A-Z and 1-9, leaving out 0 and O so it is easy to read.\n- An ID is never reused and never overwritten: 409 `custom_id_taken`\n  when it already exists (in any account).\n- Limit: 10 new links per account per hour, shared with the\n  widecast.ai/shorten.html page — 429 `rate_limited` with\n  `Retry-After` and `error.details.retry_after_seconds`. A request\n  that creates nothing (409, 5xx) does not use up the limit.\n\nGive the user `short_url` exactly as returned.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -4593,7 +4593,7 @@
             }
           },
           "400": {
-            "description": "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 6-32 letters/digits).",
+            "description": "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 4-32 letters/digits).",
             "content": {
               "application/json": {
                 "schema": {
@@ -8570,12 +8570,12 @@
           },
           "custom_id": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 4,
             "maxLength": 32,
-            "pattern": "^[A-Za-z0-9]{6,32}$",
-            "x-widecast-min-chars": 6,
+            "pattern": "^[A-Za-z0-9]{4,32}$",
+            "x-widecast-min-chars": 4,
             "x-widecast-max-chars": 32,
-            "description": "Optional. The ID after widecast.ai/s/: 6-32 letters or digits only\n(no spaces, dashes or other symbols), case-insensitive and stored in\ncapitals. Omit it for a random 6-character ID without 0 and O.\nSDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.\n",
+            "description": "Optional. The ID after widecast.ai/s/: 4-32 letters or digits only\n(no spaces, dashes or other symbols), case-insensitive and stored in\ncapitals. Omit it for a random 6-character ID without 0 and O.\nSDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.\n",
             "example": "SALE2026"
           }
         }

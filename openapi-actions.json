@@ -4545,8 +4545,8 @@
           "Short links"
         ],
         "operationId": "createShortLink",
-        "summary": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
-        "description": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
+        "summary": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (4-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
+        "description": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (4-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4601,7 +4601,7 @@
             }
           },
           "400": {
-            "description": "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 6-32 letters/digits).",
+            "description": "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 4-32 letters/digits).",
             "content": {
               "application/json": {
                 "schema": {
@@ -8523,12 +8523,12 @@
           },
           "custom_id": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 4,
             "maxLength": 32,
-            "pattern": "^[A-Za-z0-9]{6,32}$",
-            "x-widecast-min-chars": 6,
+            "pattern": "^[A-Za-z0-9]{4,32}$",
+            "x-widecast-min-chars": 4,
             "x-widecast-max-chars": 32,
-            "description": "Optional. The ID after widecast.ai/s/: 6-32 letters or digits only\n(no spaces, dashes or other symbols), case-insensitive and stored in\ncapitals. Omit it for a random 6-character ID without 0 and O.\nSDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.\n",
+            "description": "Optional. The ID after widecast.ai/s/: 4-32 letters or digits only\n(no spaces, dashes or other symbols), case-insensitive and stored in\ncapitals. Omit it for a random 6-character ID without 0 and O.\nSDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.\n",
             "example": "SALE2026"
           }
         }

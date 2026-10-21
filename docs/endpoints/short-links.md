@@ -7,7 +7,7 @@
 | Rule | Value |
 |---|---|
 | `url` | Full `http://` or `https://` link, at most **2048** characters (SDK `SHORT_LINK_URL_MAX_CHARS`), no spaces, no `user:password@`. |
-| `custom_id` | Optional. **6-32 letters or digits only** (SDK `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`): no spaces, dashes or other symbols. Case-insensitive, stored in capitals: `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens the same link. 0 and O are both allowed. |
+| `custom_id` | Optional. **4-32 letters or digits only** (SDK `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`): no spaces, dashes or other symbols. Case-insensitive, stored in capitals: `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens the same link. 0 and O are both allowed. |
 | Random ID | When `custom_id` is omitted: 6 characters from A-Z and 1-9, leaving out 0 and O so it is easy to read. |
 | New links | **10 per account per hour** (SDK `SHORT_LINK_CREATES_PER_HOUR`), shared with the shorten page. A request that creates nothing (409, 5xx) does not use up the limit. |
 | Destination changes | **100 per account per hour** (SDK `SHORT_LINK_EDITS_PER_HOUR`). |
@@ -34,7 +34,7 @@ curl -sS -X POST "https://widecast.ai/app/dashboard/v1/short_links" \
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `url` | string | **yes** | The long link. Full `http://` or `https://` URL, max **2048** characters (SDK `SHORT_LINK_URL_MAX_CHARS`). |
-| `custom_id` | string | no | The ID after `widecast.ai/s/`: **6-32** letters or digits (SDK `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`), case-insensitive, stored in capitals. Omit for a random ID. |
+| `custom_id` | string | no | The ID after `widecast.ai/s/`: **4-32** letters or digits (SDK `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`), case-insensitive, stored in capitals. Omit for a random ID. |
 
 ### Response — `201 Created`
 
@@ -92,7 +92,7 @@ Returns the `short_link` object plus `previous_url`. The ID, `short_url` and `cl
 | `invalid_json` | 400 | The body is not a JSON object. |
 | `missing_field` | 400 | `url` is missing or empty (`param: url`). |
 | `invalid_url` | 400 | `url` is not a full http/https link, is over 2048 characters, has spaces or `user:password@`. |
-| `invalid_custom_id` | 400 | `custom_id` is not 6-32 letters or digits. |
+| `invalid_custom_id` | 400 | `custom_id` is not 4-32 letters or digits. |
 | `invalid_short_link_id` | 400 | The `{id}` in the path is not 1-32 letters or digits. |
 | `missing_api_key` / `invalid_api_key` | 401 | Auth. |
 | `short_link_not_found` | 404 | No such short link in this account. |

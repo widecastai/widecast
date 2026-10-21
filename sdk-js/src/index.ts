@@ -10,7 +10,7 @@
  *   console.log(video.review_url);
  */
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.4";
 
 const DEFAULT_BASE_URL =
   (typeof process !== "undefined" && process.env?.WIDECAST_BASE_URL) ||
@@ -47,7 +47,7 @@ export const ERROR_MESSAGE_MAX_CHARS = 4000;
 export const ERROR_MODULE_MAX_CHARS = 80;
 /** /v1/short_links bounds + per-account hourly limits (A63) — mirror WIDECAST_SHORT_LINK_* in dashboard2.py. */
 export const SHORT_LINK_URL_MAX_CHARS = 2048;
-export const SHORT_LINK_CUSTOM_ID_MIN_CHARS = 6;
+export const SHORT_LINK_CUSTOM_ID_MIN_CHARS = 4;
 export const SHORT_LINK_CUSTOM_ID_MAX_CHARS = 32;
 export const SHORT_LINK_CREATES_PER_HOUR = 10;
 export const SHORT_LINK_EDITS_PER_HOUR = 100;
@@ -2577,7 +2577,7 @@ export class Widecast {
   }
 
   /** POST /v1/short_links — create https://widecast.ai/s/<ID> that redirects to `url`. Free.
-   *  `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (6-32) letters or digits only,
+   *  `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (4-32) letters or digits only,
    *  case-insensitive (sent in capitals); omit it for a random 6-character ID without 0/O.
    *  409 custom_id_taken; 429 rate_limited after SHORT_LINK_CREATES_PER_HOUR (10) new links
    *  per account per hour. */

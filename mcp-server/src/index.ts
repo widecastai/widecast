@@ -15,7 +15,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.4";
 const API_KEY = process.env.WIDECAST_API_KEY;
 const BASE_URL = (process.env.WIDECAST_BASE_URL || "https://widecast.ai/app/dashboard").replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 25000;   // per HTTP request — keeps a slow API from hanging the MCP connection
@@ -1246,7 +1246,7 @@ const TOOLS = [
       "or https:// URL. SYNC, FREE. Use this when the user wants a short, shareable " +
       "or branded link for a long URL (a landing page, a booking page, a video, a " +
       "form). `url` REQUIRED (full http/https link, max 2048 characters). " +
-      "`custom_id` optional: 6-32 letters or digits only (no spaces, dashes or other " +
+      "`custom_id` optional: 4-32 letters or digits only (no spaces, dashes or other " +
       "symbols; case-insensitive, stored in capitals, so 'Sale2026' becomes " +
       "SALE2026). Omit custom_id for a random 6-character ID. Limit: 10 new links " +
       "per account per hour (shared with widecast.ai/shorten.html). Returns " +
@@ -1259,7 +1259,7 @@ const TOOLS = [
       required: ["url"],
       properties: {
         url: { type: "string", maxLength: 2048, description: "REQUIRED. The long link the short link opens. Must start with http:// or https://." },
-        custom_id: { type: "string", pattern: "^[A-Za-z0-9]{6,32}$", description: "Optional ID after widecast.ai/s/. Letters and digits only, case-insensitive (stored in capitals). Omit for a random ID." },
+        custom_id: { type: "string", pattern: "^[A-Za-z0-9]{4,32}$", description: "Optional ID after widecast.ai/s/. Letters and digits only, case-insensitive (stored in capitals). Omit for a random ID." },
       },
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },

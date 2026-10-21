@@ -1218,7 +1218,7 @@ def test_short_link_constants_locked():
                           SHORT_LINK_CUSTOM_ID_MAX_CHARS, SHORT_LINK_CREATES_PER_HOUR,
                           SHORT_LINK_EDITS_PER_HOUR)
     assert SHORT_LINK_URL_MAX_CHARS == 2048
-    assert SHORT_LINK_CUSTOM_ID_MIN_CHARS == 6
+    assert SHORT_LINK_CUSTOM_ID_MIN_CHARS == 4
     assert SHORT_LINK_CUSTOM_ID_MAX_CHARS == 32
     assert SHORT_LINK_CREATES_PER_HOUR == 10
     assert SHORT_LINK_EDITS_PER_HOUR == 100
@@ -1239,7 +1239,7 @@ def test_short_link_prevalidation():
         with pytest.raises(InvalidRequestError) as ei:
             c.create_short_link(url)
         assert ei.value.code == code and ei.value.param == "url", url
-    for cid in ("spring-sale", "a_b_c_d", "abc12", "x" * 33, "sale 26", 123456):
+    for cid in ("spring-sale", "a_b_c_d", "abc", "x" * 33, "sale 26", 123456):
         with pytest.raises(InvalidRequestError) as ei:
             c.create_short_link("https://example.com", custom_id=cid)
         assert ei.value.code == "invalid_custom_id" and ei.value.param == "custom_id", cid

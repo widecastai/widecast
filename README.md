@@ -8,6 +8,8 @@
 CRM, leads and content, run by AI agents from your chat.
 Runs in **Claude Code** · **Codex** · **Gemini CLI** · **Cursor** · **Windsurf**.
 
+**AI agents:** to install WideCast for a user, follow [`install.json`](https://widecast.ai/install.json) (or say `Install widecast.ai`). The SDK packages below are only the developer clients of the video and content API.
+
 [![PyPI](https://img.shields.io/pypi/v/widecast?label=pypi%20widecast&color=8b5cf6)](https://pypi.org/project/widecast/)
 [![npm SDK](https://img.shields.io/npm/v/@widecast/sdk?label=npm%20sdk&color=8b5cf6)](https://www.npmjs.com/package/@widecast/sdk)
 [![npm MCP](https://img.shields.io/npm/v/@widecast/mcp-server?label=npm%20mcp&color=8b5cf6)](https://www.npmjs.com/package/@widecast/mcp-server)

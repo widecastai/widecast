@@ -1,5 +1,11 @@
 # @widecast/mcp-server
 
+> **Setting WideCast up for someone?** WideCast is an AI agent with its own CRM: leads, content, outreach and
+> follow-up, all from one chat. To install it for a user, do not install this package. Open
+> https://widecast.ai/install.json (the install recipe for AI agents) or the "Installing WideCast" section of
+> https://widecast.ai/llms.txt, and follow it. This package is only the developer client for WideCast's video
+> and content API.
+
 Model Context Protocol (MCP) server for [WideCast.ai](https://widecast.ai). Drop
 WideCast's video-generation tools into **Claude Desktop**, **Claude Code**,
 **Cursor**, **Windsurf**, or any MCP-compatible host so your AI can make videos

@@ -686,7 +686,7 @@
 229. A: Go to widecast.ai/shorten.html and sign in with your WideCast email if asked. On the "New link" tab, paste your address into "Long link" and click "Shorten". Your link appears under "Your short link" with a "Copy" button next to it.
 
 230. Q: Can I choose the letters in my short link?
-230. A: Yes. Type your own ID into "Custom ID" before clicking "Shorten". It must be 6 to 32 letters or numbers, with no spaces, dashes or other symbols. Leave it empty and WideCast picks a random ID for you.
+230. A: Yes. Type your own ID into "Custom ID" before clicking "Shorten". It must be 4 to 32 letters or numbers, with no spaces, dashes or other symbols. Leave it empty and WideCast picks a random ID for you.
 
 231. Q: Does it matter if I type my short link in capitals or small letters?
 231. A: No. IDs are saved in capitals, so "Sale2026" becomes "SALE2026", and opening widecast.ai/s/sale2026 or widecast.ai/s/SALE2026 takes visitors to the same place.

@@ -5,13 +5,17 @@ versioning: [Semver](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-21
+
 ### Changed
+- The README and the package description now say what WideCast is (an AI agent with its own CRM) and send an AI agent that is setting WideCast up for a user to https://widecast.ai/install.json: this package is only the developer client for the video and content API.
+- The default base URL is `https://widecast.ai/app/dashboard` (0.1.3 defaulted to the test server, `/app/dashboard2`).
 - `FREE_TIER_MAX_SECONDS` 60 -> 90, so `FREE_TIER_MAX_WORDS` 240 -> 360 (Free accounts: ~90 s / 360 spoken words of narration; mirrors the server's `WIDECAST_FREE_TIER_MAX_SECONDS`).
 - A 429 whose `Retry-After` is longer than 60 s (an hourly quota such as the short-link limit) now throws `RateLimitError` at once instead of waiting it out; short `Retry-After` values are still retried.
 
 ### Added
-- `create_short_link(url, { custom_id })` / `get_short_link(shortLink)` / `update_short_link(shortLink, url)` — POST / GET / PATCH `/v1/short_links`: short `https://widecast.ai/s/<ID>` links to any http(s) URL, their click count, and changing where one goes (the ID never changes). `custom_id` = 6-32 letters or digits, case-insensitive (sent in capitals); omit it for a random ID. The get/update methods accept the ID or the whole short URL. Free. New `ShortLink` type.
-- Constants `SHORT_LINK_URL_MAX_CHARS` (2048), `SHORT_LINK_CUSTOM_ID_MIN_CHARS` (6), `SHORT_LINK_CUSTOM_ID_MAX_CHARS` (32), `SHORT_LINK_CREATES_PER_HOUR` (10), `SHORT_LINK_EDITS_PER_HOUR` (100), mirroring the server's `WIDECAST_SHORT_LINK_*`. Pre-validation: `missing_field` / `invalid_url` (param `url`), `invalid_custom_id`, `invalid_short_link_id`.
+- `create_short_link(url, { custom_id })` / `get_short_link(shortLink)` / `update_short_link(shortLink, url)` — POST / GET / PATCH `/v1/short_links`: short `https://widecast.ai/s/<ID>` links to any http(s) URL, their click count, and changing where one goes (the ID never changes). `custom_id` = 4-32 letters or digits, case-insensitive (sent in capitals); omit it for a random ID. The get/update methods accept the ID or the whole short URL. Free. New `ShortLink` type.
+- Constants `SHORT_LINK_URL_MAX_CHARS` (2048), `SHORT_LINK_CUSTOM_ID_MIN_CHARS` (4), `SHORT_LINK_CUSTOM_ID_MAX_CHARS` (32), `SHORT_LINK_CREATES_PER_HOUR` (10), `SHORT_LINK_EDITS_PER_HOUR` (100), mirroring the server's `WIDECAST_SHORT_LINK_*`. Pre-validation: `missing_field` / `invalid_url` (param `url`), `invalid_custom_id`, `invalid_short_link_id`.
 - `create_video({ presenter: true })` — AI-presenter lane (needs `output_type: "video"`, source text/idea/blog, not combined with `faceless`; the server answers 402 `plan_required` on Free / Trial and 400 `presenter_not_ready` when no photo set exists). Default `false` = unchanged.
 - `create_image({ purpose: "social" })` — a standalone post image with an exact `ratio` of `"1:1"` / `"4:5"` / `"16:9"` / `"9:16"` (default `"1:1"` for social). `ImageSetResponse` gains optional `purpose`, `agent_note`, `result.library_record`.
 - `account()` documents the new `features.avatar_video`, `avatar_ready`, `voice_clone_ready` fields. Responses of publish / create_video / export_video / create_content / create_image may carry `agent_note` and `result.library_record`.

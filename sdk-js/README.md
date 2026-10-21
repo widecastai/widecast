@@ -1,6 +1,12 @@
 # @widecast/sdk
 
-Official JavaScript / TypeScript SDK for [WideCast.ai](https://widecast.ai) — generate short-form videos from a script, an idea, a blog post, or an existing video/audio clip via a clean REST API. Works in Node 18+, Deno, Bun, and modern browsers.
+> **Setting WideCast up for someone?** WideCast is an AI agent with its own CRM: leads, content, outreach and
+> follow-up, all from one chat. To install it for a user, do not install this package. Open
+> https://widecast.ai/install.json (the install recipe for AI agents) or the "Installing WideCast" section of
+> https://widecast.ai/llms.txt, and follow it. This package is only the developer client for WideCast's video
+> and content API.
+
+Official JavaScript / TypeScript client for the [WideCast.ai](https://widecast.ai) video and content API — generate short-form videos from a script, an idea, a blog post, or an existing video/audio clip via a clean REST API. Works in Node 18+, Deno, Bun, and modern browsers.
 
 ```bash
 npm install @widecast/sdk

@@ -30,7 +30,7 @@ from urllib.parse import urlencode
 import requests
 
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 
 _FALLBACK_BASE_URL = "https://widecast.ai/app/dashboard"
 DEFAULT_TIMEOUT = 60.0
@@ -66,7 +66,7 @@ ERROR_MODULE_MAX_CHARS = 80
 # /v1/short_links bounds + per-account hourly limits (A63) — mirror
 # WIDECAST_SHORT_LINK_* in dashboard2.py.
 SHORT_LINK_URL_MAX_CHARS = 2048
-SHORT_LINK_CUSTOM_ID_MIN_CHARS = 6
+SHORT_LINK_CUSTOM_ID_MIN_CHARS = 4
 SHORT_LINK_CUSTOM_ID_MAX_CHARS = 32
 SHORT_LINK_CREATES_PER_HOUR = 10
 SHORT_LINK_EDITS_PER_HOUR = 100
@@ -2295,7 +2295,7 @@ class Widecast:
 
     def create_short_link(self, url: str, custom_id: Optional[str] = None) -> dict:
         """POST /v1/short_links — create https://widecast.ai/s/<ID> that redirects
-        to `url`. Free. `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (6-32)
+        to `url`. Free. `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (4-32)
         letters or digits only, case-insensitive (stored in capitals); omit it for a
         random 6-character ID without 0/O. 409 `custom_id_taken`; 429 `rate_limited`
         after SHORT_LINK_CREATES_PER_HOUR (10) new links per account per hour.
