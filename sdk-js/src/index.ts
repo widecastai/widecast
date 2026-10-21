@@ -45,6 +45,14 @@ export const PLAN_SCRIPT_MAX_WORDS = 1000;
 /** /v1/error/report bounds — mirror WIDECAST_ERROR_* in dashboard2.py. */
 export const ERROR_MESSAGE_MAX_CHARS = 4000;
 export const ERROR_MODULE_MAX_CHARS = 80;
+/** /v1/short_links bounds + per-account hourly limits (A63) — mirror WIDECAST_SHORT_LINK_* in dashboard2.py. */
+export const SHORT_LINK_URL_MAX_CHARS = 2048;
+export const SHORT_LINK_CUSTOM_ID_MIN_CHARS = 6;
+export const SHORT_LINK_CUSTOM_ID_MAX_CHARS = 32;
+export const SHORT_LINK_CREATES_PER_HOUR = 10;
+export const SHORT_LINK_EDITS_PER_HOUR = 100;
+/** A 429 whose Retry-After is longer than this (seconds) is an hourly quota: throw instead of waiting. */
+const RETRY_AFTER_MAX_SLEEP_S = 60;
 export const OUTPUT_TYPES = ["text", "scene", "video"] as const;  // pipeline depth (A46)
 export type OutputType = (typeof OUTPUT_TYPES)[number];
 // blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
@@ -560,6 +568,26 @@ export interface ChannelGroup {
 
 /** Selector for endpoints that take a channel group: an integer (0 = primary) or "all". */
 export type ChannelGroupSelector = number | "all";
+
+/** A short link https://widecast.ai/s/<id> that redirects (302) to `url` (A63). */
+export interface ShortLink {
+  object: "short_link";
+  /** The part after widecast.ai/s/. New IDs are upper-case. Never changes. */
+  id: string;
+  /** The link to share, exactly as returned. */
+  short_url: string;
+  /** Where the short link goes. */
+  url: string;
+  /** Opens so far (includes opens not yet saved). */
+  clicks: number;
+  /** ISO 8601 UTC. */
+  created_at: string | null;
+  /** ISO 8601 UTC of the last destination change; null if never changed. */
+  updated_at: string | null;
+  /** Only on update_short_link(): the destination before the change. */
+  previous_url?: string;
+  meta?: { request_id?: string; widecast_version?: string };
+}
 
 /** One idea in an IdeasResponse. */
 export interface Idea {
@@ -2521,6 +2549,69 @@ export class Widecast {
     return await this.#request<any>("DELETE", `/v1/channel_groups/${cg}`);
   }
 
+  // ── Short links (A63, 2026-10-20) — https://widecast.ai/s/<ID> redirects ──
+  #shortLinkUrl(url: unknown): string {
+    if (typeof url !== "string" || !url.trim()) {
+      throw new InvalidRequestError("url (the long http:// or https:// link) is required.",
+        { code: "missing_field", param: "url" });
+    }
+    const u = url.trim();
+    if (!/^https?:\/\/[^/\s]/i.test(u) || /\s/.test(u) || u.length > SHORT_LINK_URL_MAX_CHARS) {
+      throw new InvalidRequestError(
+        `url must be a full http:// or https:// link of at most ${SHORT_LINK_URL_MAX_CHARS} characters.`,
+        { code: "invalid_url", param: "url" });
+    }
+    return u;
+  }
+
+  /** Accept the ID ("SALE2026") or the whole short URL ("https://widecast.ai/s/SALE2026"). */
+  #shortLinkId(shortLink: unknown): string {
+    let sid = typeof shortLink === "string" ? shortLink.trim() : "";
+    const m = sid.match(/\/s\/([A-Za-z0-9]+)\/?$/);
+    if (m) sid = m[1];
+    if (!/^[A-Za-z0-9]{1,32}$/.test(sid)) {
+      throw new InvalidRequestError("shortLink must be the ID after widecast.ai/s/ (1-32 letters or digits).",
+        { code: "invalid_short_link_id", param: "id" });
+    }
+    return sid;
+  }
+
+  /** POST /v1/short_links — create https://widecast.ai/s/<ID> that redirects to `url`. Free.
+   *  `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (6-32) letters or digits only,
+   *  case-insensitive (sent in capitals); omit it for a random 6-character ID without 0/O.
+   *  409 custom_id_taken; 429 rate_limited after SHORT_LINK_CREATES_PER_HOUR (10) new links
+   *  per account per hour. */
+  async create_short_link(url: string, opts: { custom_id?: string } = {}): Promise<ShortLink> {
+    const body: Record<string, unknown> = { url: this.#shortLinkUrl(url) };
+    const raw = opts.custom_id;
+    if (raw !== undefined && raw !== null && !(typeof raw === "string" && !raw.trim())) {
+      const cid = typeof raw === "string" ? raw.trim() : "";
+      const re = new RegExp(`^[A-Za-z0-9]{${SHORT_LINK_CUSTOM_ID_MIN_CHARS},${SHORT_LINK_CUSTOM_ID_MAX_CHARS}}$`);
+      if (!re.test(cid)) {
+        throw new InvalidRequestError(
+          `custom_id must be ${SHORT_LINK_CUSTOM_ID_MIN_CHARS}-${SHORT_LINK_CUSTOM_ID_MAX_CHARS} letters or digits (no spaces or symbols).`,
+          { code: "invalid_custom_id", param: "custom_id" });
+      }
+      body.custom_id = cid.toUpperCase();
+    }
+    return await this.#request<ShortLink>("POST", "/v1/short_links", body);
+  }
+
+  /** GET /v1/short_links/{id} — one of the account's short links: destination `url` and
+   *  `clicks`. Accepts the ID or the whole short URL. 404 short_link_not_found. */
+  async get_short_link(shortLink: string): Promise<ShortLink> {
+    return await this.#get(`/v1/short_links/${this.#shortLinkId(shortLink)}`);
+  }
+
+  /** PATCH /v1/short_links/{id} — change where a short link goes. The ID, short_url and
+   *  clicks stay; the response carries `previous_url`. Confirm the new destination with
+   *  the user first: the link may already be shared. 429 rate_limited after
+   *  SHORT_LINK_EDITS_PER_HOUR (100) changes per account per hour. */
+  async update_short_link(shortLink: string, url: string): Promise<ShortLink> {
+    const sid = this.#shortLinkId(shortLink);
+    return await this.#request<ShortLink>("PATCH", `/v1/short_links/${sid}`, { url: this.#shortLinkUrl(url) });
+  }
+
   /** POST /v1/notification/send — push a notification to the USER'S OWN
    *  account. SYNC, FREE. Self-notify only — the recipient (email + Telegram
    *  chat) is resolved server-side from the account, never accepted as input.
@@ -2721,11 +2812,11 @@ export class Widecast {
           signal: controller.signal,
         });
         clearTimeout(tid);
-        // retry on 5xx/429
-        if ((resp.status >= 500 || resp.status === 429) && attempt < this.maxRetries) {
-          const wait = resp.status === 429
-            ? Number(resp.headers.get("Retry-After") ?? 2) * 1000
-            : backoffMs(attempt);
+        // retry on 5xx / a short 429; a long Retry-After (hourly quota) is thrown, not waited out
+        const retryAfterS = resp.status === 429 ? Number(resp.headers.get("Retry-After") ?? 2) : 0;
+        if ((resp.status >= 500 || (resp.status === 429 && !(retryAfterS > RETRY_AFTER_MAX_SLEEP_S)))
+            && attempt < this.maxRetries) {
+          const wait = resp.status === 429 ? retryAfterS * 1000 : backoffMs(attempt);
           await sleep(wait);
           continue;
         }

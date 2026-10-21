@@ -50,7 +50,10 @@ info:
     (Setup Center → API Keys). Each call to `/v1/create_video` consumes
     credits from your account; usage (calls + credits) is tracked per key.
     **Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,
-    `/v1/solo/pubkey` are key-free.
+    `/v1/solo/pubkey`, `/v1/agent/signup/start` and `/v1/agent/signup/verify` are key-free.
+    An AI agent with no key gets one from the owner's email: `startAgentSignup` emails a 6-digit
+    code, `verifyAgentSignup` turns the code the owner reads back into the account's key. Store
+    that key at once and never show it in chat; the only thing the owner reads or types is the code.
 
     ## Two input flows (`source`) × two completion gates (`output_type`)
 
@@ -242,6 +245,10 @@ tags:
     description: Read-only account data — videos, account, analytics, roadmap, production plan (free).
   - name: Connections
     description: Connect social platforms (OAuth link), list connected accounts, configure publish settings (free).
+  - name: Short links
+    description: Create short https://widecast.ai/s/<ID> links that redirect to any http(s) URL, look one up (destination + clicks) and change where it goes (free).
+  - name: Account
+    description: An AI agent creates or opens the owner's account with their email and a 6-digit code, and hands them a one-click sign-in link (free).
   - name: Skills
     description: |
       Server-side delivery of WideCast authoring methods (3-Layer Hook,
@@ -2478,10 +2485,12 @@ paths:
         an operator grant overrides it; an expired WideCast plan yields `free`.
         `limits` (0 = unlimited; max_groups / max_campaigns are per client) and
         `features` (enrich, write_actions, harvest, zillow, …) are what the
-        bridge enforces. **One key, one install:** `install_id` (the bridge's
-        random id) binds the key to that install; a second install gets a
-        `free` token with `reason: seat_limit` until the seat is released
-        (`POST /v1/solo/install/release`, or the bound install is idle for
+        bridge enforces. **Seats:** `install_id` (the bridge's random id)
+        binds one of the account's seats to that install (every plan seats at
+        least 3 installs, so a local install and a cloud agent can both run);
+        an install beyond the seats gets a `free` token with
+        `reason: seat_limit` until a seat is released
+        (`POST /v1/solo/install/release`, or a bound install is idle for
         7 days). A request without `install_id` is issued the `free` tier
         (`reason: install_id_required`). `bridge_version` is informational.
       parameters:
@@ -2548,9 +2557,9 @@ paths:
     post:
       tags: [Library]
       operationId: releaseSoloSeat
-      summary: Free this key's Solo Agency seat so the next install can take it.
+      summary: Free this account's Solo Agency seats so the next installs can take them.
       description: |
-        One WideCast key runs one Solo Agency install. Call this (the bridge
+        Frees every Solo Agency seat of the account. Call this (the bridge
         does it on `tool entitlement release`) from the machine that should run
         Solo Agency from now on, then fetch the entitlement again there. One
         move per 7 days; in between the call answers 429 `seat_release_cooldown`
@@ -2608,6 +2617,244 @@ paths:
                   crv: { type: string, example: Ed25519 }
                   public_key_hex: { type: string }
                   public_key_b64url: { type: string }
+
+  /v1/solo/bridge_key:
+    post:
+      tags: [Library]
+      operationId: createSoloBridgeKey
+      summary: A WideCast key for this account's Solo Agency bridge.
+      description: |
+        Synchronous, free. For AI agents that run Solo Agency: when
+        `<bridge> tool runtime probe` says `widecast_key_configured` is false,
+        call this with the WideCast access you already have, passing
+        `install_id`, `host` and `bridge_version` exactly as
+        `<bridge> tool key info` prints them, and pipe the returned `key`
+        straight into `<bridge> tool key set --stdin`. The key is a secret:
+        never show it to the user or put it in chat, and never ask the user
+        for a key. One bridge key per `install_id`: each call creates a new
+        key named after the host and revokes the earlier bridge key of that
+        install (revoking frees the account's Solo Agency seats; each install
+        takes its seat again on its next entitlement fetch). The remote MCP
+        tool `solo_bridge_key` does the same. The answer is never cached.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [install_id]
+              properties:
+                install_id: { type: string, minLength: 8, maxLength: 64, pattern: '^[A-Za-z0-9_-]{8,64}$', description: "The bridge's install_id from `tool key info`." }
+                host: { type: string, description: "The bridge's host from `tool key info`; the key's name shows it (at most 60 characters kept)." }
+                bridge_version: { type: string, description: "From `tool key info`; at most 40 characters kept." }
+      responses:
+        '200':
+          description: The new bridge key (shown only in this answer).
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: solo_bridge_key }
+                  key: { type: string, description: The new WideCast key. Pipe it into `tool key set --stdin`; never show it. }
+                  key_id: { type: string }
+                  name: { type: string, example: "WideCast agent bridge · office-mac" }
+                  install_id: { type: string }
+        '400':
+          description: '`invalid_install_id`, `invalid_host`, `invalid_bridge_version` or `invalid_request` (the body is not a JSON object).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413':
+          description: '`payload_too_large`: the body is larger than 4 KB.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: '`storage_error` or `solo_keys_unavailable`: try again shortly.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /v1/agent/signup/start:
+    post:
+      tags: [Account]
+      operationId: startAgentSignup
+      summary: Email the owner a 6-digit code that creates or opens their WideCast account (key-free).
+      description: |
+        Synchronous, free, no API key. An AI agent setting WideCast up for its owner asks for the owner's
+        email and calls this; WideCast emails a 6-digit code (subject "123456 is your WideCast code").
+        One flow creates the account or signs in to the one that exists: the answer is the same either way.
+        The owner reads the code back to the agent, which sends it to `POST /v1/agent/signup/verify`.
+        `install_id` is any stable id of the agent's install (8-64 letters, digits, `_` or `-`); the
+        Solo Agency bridge sends its own (`tool account start` does all of this).
+        Limits: 3 codes an hour and 10 a day per email (60 s between two), 10 an hour per network; a code
+        works for 10 minutes and 5 tries; asking again replaces the earlier code.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, install_id]
+              properties:
+                email: { type: string, maxLength: 254, description: "The owner's email (the account's email)." }
+                install_id: { type: string, minLength: 8, maxLength: 64, pattern: '^[A-Za-z0-9_-]{8,64}$' }
+                locale: { type: string, enum: [en, vi], default: en, description: Language of the email. }
+      responses:
+        '200':
+          description: The code is on its way.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: agent_signup_challenge }
+                  challenge_id: { type: string, description: Send it back with the code. }
+                  email_masked: { type: string, example: "o***r@example.com" }
+                  code_length: { type: integer, example: 6 }
+                  expires_in: { type: integer, example: 600 }
+                  resend_after: { type: integer, example: 60 }
+        '400':
+          description: '`invalid_email`, `invalid_install_id` or `invalid_request`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '413':
+          description: '`payload_too_large`: the body is larger than 4 KB.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: '`rate_limited` (`details.retry_after`, `details.scope` email|ip) or `email_locked` (too many wrong codes; `details.retry_after`).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '502':
+          description: '`email_send_failed`: the email could not be sent; check the address.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: '`signup_busy` (`details.retry_after`) or `signup_unavailable`: try again later.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /v1/agent/signup/verify:
+    post:
+      tags: [Account]
+      operationId: verifyAgentSignup
+      summary: Check the 6-digit code; creates or opens the account and returns its API key (key-free).
+      description: |
+        Synchronous, free, no API key. Send the `challenge_id` from `POST /v1/agent/signup/start`, the
+        6 digits the owner read back (spaces and dashes are fine) and the same `install_id`. On success the
+        account exists (`account: created` or `existing`) and the answer holds its key for this install:
+        store it at once (the Solo Agency bridge pipes it into its own storage) and never show it in chat,
+        a message or a log. A new key for the same `install_id` replaces the earlier one.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge_id, code, install_id]
+              properties:
+                challenge_id: { type: string }
+                code: { type: string, example: "123456" }
+                install_id: { type: string, minLength: 8, maxLength: 64, pattern: '^[A-Za-z0-9_-]{8,64}$' }
+                host: { type: string, description: The machine's name (the key's label shows it). }
+                bridge_version: { type: string }
+      responses:
+        '200':
+          description: The account and its key (shown only in this answer).
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: solo_bridge_key }
+                  key: { type: string, description: The account's API key for this install. Store it; never show it. }
+                  key_id: { type: string }
+                  name: { type: string }
+                  install_id: { type: string }
+                  account: { type: string, enum: [created, existing] }
+                  email_masked: { type: string }
+        '400':
+          description: '`wrong_code` (`details.attempts_left`), `invalid_code`, `install_mismatch` or `invalid_request`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: '`challenge_not_found`: ask for a new code.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '410':
+          description: '`code_expired` or `challenge_closed` (`details.reason`: used, replaced, too_many_attempts, send_failed): ask for a new code.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: '`rate_limited` (per network) or `email_locked` (`details.retry_after`).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: '`signup_unavailable`: the account or key could not be made; send the same code again shortly.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /v1/account/setup_link:
+    post:
+      tags: [Account]
+      operationId: createSetupLink
+      summary: A one-click link that signs the owner's browser in to WideCast (7 days, 3 opens).
+      description: |
+        Synchronous, free. Give the `url` to the owner once: opening it signs that browser in like a normal
+        login, so they read reports, approve videos and choose notifications without logging in. It works
+        for 7 days and 3 opens; a new link replaces every older one of the account, and a link stops working
+        when the key that asked for it is revoked. It is a sign-in link: never publish it. Also the remote MCP
+        tool `widecast_setup_link`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: The link.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, example: setup_link }
+                  url: { type: string, example: "https://widecast.ai/#setup&sml_token=sml_…" }
+                  expires_at: { type: integer }
+                  max_uses: { type: integer, example: 3 }
+        '400':
+          description: '`no_account_email`: the account has no email to sign in with.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429':
+          description: '`rate_limited`: 10 links per account a day; use the newest one.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '503':
+          description: '`setup_link_unavailable`: try again shortly.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /v1/analytics:
     get:
@@ -3087,6 +3334,151 @@ paths:
                   deleted: { type: boolean }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/short_links:
+    post:
+      tags: [Short links]
+      operationId: createShortLink
+      summary: Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.
+      description: |
+        Free, synchronous. Creates a short link that redirects (HTTP 302) to
+        `url`. The link belongs to the API key's account and every open is
+        counted (`clicks`).
+
+        - `custom_id` (optional): 6-32 letters or digits only — no spaces,
+          dashes or other symbols. Case-insensitive: it is stored in capitals,
+          so `Sale2026` becomes `SALE2026`, and `widecast.ai/s/sale2026` opens
+          the same link. 0 and O are both allowed in a custom ID.
+        - Without `custom_id` WideCast picks a random 6-character ID from
+          A-Z and 1-9, leaving out 0 and O so it is easy to read.
+        - An ID is never reused and never overwritten: 409 `custom_id_taken`
+          when it already exists (in any account).
+        - Limit: 10 new links per account per hour, shared with the
+          widecast.ai/shorten.html page — 429 `rate_limited` with
+          `Retry-After` and `error.details.retry_after_seconds`. A request
+          that creates nothing (409, 5xx) does not use up the limit.
+
+        Give the user `short_url` exactly as returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShortLinkCreateRequest' }
+            examples:
+              random_id:
+                summary: Random ID
+                value: { url: "https://example.com/spring-sale?utm_source=newsletter" }
+              custom_id:
+                summary: Custom ID
+                value: { url: "https://example.com/spring-sale", custom_id: "SALE2026" }
+      responses:
+        '201':
+          description: Created.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShortLink' }
+        '400':
+          description: "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 6-32 letters/digits)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: "`custom_id_taken` — that ID already exists. Choose another custom_id or omit it."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: "`rate_limited` — 10 new links per account per hour. Carries `Retry-After` + `details.retry_after_seconds`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: "`short_link_failed` — the link could not be stored; retry."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /v1/short_links/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9]{1,32}$' }, description: "The short link ID: the part after widecast.ai/s/ (e.g. `SALE2026`). Not the whole URL.", example: SALE2026 }
+    get:
+      tags: [Short links]
+      operationId: getShortLink
+      summary: Look up one of the account's short links by ID - its destination url and click count. Free, read-only.
+      description: |
+        Free, read-only. `clicks` includes opens that are still being counted
+        in memory, so it can be a little ahead of what the dashboard shows.
+        404 `short_link_not_found` when the ID does not exist or belongs to
+        another account (other accounts' links are never shown).
+      responses:
+        '200':
+          description: The short link.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShortLink' }
+        '400':
+          description: "`invalid_short_link_id` — the ID is not 1-32 letters or digits."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: "`short_link_not_found` — no such short link in this account."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    patch:
+      tags: [Short links]
+      operationId: updateShortLink
+      summary: Change where one of the account's short links goes (new destination url). The ID, short_url and clicks stay the same. Confirm with the user first. Free; 100 changes per account per hour.
+      description: |
+        Free, synchronous. Only `url` can change — the ID is permanent.
+        Everyone who opens the short link afterwards lands on the new `url`,
+        so confirm the new destination with the user before calling: the
+        link may already be printed or shared. The response carries
+        `previous_url`. Limit: 100 changes per account per hour (429
+        `rate_limited`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShortLinkUpdateRequest' }
+      responses:
+        '200':
+          description: Updated.
+          headers: *commonHeaders
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ShortLink'
+                  - type: object
+                    properties:
+                      previous_url: { type: string, description: "The destination before this change." }
+        '400':
+          description: "`invalid_json`, `missing_field` (url), `invalid_url` or `invalid_short_link_id`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: "`short_link_not_found` — no such short link in this account."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: "`rate_limited` — 100 changes per account per hour. Carries `Retry-After` + `details.retry_after_seconds`."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          description: "`short_link_failed` — the change could not be saved; retry."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
 
   /v1/mcp_token:
     post:
@@ -6073,6 +6465,61 @@ components:
         connected_platforms: { type: array, items: { type: string } }
         connected_count: { type: integer }
         created_at: { type: integer, description: "Unix seconds (0 for the primary group)." }
+
+    ShortLink:
+      type: object
+      description: |
+        A short link https://widecast.ai/s/<id> that redirects (302) to `url`.
+        Belongs to one account; the ID never changes.
+      required: [object, id, short_url, url, clicks]
+      properties:
+        object: { type: string, const: short_link }
+        id: { type: string, pattern: '^[A-Za-z0-9]{1,32}$', description: "The part after widecast.ai/s/. New IDs are upper-case.", example: SALE2026 }
+        short_url: { type: string, format: uri, description: "The link to share, exactly as returned.", example: "https://widecast.ai/s/SALE2026" }
+        url: { type: string, format: uri, maxLength: 2048, description: "Where the short link goes.", example: "https://example.com/spring-sale" }
+        clicks: { type: integer, minimum: 0, description: "How many times the link was opened (includes opens not yet saved)." }
+        created_at: { type: [string, "null"], format: date-time, description: "ISO 8601 UTC." }
+        updated_at: { type: [string, "null"], format: date-time, description: "ISO 8601 UTC of the last destination change; null if never changed." }
+        meta:
+          type: object
+          properties:
+            request_id: { type: string }
+            widecast_version: { type: string }
+
+    ShortLinkCreateRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          maxLength: 2048
+          x-widecast-max-chars: 2048
+          description: "REQUIRED. The long link to shorten. Must be a full http:// or https:// URL (no spaces, no user:password). SDK constant `SHORT_LINK_URL_MAX_CHARS`."
+          example: "https://example.com/spring-sale?utm_source=newsletter"
+        custom_id:
+          type: string
+          minLength: 6
+          maxLength: 32
+          pattern: '^[A-Za-z0-9]{6,32}$'
+          x-widecast-min-chars: 6
+          x-widecast-max-chars: 32
+          description: |
+            Optional. The ID after widecast.ai/s/: 6-32 letters or digits only
+            (no spaces, dashes or other symbols), case-insensitive and stored in
+            capitals. Omit it for a random 6-character ID without 0 and O.
+            SDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.
+          example: SALE2026
+
+    ShortLinkUpdateRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          maxLength: 2048
+          x-widecast-max-chars: 2048
+          description: "REQUIRED. The new destination: a full http:// or https:// URL. SDK constant `SHORT_LINK_URL_MAX_CHARS`."
+          example: "https://example.com/autumn-collection"
 
     PublishResponse:
       type: object

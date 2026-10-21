@@ -1,0 +1,48 @@
+{
+  "endpoint": {
+    "method": "POST",
+    "path": "/v1/short_links"
+  },
+  "title": "Create a short link",
+  "description": "Free. Creates https://widecast.ai/s/<ID> that redirects to `url` and counts every\nopen. Leave `custom_id` empty for a random 6-character ID (no 0 or O), or set\n6-32 letters or digits (case-insensitive, stored in capitals). 409\n`custom_id_taken` when the ID exists; 429 `rate_limited` after 10 new links per\naccount per hour. ⚠ Running creates a real link.\n",
+  "fields": [
+    {
+      "name": "url",
+      "type": "text",
+      "label": "url (full http:// or https:// link, ≤ 2048 chars)",
+      "required": true,
+      "placeholder": "https://example.com/spring-sale"
+    },
+    {
+      "name": "custom_id",
+      "type": "text",
+      "label": "custom_id (optional, 6-32 letters or digits)",
+      "required": false,
+      "placeholder": "SALE2026"
+    }
+  ],
+  "poll_after_create": {
+    "enabled": false
+  },
+  "use_cases": [
+    {
+      "id": "random_id",
+      "title": "🔗 Short link with a random ID",
+      "description": "Only the long link. WideCast picks an easy-to-read ID such as K7QW2M. ⚠ Run creates a real link.",
+      "request": {
+        "url": "https://example.com/spring-sale?utm_source=newsletter"
+      }
+    },
+    {
+      "id": "custom_id",
+      "title": "🏷️ Short link with your own ID",
+      "description": "Pick the ID yourself: letters and digits only. 'Sale2026' is saved as SALE2026. ⚠ Run creates a real link.",
+      "request": {
+        "url": "https://example.com/spring-sale",
+        "custom_id": "SALE2026"
+      }
+    }
+  ],
+  "_key": "short-link-create",
+  "_api_base_url": "https://widecast.ai/app/dashboard"
+}

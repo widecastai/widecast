@@ -11,6 +11,8 @@ import Widecast, {
   BLOG_MIN_WORDS, BLOG_MAX_WORDS,
   SCRIPT_FORMATS, PLAN_SCRIPT_MIN_WORDS, PLAN_SCRIPT_MAX_WORDS,
   ERROR_MESSAGE_MAX_CHARS, ERROR_MODULE_MAX_CHARS,
+  SHORT_LINK_URL_MAX_CHARS, SHORT_LINK_CUSTOM_ID_MIN_CHARS, SHORT_LINK_CUSTOM_ID_MAX_CHARS,
+  SHORT_LINK_CREATES_PER_HOUR, SHORT_LINK_EDITS_PER_HOUR,
   MEDIA_MAX_DURATION_SECONDS, MEDIA_MAX_FILE_BYTES,
   OUTPUT_TYPES, SOURCES, FACELESS_SOURCES, CONTENT_TYPES, INTERVENTION_LEVELS,
   PUBLISH_PLATFORMS, VIDEO_LENGTHS, LANGUAGES,
@@ -748,5 +750,75 @@ describe("send_client_link", () => {
       page: "record2.html",
     });
     expect(calls[0].body.topic_id).toBeUndefined();
+  });
+});
+
+// ── Short links (A63, 2026-10-20) ──────────────────────────────────────────
+describe("short links (A63)", () => {
+  const capture = (status = 201, payload: any = { object: "short_link" }, headers: Record<string, string> = {}) => {
+    const calls: { url: string; method: string; body: any }[] = [];
+    const fetchImpl = (async (url: any, init: any) => {
+      calls.push({ url: String(url), method: init.method, body: init.body === undefined ? undefined : JSON.parse(String(init.body)) });
+      return new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json", ...headers } });
+    }) as typeof fetch;
+    return { calls, fetchImpl };
+  };
+
+  it("short-link bounds are locked (A38 parity)", () => {
+    // Mirrors dashboard2.py WIDECAST_SHORT_LINK_* + OpenAPI maxLength/pattern + MCP schemas.
+    expect(SHORT_LINK_URL_MAX_CHARS).toBe(2048);
+    expect(SHORT_LINK_CUSTOM_ID_MIN_CHARS).toBe(6);
+    expect(SHORT_LINK_CUSTOM_ID_MAX_CHARS).toBe(32);
+    expect(SHORT_LINK_CREATES_PER_HOUR).toBe(10);
+    expect(SHORT_LINK_EDITS_PER_HOUR).toBe(100);
+  });
+
+  it("short-link methods exist", () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    for (const name of ["create_short_link", "get_short_link", "update_short_link"]) {
+      expect(typeof (c as any)[name]).toBe("function");
+    }
+  });
+
+  it("pre-validates url, custom_id and the id", async () => {
+    const c = new Widecast({ apiKey: "wc_live_dummy" });
+    const code = async (p: Promise<unknown>) => { try { await p; return "no-throw"; } catch (e: any) { return e instanceof InvalidRequestError ? e.code : "other"; } };
+    for (const [u, want] of [["", "missing_field"], ["   ", "missing_field"], ["example.com", "invalid_url"],
+      ["ftp://x.com/f", "invalid_url"], ["https://x.com/a b", "invalid_url"], ["https://x.com/" + "a".repeat(2048), "invalid_url"]] as const) {
+      expect(await code(c.create_short_link(u))).toBe(want);
+    }
+    for (const cid of ["spring-sale", "a_b_c_d", "abc12", "x".repeat(33), "sale 26", 123456 as any]) {
+      expect(await code(c.create_short_link("https://example.com", { custom_id: cid }))).toBe("invalid_custom_id");
+    }
+    for (const sid of ["", "sale-2026", "x".repeat(33), null as any, "https://widecast.ai/s/"]) {
+      expect(await code(c.get_short_link(sid))).toBe("invalid_short_link_id");
+    }
+    expect(await code(c.update_short_link("SALE2026", "javascript:alert(1)"))).toBe("invalid_url");
+  });
+
+  it("sends the documented request shapes", async () => {
+    const { calls, fetchImpl } = capture();
+    const c = new Widecast({ apiKey: "wc_live_dummy", baseUrl: "http://127.0.0.1:1", fetchImpl });
+    await c.create_short_link(" https://example.com/x ", { custom_id: "Sale2026" });
+    await c.create_short_link("https://example.com/y");
+    await c.create_short_link("https://example.com/z", { custom_id: "   " });
+    await c.get_short_link("https://widecast.ai/s/sale2026");
+    await c.update_short_link("SALE2026", "https://example.com/new");
+    expect(calls[0]).toEqual({ url: "http://127.0.0.1:1/v1/short_links", method: "POST", body: { url: "https://example.com/x", custom_id: "SALE2026" } });
+    expect(calls[1].body).toEqual({ url: "https://example.com/y" });
+    expect(calls[2].body).toEqual({ url: "https://example.com/z" });
+    expect(calls[3].method).toBe("GET");
+    expect(calls[3].url.endsWith("/v1/short_links/sale2026")).toBe(true);
+    expect(calls[4]).toEqual({ url: "http://127.0.0.1:1/v1/short_links/SALE2026", method: "PATCH", body: { url: "https://example.com/new" } });
+  });
+
+  it("throws RateLimitError at once on an hourly-quota 429 instead of waiting", async () => {
+    const err = { error: { type: "rate_limit_error", code: "rate_limited", message: "Limit reached", request_id: "req_x", doc_url: "", details: { retry_after_seconds: 3500 } } };
+    const { calls, fetchImpl } = capture(429, err, { "Retry-After": "3500" });
+    const c = new Widecast({ apiKey: "wc_live_dummy", baseUrl: "http://127.0.0.1:1", fetchImpl, maxRetries: 2 });
+    const t0 = Date.now();
+    await expect(c.create_short_link("https://example.com/x")).rejects.toThrow(RateLimitError);
+    expect(Date.now() - t0).toBeLessThan(5000);
+    expect(calls.length).toBe(1);
   });
 });

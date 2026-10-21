@@ -187,6 +187,16 @@
 <td>(sync, free) Mint a no-login client "magic link" (<code>record</code> / <code>content_plan</code> / <code>setup</code> / <code>social_dashboard</code> / <code>publish_schedule</code>) and optionally notify the client via the account's Telegram/SMS/email channels — recipients resolved server-side, never supplied by the caller</td>
 </tr>
 <tr>
+<td><a href="endpoints/short-links.html"><code>/v1/short_links</code></a></td>
+<td>POST</td>
+<td>(sync, free) Create a short <code>widecast.ai/s/&lt;ID&gt;</code> link to any http(s) URL — optional <code>custom_id</code> (6-32 letters or digits), random ID otherwise; 10 new links per account per hour</td>
+</tr>
+<tr>
+<td><a href="endpoints/short-links.html"><code>/v1/short_links/{id}</code></a></td>
+<td>GET/PATCH</td>
+<td>(free) Look up a short link (destination + clicks) / change where it goes — the ID never changes</td>
+</tr>
+<tr>
 <td><a href="endpoints/library.html"><code>/v1/videos</code></a></td>
 <td>GET</td>
 <td>(read, free) List the account's recent videos</td>

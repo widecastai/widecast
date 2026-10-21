@@ -682,221 +682,251 @@
 228. Q: How many notifications can an AI agent send me in an hour?
 228. A: Up to 60 per account. Beyond that, WideCast responds with a rate-limit error and tells you how many seconds to wait before trying again.
 
-229. Q: Which social platforms can I connect to WideCast?
-229. A: Eleven: YouTube, TikTok, Instagram, Facebook, LinkedIn, X, Threads, Pinterest, Reddit, Bluesky, and Google Business. Connect any of them from the Setup Center's "Connect Social Account" section, or from "Connected Accounts" in your profile menu.
+229. Q: How do I make a short link with WideCast?
+229. A: Go to widecast.ai/shorten.html and sign in with your WideCast email if asked. On the "New link" tab, paste your address into "Long link" and click "Shorten". Your link appears under "Your short link" with a "Copy" button next to it.
 
-230. Q: How do I connect my YouTube channel to WideCast?
-230. A: Open the Setup Center at widecast.ai/#setup and choose "Connect Social Account" (or click "Connected Accounts" in your profile menu). Find YouTube in the list and click "Connect". A window opens where you sign in to YouTube and approve access; once you finish, the window closes and YouTube shows as connected.
+230. Q: Can I choose the letters in my short link?
+230. A: Yes. Type your own ID into "Custom ID" before clicking "Shorten". It must be 6 to 32 letters or numbers, with no spaces, dashes or other symbols. Leave it empty and WideCast picks a random ID for you.
 
-231. Q: Do I need a paid plan to connect a social account?
-231. A: Yes. "Connect Social Account" is marked "Requires paid account" in the Setup Center. On a free plan, clicking "Connect" next to a platform shows an upgrade prompt instead of connecting it. See [Credits, plans, and billing](guide/credits-and-billing.html) for plan details.
+231. Q: Does it matter if I type my short link in capitals or small letters?
+231. A: No. IDs are saved in capitals, so "Sale2026" becomes "SALE2026", and opening widecast.ai/s/sale2026 or widecast.ai/s/SALE2026 takes visitors to the same place.
 
-232. Q: Can I make my YouTube uploads private by default?
-232. A: Yes. After connecting YouTube, click its "Settings" button and set "Privacy" to "Public", "Unlisted", or "Private", plus whether each video is "Made for Kids". Click "Save" and every video you publish to YouTube afterward uses that setting until you change it again.
+232. Q: Why does a random short link never contain 0 or O?
+232. A: So nobody confuses the number 0 with the letter O when reading or typing the link. If you choose your own ID, you may use both.
 
-233. Q: Can I set a default privacy level for my TikTok posts?
-233. A: Yes. Open TikTok's "Settings" after connecting it and choose "Privacy": "Public", "Friends Only", "Followers Only", or "Only Me". WideCast saves your choice and reuses it automatically every time you publish to TikTok.
+233. Q: The page says my custom ID is already taken. What do I do?
+233. A: Each ID can exist only once across WideCast. Pick a different ID, add a number or a year to it, or leave "Custom ID" empty to get a random one.
 
-234. Q: My long video was cut to 90 seconds on Facebook. How do I post the full video?
-234. A: Facebook posts videos as Reels by default, and Reels are trimmed to about 90 seconds. Open Facebook's "Settings" in "Connect Social Account" and set "Post Type" to "Video", then publish again. If you only want one post as a full video, an AI agent connected to your account can choose the post type for that single post without changing your saved setting.
+234. Q: Can I change where a short link goes after I have shared it?
+234. A: Yes. Click "Change destination" under the link, "Edit" next to it in "Made this visit", or open the "Edit a link" tab, paste the link and click "Find". Paste the new address and click "Save". The link itself and its click count stay the same.
 
-235. Q: Can I post to Facebook as a draft instead of publishing right away?
-235. A: Yes. In Facebook's connected-account settings, set "Video State" to "Draft" instead of "Published (Public)". The same settings panel is also where you choose which Facebook Page WideCast posts to.
+235. Q: Can I change the ID of a short link?
+235. A: No. The ID is permanent so that links you already shared keep working. Only the address it opens can change. If you want a different ID, make a new short link.
 
-236. Q: Which platforms have extra publish settings I can configure?
-236. A: YouTube, TikTok, Facebook, Instagram, LinkedIn, Pinterest, Reddit, and Google Business each get a "Settings" button once connected, covering things like privacy, page, board, or subreddit. Threads, X, and Bluesky have nothing extra to set up: connect them and you are ready to post.
+236. Q: How do I see how many people opened my short link?
+236. A: Open the "Edit a link" tab, paste the short link or its ID and click "Find". The page shows how many times the link has been opened so far, next to its current destination.
 
-237. Q: How do I disconnect a social account?
-237. A: Open "Connect Social Account" in the Setup Center, or "Connected Accounts" in your profile menu, find the connected platform, and click "Disconnect". Confirm when asked, and WideCast stops publishing to that account until you connect it again.
+237. Q: How many short links can I make?
+237. A: Up to 10 new short links per hour and up to 100 destination changes per hour. If you reach a limit, wait a little and try again. Short links are free and do not expire.
 
-238. Q: Can my AI assistant see which accounts I have connected?
-238. A: Partly. An AI agent connected to your account can list your connected platforms and read your saved publish settings, but through the AI connector it cannot change them; updating settings happens in the studio. It also cannot connect a brand-new platform for you, since that first sign-in has to happen in your own browser at widecast.ai/#setup.
+238. Q: Can my AI agent make or edit short links for me?
+238. A: Yes. A connected AI agent can make short links, look them up and change where they go, using the same rules and hourly limits as the page. It should confirm a new destination with you before changing an existing link.
 
-239. Q: Does connecting or setting up a social account use credits?
-239. A: No. Connecting a platform, disconnecting it, and saving its publish settings are all free. Credits are only used for things like generating scenes, AI images, or dubbing, not for managing your platform connections.
+239. Q: Which social platforms can I connect to WideCast?
+239. A: Eleven: YouTube, TikTok, Instagram, Facebook, LinkedIn, X, Threads, Pinterest, Reddit, Bluesky, and Google Business. Connect any of them from the Setup Center's "Connect Social Account" section, or from "Connected Accounts" in your profile menu.
 
-240. Q: Where do I connect accounts if I do not want to open the Setup Center?
-240. A: Click "Account" in the top corner of the home screen, then "Connected Accounts". It opens the same connect panel as "Connect Social Account" in the Setup Center, just from a shorter path.
+240. Q: How do I connect my YouTube channel to WideCast?
+240. A: Open the Setup Center at widecast.ai/#setup and choose "Connect Social Account" (or click "Connected Accounts" in your profile menu). Find YouTube in the list and click "Connect". A window opens where you sign in to YouTube and approve access; once you finish, the window closes and YouTube shows as connected.
 
-241. Q: I have Vietnamese channels and English channels. Can I connect two YouTube accounts?
-241. A: Yes, with channel groups. Open "Connect Social Account", click "Add channel group" and name it, for example "English channels". A tab bar appears; pick the new tab and connect its YouTube account there. Your original accounts stay in the "Primary" group, and each group keeps its own publish settings. How many groups you can have depends on your plan: the entry plan includes the Primary group only, and higher plans add one or two more. When your plan has no room left, the screen shows "Upgrade to add a channel group" instead.
+241. Q: Do I need a paid plan to connect a social account?
+241. A: Yes. "Connect Social Account" is marked "Requires paid account" in the Setup Center. On a free plan, clicking "Connect" next to a platform shows an upgrade prompt instead of connecting it. See [Credits, plans, and billing](guide/credits-and-billing.html) for plan details.
 
-242. Q: When I publish, how do I choose which group's account a post goes to?
-242. A: Once you have more than one channel group, the platform chips in the publish screen are grouped under the group name, so "YouTube" under "English channels" is a different account from "YouTube" under "Primary". Select the chips you want; WideCast posts to each selected group in turn and reports the result per group.
+242. Q: Can I make my YouTube uploads private by default?
+242. A: Yes. After connecting YouTube, click its "Settings" button and set "Privacy" to "Public", "Unlisted", or "Private", plus whether each video is "Made for Kids". Click "Save" and every video you publish to YouTube afterward uses that setting until you change it again.
 
-243. Q: Does the Social Dashboard show every channel group?
-243. A: Yes. With more than one group, the dashboard opens on "All groups", which adds every group together and tags each account and post with its group name. A group selector next to the period selector lets you switch to one group to see just its numbers.
+243. Q: Can I set a default privacy level for my TikTok posts?
+243. A: Yes. Open TikTok's "Settings" after connecting it and choose "Privacy": "Public", "Friends Only", "Followers Only", or "Only Me". WideCast saves your choice and reuses it automatically every time you publish to TikTok.
 
-244. Q: What happens when I remove a channel group?
-244. A: WideCast deletes that group's publishing profile, which disconnects every account connected in it. Posts that were already published stay online. The group's number is not reused, so nothing that referred to it can point at a different group later.
+244. Q: My long video was cut to 90 seconds on Facebook. How do I post the full video?
+244. A: Facebook posts videos as Reels by default, and Reels are trimmed to about 90 seconds. Open Facebook's "Settings" in "Connect Social Account" and set "Post Type" to "Video", then publish again. If you only want one post as a full video, an AI agent connected to your account can choose the post type for that single post without changing your saved setting.
 
-245. Q: Why does "Add channel group" say the plan is full?
-245. A: Two limits apply. Your WideCast plan includes a set number of channel groups, and the Primary group counts as one: the entry plan has the Primary group only, and higher plans add one or two more. When they are all used, the Connect screen shows "Upgrade to add a channel group" instead of "Add channel group", and upgrading your plan unlocks the next one. Separately, every group is a profile on the publishing provider, whose plan also allows a fixed number of profiles; if that is what is full, remove a group you no longer use or upgrade the provider plan, then try again.
+245. Q: Can I post to Facebook as a draft instead of publishing right away?
+245. A: Yes. In Facebook's connected-account settings, set "Video State" to "Draft" instead of "Published (Public)". The same settings panel is also where you choose which Facebook Page WideCast posts to.
 
-246. Q: Can my AI assistant publish through a specific channel group?
-246. A: Yes. Ask it to list your channel groups first; each has a number, and 0 is Primary. It passes that number when it publishes or reads publish settings, since those always target one group. When it pulls analytics or lists accounts without naming a group, it gets every group at once, the same full picture the daily Telegram report shows. It can read groups but cannot create or remove them; that stays in the studio.
+246. Q: Which platforms have extra publish settings I can configure?
+246. A: YouTube, TikTok, Facebook, Instagram, LinkedIn, Pinterest, Reddit, and Google Business each get a "Settings" button once connected, covering things like privacy, page, board, or subreddit. Threads, X, and Bluesky have nothing extra to set up: connect them and you are ready to post.
 
-247. Q: I renamed my account on the platform, but WideCast still shows the old name. Why?
-247. A: WideCast keeps a copy of each connected account's name and refreshes it from the publishing provider automatically: at most every 30 minutes while you use the studio, and right away whenever you open "Connect Social Account". Open that screen once and the new name appears; you do not need to reconnect. If the platform kept your old handle and only changed the display name, WideCast shows the display name.
+247. Q: How do I disconnect a social account?
+247. A: Open "Connect Social Account" in the Setup Center, or "Connected Accounts" in your profile menu, find the connected platform, and click "Disconnect". Confirm when asked, and WideCast stops publishing to that account until you connect it again.
 
-248. Q: How do I publish my video after I export it?
-248. A: Open the "Exported" dialog that appears once rendering finishes and click "Publish". That opens the "Publish Video" screen, where you pick which connected platforms to post to and choose "Post Now" or "Schedule" before confirming.
+248. Q: Can my AI assistant see which accounts I have connected?
+248. A: Partly. An AI agent connected to your account can list your connected platforms and read your saved publish settings, but through the AI connector it cannot change them; updating settings happens in the studio. It also cannot connect a brand-new platform for you, since that first sign-in has to happen in your own browser at widecast.ai/#setup.
 
-249. Q: How do I post my video to all my platforms at once?
-249. A: On the "Publish Video" screen, select every platform you have connected under "Publish to Social Media", then press "Publish to Social". WideCast posts to all of them together in one action. Through the API or an AI agent, leave the platforms list blank and it defaults to every platform you have connected.
+249. Q: Does connecting or setting up a social account use credits?
+249. A: No. Connecting a platform, disconnecting it, and saving its publish settings are all free. Credits are only used for things like generating scenes, AI images, or dubbing, not for managing your platform connections.
 
-250. Q: Can I publish the same video to some platforms only?
-250. A: Yes. Select only the platforms you want this particular post to reach before you press "Publish to Social" or "Schedule to Social". WideCast does not post to any platform you did not select.
+250. Q: Where do I connect accounts if I do not want to open the Setup Center?
+250. A: Click "Account" in the top corner of the home screen, then "Connected Accounts". It opens the same connect panel as "Connect Social Account" in the Setup Center, just from a shorter path.
 
-251. Q: How do I schedule my video to publish at a later time?
-251. A: On the "Publish Video" screen, switch the toggle from "Post Now" to "Schedule". A date field and a time field appear so you can pick exactly when it should go out, then press "Schedule to Social" to queue it.
+251. Q: I have Vietnamese channels and English channels. Can I connect two YouTube accounts?
+251. A: Yes, with channel groups. Open "Connect Social Account", click "Add channel group" and name it, for example "English channels". A tab bar appears; pick the new tab and connect its YouTube account there. Your original accounts stay in the "Primary" group, and each group keeps its own publish settings. How many groups you can have depends on your plan: the entry plan includes the Primary group only, and higher plans add one or two more. When your plan has no room left, the screen shows "Upgrade to add a channel group" instead.
 
-252. Q: Where do I see what I have scheduled or already published?
-252. A: Click "Account" in the top corner, then "Publish Schedule". It opens a calendar of everything you have scheduled or published, month by month, with a status on each entry: "Scheduled", "Publishing", "Published", or "Failed".
+252. Q: When I publish, how do I choose which group's account a post goes to?
+252. A: Once you have more than one channel group, the platform chips in the publish screen are grouped under the group name, so "YouTube" under "English channels" is a different account from "YouTube" under "Primary". Select the chips you want; WideCast posts to each selected group in turn and reports the result per group.
 
-253. Q: How do I find the link to my published post?
-253. A: Open "Publish Schedule" from the "Account" menu and find the post. Once it has actually gone out, its entry shows a "View post" link that opens the live post on that platform in a new tab.
+253. Q: Does the Social Dashboard show every channel group?
+253. A: Yes. With more than one group, the dashboard opens on "All groups", which adds every group together and tags each account and post with its group name. A group selector next to the period selector lets you switch to one group to see just its numbers.
 
-254. Q: What is the difference between "Schedule" on the publish screen and "Publish Schedule" in the Account menu?
-254. A: "Schedule" is the choice you make while publishing one post, so it goes out later instead of right away. "Publish Schedule" is the separate calendar where you can see every post you have scheduled or already published, across your whole account, browsable by month.
+254. Q: What happens when I remove a channel group?
+254. A: WideCast deletes that group's publishing profile, which disconnects every account connected in it. Posts that were already published stay online. The group's number is not reused, so nothing that referred to it can point at a different group later.
 
-255. Q: What do the statuses in Publish Schedule mean?
-255. A: "Scheduled" means the post is queued and waiting for its time. "Publishing" means it is going out right now. "Published" means it is live, with a "View post" link to see it. "Failed" means WideCast could not post it; try publishing that content again.
+255. Q: Why does "Add channel group" say the plan is full?
+255. A: Two limits apply. Your WideCast plan includes a set number of channel groups, and the Primary group counts as one: the entry plan has the Primary group only, and higher plans add one or two more. When they are all used, the Connect screen shows "Upgrade to add a channel group" instead of "Add channel group", and upgrading your plan unlocks the next one. Separately, every group is a profile on the publishing provider, whose plan also allows a fixed number of profiles; if that is what is full, remove a group you no longer use or upgrade the provider plan, then try again.
 
-256. Q: Can an AI agent publish or schedule my video for me?
-256. A: Yes, if you have connected one through the API or an MCP connector. It must confirm the exact content and the exact platforms with you in that conversation first, since publishing is public and cannot be undone. Once you confirm, it can post right away or schedule it for a specific date and time, the same choice you get in the studio.
+256. Q: Can my AI assistant publish through a specific channel group?
+256. A: Yes. Ask it to list your channel groups first; each has a number, and 0 is Primary. It passes that number when it publishes or reads publish settings, since those always target one group. When it pulls analytics or lists accounts without naming a group, it gets every group at once, the same full picture the daily Telegram report shows. It can read groups but cannot create or remove them; that stays in the studio.
 
-257. Q: Does publishing or scheduling a video use credits?
-257. A: Yes, publishing uses credits, whether you post it right away or schedule it for later; both cost the same. Check your balance under "Subscription & Credits" in the profile menu.
+257. Q: I renamed my account on the platform, but WideCast still shows the old name. Why?
+257. A: WideCast keeps a copy of each connected account's name and refreshes it from the publishing provider automatically: at most every 30 minutes while you use the studio, and right away whenever you open "Connect Social Account". Open that screen once and the new name appears; you do not need to reconnect. If the platform kept your old handle and only changed the display name, WideCast shows the display name.
 
-258. Q: Where do I see views and likes for my posts?
-258. A: Open the profile menu in the top corner and choose "Statistics" to open the Social Dashboard. It shows Views/Reach, Likes, Comments, and Shares totals across every platform you have connected, for whatever time period you pick.
+258. Q: How do I publish my video after I export it?
+258. A: Open the "Exported" dialog that appears once rendering finishes and click "Publish". That opens the "Publish Video" screen, where you pick which connected platforms to post to and choose "Post Now" or "Schedule" before confirming.
 
-259. Q: What metrics does the Social Dashboard show?
-259. A: Eight totals for your chosen time period: Accounts, Followers, Views/Reach, Content, Posts via WideCast, Likes, Comments, and Shares. Scroll down for an Engagement Trend chart, a Connected Accounts breakdown, an Upload Stats table, and a Recent Posts list.
+259. Q: How do I post my video to all my platforms at once?
+259. A: On the "Publish Video" screen, select every platform you have connected under "Publish to Social Media", then press "Publish to Social". WideCast posts to all of them together in one action. Through the API or an AI agent, leave the platforms list blank and it defaults to every platform you have connected.
 
-260. Q: What does "Posts via WideCast" mean on the Social Dashboard?
-260. A: It counts how many of your posts were actually published from inside WideCast. That is different from "Content," which counts everything WideCast can see across your connected accounts for the selected period, including posts made outside WideCast.
+260. Q: Can I publish the same video to some platforms only?
+260. A: Yes. Select only the platforms you want this particular post to reach before you press "Publish to Social" or "Schedule to Social". WideCast does not post to any platform you did not select.
 
-261. Q: How do I change the time period on the Social Dashboard?
-261. A: Use the dropdown near the top: "Today," "Last 7 days," "Last 30 days," "Last 90 days," "Last 365 days," or "Custom range." Picking "Custom range" reveals a start date and an end date field; set both and press "Apply."
+261. Q: How do I schedule my video to publish at a later time?
+261. A: On the "Publish Video" screen, switch the toggle from "Post Now" to "Schedule". A date field and a time field appear so you can pick exactly when it should go out, then press "Schedule to Social" to queue it.
 
-262. Q: Why are my Social Dashboard numbers all zero?
-262. A: The Social Dashboard only counts platforms you have connected to WideCast. If you have not connected any social accounts yet, most numbers read zero. Connect one, then reopen "Statistics" to see real numbers.
+262. Q: Where do I see what I have scheduled or already published?
+262. A: Click "Account" in the top corner, then "Publish Schedule". It opens a calendar of everything you have scheduled or published, month by month, with a status on each entry: "Scheduled", "Publishing", "Published", or "Failed".
 
-263. Q: Can I see analytics for one platform only?
-263. A: The Social Dashboard does not have a dedicated single-platform filter; the top numbers always combine every connected account. Scroll down to the "Connected Accounts" and "Upload Stats" sections, though, where the same numbers are broken out account by account and platform by platform.
+263. Q: How do I find the link to my published post?
+263. A: Open "Publish Schedule" from the "Account" menu and find the post. Once it has actually gone out, its entry shows a "View post" link that opens the live post on that platform in a new tab.
 
-264. Q: Why do my follower numbers look behind?
-264. A: The Social Dashboard asks each connected platform for its current numbers every time you open it, instead of keeping its own separate count. If a number looks behind, that usually means the platform itself has not finished updating its own stats yet, not a problem with WideCast.
+264. Q: What is the difference between "Schedule" on the publish screen and "Publish Schedule" in the Account menu?
+264. A: "Schedule" is the choice you make while publishing one post, so it goes out later instead of right away. "Publish Schedule" is the separate calendar where you can see every post you have scheduled or already published, across your whole account, browsable by month.
 
-265. Q: Does checking my Social Dashboard use credits?
-265. A: No. Opening the Social Dashboard, switching time periods, and pulling the same numbers through the API or an AI agent are all free.
+265. Q: What do the statuses in Publish Schedule mean?
+265. A: "Scheduled" means the post is queued and waiting for its time. "Publishing" means it is going out right now. "Published" means it is live, with a "View post" link to see it. "Failed" means WideCast could not post it; try publishing that content again.
 
-266. Q: Can my AI assistant read my analytics?
-266. A: Yes. Once you connect an AI assistant, like Claude or ChatGPT, through the WideCast connector, you can ask it things like how your last video performed or what your follower growth looks like, and it can pull the same numbers shown on your Social Dashboard. Connect one from "API Keys & MCP" in the Setup Center at widecast.ai/#setup.
+266. Q: Can an AI agent publish or schedule my video for me?
+266. A: Yes, if you have connected one through the API or an MCP connector. It must confirm the exact content and the exact platforms with you in that conversation first, since publishing is public and cannot be undone. Once you confirm, it can post right away or schedule it for a specific date and time, the same choice you get in the studio.
 
-267. Q: How do I connect WideCast to Claude, ChatGPT, or another AI assistant?
-267. A: Open widecast.ai/#setup and choose "API Keys & MCP", then click "Generate API key and MCP url" to get your personal MCP URL. Paste that URL into your assistant's connector settings (in Claude, that is Settings, then Connectors, then Add custom connector), give it a name, and click "Connect". Turn the connector on for your chat, then ask it to do something, like "Use WideCast to make a video about a topic you choose." Menu names differ slightly by assistant, so check the setup page for yours if the wording does not match.
+267. Q: Does publishing or scheduling a video use credits?
+267. A: Yes, publishing uses credits, whether you post it right away or schedule it for later; both cost the same. Check your balance under "Subscription & Credits" in the profile menu.
 
-268. Q: Which AI assistants can connect to WideCast?
-268. A: Claude, ChatGPT, Gemini, Grok, and Antigravity all support pasting in an MCP connector URL, and WideCast has a short setup page for each: Claude Web and Desktop, ChatGPT and Codex, a combined page for Gemini and Antigravity, and one for Grok. Other tools that support custom MCP connectors, like Cursor, can use the same MCP URL even without a dedicated WideCast setup page.
+268. Q: Where do I see views and likes for my posts?
+268. A: Open the profile menu in the top corner and choose "Statistics" to open the Social Dashboard. It shows Views/Reach, Likes, Comments, and Shares totals across every platform you have connected, for whatever time period you pick.
 
-269. Q: Where do I get a WideCast API key?
-269. A: From "API Keys & MCP" in the Setup Center at widecast.ai/#setup. Click "Generate API key and MCP url" and WideCast gives you both an API key, which starts with wc_live_, for calling WideCast directly from your own code, and an MCP URL for connecting an AI assistant, in the same step. You do not need to choose between them ahead of time. Developers integrating directly can find the full request and response reference in the developer docs.
+269. Q: What metrics does the Social Dashboard show?
+269. A: Eight totals for your chosen time period: Accounts, Followers, Views/Reach, Content, Posts via WideCast, Likes, Comments, and Shares. Scroll down for an Engagement Trend chart, a Connected Accounts breakdown, an Upload Stats table, and a Recent Posts list.
 
-270. Q: What is the MCP connector URL?
-270. A: It is a personal link that stands in for your account, similar to an API key but built for pasting into a chat assistant instead of code. WideCast creates it at the same time as your API key when you click "Generate API key and MCP url" in "API Keys & MCP", inside the Setup Center. Paste the whole link, unedited, into your assistant's connector settings, and it can then use WideCast on your account without you typing anything else in. Treat it as a secret: anyone who has it can use your account.
+270. Q: What does "Posts via WideCast" mean on the Social Dashboard?
+270. A: It counts how many of your posts were actually published from inside WideCast. That is different from "Content," which counts everything WideCast can see across your connected accounts for the selected period, including posts made outside WideCast.
 
-271. Q: What can my AI assistant actually do in WideCast?
-271. A: Once connected, it can do almost anything you would do yourself: start a new video, blog post, or social caption from an idea, script, link, or file; list your video library; read a video's scenes and fix individual ones, like swapping a background or correcting on-screen text; search stock footage; upload a file for you; and publish, notify you, or send a client a review link. It only acts on your account, using your own credits and connected platforms, and only when you ask it to.
+271. Q: How do I change the time period on the Social Dashboard?
+271. A: Use the dropdown near the top: "Today," "Last 7 days," "Last 30 days," "Last 90 days," "Last 365 days," or "Custom range." Picking "Custom range" reveals a start date and an end date field; set both and press "Apply."
 
-272. Q: Can my assistant fix or audit one scene in my video?
-272. A: Yes. A connected assistant first reads the video's scene-by-scene data, checks how things are laid out if it needs to, then makes one focused change at a time, the same moves available in the scene editor: swap a background, reposition an overlay, fix on-screen text or a caption, correct the narration wording, and more. If it is changing several scenes in one pass, it groups them into a single session so the changes do not conflict with each other. None of this spends a credit.
+272. Q: Why are my Social Dashboard numbers all zero?
+272. A: The Social Dashboard only counts platforms you have connected to WideCast. If you have not connected any social accounts yet, most numbers read zero. Connect one, then reopen "Statistics" to see real numbers.
 
-273. Q: Do I have to teach my assistant how to write scripts or edit scenes?
-273. A: No. WideCast ships its own writing method and its own editing method, and a connected assistant fetches whichever one it needs automatically, right when it needs it, the moment you ask for a new video or ask it to fix an existing one. Both are free to look up and need no key. You do not have to upload a guide, paste instructions, or explain WideCast's conventions yourself; connecting the assistant is the only setup step.
+273. Q: Can I see analytics for one platform only?
+273. A: The Social Dashboard does not have a dedicated single-platform filter; the top numbers always combine every connected account. Scroll down to the "Connected Accounts" and "Upload Stats" sections, though, where the same numbers are broken out account by account and platform by platform.
 
-274. Q: Is it safe to give an AI assistant access to my WideCast account?
-274. A: Yes, with normal care. Your API key and MCP URL work like a password: anyone who has one can act on your account, so only paste them into an assistant or tool you trust, and never share them publicly. WideCast also builds in limits: checking on a video needs no key at all, editing a scene never spends credits, and exporting a finished video always needs your direct yes before it happens. You can revoke a key immediately from "API Keys & MCP" in the Setup Center if you ever have doubts.
+274. Q: Why do my follower numbers look behind?
+274. A: The Social Dashboard asks each connected platform for its current numbers every time you open it, instead of keeping its own separate count. If a number looks behind, that usually means the platform itself has not finished updating its own stats yet, not a problem with WideCast.
 
-275. Q: Can my assistant spend my credits without asking me first?
-275. A: WideCast's own instructions tell a connected assistant to tell you the cost before it generates something new, so you can decide first rather than being surprised afterward. Exporting a finished video goes further: the assistant must ask you directly and can only proceed after you clearly say yes to that specific export, not something you agreed to earlier in the chat. Editing scenes you already have, searching footage, and checking status never use credits at all, connected or not.
+275. Q: Does checking my Social Dashboard use credits?
+275. A: No. Opening the Social Dashboard, switching time periods, and pulling the same numbers through the API or an AI agent are all free.
 
-276. Q: Does connecting an AI assistant cost anything?
-276. A: No. Generating an API key and MCP URL, connecting an assistant, checking on a video's status, and having your assistant read or audit scenes are all free. Credits are only spent the same way they would be if you were clicking through the studio yourself, by generating something new, like a video, an image, or a final export. Connecting more than one assistant, or reconnecting after rotating your link, does not cost anything extra either.
+276. Q: Can my AI assistant read my analytics?
+276. A: Yes. Once you connect an AI assistant, like Claude or ChatGPT, through the WideCast connector, you can ask it things like how your last video performed or what your follower growth looks like, and it can pull the same numbers shown on your Social Dashboard. Connect one from "API Keys & MCP" in the Setup Center at widecast.ai/#setup.
 
-277. Q: Can I revoke my assistant's access to WideCast?
-277. A: Yes. Open "API Keys & MCP" in the Setup Center and click "Revoke" next to the key your assistant is using. This shuts off both the API key and its MCP URL immediately, so the assistant can no longer act on your account. To reconnect later, click "Generate API key and MCP url" to create a new one, then connect your assistant again with the fresh link.
+277. Q: How do I connect WideCast to Claude, ChatGPT, or another AI assistant?
+277. A: Open widecast.ai/#setup and choose "API Keys & MCP", then click "Generate API key and MCP url" to get your personal MCP URL. Paste that URL into your assistant's connector settings (in Claude, that is Settings, then Connectors, then Add custom connector), give it a name, and click "Connect". Turn the connector on for your chat, then ask it to do something, like "Use WideCast to make a video about a topic you choose." Menu names differ slightly by assistant, so check the setup page for yours if the wording does not match.
 
-278. Q: My assistant lost access to WideCast. How do I reconnect it?
-278. A: Open widecast.ai/#setup, go to "API Keys & MCP", and find the key your assistant was using. If it still shows as "Active", click "Show API key & MCP url" to see the MCP URL again and paste it back into your assistant's connector settings. If the key was revoked, or you no longer have the URL, click "Generate API key and MCP url" to create a new one, then reconnect your assistant with the fresh link the same way you did the first time.
+278. Q: Which AI assistants can connect to WideCast?
+278. A: Claude, ChatGPT, Gemini, Grok, and Antigravity all support pasting in an MCP connector URL, and WideCast has a short setup page for each: Claude Web and Desktop, ChatGPT and Codex, a combined page for Gemini and Antigravity, and one for Grok. Other tools that support custom MCP connectors, like Cursor, can use the same MCP URL even without a dedicated WideCast setup page.
 
-279. Q: What do credits pay for in WideCast?
-279. A: Credits are spent when WideCast generates something new: creating a video or written post (scene-by-scene video generation uses 2 credits), generating AI images (1 credit per image), exporting the final MP4, and publishing to a connected platform (1 credit). Editing existing scenes is free.
+279. Q: Where do I get a WideCast API key?
+279. A: From "API Keys & MCP" in the Setup Center at widecast.ai/#setup. Click "Generate API key and MCP url" and WideCast gives you both an API key, which starts with wc_live_, for calling WideCast directly from your own code, and an MCP URL for connecting an AI assistant, in the same step. You do not need to choose between them ahead of time. Developers integrating directly can find the full request and response reference in the developer docs.
 
-280. Q: Where can I see how many credits I have left?
-280. A: Open the profile menu and choose "Subscription & Credits". The "Your Subscription" dialog shows your remaining credits, your plan, and its "Valid until" date.
+280. Q: What is the MCP connector URL?
+280. A: It is a personal link that stands in for your account, similar to an API key but built for pasting into a chat assistant instead of code. WideCast creates it at the same time as your API key when you click "Generate API key and MCP url" in "API Keys & MCP", inside the Setup Center. Paste the whole link, unedited, into your assistant's connector settings, and it can then use WideCast on your account without you typing anything else in. Treat it as a secret: anyone who has it can use your account.
 
-281. Q: I ran out of credits. What do I do?
-281. A: Your monthly credit allowance is used up, so new generation is blocked. Upgrade to a bigger plan to get more credits immediately, or wait until your plan renews and the allowance resets. Your existing videos remain fully editable in the meantime.
+281. Q: What can my AI assistant actually do in WideCast?
+281. A: Once connected, it can do almost anything you would do yourself: start a new video, blog post, or social caption from an idea, script, link, or file; list your video library; read a video's scenes and fix individual ones, like swapping a background or correcting on-screen text; search stock footage; upload a file for you; and publish, notify you, or send a client a review link. It only acts on your account, using your own credits and connected platforms, and only when you ask it to.
 
-282. Q: What are the limits of the free plan?
-282. A: Free accounts can make videos up to 90 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
+282. Q: Can my assistant fix or audit one scene in my video?
+282. A: Yes. A connected assistant first reads the video's scene-by-scene data, checks how things are laid out if it needs to, then makes one focused change at a time, the same moves available in the scene editor: swap a background, reposition an overlay, fix on-screen text or a caption, correct the narration wording, and more. If it is changing several scenes in one pass, it groups them into a single session so the changes do not conflict with each other. None of this spends a credit.
 
-283. Q: How do I upgrade my plan?
-283. A: Open the profile menu, choose "Subscription & Credits", and pick the plan you want. Upgrades take effect immediately and you are charged the pro-rated difference for the rest of the cycle.
+283. Q: Do I have to teach my assistant how to write scripts or edit scenes?
+283. A: No. WideCast ships its own writing method and its own editing method, and a connected assistant fetches whichever one it needs automatically, right when it needs it, the moment you ask for a new video or ask it to fix an existing one. Both are free to look up and need no key. You do not have to upload a guide, paste instructions, or explain WideCast's conventions yourself; connecting the assistant is the only setup step.
 
-284. Q: If I downgrade, when does the cheaper plan start?
-284. A: At your next renewal. Your current plan stays active until the end of the billing cycle you already paid for.
+284. Q: Is it safe to give an AI assistant access to my WideCast account?
+284. A: Yes, with normal care. Your API key and MCP URL work like a password: anyone who has one can act on your account, so only paste them into an assistant or tool you trust, and never share them publicly. WideCast also builds in limits: checking on a video needs no key at all, editing a scene never spends credits, and exporting a finished video always needs your direct yes before it happens. You can revoke a key immediately from "API Keys & MCP" in the Setup Center if you ever have doubts.
 
-285. Q: How do I cancel my subscription?
-285. A: Open "Subscription & Credits" and choose "Cancel Subscription". The flow shows what you lose, offers a downgrade or a pause instead, and you can pick "Keep My Plan" at any step. After canceling you keep access until the end of the period you paid for.
+285. Q: Can my assistant spend my credits without asking me first?
+285. A: WideCast's own instructions tell a connected assistant to tell you the cost before it generates something new, so you can decide first rather than being surprised afterward. Exporting a finished video goes further: the assistant must ask you directly and can only proceed after you clearly say yes to that specific export, not something you agreed to earlier in the chat. Editing scenes you already have, searching footage, and checking status never use credits at all, connected or not.
 
-286. Q: Can I pause my subscription instead of canceling it?
-286. A: Yes. The cancel flow offers "Pause for 1 month?", which skips your next payment. Nothing is deleted, and you will not be charged for the next cycle.
+286. Q: Does connecting an AI assistant cost anything?
+286. A: No. Generating an API key and MCP URL, connecting an assistant, checking on a video's status, and having your assistant read or audit scenes are all free. Credits are only spent the same way they would be if you were clicking through the studio yourself, by generating something new, like a video, an image, or a final export. Connecting more than one assistant, or reconnecting after rotating your link, does not cost anything extra either.
 
-287. Q: My account says it is expired. What does that mean?
-287. A: Your subscription period has ended, so generation is blocked until you renew. Open "Subscription & Credits" in the profile menu to renew. Your videos and projects are still there.
+287. Q: Can I revoke my assistant's access to WideCast?
+287. A: Yes. Open "API Keys & MCP" in the Setup Center and click "Revoke" next to the key your assistant is using. This shuts off both the API key and its MCP URL immediately, so the assistant can no longer act on your account. To reconnect later, click "Generate API key and MCP url" to create a new one, then connect your assistant again with the fresh link.
 
-288. Q: Can I earn free credits?
-288. A: Yes. The "Your Subscription" dialog has a "Share to Earn Credits" button that rewards you for sharing WideCast.
+288. Q: My assistant lost access to WideCast. How do I reconnect it?
+288. A: Open widecast.ai/#setup, go to "API Keys & MCP", and find the key your assistant was using. If it still shows as "Active", click "Show API key & MCP url" to see the MCP URL again and paste it back into your assistant's connector settings. If the key was revoked, or you no longer have the URL, click "Generate API key and MCP url" to create a new one, then reconnect your assistant with the fresh link the same way you did the first time.
 
-289. Q: My video has been stuck on "Generating" for over an hour. Is something wrong?
-289. A: Generating a video almost always takes just a few minutes. The workflow screen shows its own estimate and says "Feel free to do other tasks," so closing the tab and coming back later is fine; WideCast keeps working in the background regardless. If it has run far past that estimate, reopen WideCast and check the badge again; a badge that changed to "Failed" means that run hit a problem, not that it is still stuck. If it is still stuck on "Generating," reach out through "Live Support" in the Account menu with that video so the team can check the run.
+289. Q: What do credits pay for in WideCast?
+289. A: Credits are spent when WideCast generates something new: creating a video or written post (scene-by-scene video generation uses 2 credits), generating AI images (1 credit per image), exporting the final MP4, and publishing to a connected platform (1 credit). Editing existing scenes is free.
 
-290. Q: My video's badge says "Failed". Did I lose my work or credits?
-290. A: A "Failed" badge means that specific run hit a problem; it does not affect your other videos. Sometimes it fails immediately with a popup starting "Failed to generate script:" followed by the reason; other times you only notice the "Failed" badge later on the home screen. Open Creator Tools and run it again first, since occasional runs do fail and a retry often succeeds. If the same input keeps failing, check that your plan and credit balance are current under [Credits, plans, and billing](guide/credits-and-billing.html), since an expired plan or empty balance can also show up as "Failed." Still stuck? Contact "Live Support" from the Account menu.
+290. Q: Where can I see how many credits I have left?
+290. A: Open the profile menu and choose "Subscription & Credits". The "Your Subscription" dialog shows your remaining credits, your plan, and its "Valid until" date.
 
-291. Q: I clicked "Export" but WideCast won't let me. What's wrong?
-291. A: WideCast checks every scene first. If a scene is simply unfinished, using AI narration because you have not recorded your own voice, or still using placeholder media, an "Incomplete Scenes Detected" warning appears; press "Export Anyway" to render as-is, or fix those scenes first. If instead a B-roll scene has no image or video attached at all, export is blocked completely with no way around it until that scene is fixed; open it and use "Find B-roll" to add footage. See [Exporting the final video](guide/export-video.html) for the full walkthrough of both warnings.
+291. Q: I ran out of credits. What do I do?
+291. A: Your monthly credit allowance is used up, so new generation is blocked. Upgrade to a bigger plan to get more credits immediately, or wait until your plan renews and the allowance resets. Your existing videos remain fully editable in the meantime.
 
-292. Q: Why did publishing my video fail?
-292. A: The most common reason is that the platform you picked is not connected yet. In the Publish panel, a platform with no connected account shows "No accounts connected." with a "Connect your accounts first" link; click it, sign in to that platform, and try publishing again. You can also connect ahead of time through "Connect Social Account" in the [Setup Center](https://widecast.ai/#setup), or "Connected Accounts" in the Account menu. See [Connect your social accounts](guide/connect-platforms.html) and [Publish and schedule](guide/publish-and-schedule.html) for the full flow.
+292. Q: What are the limits of the free plan?
+292. A: Free accounts can make videos up to 90 seconds long; paid accounts can make videos up to 5 minutes. If your script runs past the free limit, WideCast asks you to upgrade before generating. Connecting social accounts and voice cloning also need a paid plan.
 
-293. Q: The client link I sent stopped working. Why?
-293. A: A "Client Magic Link" from the scene editor's Project tab only stays valid for the window you chose when you created it, anywhere from 1 to 30 days. Once that window passes, it stops opening a working session for your client; there is no on-screen warning, the page just will not load properly for them. Open the Project tab in the scene editor, generate a fresh link with a new expiry, and resend it. This is different from the "Client setup link" created in the Setup Center, which expires on its own separate schedule. See [Client links](guide/client-links.html) for the full picture.
+293. Q: How do I upgrade my plan?
+293. A: Open the profile menu, choose "Subscription & Credits", and pick the plan you want. Upgrades take effect immediately and you are charged the pro-rated difference for the rest of the cycle.
 
-294. Q: I set up Telegram for WideCast notifications, but they are not arriving. Why?
-294. A: Two common causes. First, the connection may not have actually finished: open the [Setup Center](https://widecast.ai/#setup)'s "Notification" section and confirm Telegram shows as connected, not just started. Second, WideCast limits automated notifications, including Telegram, to 60 per hour per account; if you or an automation go past that, further sends fail with a rate-limit error until the hour resets, so try again a little later. Either way, email still goes out as the default channel in the meantime, so check your inbox too. See [Notifications](guide/notifications.html) for the full setup.
+294. Q: If I downgrade, when does the cheaper plan start?
+294. A: At your next renewal. Your current plan stays active until the end of the billing cycle you already paid for.
 
-295. Q: I pasted a video or audio link and WideCast could not use it. Why?
-295. A: The link has to be a direct, public address WideCast can fetch on its own, not a page that requires you to be signed in, and not a file sitting only on your own network or computer. A share link that opens a player on someone else's site sometimes will not work either, even though it plays fine in your own browser. If a pasted link keeps failing, download the file yourself and upload it directly to WideCast instead of linking to it; direct uploads do not depend on WideCast being able to reach an outside address.
+295. Q: How do I cancel my subscription?
+295. A: Open "Subscription & Credits" and choose "Cancel Subscription". The flow shows what you lose, offers a downgrade or a pause instead, and you can pick "Keep My Plan" at any step. After canceling you keep access until the end of the period you paid for.
 
-296. Q: WideCast rejected my uploaded video or audio. What are the limits?
-296. A: Two caps apply. Video or audio you upload or link to can run up to 5 minutes; anything longer is rejected, so trim the clip or pick a shorter section. Files you upload directly are also capped at 100 MB; pasting a link instead has no separate size cap, only the 5-minute duration limit. If your file is over 100 MB, compress it or export a shorter or lower-resolution version before uploading again. Free plan accounts face a shorter duration cap on top of this; see [Credits, plans, and billing](guide/credits-and-billing.html) for plan limits.
+296. Q: Can I pause my subscription instead of canceling it?
+296. A: Yes. The cancel flow offers "Pause for 1 month?", which skips your next payment. Nothing is deleted, and you will not be charged for the next cycle.
 
-297. Q: WideCast rejected my script as too short or too long. How do I fix it?
-297. A: If it is too short, add real content: another example, more detail, or a closing call to action, until you clear the minimum. A full script you write or paste needs at least 80 words (500 words maximum); starting from an idea needs at least 5 words, and a blog article needs at least 30. If you are over the maximum on a full script, trim it down, since scripts are rejected for running too long. Ideas and blog articles work differently: go over their maximum, 1,000 words and 3,000 words, and WideCast just shortens them automatically instead of blocking you.
+297. Q: My account says it is expired. What does that mean?
+297. A: Your subscription period has ended, so generation is blocked until you renew. Open "Subscription & Credits" in the profile menu to renew. Your videos and projects are still there.
 
-298. Q: WideCast blocked my video for being too long, even though it's under 5 minutes. Why?
-298. A: The 5-minute cap is for paid plans. Free plan accounts have a separate, shorter limit of 90 seconds, whether the video is generated from a script or idea, or built from media you upload or link to directly. Go over that on a free account and WideCast blocks it and asks you to shorten it or upgrade. This is the same 90-second cap that limits how long a finished free-plan video can run; it just also applies on the way in, to whatever source you feed it. See [Credits, plans, and billing](guide/credits-and-billing.html) to check your plan or upgrade.
+298. Q: Can I earn free credits?
+298. A: Yes. The "Your Subscription" dialog has a "Share to Earn Credits" button that rewards you for sharing WideCast.
 
-299. Q: I tried to check on a video by its id and WideCast says it cannot find it. Why?
-299. A: The most common reason is a small typo or a dropped character when the id was copied; double-check it against wherever you got it from. Every video's id starts with "widecast," and checking its status only needs that id, nothing else, not even an API key, so this is not an access or login problem. If the id is exactly right and WideCast still cannot find it, that specific video genuinely does not exist under that id. Still stuck? Contact "Live Support" from the Account menu with the id you have.
+299. Q: My video has been stuck on "Generating" for over an hour. Is something wrong?
+299. A: Generating a video almost always takes just a few minutes. The workflow screen shows its own estimate and says "Feel free to do other tasks," so closing the tab and coming back later is fine; WideCast keeps working in the background regardless. If it has run far past that estimate, reopen WideCast and check the badge again; a badge that changed to "Failed" means that run hit a problem, not that it is still stuck. If it is still stuck on "Generating," reach out through "Live Support" in the Account menu with that video so the team can check the run.
 
-300. Q: None of this fixed my problem. How do I talk to a real person at WideCast?
-300. A: Open the Account menu in the top corner of WideCast and choose "Live Support" to start a live chat with the WideCast team without leaving the page. If you are signed out, or browsing widecast.ai itself, look for the "Support" link in the top navigation or footer instead; it opens WideCast's public support and discussion board in a new tab. Either way, mention the video's name or id and what you already tried, so the team can pick up where you left off.
+300. Q: My video's badge says "Failed". Did I lose my work or credits?
+300. A: A "Failed" badge means that specific run hit a problem; it does not affect your other videos. Sometimes it fails immediately with a popup starting "Failed to generate script:" followed by the reason; other times you only notice the "Failed" badge later on the home screen. Open Creator Tools and run it again first, since occasional runs do fail and a retry often succeeds. If the same input keeps failing, check that your plan and credit balance are current under [Credits, plans, and billing](guide/credits-and-billing.html), since an expired plan or empty balance can also show up as "Failed." Still stuck? Contact "Live Support" from the Account menu.
 
-301. Q: Can my AI assistant report a WideCast problem for me?
-301. A: Yes. If your assistant is connected to your account, ask it to report the problem and it files a report with the WideCast team directly, attaching the details of the call that failed so the team can trace it. Use it when WideCast itself goes wrong, such as an export that never finishes or an upload that keeps being rejected, rather than for content you simply want changed. Note that you will not get a reply inside the chat, because the report goes to the team rather than back to you; if you want a real conversation, open the Account menu and choose "Live Support" instead.
+301. Q: I clicked "Export" but WideCast won't let me. What's wrong?
+301. A: WideCast checks every scene first. If a scene is simply unfinished, using AI narration because you have not recorded your own voice, or still using placeholder media, an "Incomplete Scenes Detected" warning appears; press "Export Anyway" to render as-is, or fix those scenes first. If instead a B-roll scene has no image or video attached at all, export is blocked completely with no way around it until that scene is fixed; open it and use "Find B-roll" to add footage. See [Exporting the final video](guide/export-video.html) for the full walkthrough of both warnings.
+
+302. Q: Why did publishing my video fail?
+302. A: The most common reason is that the platform you picked is not connected yet. In the Publish panel, a platform with no connected account shows "No accounts connected." with a "Connect your accounts first" link; click it, sign in to that platform, and try publishing again. You can also connect ahead of time through "Connect Social Account" in the [Setup Center](https://widecast.ai/#setup), or "Connected Accounts" in the Account menu. See [Connect your social accounts](guide/connect-platforms.html) and [Publish and schedule](guide/publish-and-schedule.html) for the full flow.
+
+303. Q: The client link I sent stopped working. Why?
+303. A: A "Client Magic Link" from the scene editor's Project tab only stays valid for the window you chose when you created it, anywhere from 1 to 30 days. Once that window passes, it stops opening a working session for your client; there is no on-screen warning, the page just will not load properly for them. Open the Project tab in the scene editor, generate a fresh link with a new expiry, and resend it. This is different from the "Client setup link" created in the Setup Center, which expires on its own separate schedule. See [Client links](guide/client-links.html) for the full picture.
+
+304. Q: I set up Telegram for WideCast notifications, but they are not arriving. Why?
+304. A: Two common causes. First, the connection may not have actually finished: open the [Setup Center](https://widecast.ai/#setup)'s "Notification" section and confirm Telegram shows as connected, not just started. Second, WideCast limits automated notifications, including Telegram, to 60 per hour per account; if you or an automation go past that, further sends fail with a rate-limit error until the hour resets, so try again a little later. Either way, email still goes out as the default channel in the meantime, so check your inbox too. See [Notifications](guide/notifications.html) for the full setup.
+
+305. Q: I pasted a video or audio link and WideCast could not use it. Why?
+305. A: The link has to be a direct, public address WideCast can fetch on its own, not a page that requires you to be signed in, and not a file sitting only on your own network or computer. A share link that opens a player on someone else's site sometimes will not work either, even though it plays fine in your own browser. If a pasted link keeps failing, download the file yourself and upload it directly to WideCast instead of linking to it; direct uploads do not depend on WideCast being able to reach an outside address.
+
+306. Q: WideCast rejected my uploaded video or audio. What are the limits?
+306. A: Two caps apply. Video or audio you upload or link to can run up to 5 minutes; anything longer is rejected, so trim the clip or pick a shorter section. Files you upload directly are also capped at 100 MB; pasting a link instead has no separate size cap, only the 5-minute duration limit. If your file is over 100 MB, compress it or export a shorter or lower-resolution version before uploading again. Free plan accounts face a shorter duration cap on top of this; see [Credits, plans, and billing](guide/credits-and-billing.html) for plan limits.
+
+307. Q: WideCast rejected my script as too short or too long. How do I fix it?
+307. A: If it is too short, add real content: another example, more detail, or a closing call to action, until you clear the minimum. A full script you write or paste needs at least 80 words (500 words maximum); starting from an idea needs at least 5 words, and a blog article needs at least 30. If you are over the maximum on a full script, trim it down, since scripts are rejected for running too long. Ideas and blog articles work differently: go over their maximum, 1,000 words and 3,000 words, and WideCast just shortens them automatically instead of blocking you.
+
+308. Q: WideCast blocked my video for being too long, even though it's under 5 minutes. Why?
+308. A: The 5-minute cap is for paid plans. Free plan accounts have a separate, shorter limit of 90 seconds, whether the video is generated from a script or idea, or built from media you upload or link to directly. Go over that on a free account and WideCast blocks it and asks you to shorten it or upgrade. This is the same 90-second cap that limits how long a finished free-plan video can run; it just also applies on the way in, to whatever source you feed it. See [Credits, plans, and billing](guide/credits-and-billing.html) to check your plan or upgrade.
+
+309. Q: I tried to check on a video by its id and WideCast says it cannot find it. Why?
+309. A: The most common reason is a small typo or a dropped character when the id was copied; double-check it against wherever you got it from. Every video's id starts with "widecast," and checking its status only needs that id, nothing else, not even an API key, so this is not an access or login problem. If the id is exactly right and WideCast still cannot find it, that specific video genuinely does not exist under that id. Still stuck? Contact "Live Support" from the Account menu with the id you have.
+
+310. Q: None of this fixed my problem. How do I talk to a real person at WideCast?
+310. A: Open the Account menu in the top corner of WideCast and choose "Live Support" to start a live chat with the WideCast team without leaving the page. If you are signed out, or browsing widecast.ai itself, look for the "Support" link in the top navigation or footer instead; it opens WideCast's public support and discussion board in a new tab. Either way, mention the video's name or id and what you already tried, so the team can pick up where you left off.
+
+311. Q: Can my AI assistant report a WideCast problem for me?
+311. A: Yes. If your assistant is connected to your account, ask it to report the problem and it files a report with the WideCast team directly, attaching the details of the call that failed so the team can trace it. Use it when WideCast itself goes wrong, such as an export that never finishes or an upload that keeps being rejected, rather than for content you simply want changed. Note that you will not get a reply inside the chat, because the report goes to the team rather than back to you; if you want a real conversation, open the Account menu and choose "Live Support" instead.

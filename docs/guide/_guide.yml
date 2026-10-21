@@ -46,6 +46,7 @@ ui_surfaces:
   roadmap: "60-Video Authority Roadmap"
   foundation_videos: "Foundation Videos template library"
   client_links: "Client magic links: project workspace link + client setup link"
+  short_links: "Short links page (shorten.html): New link with optional Custom ID, Copy, Edit a link (change destination)"
   team_users: "Team / sub-user management"
   notifications: "Notification channels (Telegram, email, SMS) + Send Notify"
   platform_connect: "Connect social accounts + per-platform publish settings"
@@ -65,3 +66,11 @@ coverage_exceptions:
   "api:GET /v1/solo/entitlement": "machine-to-machine licensing; Solo Agency app fetches its signed entitlement, not a studio-user feature"
   "api:POST /v1/solo/install/release": "machine-to-machine licensing; Solo Agency app frees its install seat, not a studio-user feature"
   "api:GET /v1/solo/pubkey": "machine-to-machine licensing; public key used to verify entitlement tokens, not a studio-user feature"
+  # 2026-10-12 (W1): the user's AI agent fetches the Solo Agency bridge's own key and pipes it into the bridge;
+  # the user never sees it or the bridge, so there is no user-guide topic.
+  "api:POST /v1/solo/bridge_key": "machine-to-machine; the user's AI agent gets the Solo Agency bridge its own key, not a studio-user feature"
+  # 2026-10-20: the user's AI agent opens the account from the user's email and a 6-digit code, then hands the
+  # user a one-click sign-in link; the user only reads the code and clicks the link, so no user-guide topic.
+  "api:POST /v1/agent/signup/start": "agent-only setup route; the user's AI agent asks WideCast to email the user a sign-up code"
+  "api:POST /v1/agent/signup/verify": "agent-only setup route; the user's AI agent turns the code the user reads back into the account's key"
+  "api:POST /v1/account/setup_link": "agent-only setup route; the user's AI agent gets a one-click sign-in link to hand the user"

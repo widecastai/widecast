@@ -1204,6 +1204,74 @@ const TOOLS = [
     // surface is read-only for platform settings (widecast_platform_settings =
     // GET load only). Saving is REST + SDK only (client.set_platform_settings /
     // POST /v1/platform_settings). Do not re-add without product-owner sign-off.
+    //
+    // Short links (2026-10-20, A63) — mirror of the remote MCP registry entries.
+    {
+        name: "widecast_create_short_link",
+        title: "WideCast: Create a short link",
+        description: "Create a SHORT LINK https://widecast.ai/s/<ID> that redirects to any http:// " +
+            "or https:// URL. SYNC, FREE. Use this when the user wants a short, shareable " +
+            "or branded link for a long URL (a landing page, a booking page, a video, a " +
+            "form). `url` REQUIRED (full http/https link, max 2048 characters). " +
+            "`custom_id` optional: 6-32 letters or digits only (no spaces, dashes or other " +
+            "symbols; case-insensitive, stored in capitals, so 'Sale2026' becomes " +
+            "SALE2026). Omit custom_id for a random 6-character ID. Limit: 10 new links " +
+            "per account per hour (shared with widecast.ai/shorten.html). Returns " +
+            "{object:'short_link', id, short_url, url, clicks, created_at, updated_at}. " +
+            "Give the user `short_url` exactly as returned. Errors: 400 `missing_field` / " +
+            "`invalid_url` / `invalid_custom_id`, 409 `custom_id_taken` (ask the user for " +
+            "another ID or omit it), 429 `rate_limited` (details.retry_after_seconds).",
+        inputSchema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+                url: { type: "string", maxLength: 2048, description: "REQUIRED. The long link the short link opens. Must start with http:// or https://." },
+                custom_id: { type: "string", pattern: "^[A-Za-z0-9]{6,32}$", description: "Optional ID after widecast.ai/s/. Letters and digits only, case-insensitive (stored in capitals). Omit for a random ID." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+    },
+    {
+        name: "widecast_get_short_link",
+        title: "WideCast: Look up a short link",
+        description: "Look up one of the account's SHORT LINKS by its ID (the part after " +
+            "widecast.ai/s/): where it goes (`url`) and how many times it was opened " +
+            "(`clicks`, includes clicks not yet saved). Read-only, free. Pass only the ID, " +
+            "e.g. 'SALE2026', not the whole URL. Returns {object:'short_link', id, " +
+            "short_url, url, clicks, created_at, updated_at}. Errors: 400 " +
+            "`invalid_short_link_id`, 404 `short_link_not_found` (no such link in this " +
+            "account; links of other accounts are never shown).",
+        inputSchema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+                id: { type: "string", pattern: "^[A-Za-z0-9]{1,32}$", description: "REQUIRED. The short link ID, e.g. 'SALE2026' from https://widecast.ai/s/SALE2026." },
+            },
+        },
+        annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    },
+    {
+        name: "widecast_update_short_link",
+        title: "WideCast: Change where a short link goes",
+        description: "Change WHERE one of the account's SHORT LINKS goes (its destination `url`). " +
+            "SYNC, FREE. The ID, the short_url and the click count stay the same; everyone " +
+            "who opens the link afterwards lands on the new url. ALWAYS confirm the new " +
+            "destination with the user in this exchange before calling: the link may " +
+            "already be printed or shared. The ID itself cannot be changed. `id` REQUIRED " +
+            "(the part after widecast.ai/s/), `url` REQUIRED (full http/https link). Limit: " +
+            "100 changes per account per hour. Returns the short_link plus `previous_url`. " +
+            "Errors: 400 `missing_field` / `invalid_url` / `invalid_short_link_id`, 404 " +
+            "`short_link_not_found`, 429 `rate_limited`.",
+        inputSchema: {
+            type: "object",
+            required: ["id", "url"],
+            properties: {
+                id: { type: "string", pattern: "^[A-Za-z0-9]{1,32}$", description: "REQUIRED. The short link ID, e.g. 'SALE2026'." },
+                url: { type: "string", maxLength: 2048, description: "REQUIRED. The new destination. Must start with http:// or https://." },
+            },
+        },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true },
+    },
 ];
 // MCP server-level instructions — per MCP spec 2025-06-18, optional top-level
 // field on InitializeResult. Compliant hosts inject this into the model's
@@ -1561,6 +1629,20 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     body[k] = args[k];
             }
             const data = await wc("POST", "/v1/client_link/send", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_create_short_link") {
+            const body = { url: String(args.url ?? "") };
+            if (args.custom_id !== undefined && args.custom_id !== "")
+                body.custom_id = args.custom_id;
+            const data = await wc("POST", "/v1/short_links", body);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+        if (name === "widecast_get_short_link" || name === "widecast_update_short_link") {
+            const path = `/v1/short_links/${encodeURIComponent(String(args.id ?? ""))}`;
+            const data = name === "widecast_get_short_link"
+                ? await wc("GET", path)
+                : await wc("PATCH", path, { url: String(args.url ?? "") });
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
         }
         // ── Read / library + connections GET tools (free) ──

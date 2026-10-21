@@ -36,6 +36,9 @@ def test_public_surface_exports():
         "BLOG_MIN_WORDS", "BLOG_MAX_WORDS",
         "SCRIPT_FORMATS", "PLAN_SCRIPT_MIN_WORDS", "PLAN_SCRIPT_MAX_WORDS",
         "ERROR_MESSAGE_MAX_CHARS", "ERROR_MODULE_MAX_CHARS",
+        "SHORT_LINK_URL_MAX_CHARS", "SHORT_LINK_CUSTOM_ID_MIN_CHARS",
+        "SHORT_LINK_CUSTOM_ID_MAX_CHARS", "SHORT_LINK_CREATES_PER_HOUR",
+        "SHORT_LINK_EDITS_PER_HOUR",
         "MEDIA_MAX_DURATION_SECONDS", "MEDIA_MAX_FILE_BYTES",
         "FREE_TIER_MAX_SECONDS", "FREE_TIER_MAX_WORDS",
         "FREE_TIER_WORDS_PER_SECOND", "PRICING_URL",
@@ -1204,3 +1207,99 @@ def test_send_client_link_record_with_channels_passes_prevalidation():
                            ttl_days=CLIENT_LINK_TTL_MAX,
                            page="record2.html")
     assert not isinstance(ei.value, InvalidRequestError)
+
+
+# ── Short links (A63, 2026-10-20) ──────────────────────────────────────────
+
+def test_short_link_constants_locked():
+    """A38 canary for /v1/short_links: must match WIDECAST_SHORT_LINK_* in
+    dashboard2.py + OpenAPI (maxLength/pattern) + MCP schemas + markdown docs."""
+    from widecast import (SHORT_LINK_URL_MAX_CHARS, SHORT_LINK_CUSTOM_ID_MIN_CHARS,
+                          SHORT_LINK_CUSTOM_ID_MAX_CHARS, SHORT_LINK_CREATES_PER_HOUR,
+                          SHORT_LINK_EDITS_PER_HOUR)
+    assert SHORT_LINK_URL_MAX_CHARS == 2048
+    assert SHORT_LINK_CUSTOM_ID_MIN_CHARS == 6
+    assert SHORT_LINK_CUSTOM_ID_MAX_CHARS == 32
+    assert SHORT_LINK_CREATES_PER_HOUR == 10
+    assert SHORT_LINK_EDITS_PER_HOUR == 100
+
+
+def test_short_link_methods_exist():
+    c = Widecast(api_key="dummy")
+    for name in ("create_short_link", "get_short_link", "update_short_link"):
+        assert callable(getattr(c, name)), name
+
+
+def test_short_link_prevalidation():
+    c = Widecast(api_key="dummy")
+    for url, code in [("", "missing_field"), (None, "missing_field"), ("   ", "missing_field"),
+                      ("example.com", "invalid_url"), ("ftp://x.com/f", "invalid_url"),
+                      ("https://x.com/a b", "invalid_url"),
+                      ("https://x.com/" + "a" * 2048, "invalid_url")]:
+        with pytest.raises(InvalidRequestError) as ei:
+            c.create_short_link(url)
+        assert ei.value.code == code and ei.value.param == "url", url
+    for cid in ("spring-sale", "a_b_c_d", "abc12", "x" * 33, "sale 26", 123456):
+        with pytest.raises(InvalidRequestError) as ei:
+            c.create_short_link("https://example.com", custom_id=cid)
+        assert ei.value.code == "invalid_custom_id" and ei.value.param == "custom_id", cid
+    for sid in ("", "sale-2026", "x" * 33, None, "https://widecast.ai/s/"):
+        with pytest.raises(InvalidRequestError) as ei:
+            c.get_short_link(sid)
+        assert ei.value.code == "invalid_short_link_id", sid
+    with pytest.raises(InvalidRequestError) as ei:
+        c.update_short_link("SALE2026", "javascript:alert(1)")
+    assert ei.value.code == "invalid_url"
+
+
+def _capture_client(status=201, body=None, headers=None):
+    """Client whose HTTP session records the request and returns a canned response."""
+    import json as _json
+    import requests as _requests
+    c = Widecast(api_key="dummy", base_url="http://127.0.0.1:1", max_retries=2)
+    calls = []
+
+    def fake_request(method, url, headers=None, json=None, timeout=None, **kw):
+        calls.append({"method": method, "url": url, "json": json})
+        r = _requests.Response()
+        r.status_code = status
+        r._content = _json.dumps(body if body is not None else {"object": "short_link"}).encode()
+        r.headers["Content-Type"] = "application/json"
+        for k, v in (resp_headers or {}).items():
+            r.headers[k] = v
+        return r
+
+    resp_headers = headers
+    c._session.request = fake_request
+    return c, calls
+
+
+def test_short_link_requests_shape():
+    c, calls = _capture_client()
+    c.create_short_link(" https://example.com/x ", custom_id="Sale2026")
+    c.create_short_link("https://example.com/y")
+    c.create_short_link("https://example.com/z", custom_id="   ")
+    c.get_short_link("https://widecast.ai/s/sale2026")
+    c.update_short_link("SALE2026", "https://example.com/new")
+    assert calls[0] == {"method": "POST", "url": "http://127.0.0.1:1/v1/short_links",
+                        "json": {"url": "https://example.com/x", "custom_id": "SALE2026"}}
+    assert calls[1]["json"] == {"url": "https://example.com/y"}
+    assert calls[2]["json"] == {"url": "https://example.com/z"}
+    assert calls[3]["method"] == "GET" and calls[3]["url"].endswith("/v1/short_links/sale2026")
+    assert calls[4] == {"method": "PATCH", "url": "http://127.0.0.1:1/v1/short_links/SALE2026",
+                        "json": {"url": "https://example.com/new"}}
+
+
+def test_long_retry_after_raises_instead_of_sleeping():
+    """An hourly-quota 429 (Retry-After 3500 s) must raise RateLimitError at once,
+    not sleep for an hour inside the SDK."""
+    import time as _time
+    err = {"error": {"type": "rate_limit_error", "code": "rate_limited", "message": "Limit reached",
+                     "request_id": "req_x", "doc_url": "", "details": {"retry_after_seconds": 3500}}}
+    c, calls = _capture_client(status=429, body=err, headers={"Retry-After": "3500"})
+    t0 = _time.time()
+    with pytest.raises(RateLimitError) as ei:
+        c.create_short_link("https://example.com/x")
+    assert _time.time() - t0 < 5
+    assert len(calls) == 1
+    assert ei.value.code == "rate_limited" and ei.value.details["retry_after_seconds"] == 3500

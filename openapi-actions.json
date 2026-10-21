@@ -4,7 +4,7 @@
     "title": "WideCast.ai Public API",
     "version": "0.1.0",
     "summary": "Turn plain-text scripts into AI-generated short-form videos.",
-    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,\n`/v1/solo/pubkey` are key-free.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_production_mode | invalid_presenter | presenter_not_ready | plan_required |\n  invalid_purpose | invalid_adjust | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
+    "description": "WideCast.ai turns plain-text scripts (and soon ideas, audio, existing videos)\ninto AI-generated short-form videos: scenes + voice + B-roll, ready for\nreview in the scene editor.\n\n## ⚠ AGENT PRE-FLIGHT RULES (read once when you import this spec)\n\nTwo skills define the FULL scope of WideCast workflows. **Load the relevant\none BEFORE any other endpoint call** — they are key-free, idempotent, and\ncheap (~1 call). Skipping them is the single most common cause of\nweak/incomplete output.\n\n1. **Edit/audit an EXISTING video.** When the user gives a WideCast\n   scene-editor URL (`record2.html#scene_editor?topic_id=…` on\n   widecast.ai) OR a `topic_id` (looks like `widecast…` / `gubo…` /\n   current id) AND signals an editing intent (\"edit this video\", \"refine\n   the scenes\", \"fix scene N\", \"review/audit the video\", \"improve\n   overlay\", \"fix thumbnail\", \"audit backgrounds\", \"redo scene\",\n   \"biên tập video\", \"chỉnh sửa cảnh\", \"sửa scene\", \"编辑视频\",\n   \"剪辑\", \"シーン編集\", \"ビデオ編集\") — **call `GET /v1/skills/editing`\n   FIRST before any other endpoint**, including before `/v1/video_data`.\n   Do NOT ask the user what to edit — the skill defines scope = full\n   audit + fix. After the response arrives, follow its instructions\n   (currently a 4-step download + Read flow that loads SKILL.md from\n   disk).\n\n2. **Author a NEW video / blog / social caption.** When the user wants\n   a new piece (\"make a video\", \"write a script\", \"turn this into a\n   video\", \"write a blog\", \"viết bài\", \"做视频\", etc.) — call\n   `GET /v1/skills/writing?format=video` (or `blog` / `social`) FIRST.\n   The skill returns a 5-step method + the full method markdown.\n\n3. Every response from `/v1/video_data`, `/v1/scene_geometry`,\n   `/v1/scene_inspector`, `/v1/modify_scene` carries a `skill_required`\n   field as a backup signal — if you see it, you have not loaded the\n   skill yet and should do so before continuing.\n\n4. When in doubt about intent, prefer loading the skill (cheap) over\n   asking the user (slow + breaks autonomous-run contract).\n\n## Authentication\n\nEvery request needs an API key, passed as\n`Authorization: Bearer wc_live_*`. Generate keys in the dashboard\n(Setup Center → API Keys). Each call to `/v1/create_video` consumes\ncredits from your account; usage (calls + credits) is tracked per key.\n**Exception**: `/v1/skills/writing`, `/v1/skills/editing`, `/v1/status/{id}`,\n`/v1/solo/pubkey`, `/v1/agent/signup/start` and `/v1/agent/signup/verify` are key-free.\nAn AI agent with no key gets one from the owner's email: `startAgentSignup` emails a 6-digit\ncode, `verifyAgentSignup` turns the code the owner reads back into the account's key. Store\nthat key at once and never show it in chat; the only thing the owner reads or types is the code.\n\n## Two input flows (`source`) × two completion gates (`output_type`)\n\n### `source` — what kind of input you provide\n\n1. **`source: \"text\"`** (default) — you provide `script_text` (80-500\n   words), used VERBATIM by the narrator. No AI rewriting.\n2. **`source: \"idea\"`** — you provide `idea_text` (5-1000 words, longer\n   gets auto-truncated). The server writes a narration from the idea\n   (AI), then continues the same scene-sourcing flow as `text`. You\n   also pick `language`, `video_length` (short/normal), and\n   `research_enabled`.\n3. **`source: \"blog\"`** — you provide `blog_text` (30-3000 words — an\n   article to repurpose; longer auto-truncated). Identical pipeline to\n   `idea` (same AI script-writer), just a longer input. Same optional\n   `language` / `video_length` / `research_enabled`.\n\n`idea` and `blog` are **generative sources**: the server writes the script\nfirst (Phase 1), so they support `output_type: \"text\"` to stop at the\neditable script. Future generative sources (audio, video) follow the\nsame shape.\n\n### `output_type` — how far down the pipeline to run (pipeline depth)\n\n1. **`output_type: \"text\"`** — stop after the source→script-text phase.\n   Returns a `review_url` (the UI auto-detects the data is narration-only\n   and opens the Script Editor). **Only valid for generative sources**\n   (`source != \"text\"`) — for `source: \"text\"` you already supplied the\n   script, so `text` output would echo your input (HTTP 400).\n2. **`output_type: \"scene\"`** (default) — stop at \"scenes ready for\n   review\". You get back a `review_url` to inspect / edit before deciding\n   to render the final MP4. Optional follow-up: `POST /v1/export_video`.\n3. **`output_type: \"video\"`** — run end-to-end without manual review.\n   `result.video_url` populated when the final MP4 is ready. Use this\n   when you trust the generated scenes (programmatic / batch use).\n\nThe two axes combine — every valid `source` × `output_type` pair works,\nexcept `source: \"text\"` + `output_type: \"text\"` (rejected — see above).\n\n## Endpoints\n\n- **POST `/v1/create_video`** — submit `script_text`/`idea_text` + optional\n  `output_type`. Returns a `widecast*` id and initial `status: \"processing\"`.\n- **POST `/v1/export_video`** — for `output_type: \"scene\"` videos that\n  reached `scenes_ready_for_review`, kick the final-MP4 renderer.\n  Idempotent — calling twice is a no-op.\n- **GET `/v1/status/{id}`** — poll until `status` is `completed` (or\n  `failed`). `result.review_url` is present from the first response\n  (`pending`/`processing` too) — it's a stable id-keyed page, so you can\n  show it to the user immediately. The completion gate depends on the\n  video's `output_type`:\n    * text  → `stage: \"script_ready_for_review\"`.\n    * scene → `stage: \"scenes_ready_for_review\"`.\n    * video → `stage: \"video_rendered\"`, `result.video_url` also set.\n\nPolling cadence: start at 5s, exponential backoff (×1.5) up to 60s. The\nSDKs implement this automatically via `video.wait()`.\n\n## Script bounds (LOCKED)\n\n`script_text` is used **verbatim** by the narrator — no rewriting. The\nbounds reflect what fits inside a short-form video:\n\n- **Minimum 80 words** (~20s of narration) — anything shorter renders\n  a useless clip.\n- **Maximum 500 words** (~120s / 2 min of narration) — beyond this,\n  render cost and pacing both suffer.\n\n## Inline media in `script_text`\n\nDrop a **direct image or video URL** into the script next to the line it\nshould illustrate — WideCast strips it from the narration and uses it as\nthat scene's visual instead of auto-sourced B-roll. Two equivalent forms:\n\n* **Markdown image syntax** (recommended for AI-chat callers):\n  `![brief scene description](https://cdn.acme.com/coldbrew.jpg)`. Chat\n  hosts (Claude / ChatGPT / Grok / Gemini) render the picture inline so\n  the user can SEE whether the visual fits the narration before\n  approving the script. The alt text doubles as the strongest possible\n  scene anchor.\n* **Raw URL** on its own line (works the same; backward-compatible):\n  `Our cold brew steeps for 16 hours. https://cdn.acme.com/coldbrew.jpg\n  That mellow finish is what people come back for.`\n\nDirect file links only (image `.png/.jpg/.jpeg/.gif/.webp/.bmp/.avif/.svg`,\nvideo `.mp4/.webm/.mov/.m4v/.avi`); page links like a YouTube watch URL\nare not inlined (use `source=\"video_url\"` for those). See the\n`script_text` field for details.\n\n## Field-requirement convention (LOCKED)\n\nEvery constraint on every field — validation bounds, enum values,\nrequired-vs-optional, defaults — appears in **four places**, kept in\nsync:\n\n1. **OpenAPI spec** — `description`, `minimum`/`maximum`, `enum`,\n   `default`. Single source devs read first.\n2. **SDK constants + types** — named exports in `widecast` (Python) and\n   `@widecast/sdk` (TypeScript), so callers can refer to them\n   programmatically without re-typing the literal.\n3. **Markdown docs** — `Field reference` table in each endpoint page.\n4. **Server enforcement** — rejected requests must surface a LOCKED\n   `error.code` (e.g. `script_too_short`, `invalid_output_type`).\n\nThe SDK parity test (`test_script_bounds_constants_locked` and\nequivalents) imports each SDK constant and asserts the exact numeric\nvalue — changing one surface without the others breaks the test. New\nendpoints MUST follow this same pattern.\n\n## Conventions (locked — changing = breaking)\n\n- Snake_case JSON fields\n- **ID format**: `widecast<alphanumeric>` (~20 chars). The server's new-script\n  detection checks for the literal `\"widecast\"` substring, so SDKs/clients MUST\n  not strip it. Public id == internal `topic_id` (1:1, no mapping).\n- API key prefixes: `wc_live_*`\n- Object marker: every resource has `\"object\": \"<type>\"`\n- Status enum: `pending | processing | completed | failed`\n  (`pending` ONLY covers the brief race window between create + worker\n  writing the topic row; once the row exists, status is `processing` —\n  the abroll worker doesn't increment `step` until the end)\n- Error envelope: `{ \"error\": { \"type\", \"code\", \"message\", \"param?\",\n  \"doc_url\", \"request_id\" } }`\n- Error codes (v0.1.0): `account_expired | credit_exhausted |\n  render_failed | unknown_error | scenes_not_ready | export_failed |\n  script_too_short | script_too_long | invalid_output_type |\n  invalid_source | idea_too_short | missing_idea_text |\n  blog_too_short | missing_blog_text |\n  missing_video_url | missing_audio_url | missing_media_file |\n  unsupported_media_url | media_too_long | file_too_large |\n  missing_api_key | invalid_api_key |\n  invalid_language | invalid_video_length | invalid_research_enabled |\n  invalid_faceless | invalid_production_mode | invalid_presenter | presenter_not_ready | plan_required |\n  invalid_purpose | invalid_adjust | invalid_content_type | invalid_intervention_level |\n  ideas_failed | invalid_publish_input | invalid_platforms |\n  no_platforms_connected | publish_not_ready | download_failed |\n  publish_failed | free_tier_limit_exceeded | telegram_not_connected |\n  telegram_send_failed | invalid_parse_mode | conflicting_media |\n  invalid_photo_url | invalid_video_url | message_too_long |\n  rate_limited | scenes_not_ready | invalid_script | invalid_by |\n  invalid_field_entry | scene_not_found | unsupported_field |\n  object_level_edit_disabled | remotion_spec_disabled |\n  remotion_spec_not_found | remotion_spec_parse_failed |\n  remotion_spec_invalid | missing_remotion_object_rect |\n  invalid_remotion_add_element | invalid_remotion_add_element_kind |\n  invalid_text_edit | missing_text_edit | no_svg_overlay_source |\n  invalid_disable_overlay_value | invalid_module_id | module_not_found |\n  skill_unavailable |\n  missing_uploaded_overlay_url | invalid_uploaded_overlay_url |\n  svg2spec_failed |\n  missing_voice_file | mixed_remotion_fields | ambiguous_text |\n  invalid_media_url | modify_failed | persist_failed |\n  voice_upload_queue_failed | narrator_video_upload_queue_failed |\n  script_not_ready | script_parse_failed | scene_geometry_failed |\n  unsupported_action |\n  publisher_missing | mqtt_publish_failed | no_live_editor |\n  no_active_editor | browser_error |\n  screenshot_publish_failed | server_fallback_failed |\n  invalid_scripts | invalid_recommended_format | topic_exists |\n  script_seed_failed`\n- Headers (every response): `X-Request-Id`, `X-RateLimit-*`,\n  `X-WideCast-Version`\n- Timestamps: ISO 8601 UTC strings (e.g. `2026-05-19T17:30:00Z`)\n- Pagination (future): cursor-based — see `ListEnvelope` schema\n",
     "contact": {
       "name": "WideCast Support",
       "url": "https://docs.widecast.ai",
@@ -49,6 +49,14 @@
     {
       "name": "Connections",
       "description": "Connect social platforms (OAuth link), list connected accounts, configure publish settings (free)."
+    },
+    {
+      "name": "Short links",
+      "description": "Create short https://widecast.ai/s/<ID> links that redirect to any http(s) URL, look one up (destination + clicks) and change where it goes (free)."
+    },
+    {
+      "name": "Account",
+      "description": "An AI agent creates or opens the owner's account with their email and a 6-digit code, and hands them a one-click sign-in link (free)."
     },
     {
       "name": "Skills",
@@ -2729,8 +2737,8 @@
           "Library"
         ],
         "operationId": "releaseSoloSeat",
-        "summary": "Free this key's Solo Agency seat so the next install can take it.",
-        "description": "Free this key's Solo Agency seat so the next install can take it.",
+        "summary": "Free this account's Solo Agency seats so the next installs can take them.",
+        "description": "Free this account's Solo Agency seats so the next installs can take them.",
         "requestBody": {
           "required": false,
           "content": {
@@ -2880,6 +2888,535 @@
                       "type": "string"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/solo/bridge_key": {
+      "post": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "createSoloBridgeKey",
+        "summary": "A WideCast key for this account's Solo Agency bridge.",
+        "description": "A WideCast key for this account's Solo Agency bridge.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "install_id"
+                ],
+                "properties": {
+                  "install_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9_-]{8,64}$",
+                    "description": "The bridge's install_id from `tool key info`."
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "The bridge's host from `tool key info`; the key's name shows it (at most 60 characters kept)."
+                  },
+                  "bridge_version": {
+                    "type": "string",
+                    "description": "From `tool key info`; at most 40 characters kept."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new bridge key (shown only in this answer).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "solo_bridge_key"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The new WideCast key. Pipe it into `tool key set --stdin`; never show it."
+                    },
+                    "key_id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "WideCast agent bridge · office-mac"
+                    },
+                    "install_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_install_id`, `invalid_host`, `invalid_bridge_version` or `invalid_request` (the body is not a JSON object).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "description": "`payload_too_large`: the body is larger than 4 KB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`storage_error` or `solo_keys_unavailable`: try again shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/signup/start": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "startAgentSignup",
+        "summary": "Email the owner a 6-digit code that creates or opens their WideCast account (key-free).",
+        "description": "Email the owner a 6-digit code that creates or opens their WideCast account (key-free).",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "install_id"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "description": "The owner's email (the account's email)."
+                  },
+                  "install_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9_-]{8,64}$"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "vi"
+                    ],
+                    "default": "en",
+                    "description": "Language of the email."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The code is on its way.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "agent_signup_challenge"
+                    },
+                    "challenge_id": {
+                      "type": "string",
+                      "description": "Send it back with the code."
+                    },
+                    "email_masked": {
+                      "type": "string",
+                      "example": "o***r@example.com"
+                    },
+                    "code_length": {
+                      "type": "integer",
+                      "example": 6
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "example": 600
+                    },
+                    "resend_after": {
+                      "type": "integer",
+                      "example": 60
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_email`, `invalid_install_id` or `invalid_request`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the body is larger than 4 KB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited` (`details.retry_after`, `details.scope` email|ip) or `email_locked` (too many wrong codes; `details.retry_after`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`email_send_failed`: the email could not be sent; check the address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`signup_busy` (`details.retry_after`) or `signup_unavailable`: try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent/signup/verify": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "verifyAgentSignup",
+        "summary": "Check the 6-digit code; creates or opens the account and returns its API key (key-free).",
+        "description": "Check the 6-digit code; creates or opens the account and returns its API key (key-free).",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "challenge_id",
+                  "code",
+                  "install_id"
+                ],
+                "properties": {
+                  "challenge_id": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "123456"
+                  },
+                  "install_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9_-]{8,64}$"
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "The machine's name (the key's label shows it)."
+                  },
+                  "bridge_version": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account and its key (shown only in this answer).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "solo_bridge_key"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The account's API key for this install. Store it; never show it."
+                    },
+                    "key_id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "install_id": {
+                      "type": "string"
+                    },
+                    "account": {
+                      "type": "string",
+                      "enum": [
+                        "created",
+                        "existing"
+                      ]
+                    },
+                    "email_masked": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`wrong_code` (`details.attempts_left`), `invalid_code`, `install_mismatch` or `invalid_request`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`challenge_not_found`: ask for a new code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "`code_expired` or `challenge_closed` (`details.reason`: used, replaced, too_many_attempts, send_failed): ask for a new code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited` (per network) or `email_locked` (`details.retry_after`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`signup_unavailable`: the account or key could not be made; send the same code again shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/setup_link": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "createSetupLink",
+        "summary": "A one-click link that signs the owner's browser in to WideCast (7 days, 3 opens).",
+        "description": "A one-click link that signs the owner's browser in to WideCast (7 days, 3 opens).",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The link.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "example": "setup_link"
+                    },
+                    "url": {
+                      "type": "string",
+                      "example": "https://widecast.ai/#setup&sml_token=sml_…"
+                    },
+                    "expires_at": {
+                      "type": "integer"
+                    },
+                    "max_uses": {
+                      "type": "integer",
+                      "example": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`no_account_email`: the account has no email to sign in with.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "`rate_limited`: 10 links per account a day; use the newest one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`setup_link_unavailable`: try again shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -3998,6 +4535,291 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/short_links": {
+      "post": {
+        "tags": [
+          "Short links"
+        ],
+        "operationId": "createShortLink",
+        "summary": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
+        "description": "Create a short https://widecast.ai/s/<ID> link for any http(s) URL. Optional custom_id (6-32 letters or digits, case-insensitive); omit it for a random ID. Free; 10 new links per account per hour.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShortLinkCreateRequest"
+              },
+              "examples": {
+                "random_id": {
+                  "summary": "Random ID",
+                  "value": {
+                    "url": "https://example.com/spring-sale?utm_source=newsletter"
+                  }
+                },
+                "custom_id": {
+                  "summary": "Custom ID",
+                  "value": {
+                    "url": "https://example.com/spring-sale",
+                    "custom_id": "SALE2026"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json`, `missing_field` (url), `invalid_url` (not a full http/https link, over 2048 characters, spaces, user:password) or `invalid_custom_id` (not 6-32 letters/digits).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "`custom_id_taken` — that ID already exists. Choose another custom_id or omit it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited` — 10 new links per account per hour. Carries `Retry-After` + `details.retry_after_seconds`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`short_link_failed` — the link could not be stored; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/short_links/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{1,32}$"
+          },
+          "description": "The short link ID: the part after widecast.ai/s/ (e.g. `SALE2026`). Not the whole URL.",
+          "example": "SALE2026"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Short links"
+        ],
+        "operationId": "getShortLink",
+        "summary": "Look up one of the account's short links by ID - its destination url and click count. Free, read-only.",
+        "description": "Look up one of the account's short links by ID - its destination url and click count. Free, read-only.",
+        "responses": {
+          "200": {
+            "description": "The short link.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_short_link_id` — the ID is not 1-32 letters or digits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`short_link_not_found` — no such short link in this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Short links"
+        ],
+        "operationId": "updateShortLink",
+        "summary": "Change where one of the account's short links goes (new destination url). The ID, short_url and clicks stay the same. Confirm with the user first. Free; 100 changes per account per hour.",
+        "description": "Change where one of the account's short links goes (new destination url). The ID, short_url and clicks stay the same. Confirm with the user first. Free; 100 changes per account per hour.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShortLinkUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ShortLink"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "previous_url": {
+                          "type": "string",
+                          "description": "The destination before this change."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json`, `missing_field` (url), `invalid_url` or `invalid_short_link_id`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`short_link_not_found` — no such short link in this account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited` — 100 changes per account per hour. Carries `Retry-After` + `details.retry_after_seconds`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`short_link_failed` — the change could not be saved; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -7615,6 +8437,114 @@
           "created_at": {
             "type": "integer",
             "description": "Unix seconds (0 for the primary group)."
+          }
+        }
+      },
+      "ShortLink": {
+        "type": "object",
+        "description": "A short link https://widecast.ai/s/<id> that redirects (302) to `url`.\nBelongs to one account; the ID never changes.\n",
+        "required": [
+          "object",
+          "id",
+          "short_url",
+          "url",
+          "clicks"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "short_link"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{1,32}$",
+            "description": "The part after widecast.ai/s/. New IDs are upper-case.",
+            "example": "SALE2026"
+          },
+          "short_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The link to share, exactly as returned.",
+            "example": "https://widecast.ai/s/SALE2026"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "description": "Where the short link goes.",
+            "example": "https://example.com/spring-sale"
+          },
+          "clicks": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many times the link was opened (includes opens not yet saved)."
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "ISO 8601 UTC."
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "ISO 8601 UTC of the last destination change; null if never changed."
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "widecast_version": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ShortLinkCreateRequest": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "x-widecast-max-chars": 2048,
+            "description": "REQUIRED. The long link to shorten. Must be a full http:// or https:// URL (no spaces, no user:password). SDK constant `SHORT_LINK_URL_MAX_CHARS`.",
+            "example": "https://example.com/spring-sale?utm_source=newsletter"
+          },
+          "custom_id": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9]{6,32}$",
+            "x-widecast-min-chars": 6,
+            "x-widecast-max-chars": 32,
+            "description": "Optional. The ID after widecast.ai/s/: 6-32 letters or digits only\n(no spaces, dashes or other symbols), case-insensitive and stored in\ncapitals. Omit it for a random 6-character ID without 0 and O.\nSDK constants `SHORT_LINK_CUSTOM_ID_MIN_CHARS` / `SHORT_LINK_CUSTOM_ID_MAX_CHARS`.\n",
+            "example": "SALE2026"
+          }
+        }
+      },
+      "ShortLinkUpdateRequest": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "x-widecast-max-chars": 2048,
+            "description": "REQUIRED. The new destination: a full http:// or https:// URL. SDK constant `SHORT_LINK_URL_MAX_CHARS`.",
+            "example": "https://example.com/autumn-collection"
           }
         }
       },

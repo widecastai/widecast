@@ -63,6 +63,16 @@ PLAN_SCRIPT_MAX_WORDS = 1000
 # /v1/error/report bounds — mirror WIDECAST_ERROR_* in dashboard2.py.
 ERROR_MESSAGE_MAX_CHARS = 4000
 ERROR_MODULE_MAX_CHARS = 80
+# /v1/short_links bounds + per-account hourly limits (A63) — mirror
+# WIDECAST_SHORT_LINK_* in dashboard2.py.
+SHORT_LINK_URL_MAX_CHARS = 2048
+SHORT_LINK_CUSTOM_ID_MIN_CHARS = 6
+SHORT_LINK_CUSTOM_ID_MAX_CHARS = 32
+SHORT_LINK_CREATES_PER_HOUR = 10
+SHORT_LINK_EDITS_PER_HOUR = 100
+# A 429 whose Retry-After is longer than this is an hourly quota, not a blip:
+# raise RateLimitError at once instead of sleeping through it.
+_RETRY_AFTER_MAX_SLEEP = 60
 OUTPUT_TYPES = ("text", "scene", "video")  # pipeline depth (A46)
 # blog = generative (mirrors idea, A48). video_*/audio_* = media-ingest (A49):
 # the script already lives in the media; output_type="text" = Remake (A50).
@@ -401,11 +411,12 @@ class Widecast:
             if 500 <= resp.status_code < 600 and attempt < self.max_retries:
                 time.sleep(_backoff(attempt))
                 continue
-            # 429 → respect Retry-After
+            # 429 → respect a short Retry-After; a long one (hourly quota) is raised
             if resp.status_code == 429 and attempt < self.max_retries:
                 retry_after = float(resp.headers.get("Retry-After", "2"))
-                time.sleep(retry_after)
-                continue
+                if retry_after <= _RETRY_AFTER_MAX_SLEEP:
+                    time.sleep(retry_after)
+                    continue
 
             return _decode_response(resp)
         raise APIError(f"Exhausted retries: {last_exc}")
@@ -2255,6 +2266,65 @@ class Widecast:
             raise InvalidRequestError("The primary channel group (0) cannot be removed.",
                                       code="invalid_channel_group", param="channel_group")
         return self._request("DELETE", f"/v1/channel_groups/{cg}")
+
+    # ── Short links (A63, 2026-10-20) — https://widecast.ai/s/<ID> redirects ──
+    @staticmethod
+    def _short_link_url(url: Any) -> str:
+        if not isinstance(url, str) or not url.strip():
+            raise InvalidRequestError("url (the long http:// or https:// link) is required.",
+                                      code="missing_field", param="url")
+        url = url.strip()
+        if (not re.match(r"https?://[^/\s]", url, re.I) or re.search(r"\s", url)
+                or len(url) > SHORT_LINK_URL_MAX_CHARS):
+            raise InvalidRequestError(
+                f"url must be a full http:// or https:// link of at most {SHORT_LINK_URL_MAX_CHARS} characters.",
+                code="invalid_url", param="url")
+        return url
+
+    @staticmethod
+    def _short_link_id(short_link: Any) -> str:
+        """Accept the ID ('SALE2026') or the whole short URL ('https://widecast.ai/s/SALE2026')."""
+        sid = short_link.strip() if isinstance(short_link, str) else ""
+        m = re.search(r"/s/([A-Za-z0-9]+)/?$", sid)
+        if m:
+            sid = m.group(1)
+        if not re.fullmatch(r"[A-Za-z0-9]{1,32}", sid):
+            raise InvalidRequestError("short_link must be the ID after widecast.ai/s/ (1-32 letters or digits).",
+                                      code="invalid_short_link_id", param="id")
+        return sid
+
+    def create_short_link(self, url: str, custom_id: Optional[str] = None) -> dict:
+        """POST /v1/short_links — create https://widecast.ai/s/<ID> that redirects
+        to `url`. Free. `custom_id`: SHORT_LINK_CUSTOM_ID_MIN_CHARS-MAX_CHARS (6-32)
+        letters or digits only, case-insensitive (stored in capitals); omit it for a
+        random 6-character ID without 0/O. 409 `custom_id_taken`; 429 `rate_limited`
+        after SHORT_LINK_CREATES_PER_HOUR (10) new links per account per hour.
+        Returns `{object:"short_link", id, short_url, url, clicks, created_at, updated_at}`."""
+        body: Dict[str, Any] = {"url": self._short_link_url(url)}
+        if custom_id is not None and not (isinstance(custom_id, str) and not custom_id.strip()):
+            cid = custom_id.strip() if isinstance(custom_id, str) else ""
+            if not re.fullmatch(r"[A-Za-z0-9]{%d,%d}" % (SHORT_LINK_CUSTOM_ID_MIN_CHARS,
+                                                          SHORT_LINK_CUSTOM_ID_MAX_CHARS), cid):
+                raise InvalidRequestError(
+                    f"custom_id must be {SHORT_LINK_CUSTOM_ID_MIN_CHARS}-{SHORT_LINK_CUSTOM_ID_MAX_CHARS} "
+                    "letters or digits (no spaces or symbols).",
+                    code="invalid_custom_id", param="custom_id")
+            body["custom_id"] = cid.upper()
+        return self._request("POST", "/v1/short_links", json_body=body)
+
+    def get_short_link(self, short_link: str) -> dict:
+        """GET /v1/short_links/{id} — one of the account's short links: its
+        destination `url` and `clicks`. Accepts the ID or the whole short URL.
+        404 `short_link_not_found` (no such link in this account)."""
+        return self._get(f"/v1/short_links/{self._short_link_id(short_link)}")
+
+    def update_short_link(self, short_link: str, url: str) -> dict:
+        """PATCH /v1/short_links/{id} — change where a short link goes. The ID,
+        short_url and clicks stay; the response carries `previous_url`. Confirm the
+        new destination with the user first: the link may already be shared.
+        429 `rate_limited` after SHORT_LINK_EDITS_PER_HOUR (100) changes per hour."""
+        sid = self._short_link_id(short_link)
+        return self._request("PATCH", f"/v1/short_links/{sid}", json_body={"url": self._short_link_url(url)})
 
     def send_notification(self, subject: str, message: str, *,
                           parse_mode: Optional[str] = None,

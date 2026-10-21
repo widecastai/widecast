@@ -67,6 +67,8 @@ console.log(v.status, v.review_url);
 | [`/v1/notification/send`](endpoints/notification-send.html) | POST | (sync, free) Push a self-notify notification — email default + Telegram if connected. `subject` + `message` (+ optional photo/video URL) |
 | [`/v1/error/report`](endpoints/error-report.html) | POST | (sync, free) Report a WideCast problem to the WideCast team — `error_message` (+ optional `module`, `context`). Not a user-notification channel |
 | [`/v1/client_link/send`](endpoints/client-link-send.html) | POST | (sync, free) Mint a no-login client "magic link" (`record` / `content_plan` / `setup` / `social_dashboard` / `publish_schedule`) and optionally notify the client via the account's Telegram/SMS/email channels — recipients resolved server-side, never supplied by the caller |
+| [`/v1/short_links`](endpoints/short-links.html) | POST | (sync, free) Create a short `widecast.ai/s/<ID>` link to any http(s) URL — optional `custom_id` (6-32 letters or digits), random ID otherwise; 10 new links per account per hour |
+| [`/v1/short_links/{id}`](endpoints/short-links.html) | GET/PATCH | (free) Look up a short link (destination + clicks) / change where it goes — the ID never changes |
 | [`/v1/videos`](endpoints/library.html) | GET | (read, free) List the account's recent videos |
 | [`/v1/video_data`](endpoints/video-data.html) | POST | (sync, free) Read structured scene data (annotated segments, narrator, Remotion spec metadata) — **first step for data-first scene audit/edit**. Chain: video_data → scene_geometry → modify_scene |
 | [`/v1/account`](endpoints/library.html) | GET | (read, free) Account profile + remaining credits |
