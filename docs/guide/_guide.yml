@@ -74,3 +74,11 @@ coverage_exceptions:
   "api:POST /v1/agent/signup/start": "agent-only setup route; the user's AI agent asks WideCast to email the user a sign-up code"
   "api:POST /v1/agent/signup/verify": "agent-only setup route; the user's AI agent turns the code the user reads back into the account's key"
   "api:POST /v1/account/setup_link": "agent-only setup route; the user's AI agent gets a one-click sign-in link to hand the user"
+  # 2026-10-23: tickets. The user's AI agent files a problem ticket for the WideCast team, follows it and confirms
+  # the fix (guide for agents: https://widecast.ai/agent/tickets.md); the user only reads the ticket in chat and says
+  # yes, so no user-guide topic.
+  "api:POST /v1/tickets": "agent-only; the user's AI agent files a problem ticket for the WideCast team after the user says yes"
+  "api:GET /v1/tickets": "agent-only; the user's AI agent lists the account's tickets"
+  "api:GET /v1/tickets/{ticket_id}": "agent-only; the user's AI agent reads a ticket and the WideCast team's replies"
+  "api:POST /v1/tickets/{ticket_id}/comments": "agent-only; the user's AI agent answers the WideCast team inside a ticket"
+  "api:POST /v1/tickets/{ticket_id}/verify": "agent-only; the user's AI agent confirms whether the fix works"

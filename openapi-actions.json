@@ -59,6 +59,10 @@
       "description": "An AI agent creates or opens the owner's account with their email and a 6-digit code, and hands them a one-click sign-in link (free)."
     },
     {
+      "name": "Tickets",
+      "description": "An AI agent files a problem ticket for the WideCast team, follows it, answers the team's questions and confirms the fix (free)."
+    },
+    {
       "name": "Skills",
       "description": "Server-side delivery of WideCast authoring methods (3-Layer Hook,\nresearch+inline-URL ladder, confirm rules). Lets MCP / GPT Action\nclients fetch the method on demand — no per-user file upload.\n"
     },
@@ -1984,6 +1988,465 @@
           },
           "502": {
             "description": "`error_report_failed` — the report could not be delivered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tickets": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "operationId": "createTicket",
+        "summary": "File a problem ticket for the WideCast team.",
+        "description": "File a problem ticket for the WideCast team.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketCreateRequest"
+              },
+              "example": {
+                "title": "Approvals page shows an empty card after Pick",
+                "expected": "The idea brief opens so I can choose Video script",
+                "actual": "The card turns blank and its buttons disappear",
+                "boss_words": "I clicked pick and the card went white",
+                "where": {
+                  "surface": "dashboard",
+                  "page_url": "https://widecast.ai/approve.html"
+                },
+                "error": "TypeError: Cannot read properties of undefined (reading 'brief')",
+                "release_id": "20261022-005912-fcb49a3b344f",
+                "runtime": "HOSTED",
+                "platform": "Meta Muse",
+                "client": "harbor-pottery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Filed, or counted on the open ticket of the same problem.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketFiled"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`secret_in_ticket` (`error.param` names the field, `error.details.kind` what it\nlooked like: remove it and send again), `missing_field` (`title`, or both `actual`\nand `error` empty), `unknown_field`, `invalid_field`, `field_too_long`\n(`error.details.max_chars`) or `invalid_request` (not a JSON object).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "description": "`payload_too_large`: the body is over 64 KB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`: wait `error.details.retry_after` seconds (`error.details.scope` says which limit).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`tickets_unavailable`: try again shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "operationId": "listTickets",
+        "summary": "List this account's tickets, most recently changed first.",
+        "description": "List this account's tickets, most recently changed first.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated statuses to keep, e.g. `needs_info,fixed`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "1 to 50, default 20.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tickets.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_status` or `invalid_limit`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/tickets/{ticket_id}": {
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "operationId": "getTicket",
+        "summary": "Read one ticket with the WideCast team's replies and the next step.",
+        "description": "Read one ticket with the WideCast team's replies and the next step.",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "description": "The ticket id, e.g. `T-7F3K2M`.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[Tt]-[23456789A-Za-z]{6}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ticket.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`ticket_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tickets/{ticket_id}/comments": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "operationId": "commentTicket",
+        "summary": "Answer the WideCast team inside a ticket.",
+        "description": "Answer the WideCast team inside a ticket.",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "description": "The ticket id, e.g. `T-7F3K2M`.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[Tt]-[23456789A-Za-z]{6}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketCommentRequest"
+              },
+              "example": {
+                "text": "It happens on every idea card, in Chrome and Safari, since this morning."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The ticket with the new comment.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`missing_field`, `field_too_long`, `unknown_field` or `secret_in_ticket`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`ticket_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`ticket_closed` (file a new ticket) or `ticket_full`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tickets/{ticket_id}/verify": {
+      "post": {
+        "tags": [
+          "Tickets"
+        ],
+        "operationId": "verifyTicket",
+        "summary": "Tell the WideCast team whether the fix works.",
+        "description": "Tell the WideCast team whether the fix works.",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "description": "The ticket id, e.g. `T-7F3K2M`.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[Tt]-[23456789A-Za-z]{6}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketVerifyRequest"
+              },
+              "example": {
+                "result": "works",
+                "release_id": "20261024-101500-0123456789ab",
+                "note": "The brief opens after Pick again."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The ticket, now `verified` or `reopened`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              },
+              "X-WideCast-Version": {
+                "$ref": "#/components/headers/XWideCastVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`missing_field`, `invalid_field` (`result`), `field_too_long` or `secret_in_ticket`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "`ticket_not_found`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`not_fixed` (the ticket is not `fixed` yet) or `update_first` (`release_id` is\nolder than `error.details.fixed_in`: update WideCast, then try again).\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limited`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6610,6 +7073,399 @@
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "TicketWhere": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Where the problem happened.",
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "setup",
+              "daily_run",
+              "dashboard",
+              "crm",
+              "extension",
+              "bridge",
+              "api",
+              "other"
+            ]
+          },
+          "setup_step": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "The setup step, e.g. `4`."
+          },
+          "page_url": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The page the owner was on."
+          },
+          "run_id": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "The run or job id",
+            "when there is one.": null
+          }
+        }
+      },
+      "TicketCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title"
+        ],
+        "description": "`title` plus `actual` or `error` are required; every other field helps the team find\nthe problem faster. Never put a key, a password or a cookie in any field.\n",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "description": "One line that names the problem."
+          },
+          "expected": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "What the owner asked for or expected."
+          },
+          "actual": {
+            "type": "string",
+            "maxLength": 4000,
+            "description": "What happened instead."
+          },
+          "boss_words": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The owner's own words about it, as they said them."
+          },
+          "where": {
+            "$ref": "#/components/schemas/TicketWhere"
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "The error text exactly as shown."
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The command or call that failed."
+          },
+          "output": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "Its output."
+          },
+          "release_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The WideCast release installed",
+            "when there is one.": null
+          },
+          "runtime": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Runtime class: LOCAL, REMOTE or HOSTED."
+          },
+          "platform": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The agent and platform, e.g. `Meta Muse`."
+          },
+          "client": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The client slug the problem is about."
+          },
+          "node": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The node name of this install."
+          },
+          "install_id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "occurred_at": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "When it happened (ISO 8601)."
+          }
+        }
+      },
+      "TicketFiled": {
+        "type": "object",
+        "required": [
+          "object",
+          "ticket_id",
+          "status",
+          "duplicate",
+          "seen_count"
+        ],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "ticket_filed"
+          },
+          "ticket_id": {
+            "type": "string",
+            "pattern": "^T-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$",
+            "description": "Short enough to read aloud."
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "`true`: the same problem already had an open ticket, which now counts this one."
+          },
+          "seen_count": {
+            "type": "integer"
+          },
+          "next_step": {
+            "type": "string"
+          }
+        }
+      },
+      "TicketStatus": {
+        "type": "string",
+        "enum": [
+          "new",
+          "needs_info",
+          "in_progress",
+          "fixed",
+          "verified",
+          "closed",
+          "reopened"
+        ],
+        "description": "`new` filed; `needs_info` the team asked a question; `in_progress` being worked on;\n`fixed` fixed in `fixed_in` (verify it); `verified` the fix was confirmed; `closed`\ndone or not a WideCast problem; `reopened` still broken after the fix.\n"
+      },
+      "TicketSummary": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "waiting_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "dev",
+              "filer",
+              null
+            ],
+            "description": "`filer`: the next move is yours."
+          },
+          "fixed_in": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "auto"
+            ],
+            "description": "`auto`: opened by reportError."
+          },
+          "title": {
+            "type": "string"
+          },
+          "seen_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TicketList": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketSummary"
+            }
+          }
+        }
+      },
+      "TicketEvent": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "you",
+              "widecast"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "comment",
+              "status",
+              "verify",
+              "seen_again"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "fixed_in": {
+            "type": "string"
+          },
+          "release_id": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "works",
+              "still_broken"
+            ]
+          }
+        }
+      },
+      "Ticket": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TicketSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "object": {
+                "type": "string",
+                "const": "ticket"
+              },
+              "expected": {
+                "type": "string"
+              },
+              "actual": {
+                "type": "string"
+              },
+              "boss_words": {
+                "type": "string"
+              },
+              "where": {
+                "$ref": "#/components/schemas/TicketWhere"
+              },
+              "error": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "output": {
+                "type": "string"
+              },
+              "context": {
+                "type": "string",
+                "description": "The report's context, on an `auto` ticket."
+              },
+              "release_id": {
+                "type": "string"
+              },
+              "runtime": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string"
+              },
+              "client": {
+                "type": "string"
+              },
+              "node": {
+                "type": "string"
+              },
+              "install_id": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string"
+              },
+              "last_seen_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TicketEvent"
+                }
+              },
+              "next_step": {
+                "type": "string",
+                "description": "What to do now",
+                "in one sentence.": null
+              }
+            }
+          }
+        ]
+      },
+      "TicketCommentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "TicketVerifyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "result",
+          "release_id"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "works",
+              "still_broken"
+            ]
+          },
+          "release_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The WideCast release you run now."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "What you tried and saw."
           }
         }
       },
