@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
+<title>Email broadcast | WideCast</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Email broadcast (2026-10-24): the same look as content-library.html and nodes.html (tokens, header, sign-in). */
+:root{color-scheme:light;
+--bg:#f5f5f2;--s1:#fdfdfb;--s2:#efefea;--s3:#e5e5df;--line:#e1e1da;--line-2:#d0d0c8;--field-ln:#8f908a;
+--tx:#26272a;--tx-hi:#0e0f11;--tx-2:#4a4b47;--tx-3:#64655f;
+--acc:#c6f135;--acc-hi:#b8e425;--acc-ink:#141a05;--acc-soft:#eef7cf;--acc-line:#c3dc72;--acc-tx:#46560a;--ring:#46560a;
+--hot-bg:#fde7df;--hot-tx:#982b12;--hot-ln:#f3c2b2;--warm-bg:#fbefd3;--warm-tx:#774b00;--warm-ln:#ebd197;--watch-bg:#e5ebf9;--watch-tx:#2d4795;--watch-ln:#c3cff0;
+--ok-bg:#e3f3e1;--ok-tx:#1f6a24;--ok-ln:#b8dcb4;
+--err-tx:#a0261a;--shadow:0 1px 2px rgba(14,15,17,.05);
+--font:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+--bg:#0e0f11;--s1:#16181b;--s2:#1c1f23;--s3:#262a30;--line:#25282d;--line-2:#34373e;--field-ln:#696c74;
+--tx:#eceae4;--tx-hi:#f5f3ec;--tx-2:#b9b7af;--tx-3:#8f8d87;
+--acc:#c6f135;--acc-hi:#d3f65c;--acc-ink:#141a05;--acc-soft:#1c230a;--acc-line:#46540f;--acc-tx:#c6f135;--ring:#c6f135;
+--hot-bg:#2b1711;--hot-tx:#ffa189;--hot-ln:#5c2c1e;--warm-bg:#2a2111;--warm-tx:#f2c76a;--warm-ln:#5b4419;--watch-bg:#151d2f;--watch-tx:#a3b8ff;--watch-ln:#2d3c64;
+--ok-bg:#132514;--ok-tx:#8fd894;--ok-ln:#2b4d2d;
+--err-tx:#ffa189;--shadow:none}}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+h1,h2,h3,p,ul,ol{margin:0}
+img,svg{display:block;max-width:100%}
+a{color:var(--acc-tx);text-underline-offset:3px}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wrap{width:min(100% - 32px,760px);margin-inline:auto}
+.hdr{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
+.brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--tx-hi);text-decoration:none;font-weight:600;letter-spacing:-.01em}
+.brand .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#0e0f11;border:1px solid var(--line)}
+.brand img{width:24px;height:24px}
+.hdr-r{display:flex;align-items:center;gap:8px;min-width:0}
+.hdr-links{display:flex;gap:4px}
+.hdr-links a{display:inline-flex;align-items:center;min-height:40px;padding:0 10px;border-radius:10px;color:var(--tx-2);text-decoration:none;font-size:.875rem;font-weight:500}
+.hdr-links a:hover{background:var(--s2);color:var(--tx-hi)}
+@media (max-width:560px){.brand>span:not(.mark){display:none}.hdr-links a{padding:0 8px}}
+main{flex:1;padding:24px 0 64px;outline:none}
+.foot{padding:20px 0 32px;color:var(--tx-3);font-size:.8125rem}
+h1.pg{font-size:1.5rem;line-height:1.25;font-weight:600;color:var(--tx-hi);letter-spacing:-.015em}
+.sub{color:var(--tx-2);margin-top:4px;max-width:60ch}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sp{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
+.card .hint{color:var(--tx-3);font-size:.875rem;margin-top:2px}
+.note{border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--s2)}
+.note.warn{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.note.bad{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.note.good{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.note b{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx-hi);font:500 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--s2)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.btn.pri:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.btn.dark{background:var(--tx-hi);border-color:var(--tx-hi);color:var(--bg);font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--tx-2)}
+.btn.ghost:hover{background:var(--s2)}
+.btn.danger{color:var(--err-tx)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:.875rem;border-radius:10px}
+.btn.wide{width:100%}
+label.lbl{display:block;font-size:.875rem;font-weight:600;color:var(--tx-hi);margin:14px 0 6px}
+.field{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--field-ln);border-radius:12px;background:var(--bg);color:var(--tx-hi)}
+textarea.field{min-height:220px;resize:vertical;line-height:1.55}
+select.field{padding-right:28px}
+.field:focus{outline:2px solid var(--ring);outline-offset:1px}
+.small{font-size:.8125rem;color:var(--tx-3)}
+.err{color:var(--err-tx);font-size:.875rem;margin-top:8px}
+.pill{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;border:1px solid var(--line-2);background:var(--s2);color:var(--tx-2)}
+.pill.wait{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.pill.sent{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.pill.live{background:var(--watch-bg);border-color:var(--watch-ln);color:var(--watch-tx)}
+.pill.no{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.list{display:flex;flex-direction:column;gap:10px;list-style:none;padding:0}
+.item{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--s1);cursor:pointer;color:var(--tx);min-width:0}
+.item:hover{background:var(--s2);border-color:var(--line-2)}
+.item .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.item .m{font-size:.8125rem;color:var(--tx-3)}
+.chk{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;min-width:0}
+.chk:hover{border-color:var(--line-2)}
+.chk input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--acc-tx)}
+.chk .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.chk .m{font-size:.8125rem;color:var(--tx-3)}
+.chks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.big{font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--tx-hi);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:12px;font-size:.9375rem}
+.kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:.8125rem;color:var(--tx-2)}
+.bar{height:10px;border-radius:999px;background:var(--s3);overflow:hidden;margin-top:12px}
+.bar>i{display:block;height:100%;background:var(--acc-tx);border-radius:999px;transition:width .4s}
+.seg{display:inline-flex;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);gap:2px;flex-wrap:wrap}
+.seg label{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;border-radius:9px;cursor:pointer;font-size:.875rem;color:var(--tx-2)}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg input:checked+span{color:var(--tx-hi);font-weight:600}
+.seg label:has(input:checked){background:var(--s3)}
+.seg label:has(input:focus-visible){outline:2px solid var(--ring);outline-offset:1px}
+.file{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:12px;background:var(--bg)}
+.file .n{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere;min-width:0}
+.caps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.9375rem}
+.caps input{width:58px;min-height:40px;text-align:center;padding:6px}
+.hist{display:flex;flex-direction:column;gap:8px;list-style:none;padding:0;margin-top:10px}
+.hist li{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:.875rem}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.bar>i{transition:none}}
+.login{max-width:420px}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="/" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <div class="hdr-r">
+      <nav class="hdr-links" aria-label="Pages">
+        <a href="approve.html" id="nav-approve">Approvals</a>
+        <a href="crmstore.html" id="nav-crm">CRM</a>
+      </nav>
+    </div>
+  </div>
+</header>
+<main id="app" class="wrap" tabindex="-1">
+  <noscript><p>This page needs JavaScript. Trang này cần bật JavaScript.</p></noscript>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+<script>
+(() => {
+  'use strict';
+  // Email broadcast (2026-10-24). Server: dashboard2.py "SOLO AGENCY — broadcast" on solo_broadcast.py. The owner writes
+  // one email, ticks lead magnets and/or the whole CRM of a client, checks the numbers, presses Send; a later Send reaches
+  // only the people who joined since. Same sign-in, API base, language choice and look as the library and node pages.
+  const LANG_SWITCH = false;              // as the other pages (owner, 16/10): English for now, both dictionaries kept
+  const Q0 = new URLSearchParams(location.search);
+  const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const API_ORIGIN = (() => {
+    const raw = IS_LOCAL ? Q0.get('api') : '';
+    if (!raw) return '';
+    try { const u = new URL(raw); return (u.protocol === 'http:' || u.protocol === 'https:') ? u.origin : ''; } catch (e) { return ''; }
+  })();
+  const DEV = Q0.get('dev') === '1';
+  const BASE = API_ORIGIN + '/app/dashboard' + (DEV ? '2' : '');
+  const LANG_KEY = 'wc_report_lang';
+  const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+  const UID_RE = /^bc_[a-z2-7]{26}$/;
+  const POLL_MS = 2000;
+
+  const I18N = {
+    en: {
+      title: 'Email broadcast', sub: 'Write one email, choose who gets it, send. Each person gets each email once.',
+      client: 'Client', new_email: 'New email', emails: 'Emails', waiting: 'Waiting for you', none_h: 'No emails yet',
+      none_p: 'Write your first one, or ask your agent to draft it.', untitled: '(no subject)',
+      st_draft: 'Draft', st_awaiting_approval: 'Drafted by your agent', st_sent: 'Sent', st_rejected: 'Turned down',
+      updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}', back: 'All emails',
+      plan_h: 'Email broadcast is part of the paid plans', plan_p: 'Upgrade to send emails to your leads from your own address.', plans: 'See plans',
+      sender_h: 'Connect your own sending address first', sender_p: 'Emails go out from hello@value.<your domain>, the address your lead magnet already uses. Connect value.<your domain> for this client on the lead magnet page, then come back.',
+      events_h: 'Test emails work. Sending to your list switches on soon.', events_p: 'Bounce and spam reports are being connected, so we can stop emailing addresses that bounce or complain.',
+      message: 'Message', subject: 'Subject', body: 'Message', insert_name: 'Insert first name',
+      name_hint: '{{first_name}} becomes each person\'s first name. People with no name get the word below.',
+      lang: 'Footer language', fallback: 'When the name is unknown, use', file: 'File', file_none: 'No file',
+      choose_file: 'Choose a file', file_link: 'As a link', file_attach: 'As an attachment', remove: 'Remove',
+      file_hint: 'A link works for any size (up to 100 MB) and tells you who opened it. An attachment is at most 10 MB.',
+      uploading: 'Uploading…', save: 'Save', saved: 'Saved', saving: 'Saving…', test: 'Send me a test', testing: 'Sending test…',
+      test_sent: 'Test sent to {e}.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
+      who: 'Who gets it', who_hint: 'Tick one or more lead magnets, or the whole CRM. Each person gets this email once.',
+      whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', check: 'Check numbers', checking: 'Checking…',
+      will_get: 'will get it now', from: 'From', not_sending: 'Not getting it this time', overlap: '{n} people are in more than one of the lists you ticked; they get it once.',
+      overlap_1: '1 person is in more than one of the lists you ticked; they get it once.', this_send: 'This send',
+      leads_1: '1 lead', contacts_1: '1 contact', send_n_1: 'Send to 1 person', confirm_q_1: 'Send now to 1 person? This cannot be undone.',
+      greet: 'How names come out', send_n: 'Send to {n} people', confirm_q: 'Send now to {n} people? Each gets it once. This cannot be undone.',
+      yes_send: 'Yes, send', cancel: 'Cancel', nobody: 'Nobody new to send to.', progress: 'Sending', sent_of: '{a} of {b} sent',
+      stop: 'Stop', resume: 'Resume', st_run_queued: 'Starting', st_run_sending: 'Sending', st_run_done: 'Done', st_run_paused: 'Paused', st_run_stopped: 'Stopped',
+      pause_complaints: 'Paused: people marked it as spam. Check the email before you continue.', pause_bounces: 'Paused: too many addresses bounced.',
+      pause_other: 'Paused: {r}.', failed: 'Not taken by the email service', unconfirmed: 'Unknown (never sent again)', skipped: 'Already had it',
+      held_note: '{n} more get it when you press Send again tomorrow (the daily limit).', skipped_optout: 'Unsubscribed or removed meanwhile',
+      daily_note: 'Today\'s limit lets {a} go out now; the other {b} get it when you press Send again tomorrow.',
+      history: 'History', no_history: 'Not sent yet.', run_line: '{d} · {n} sent', bounced: 'bounced', complained: 'spam', unsubscribed: 'unsubscribed', file_opened: 'opened the file',
+      settings: 'Settings for this client', postal: 'Postal address (shown in every email\'s footer)', postal_ph: 'Street, city, state, ZIP',
+      freq: 'How often one person can get an email', at_most: 'At most', emails_in: 'email(s) in', days: 'days', and: 'and', sender: 'Send from',
+      lookup: 'Look up a person', lookup_ph: 'their email address', lookup_btn: 'Look up', lookup_none: 'This person has not got any email yet.',
+      r_already_received: 'Already got this email', r_unsubscribed: 'Unsubscribed', r_bounced: 'Address bounced', r_suppressed: 'On a do-not-send list',
+      r_do_not_contact: 'Marked do not contact', r_locked: 'Locked by your plan', r_deleted: 'Deleted from the CRM', r_no_email: 'No email address',
+      r_over_cap: 'Got an email recently (frequency limit)', r_duplicate_inbox: 'Same inbox as another contact',
+      need_postal: 'Add your postal address in the settings below first.', changed: 'The numbers changed. Check them again.',
+      unsaved: 'Save your changes first.', err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
+      unavailable: 'Email broadcast is not available right now. Try again in a few minutes.',
+      login_h: 'Sign in to send emails', login_p: 'Use your WideCast account email. We will email you a 6-digit code.',
+      login_owner_only: 'This page is for the account owner. Sign in with the owner\'s WideCast email.',
+      email: 'Email', send_code: 'Send code', sending: 'Sending code…', code_sent: 'We sent a 6-digit code to', code_lbl: '6-digit code',
+      verify: 'Verify', verifying: 'Verifying…', change_email: 'Use another email', bad_email: 'Enter a valid email address.',
+      bad_code: 'Enter the 6-digit code.', send_failed: 'Could not send the code. Try again.', code_failed: 'That code is not right. Try again.',
+      private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry: 'Try again'
+    },
+    vi: {
+      title: 'Gửi email hàng loạt', sub: 'Viết một email, chọn người nhận, bấm gửi. Mỗi người nhận mỗi email một lần.',
+      client: 'Khách hàng', new_email: 'Email mới', emails: 'Các email', waiting: 'Chờ bạn duyệt', none_h: 'Chưa có email nào',
+      none_p: 'Viết email đầu tiên, hoặc nhờ agent soạn giúp.', untitled: '(chưa có tiêu đề)',
+      st_draft: 'Nháp', st_awaiting_approval: 'Agent soạn', st_sent: 'Đã gửi', st_rejected: 'Đã từ chối',
+      updated: 'Sửa {d}', sent_times: 'Đã gửi {n} lần, gần nhất {d}', back: 'Tất cả email',
+      plan_h: 'Gửi email hàng loạt có trong các gói trả phí', plan_p: 'Nâng cấp để gửi email cho lead từ chính địa chỉ của bạn.', plans: 'Xem các gói',
+      sender_h: 'Hãy kết nối địa chỉ gửi riêng trước', sender_p: 'Email gửi từ hello@value.<domain của bạn>, đúng địa chỉ lead magnet đang dùng. Kết nối value.<domain> cho khách hàng này ở trang lead magnet rồi quay lại.',
+      events_h: 'Gửi thử đã dùng được. Gửi cho danh sách sẽ bật sớm.', events_p: 'Đang nối báo cáo trả về và báo spam, để ngừng gửi cho địa chỉ bị trả về hoặc bị báo spam.',
+      message: 'Nội dung', subject: 'Tiêu đề', body: 'Nội dung', insert_name: 'Chèn tên',
+      name_hint: '{{first_name}} sẽ thành tên của từng người. Ai không có tên sẽ dùng chữ bên dưới.',
+      lang: 'Ngôn ngữ phần chân email', fallback: 'Khi không biết tên, dùng', file: 'Tệp', file_none: 'Không có tệp',
+      choose_file: 'Chọn tệp', file_link: 'Gửi dạng link', file_attach: 'Đính kèm', remove: 'Bỏ',
+      file_hint: 'Link dùng được cho mọi cỡ (tới 100 MB) và cho biết ai đã mở. Đính kèm tối đa 10 MB.',
+      uploading: 'Đang tải lên…', save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…', test: 'Gửi thử cho tôi', testing: 'Đang gửi thử…',
+      test_sent: 'Đã gửi thử tới {e}.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
+      who: 'Ai nhận', who_hint: 'Chọn một hay nhiều lead magnet, hoặc toàn bộ CRM. Mỗi người nhận email này một lần.',
+      whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', check: 'Xem số người nhận', checking: 'Đang tính…',
+      will_get: 'người sẽ nhận lần này', from: 'Gửi từ', not_sending: 'Lần này không gửi cho', overlap: '{n} người nằm trong nhiều danh sách bạn chọn; họ chỉ nhận một lần.',
+      this_send: 'Lần gửi này',
+      greet: 'Tên sẽ hiện như sau', send_n: 'Gửi cho {n} người', confirm_q: 'Gửi ngay cho {n} người? Mỗi người nhận một lần. Không thể hoàn tác.',
+      yes_send: 'Gửi', cancel: 'Huỷ', nobody: 'Không còn ai mới để gửi.', progress: 'Đang gửi', sent_of: 'Đã gửi {a}/{b}',
+      stop: 'Dừng', resume: 'Tiếp tục', st_run_queued: 'Đang bắt đầu', st_run_sending: 'Đang gửi', st_run_done: 'Xong', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng',
+      pause_complaints: 'Tạm dừng: có người báo spam. Xem lại email trước khi gửi tiếp.', pause_bounces: 'Tạm dừng: quá nhiều địa chỉ bị trả về.',
+      pause_other: 'Tạm dừng: {r}.', failed: 'Dịch vụ email không nhận', unconfirmed: 'Chưa rõ (không gửi lại)', skipped: 'Đã có rồi',
+      held_note: 'Thêm {n} người sẽ nhận khi bạn bấm Gửi lại vào ngày mai (giới hạn mỗi ngày).', skipped_optout: 'Vừa hủy nhận hoặc bị loại',
+      daily_note: 'Giới hạn hôm nay cho gửi {a} người; {b} người còn lại nhận khi bạn bấm Gửi lại vào ngày mai.',
+      history: 'Lịch sử', no_history: 'Chưa gửi lần nào.', run_line: '{d} · đã gửi {n}', bounced: 'bị trả về', complained: 'báo spam', unsubscribed: 'hủy nhận', file_opened: 'mở tệp',
+      settings: 'Cài đặt cho khách hàng này', postal: 'Địa chỉ bưu chính (hiện ở chân mọi email)', postal_ph: 'Số nhà, đường, thành phố, bang, ZIP',
+      freq: 'Một người nhận email thường đến đâu', at_most: 'Tối đa', emails_in: 'email trong', days: 'ngày', and: 'và', sender: 'Gửi từ',
+      lookup: 'Tra một người', lookup_ph: 'địa chỉ email của họ', lookup_btn: 'Tra', lookup_none: 'Người này chưa nhận email nào.',
+      r_already_received: 'Đã nhận email này', r_unsubscribed: 'Đã hủy nhận', r_bounced: 'Địa chỉ bị trả về', r_suppressed: 'Trong danh sách không gửi',
+      r_do_not_contact: 'Đánh dấu không liên hệ', r_locked: 'Đang khoá theo gói', r_deleted: 'Đã xoá khỏi CRM', r_no_email: 'Không có email',
+      r_over_cap: 'Vừa nhận email gần đây (giới hạn tần suất)', r_duplicate_inbox: 'Trùng hộp thư với contact khác',
+      need_postal: 'Thêm địa chỉ bưu chính ở phần cài đặt bên dưới trước.', changed: 'Số người đã thay đổi. Xem lại số.',
+      unsaved: 'Lưu thay đổi trước.', err: 'Có lỗi. Thử lại.', net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
+      unavailable: 'Tính năng tạm ngưng. Thử lại sau ít phút.',
+      login_h: 'Đăng nhập để gửi email', login_p: 'Dùng email tài khoản WideCast. Chúng tôi sẽ gửi mã 6 số.',
+      login_owner_only: 'Trang này dành cho chủ tài khoản. Hãy đăng nhập bằng email chủ tài khoản.',
+      email: 'Email', send_code: 'Gửi mã', sending: 'Đang gửi mã…', code_sent: 'Đã gửi mã 6 số đến', code_lbl: 'Mã 6 số',
+      verify: 'Xác nhận', verifying: 'Đang xác nhận…', change_email: 'Đổi email', bad_email: 'Nhập địa chỉ email hợp lệ.',
+      bad_code: 'Nhập đủ mã 6 số.', send_failed: 'Chưa gửi được mã. Thử lại.', code_failed: 'Mã chưa đúng. Thử lại.',
+      private_note: 'Chỉ tài khoản WideCast của bạn xem được trang này.', loading: 'Đang tải…', retry: 'Thử lại'
+    }
+  };
+  const REASONS = ['already_received', 'unsubscribed', 'bounced', 'suppressed', 'do_not_contact', 'locked', 'deleted', 'no_email', 'over_cap', 'duplicate_inbox'];
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
+  let memSession = null;
+  function session() {
+    const tok = lsGet('google_auth_token') || '', mail = lsGet('google_auth_email') || '', cid = lsGet('company_id') || '';
+    if (tok && mail && cid) return { user_token: tok, user_email: mail, company_id: cid };
+    return memSession;
+  }
+  function storeSession(tok, mail, cid) {
+    const ok = [lsSet('google_auth_token', tok), lsSet('google_auth_email', mail), lsSet('google_auth_timestamp', Date.now().toString()), lsSet('company_id', cid)].every(Boolean);
+    lsDel('wc_client_simplified');
+    memSession = ok ? null : { user_token: tok, user_email: mail, company_id: cid };
+  }
+  const LANG = (() => { if (!LANG_SWITCH) return 'en'; const s = lsGet(LANG_KEY); return s === 'vi' ? 'vi' : 'en'; })();
+  document.documentElement.lang = LANG;
+  const locale = () => (LANG === 'vi' ? 'vi-VN' : 'en-US');
+  function t(key, vars) {
+    let s = I18N[LANG][key];
+    if (s == null) s = I18N.en[key];
+    if (s == null) return key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function tn(key, n) { return n === 1 && I18N[LANG][key + '_1'] ? t(key + '_1') : t(key, { n: fmtNum(n) }); }
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const k of Object.keys(attrs)) {
+        const v = attrs[k];
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'value') el.value = v;
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach((x) => add(el, x)); return; }
+    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const fmtNum = (n) => { try { return new Intl.NumberFormat(locale()).format(n); } catch (e) { return String(n); } };
+  function fmtDay(sec) {
+    const n = Number(sec);
+    if (!(n > 0)) return '';
+    try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(n * 1000)); } catch (e) { return new Date(n * 1000).toISOString().slice(0, 16); }
+  }
+  function fmtSize(b) { const n = num(b); return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  const spinner = () => h('span', { class: 'spin', 'aria-hidden': 'true' });
+  const live = document.getElementById('live');
+  function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
+  let toastTimer = null;
+  function toast(msg) {
+    let el = document.querySelector('.toast');
+    if (!el) { el = h('div', { class: 'toast', role: 'status' }); document.body.appendChild(el); }
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+  }
+
+  // ── API
+  function setHeader(headers, k, v) { if (v && /^[\x20-\x7e]*$/.test(v)) headers[k] = v; }
+  function authHeaders() {
+    const s = session(), headers = {};
+    if (s) {
+      setHeader(headers, 'X-WideCast-Company', s.company_id);
+      setHeader(headers, 'X-WideCast-User-Email', s.user_email);
+      setHeader(headers, 'X-WideCast-User-Token', s.user_token);
+    }
+    return headers;
+  }
+  function parse(r) {
+    return r.text().then((txt) => { let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; } return { status: r.status, ok: r.ok, data: data }; });
+  }
+  function api(path, body) {
+    const s = session();
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
+    const payload = Object.assign({}, body || {});
+    if (s) { payload.company_id = s.company_id; payload.user_email = s.user_email; payload.user_token = s.user_token; }
+    return fetch(BASE + path, { method: 'POST', headers: headers, body: JSON.stringify(payload), cache: 'no-store', credentials: 'same-origin' }).then(parse);
+  }
+  function upload(file, mode) {
+    const fd = new FormData();
+    fd.append('client', S.client); fd.append('mode', mode); fd.append('file', file, file.name);
+    return fetch(BASE + '/solo/broadcast/file', { method: 'POST', headers: authHeaders(), body: fd, cache: 'no-store', credentials: 'same-origin' }).then(parse);
+  }
+  function errOf(res) {
+    const d = (res && res.data) || {}, e = d.error;
+    if (e && typeof e === 'object') return { code: String(e.code || ''), message: String(e.message || ''), extra: e };
+    if (d.error_code) return { code: String(d.error_code), message: String(d.error_message || '') };
+    return { code: 'http_' + (res ? res.status : 0), message: '' };
+  }
+  function authFailed(res) {
+    if (res.status === 401) { if (errOf(res).code === 'owner_sign_in_required') S.ownerOnly = true; return true; }
+    const c = errOf(res).code.toUpperCase();
+    return c === 'AUTH_REQUIRED' || c === 'AUTH_INVALID';
+  }
+  function msgOf(res) {
+    if (!res) return t('net_err');
+    if (res.status === 503 && !errOf(res).message) return t('unavailable');
+    return errOf(res).message || t('err');
+  }
+  function checkUser(body) {
+    return fetch(BASE + '/check_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' }).then(parse);
+  }
+
+  // ── State
+  const S = {
+    mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [], gate: null,
+    emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
+    view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false }, preview: null, prevErr: '',
+    confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
+    ownerOnly: false, wantEmail: UID_RE.test(str(Q0.get('email'))) ? Q0.get('email') : '',
+    login: { step: 1, email: '', code: '', busy: false, err: '' }
+  };
+  const app = document.getElementById('app');
+  const foot = document.getElementById('foot');
+  let pollTimer = null;
+
+  function syncUrl() {
+    const p = new URLSearchParams(location.search);
+    if (S.client) p.set('client', S.client); else p.delete('client');
+    if (S.view === 'edit' && S.edit && S.edit.uid) p.set('email', S.edit.uid); else p.delete('email');
+    const qs = p.toString();
+    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+    ['nav-approve', 'nav-crm'].forEach((id) => {
+      const a = document.getElementById(id);
+      const keep = new URLSearchParams();
+      if (S.client) keep.set('client', S.client);
+      if (DEV) keep.set('dev', '1');
+      if (API_ORIGIN) keep.set('api', API_ORIGIN);
+      a.href = a.getAttribute('href').split('?')[0] + (keep.toString() ? '?' + keep.toString() : '');
+    });
+  }
+
+  function load() {
+    if (!session()) { showLogin(); return; }
+    api('/solo/broadcast/state', S.client ? { client: S.client } : {}).then((res) => {
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.mode = 'error'; S.pageErr = msgOf(res); render(); return; }
+      applyState(res.data);
+      S.mode = 'view';
+      if (S.wantEmail) { const u = S.wantEmail; S.wantEmail = ''; openEmail(u); return; }
+      render();
+      if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id);
+    }).catch(() => { S.mode = 'error'; S.pageErr = t('net_err'); render(); });
+  }
+  function applyState(d) {
+    S.clients = arr(d.clients).filter((c) => CLIENT_RE.test(c));
+    S.client = str(d.client);
+    S.gate = d.gate || { paid: false, senders: [] };
+    S.emails = arr(d.emails);
+    S.settings = d.settings || {};
+    S.magnets = arr(d.magnets);
+    S.crmTotal = num(d.crm_total);
+    S.active = d.active_run || null;
+    S.limits = d.limits || {};
+    syncUrl();
+  }
+  function refreshState() {
+    return api('/solo/broadcast/state', { client: S.client }).then((res) => { if (res.ok && res.data) { applyState(res.data); } });
+  }
+
+  // ── Login
+  function showLogin() {
+    const s = session();
+    S.mode = 'login';
+    S.login = { step: 1, email: S.ownerOnly ? '' : (S.login.email || (s && s.user_email) || ''), code: '', busy: false, err: '' };
+    render();
+  }
+  function sendCode() {
+    const L = S.login;
+    const email = String(L.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { L.err = t('bad_email'); render(); return; }
+    L.email = email; L.busy = true; L.err = ''; render();
+    checkUser({ email: email, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) { L.step = 2; L.code = ''; }
+      else L.err = (res.data && res.data.error_message) || t('send_failed');
+      render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function verifyCode() {
+    const L = S.login;
+    if (!/^\d{6}$/.test(L.code)) { L.err = t('bad_code'); render(); return; }
+    L.busy = true; L.err = ''; render();
+    checkUser({ email: L.email, passcode: L.code, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) {
+        const d = res.data;
+        storeSession(String(d.user_token || ''), String(d.user_email || d.email || L.email), String(d.company_id || ''));
+        S.ownerOnly = false; S.mode = 'loading'; render(); load(); return;
+      }
+      L.err = (res.data && res.data.error_message) || t('code_failed'); L.code = ''; render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function loginView() {
+    const L = S.login;
+    const box = h('section', { class: 'card login stack', 'aria-labelledby': 'lh' },
+      h('div', null, h('h1', { class: 'pg', id: 'lh', text: t('login_h') }), h('p', { class: 'sub', text: S.ownerOnly ? t('login_owner_only') : t('login_p') })));
+    const form = h('form', { novalidate: true, onsubmit: (e) => { e.preventDefault(); if (L.step === 1) sendCode(); else verifyCode(); } });
+    if (L.step === 1) {
+      form.appendChild(h('label', { class: 'lbl', for: 'l-email', text: t('email') }));
+      form.appendChild(h('input', { id: 'l-email', class: 'field', type: 'email', autocomplete: 'email', inputmode: 'email', value: L.email, oninput: (e) => { L.email = e.target.value; } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('sending')] : t('send_code')));
+    } else {
+      form.appendChild(h('p', { class: 'small' }, t('code_sent') + ' ', h('b', { text: L.email })));
+      form.appendChild(h('label', { class: 'lbl', for: 'l-code', text: t('code_lbl') }));
+      form.appendChild(h('input', { id: 'l-code', class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', value: L.code, oninput: (e) => { L.code = e.target.value.replace(/\D/g, '').slice(0, 6); } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('verifying')] : t('verify')));
+      form.appendChild(h('button', { class: 'btn ghost wide', type: 'button', onclick: () => { L.step = 1; L.err = ''; render(); } }, t('change_email')));
+    }
+    if (L.err) form.appendChild(h('p', { class: 'err', role: 'alert', text: L.err }));
+    box.appendChild(form);
+    box.appendChild(h('p', { class: 'small', text: t('private_note') }));
+    return box;
+  }
+
+  // ── List view
+  function statusPill(e) {
+    const st = str(e.status);
+    const cls = st === 'sent' ? 'pill sent' : st === 'awaiting_approval' ? 'pill wait' : st === 'rejected' ? 'pill no' : 'pill';
+    return h('span', { class: cls, text: t('st_' + st) });
+  }
+  function emailItem(e) {
+    const meta = e.status === 'sent' && e.runs ? t('sent_times', { n: fmtNum(num(e.runs)), d: fmtDay(e.last_sent_at) }) : t('updated', { d: fmtDay(e.updated_at) });
+    return h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openEmail(e.uid) },
+      h('div', { class: 'row sp' }, h('span', { class: 't', text: str(e.subject) || t('untitled') }), statusPill(e)),
+      h('span', { class: 'm', text: meta + (e.has_file ? ' · ' + t('file') + ': ' + str(e.file_name) : '') })));
+  }
+  function gateNotes() {
+    const g = S.gate || {};
+    const out = [];
+    if (!g.paid) out.push(h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('plan_h') }), h('p', { text: t('plan_p') }),
+      h('p', { style: 'margin-top:8px' }, h('a', { href: 'https://widecast.ai/#pricing', target: '_blank', rel: 'noopener', text: t('plans') }))));
+    else if (!arr(g.senders).length) out.push(h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('sender_h') }), h('p', { text: t('sender_p') })));
+    else if (!g.events_ready) out.push(h('div', { class: 'note', role: 'note' }, h('b', { text: t('events_h') }), h('p', { class: 'small', text: t('events_p') })));
+    return out;
+  }
+  function clientPicker() {
+    if (S.clients.length < 2) return null;
+    return h('div', null, h('label', { class: 'lbl', for: 'cl', text: t('client') }),
+      h('select', { id: 'cl', class: 'field', onchange: (e) => { S.client = e.target.value; S.view = 'list'; S.edit = null; stopPoll(); S.mode = 'loading'; render(); load(); } },
+        S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
+  }
+  function listView() {
+    const waiting = S.emails.filter((e) => e.status === 'awaiting_approval');
+    const others = S.emails.filter((e) => e.status !== 'awaiting_approval');
+    const can = !!(S.gate && S.gate.paid && arr(S.gate.senders).length);
+    return h('div', { class: 'stack' },
+      h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
+        h('button', { class: 'btn pri', type: 'button', disabled: !S.client, onclick: newEmail }, t('new_email'))),
+      clientPicker(), gateNotes(),
+      S.active ? runCard(S.active, true) : null,
+      waiting.length ? h('section', { class: 'card' }, h('h2', { text: t('waiting') }), h('ul', { class: 'list', style: 'margin-top:12px' }, waiting.map(emailItem))) : null,
+      h('section', { class: 'card' }, h('h2', { text: t('emails') }),
+        others.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, others.map(emailItem))
+          : h('div', { style: 'margin-top:8px' }, h('p', { class: 'small', text: t('none_h') + '. ' + t('none_p') }))),
+      can ? settingsCard() : null,
+      S.client ? lookupCard() : null);
+  }
+  function settingsCard() {
+    const st = S.settings || {};
+    const v = (k) => String(num(st[k]) || '');
+    const set = (k) => (e) => { st[k] = e.target.type === 'number' ? Number(e.target.value) : e.target.value; };
+    const senders = arr((S.gate || {}).senders);
+    const d = h('details', { class: 'card', open: !st.postal_address },
+      h('summary', null, h('h2', { style: 'display:inline', text: t('settings') })),
+      h('label', { class: 'lbl', for: 's-postal', text: t('postal') }),
+      h('input', { id: 's-postal', class: 'field', maxlength: '200', placeholder: t('postal_ph'), value: str(st.postal_address), oninput: set('postal_address') }),
+      h('label', { class: 'lbl', text: t('freq') }),
+      h('div', { class: 'caps' }, h('span', { text: t('at_most') }), h('input', { class: 'field', type: 'number', min: '1', max: '20', 'aria-label': 'max short', value: v('cap_short_max'), oninput: set('cap_short_max') }),
+        h('span', { text: t('emails_in') }), h('input', { class: 'field', type: 'number', min: '1', max: '30', 'aria-label': 'days short', value: v('cap_short_days'), oninput: set('cap_short_days') }), h('span', { text: t('days') })),
+      h('div', { class: 'caps', style: 'margin-top:8px' }, h('span', { text: t('at_most') }), h('input', { class: 'field', type: 'number', min: '1', max: '50', 'aria-label': 'max long', value: v('cap_long_max'), oninput: set('cap_long_max') }),
+        h('span', { text: t('emails_in') }), h('input', { class: 'field', type: 'number', min: '1', max: '90', 'aria-label': 'days long', value: v('cap_long_days'), oninput: set('cap_long_days') }), h('span', { text: t('days') })),
+      senders.length > 1 ? [h('label', { class: 'lbl', for: 's-sender', text: t('sender') }),
+        h('select', { id: 's-sender', class: 'field', onchange: set('sender_host') }, senders.map((s) => h('option', { value: s.host, selected: s.host === st.sender_host, text: s.from_name + ' <' + s.from_addr + '>' })))] : null,
+      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: S.setBusy, onclick: saveSettings }, S.setBusy ? [spinner(), t('saving')] : t('save'))),
+      S.setErr ? h('p', { class: 'err', role: 'alert', text: S.setErr }) : null);
+    return d;
+  }
+  function saveSettings() {
+    const st = S.settings || {};
+    S.setBusy = true; S.setErr = ''; render();
+    api('/solo/broadcast/settings', { client: S.client, postal_address: str(st.postal_address), cap_short_max: st.cap_short_max, cap_short_days: st.cap_short_days,
+      cap_long_max: st.cap_long_max, cap_long_days: st.cap_long_days, sender_host: str(st.sender_host) }).then((res) => {
+      S.setBusy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok) { S.setErr = msgOf(res); render(); return; }
+      S.settings = res.data; toast(t('saved')); render();
+    }).catch(() => { S.setBusy = false; S.setErr = t('net_err'); render(); });
+  }
+  function lookupCard() {
+    const L = S.look;
+    return h('section', { class: 'card' }, h('h2', { text: t('lookup') }),
+      h('form', { class: 'row', style: 'margin-top:12px', onsubmit: (e) => { e.preventDefault(); lookup(); } },
+        h('input', { class: 'field', type: 'email', placeholder: t('lookup_ph'), 'aria-label': t('lookup_ph'), value: L.q, style: 'flex:1 1 220px', oninput: (e) => { L.q = e.target.value; } }),
+        h('button', { class: 'btn', type: 'submit', disabled: L.busy }, L.busy ? spinner() : t('lookup_btn'))),
+      L.err ? h('p', { class: 'err', text: L.err }) : null,
+      L.res ? (arr(L.res.data).length ? h('ul', { class: 'hist' }, arr(L.res.data).map((r) => h('li', null,
+        h('div', { class: 'row sp' }, h('b', { text: str(r.subject) || t('untitled') }), h('span', { class: 'small', text: fmtDay(r.sent_at) })),
+        arr(r.events).length ? h('div', { class: 'chips' }, arr(r.events).map((ev) => h('span', { class: 'chip', text: t(ev) }))) : null)))
+        : h('p', { class: 'small', style: 'margin-top:10px', text: t('lookup_none') })) : null);
+  }
+  function lookup() {
+    const L = S.look;
+    L.busy = true; L.err = ''; L.res = null; render();
+    api('/solo/broadcast/contact', { client: S.client, q: L.q }).then((res) => {
+      L.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok) { L.err = msgOf(res); render(); return; }
+      L.res = res.data; render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+
+  // ── Editor
+  function blank() {
+    const sender = arr((S.gate || {}).senders)[0] || {};
+    return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false };
+  }
+  function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
+  function resetAudience() { S.aud = { magnets: [], crm: false }; S.preview = null; S.prevErr = ''; S.confirm = false; }
+  function openEmail(uid) {
+    S.busy = 'open'; render();
+    api('/solo/broadcast/email/get', { client: S.client, uid: uid }).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.view = 'list'; S.err = ''; render(); toast(msgOf(res)); return; }
+      S.edit = res.data; S.view = 'edit'; S.dirty = false; S.err = ''; resetAudience();
+      S.run = S.active && S.active.email_uid === uid ? S.active : null;
+      render(); syncUrl(); loadHistory();
+      if (S.run && S.run.state !== 'paused') startPoll(S.run.run_id);
+    }).catch(() => { S.busy = ''; render(); toast(t('net_err')); });
+  }
+  function loadHistory() {
+    if (!S.edit || !S.edit.uid) return;
+    api('/solo/broadcast/history', { client: S.client, uid: S.edit.uid }).then((res) => { if (res.ok && res.data) { S.history = res.data; render(); } });
+  }
+  function save(then) {
+    const e = S.edit;
+    S.busy = 'save'; S.err = ''; render();
+    const body = { client: S.client, subject: e.subject, body: e.body, language: e.language, fallback: e.fallback, file_mode: e.file_mode };
+    if (e.uid) body.uid = e.uid;
+    if (e._file_key !== undefined) { body.file_key = e._file_key; body.file_name = e.file_name; }
+    return api('/solo/broadcast/email', body).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return false; }
+      if (!res.ok || !res.data) { S.err = msgOf(res); render(); return false; }
+      const stats = e.stats;
+      S.edit = Object.assign(res.data, { stats: stats });
+      S.dirty = false; render(); syncUrl();
+      if (!then) toast(t('saved'));
+      return true;
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); return false; });
+  }
+  function ensureSaved() { return S.dirty || !S.edit.uid ? save(true) : Promise.resolve(true); }
+  function pickFile(file) {
+    const e = S.edit;
+    const mode = e.file_mode === 'attach' ? 'attach' : 'link';
+    S.busy = 'upload'; S.err = ''; render();
+    upload(file, mode).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.err = msgOf(res); render(); return; }
+      e._file_key = res.data.file_key; e.file_name = res.data.file_name; e.file_size = res.data.file_size; e.has_file = true; e.file_mode = mode;
+      save(true).then((ok) => { if (ok) toast(t('saved')); });
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+  }
+  function removeFile() { const e = S.edit; e._file_key = ''; e.file_name = ''; e.file_size = 0; e.has_file = false; e.file_mode = 'none'; save(true); }
+  function sendTest() {
+    ensureSaved().then((ok) => {
+      if (!ok) return;
+      S.busy = 'test'; render();
+      api('/solo/broadcast/test', { client: S.client, uid: S.edit.uid }).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok) { S.err = msgOf(res); render(); return; }
+        render(); toast(t('test_sent', { e: str(res.data.to) }));
+      }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+    });
+  }
+  function rejectEmail() {
+    S.busy = 'reject'; render();
+    api('/solo/broadcast/email/reject', { client: S.client, uid: S.edit.uid }).then((res) => {
+      S.busy = '';
+      if (!res.ok) { S.err = msgOf(res); render(); return; }
+      S.view = 'list'; S.edit = null; refreshState().then(render); syncUrl();
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+  }
+  function audBody() { return { client: S.client, uid: S.edit.uid, magnets: S.aud.magnets.slice(), crm: !!S.aud.crm }; }
+  function checkNumbers(keepMsg) {
+    ensureSaved().then((ok) => {
+      if (!ok) return;
+      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; render();
+      api('/solo/broadcast/preview', audBody()).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok || !res.data) { S.prevErr = msgOf(res); render(); return; }
+        S.preview = res.data; render();
+        announce(t('send_n', { n: fmtNum(num(res.data.will_send)) }));
+      }).catch(() => { S.busy = ''; S.prevErr = t('net_err'); render(); });
+    });
+  }
+  function doSend() {
+    const b = audBody();
+    b.expect = num(S.preview && S.preview.will_send);
+    b.expect_updated_at = num(S.edit && S.edit.updated_at);
+    S.busy = 'send'; S.prevErr = ''; render();
+    api('/solo/broadcast/send', b).then((res) => {
+      S.busy = ''; S.confirm = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) {
+        const er = errOf(res);
+        if (er.code === 'audience_changed') { S.preview = null; S.prevErr = t('changed'); checkNumbers(true); return; }
+        if (er.code === 'email_changed') { toast(msgOf(res)); openEmail(S.edit.uid); return; }
+        S.prevErr = msgOf(res); render(); return;
+      }
+      S.run = res.data; S.preview = null; S.edit.status = 'sent'; render(); startPoll(res.data.run_id);
+    }).catch(() => { S.busy = ''; S.confirm = false; S.prevErr = t('net_err'); render(); });
+  }
+  function startPoll(runId) {
+    stopPoll();
+    const tick = () => {
+      api('/solo/broadcast/run', { client: S.client, run_id: runId }).then((res) => {
+        if (!res.ok || !res.data) { pollTimer = setTimeout(tick, POLL_MS * 2); return; }
+        const r = res.data;
+        if (S.run && S.run.run_id === runId) S.run = r;
+        if (S.active && S.active.run_id === runId) S.active = r;
+        if (r.state === 'queued' || r.state === 'sending') { pollTimer = setTimeout(tick, POLL_MS); redrawRun(r); return; }
+        pollTimer = null;
+        refreshState().then(() => { loadHistory(); render(); });
+      }).catch(() => { pollTimer = setTimeout(tick, POLL_MS * 2); });
+    };
+    pollTimer = setTimeout(tick, 600);
+  }
+  function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
+  // While a send goes out only its card is drawn again: the rest of the page (and whatever has the focus) stays.
+  function redrawRun(r) {
+    const old = document.getElementById(S.view === 'edit' ? 'rc-edit' : 'rc-list');
+    if (!old) { render(); return; }
+    old.replaceWith(runCard(r, S.view !== 'edit'));
+  }
+  function runAction(kind, r) {
+    api('/solo/broadcast/run/' + kind, { client: S.client, run_id: r.run_id }).then((res) => {
+      if (!res.ok) { toast(msgOf(res)); return; }
+      if (S.run && S.run.run_id === r.run_id) S.run = res.data;
+      if (S.active && S.active.run_id === r.run_id) S.active = res.data;
+      render();
+      if (kind === 'resume') startPoll(r.run_id); else refreshState().then(render);
+    }).catch(() => toast(t('net_err')));
+  }
+  function runCard(r, withLink) {
+    const planned = num(r.planned), done = num(r.done), sent = num(r.sent);
+    const st = str(r.state);
+    const pct = planned ? Math.min(100, Math.round(done * 100 / planned)) : 0;
+    const why = str(r.pause_reason);
+    const ev = r.events || {};
+    return h('section', { class: 'card', id: withLink ? 'rc-list' : 'rc-edit', 'aria-live': 'polite' },
+      h('div', { class: 'row sp' }, h('h2', { text: withLink ? str(r.subject) : t('this_send') }),
+        h('span', { class: st === 'done' ? 'pill sent' : st === 'paused' || st === 'stopped' ? 'pill wait' : 'pill live', text: t('st_run_' + st) })),
+      h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(planned), 'aria-valuenow': String(done) }, h('i', { style: 'width:' + pct + '%' })),
+      h('p', { class: 'small', style: 'margin-top:8px', text: t('sent_of', { a: fmtNum(sent), b: fmtNum(planned) }) }),
+      st === 'paused' ? h('div', { class: 'note warn', style: 'margin-top:10px', text: why === 'complaints' ? t('pause_complaints') : why === 'bounces' ? t('pause_bounces') : t('pause_other', { r: why }) }) : null,
+      num(r.held_for_tomorrow) ? h('p', { class: 'small', style: 'margin-top:6px', text: t('held_note', { n: fmtNum(num(r.held_for_tomorrow)) }) }) : null,
+      (num(r.failed) || num(r.unconfirmed) || num(r.skipped) || num(r.skipped_optout) || num(ev.bounced) || num(ev.complained) || num(ev.unsubscribed)) ? h('div', { class: 'kv' },
+        num(r.skipped_optout) ? [h('span', { text: t('skipped_optout') }), h('span', { class: 'v', text: fmtNum(num(r.skipped_optout)) })] : null,
+        num(r.failed) ? [h('span', { text: t('failed') }), h('span', { class: 'v', text: fmtNum(num(r.failed)) })] : null,
+        num(r.unconfirmed) ? [h('span', { text: t('unconfirmed') }), h('span', { class: 'v', text: fmtNum(num(r.unconfirmed)) })] : null,
+        num(r.skipped) ? [h('span', { text: t('skipped') }), h('span', { class: 'v', text: fmtNum(num(r.skipped)) })] : null,
+        ['bounced', 'complained', 'unsubscribed'].map((k) => num(ev[k]) ? [h('span', { text: t(k) }), h('span', { class: 'v', text: fmtNum(num(ev[k])) })] : null)) : null,
+      h('div', { class: 'row', style: 'margin-top:12px' },
+        (st === 'queued' || st === 'sending' || st === 'paused') ? h('button', { class: 'btn sm danger', type: 'button', onclick: () => runAction('stop', r) }, t('stop')) : null,
+        st === 'paused' ? h('button', { class: 'btn sm pri', type: 'button', onclick: () => runAction('resume', r) }, t('resume')) : null,
+        withLink && r.email_uid ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => openEmail(r.email_uid) }, t('history')) : null));
+  }
+  function editorView() {
+    const e = S.edit;
+    const g = S.gate || {};
+    const can = !!(g.paid && arr(g.senders).length);
+    const locked = !!S.run && (S.run.state === 'queued' || S.run.state === 'sending');
+    const mark = () => {
+      S.dirty = true;
+      const b = document.getElementById('btn-save');
+      if (b) { b.className = 'btn pri'; b.textContent = t('save'); }
+      if (S.preview) { S.preview = null; S.confirm = false; const pv = document.getElementById('pv'); if (pv) pv.remove(); }  // never send what was not checked
+    };
+    const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), oninput: (ev) => { e.subject = ev.target.value; mark(); } });
+    const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); } });
+    body.value = str(e.body);
+    const insertName = () => {
+      const el = document.getElementById('e-body');
+      const s = el.selectionStart != null ? el.selectionStart : el.value.length, en = el.selectionEnd != null ? el.selectionEnd : s;
+      el.value = el.value.slice(0, s) + '{{first_name}}' + el.value.slice(en);
+      e.body = el.value; mark(); el.focus(); el.selectionStart = el.selectionEnd = s + 14;
+    };
+    const fileBox = h('div', { class: 'file' },
+      e.has_file ? [h('span', { class: 'n', text: str(e.file_name) }), h('span', { class: 'small', text: fmtSize(e.file_size) }),
+        h('button', { class: 'btn sm ghost', type: 'button', onclick: removeFile, disabled: !!S.busy }, t('remove'))]
+        : [h('label', { class: 'btn sm', for: 'e-file' }, S.busy === 'upload' ? [spinner(), t('uploading')] : t('choose_file')),
+          h('input', { id: 'e-file', type: 'file', class: 'sr-only', accept: arr(S.limits.file_exts).join(','), onchange: (ev) => { const f = ev.target.files && ev.target.files[0]; if (f) pickFile(f); } }),
+          h('span', { class: 'small', text: t('file_none') })]);
+    const modeSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': t('file') },
+      ['link', 'attach'].map((m) => h('label', null, h('input', { type: 'radio', name: 'fmode', value: m, checked: (e.file_mode === 'attach' ? 'attach' : 'link') === m,
+        onchange: () => { e.file_mode = m; if (!e.has_file) return; if (m === 'attach' && num(e.file_size) > num(S.limits.attach_max_bytes)) { S.err = 'Files over 10 MB go as a link, not as an attachment.'; e.file_mode = 'link'; render(); return; } mark(); } }),
+        h('span', { text: t(m === 'link' ? 'file_link' : 'file_attach') }))));
+    const msgCard = h('section', { class: 'card' },
+      h('div', { class: 'row sp' }, h('h2', { text: t('message') }), statusPill(e)),
+      e.by_agent && e.note ? h('div', { class: 'note', style: 'margin-top:12px' }, h('b', { text: t('agent_note') }), h('p', { class: 'small', text: str(e.note) })) : null,
+      h('label', { class: 'lbl', for: 'e-subject', text: t('subject') }), subject,
+      h('div', { class: 'row sp', style: 'margin-top:14px;margin-bottom:6px' }, h('label', { class: 'lbl', for: 'e-body', style: 'margin:0', text: t('body') }),
+        h('button', { class: 'btn sm', type: 'button', onclick: insertName }, t('insert_name'))),
+      body,
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('name_hint') }),
+      h('div', { class: 'row', style: 'gap:12px;align-items:flex-end' },
+        h('div', { style: 'flex:1 1 160px;min-width:0' }, h('label', { class: 'lbl', for: 'e-fb', text: t('fallback') }),
+          h('input', { id: 'e-fb', class: 'field', maxlength: '40', placeholder: e.language === 'vi' ? 'bạn' : 'there', value: str(e.fallback), oninput: (ev) => { e.fallback = ev.target.value; mark(); } })),
+        h('div', { style: 'flex:1 1 160px;min-width:0' }, h('label', { class: 'lbl', for: 'e-lang', text: t('lang') }),
+          h('select', { id: 'e-lang', class: 'field', onchange: (ev) => { e.language = ev.target.value; mark(); } },
+            h('option', { value: 'en', selected: e.language !== 'vi', text: 'English' }), h('option', { value: 'vi', selected: e.language === 'vi', text: 'Tiếng Việt' })))),
+      h('label', { class: 'lbl', text: t('file') }), fileBox,
+      h('div', { class: 'row', style: 'margin-top:10px' }, modeSeg),
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('file_hint') }),
+      S.err ? h('p', { class: 'err', role: 'alert', text: S.err }) : null,
+      h('div', { class: 'row', style: 'margin-top:16px' },
+        h('button', { id: 'btn-save', class: S.dirty ? 'btn pri' : 'btn', type: 'button', disabled: !!S.busy || locked, onclick: () => save(false) }, S.busy === 'save' ? [spinner(), t('saving')] : (S.dirty ? t('save') : t('saved'))),
+        can ? h('button', { class: 'btn', type: 'button', disabled: !!S.busy, onclick: sendTest }, S.busy === 'test' ? [spinner(), t('testing')] : t('test')) : null,
+        e.uid && e.status === 'awaiting_approval' ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('reject')) : null,
+        e.uid && e.status === 'draft' && !num(e.runs) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('discard')) : null));
+    const toggle = (mid) => (ev) => { const a = S.aud.magnets; const i = a.indexOf(mid); if (ev.target.checked && i < 0) a.push(mid); if (!ev.target.checked && i >= 0) a.splice(i, 1); S.preview = null; S.confirm = false; render(); };
+    const audCard = can ? h('section', { class: 'card' },
+      h('h2', { text: t('who') }), h('p', { class: 'hint', text: t('who_hint') }),
+      h('div', { class: 'chks' },
+        S.magnets.map((m) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
+          h('span', null, h('span', { class: 't', text: str(m.title) }), h('br'), h('span', { class: 'm', text: tn('leads', num(m.leads)) + (m.status && m.status !== 'live' ? ' · ' + m.status : '') })))),
+        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
+          h('span', null, h('span', { class: 't', text: t('whole_crm') }), h('br'), h('span', { class: 'm', text: tn('contacts', S.crmTotal) })))),
+      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
+        S.busy === 'preview' ? [spinner(), t('checking')] : t('check'))),
+      S.prevErr ? h('p', { class: 'err', role: 'alert', text: S.prevErr }) : null,
+      S.preview ? previewBox(S.preview, locked) : null) : null;
+    return h('div', { class: 'stack' },
+      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { stopPoll(); S.view = 'list'; S.edit = null; S.run = null; refreshState().then(render); syncUrl(); if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id); } }, '← ' + t('back'))),
+      clientPicker(), gateNotes(), msgCard,
+      S.run ? runCard(S.run, false) : null,
+      audCard,
+      historyCard());
+  }
+  function previewBox(p, locked) {
+    const n = num(p.will_send);
+    const ex = p.excluded || {};
+    const rows = REASONS.filter((r) => num(ex[r]) > 0);
+    const sender = p.sender || {};
+    const needPostal = !str((p.settings || {}).postal_address);
+    const evOk = !!p.events_ready;
+    return h('div', { class: 'stack', id: 'pv', style: 'margin-top:16px' },
+      h('div', null, h('div', { class: 'big', text: fmtNum(n) }), h('div', { class: 'small', text: t('will_get') })),
+      h('p', { class: 'small' }, t('from') + ': ', h('b', { text: str(sender.from_name) + ' <' + str(sender.from_addr) + '>' })),
+      rows.length ? h('div', null, h('b', { text: t('not_sending') }), h('div', { class: 'kv' }, rows.map((r) => [h('span', { text: t('r_' + r) }), h('span', { class: 'v', text: fmtNum(num(ex[r])) })]))) : null,
+      num(p.overlap) ? h('p', { class: 'small', text: tn('overlap', num(p.overlap)) }) : null,
+      arr(p.samples).length ? h('div', null, h('b', { text: t('greet') }), h('div', { class: 'chips' }, arr(p.samples).map((s) => h('span', { class: 'chip', text: s })))) : null,
+      needPostal ? h('div', { class: 'note warn', text: t('need_postal') }) : null,
+      !evOk ? h('div', { class: 'note', text: t('events_h') }) : null,
+      n === 0 ? h('p', { class: 'small', text: t('nobody') }) : null,
+      (() => { const room = Math.max(0, num(p.daily_max) - num(p.sent_today)); return n > room ? h('div', { class: 'note warn', text: t('daily_note', { a: fmtNum(room), b: fmtNum(n - room) }) }) : null; })(),
+      S.confirm ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
+        h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'send', onclick: doSend }, S.busy === 'send' ? [spinner(), t('yes_send')] : t('yes_send')),
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.confirm = false; render(); } }, t('cancel'))))
+        : h('button', { class: 'btn pri wide', type: 'button', disabled: n === 0 || needPostal || !evOk || locked || !!S.busy || S.dirty, onclick: () => { S.confirm = true; render(); } }, tn('send_n', n)));
+  }
+  function historyCard() {
+    const e = S.edit;
+    if (!e || !e.uid) return null;
+    const hst = S.history;
+    const runs = hst ? arr(hst.data) : [];
+    return h('section', { class: 'card' }, h('h2', { text: t('history') }),
+      !runs.length ? h('p', { class: 'small', style: 'margin-top:8px', text: t('no_history') }) :
+        h('ul', { class: 'hist' }, runs.map((r) => {
+          const ev = r.events || {};
+          return h('li', null, h('div', { class: 'row sp' }, h('span', { text: t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.sent)) }) }), h('span', { class: 'pill', text: t('st_run_' + str(r.state)) })),
+            h('div', { class: 'chips' }, ['bounced', 'complained', 'unsubscribed', 'file_opened'].filter((k) => num(ev[k])).map((k) => h('span', { class: 'chip', text: fmtNum(num(ev[k])) + ' ' + t(k) }))));
+        })));
+  }
+
+  function render() {
+    app.textContent = '';
+    if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
+    else if (S.mode === 'login') app.appendChild(loginView());
+    else if (S.mode === 'error') app.appendChild(h('div', { class: 'note bad stack', role: 'alert' }, h('p', { text: S.pageErr || t('err') }), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => { S.mode = 'loading'; render(); load(); } }, t('retry')))));
+    else app.appendChild(S.view === 'edit' && S.edit ? editorView() : listView());
+    foot.textContent = '';
+    const s = session();
+    if (s && S.mode === 'view') foot.appendChild(h('span', { text: s.user_email }));
+  }
+  window.addEventListener('beforeunload', (ev) => { if (S.dirty && S.edit && (S.edit.subject || S.edit.body)) { ev.preventDefault(); ev.returnValue = ''; } });
+  render();
+  load();
+})();
+</script>
+</body>
+</html>
