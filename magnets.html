@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
+<title>Your lead magnets | WideCast</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;
+--bg:#f5f5f2;--s1:#fdfdfb;--s2:#efefea;--s3:#e5e5df;--line:#e1e1da;--line-2:#d0d0c8;--field-ln:#8f908a;
+--tx:#26272a;--tx-hi:#0e0f11;--tx-2:#4a4b47;--tx-3:#64655f;
+--acc:#c6f135;--acc-hi:#b8e425;--acc-ink:#141a05;--acc-soft:#eef7cf;--acc-line:#c3dc72;--acc-tx:#46560a;--ring:#46560a;
+--hot-bg:#fde7df;--hot-tx:#982b12;--hot-ln:#f3c2b2;--warm-bg:#fbefd3;--warm-tx:#774b00;--warm-ln:#ebd197;--watch-bg:#e5ebf9;--watch-tx:#2d4795;--watch-ln:#c3cff0;
+--err-tx:#a0261a;--shadow:0 1px 2px rgba(14,15,17,.05);
+--font:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+--bg:#0e0f11;--s1:#16181b;--s2:#1c1f23;--s3:#262a30;--line:#25282d;--line-2:#34373e;--field-ln:#696c74;
+--tx:#eceae4;--tx-hi:#f5f3ec;--tx-2:#b9b7af;--tx-3:#8f8d87;
+--acc:#c6f135;--acc-hi:#d3f65c;--acc-ink:#141a05;--acc-soft:#1c230a;--acc-line:#46540f;--acc-tx:#c6f135;--ring:#c6f135;
+--hot-bg:#2b1711;--hot-tx:#ffa189;--hot-ln:#5c2c1e;--warm-bg:#2a2111;--warm-tx:#f2c76a;--warm-ln:#5b4419;--watch-bg:#151d2f;--watch-tx:#a3b8ff;--watch-ln:#2d3c64;
+--err-tx:#ffa189;--shadow:none}}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;display:flex;flex-direction:column}
+h1,h2,h3,p,ul,ol,dl,dd,blockquote{margin:0}
+img,svg{display:block;max-width:100%}
+a{color:var(--acc-tx);text-underline-offset:3px}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-80px;z-index:50;background:var(--acc);color:var(--acc-ink);padding:12px 16px;border-radius:10px;font-weight:600;text-decoration:none}
+.skip:focus{top:12px}
+.wrap{width:min(100% - 32px,720px);margin-inline:auto}
+.ic{width:18px;height:18px;flex:none}
+.ic-sm{width:16px;height:16px}
+
+.hdr{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
+.brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--tx-hi);text-decoration:none;font-weight:600;letter-spacing:-.01em}
+.brand .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#0e0f11;border:1px solid var(--line)}
+.brand img{width:24px;height:24px}
+.hdr-r{display:flex;align-items:center;gap:4px;min-width:0}
+.lang{display:inline-flex;padding:2px;border:1px solid var(--line-2);border-radius:12px;background:var(--s1)}
+.lang button{min-width:44px;min-height:44px;padding:0 10px;border:0;border-radius:9px;background:none;color:var(--tx-2);font-size:.875rem;font-weight:600;letter-spacing:.02em;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--tx-hi);color:var(--bg)}
+.lang[hidden]{display:none}
+/* Header (plan 13): the logo on the left, EN/VI on the right and, once the band has gone up, the slim row of steps
+   between them; phones keep the logo's mark only */
+@media (max-width:640px){.brand>span:not(.mark){display:none}}
+@media (max-width:420px){.hdr-in{gap:8px}}
+
+/* Main navigation (plan 13, 2026-10-16; the loop stepper of plan 12): a full-width band under the header, one step off
+   the page (light: the light grey surface; dark: the slightly lighter one) with a 1px line above and below (the top one
+   sits on the header's own line); the tiles keep their own surfaces. Scan, Report, Approve, Publish, Results and back
+   to Scan, plus CRM & Library with its two links. The lit tile is the page you are on; a block that needs the Boss
+   carries a red notification badge in its top-right corner (its exact count). Phones: one scrolling row of chips, the
+   one that needs the Boss first. */
+.stp-band{--stp-bg:var(--s2);margin-top:-1px;padding:16px 0 18px;background:var(--stp-bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.stp-band{--stp-bg:var(--s1)}}
+#stp[hidden],#stp-mini[hidden]{display:none}
+.stp ol{list-style:none;margin:0;padding:0}
+.stp-loop{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.stp-i{position:relative;display:flex;min-width:0}
+.stp-i+.stp-i::before{content:"";position:absolute;left:-7px;top:50%;width:6px;height:6px;border-top:1.5px solid var(--tx-3);border-right:1.5px solid var(--tx-3);transform:translate(-70%,-50%) rotate(45deg)}
+.stp-b{position:relative;display:flex;flex-direction:column;gap:4px;width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--s1);color:var(--tx);text-decoration:none;box-shadow:var(--shadow);transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.stp-b:hover{background:var(--s2);border-color:var(--line-2)}
+.stp-b:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:14px}
+.stp-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-width:0}
+.stp-lbl{flex:0 1 auto;min-width:0;max-width:100%;font-size:.875rem;line-height:1.3;font-weight:600;color:var(--tx-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stp-n{flex:none;min-width:24px;height:22px;padding:0 7px;border-radius:999px;display:inline-grid;place-items:center;background:var(--s2);color:var(--tx-hi);font-size:.75rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stp-line{font-size:.75rem;line-height:1.4;color:var(--tx-3);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow-wrap:anywhere}
+.stp-cur{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.stp-cur:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.stp-cur .stp-lbl{font-weight:800}
+.stp-cur .stp-lbl,.stp-cur .stp-line{color:var(--acc-ink)}
+.stp-cur .stp-n{background:var(--acc-ink);color:var(--acc)}
+.stp-cur:focus-visible{outline-color:var(--tx-hi)}
+.stp-att.stp-d1 .stp-top{padding-right:12px}.stp-att.stp-d2 .stp-top{padding-right:20px}.stp-att.stp-d3 .stp-top{padding-right:28px}.stp-att.stp-d4 .stp-top{padding-right:38px}
+.stp-alert{position:absolute;top:-9px;right:-9px;z-index:1;min-width:22px;height:22px;padding:0 4px;border-radius:999px;display:inline-grid;place-items:center;background:#d92d20;color:#fff;font-size:.75rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;box-sizing:border-box;border:2px solid #fff;pointer-events:none}
+.stp-alert.stp-pill{padding:0 7px}
+.stp-back{position:relative;height:14px;margin:6px 10% 0;border:1.5px solid var(--line-2);border-top:0;border-radius:0 0 12px 12px}
+.stp-back::before{content:"";position:absolute;left:-6px;top:-8px;border:5px solid transparent;border-bottom:8px solid var(--line-2);border-top:0}
+.stp-back span{position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:4px;padding:0 8px;background:var(--stp-bg,var(--bg));font-size:.75rem;line-height:1.5;color:var(--tx-3);white-space:nowrap}
+.stp-back .ic{width:14px;height:14px}
+.stp-cl{display:inline-block;max-width:14ch;padding:0 8px;border:1px solid var(--line-2);border-radius:999px;background:var(--s1);color:var(--tx-hi);font-size:.75rem;font-weight:600;line-height:18px;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stp-asset{margin-top:22px}
+.stp-asset .stp-b{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.stp-asset .stp-top{justify-content:flex-start;gap:8px}
+.stp-asset .stp-line{flex:1 1 220px;-webkit-line-clamp:2;line-clamp:2}
+.stp-box:hover{background:var(--s1);border-color:var(--line)}
+.stp-box.stp-cur:hover{background:var(--acc);border-color:var(--acc)}
+.stp-links{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.stp-go{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--line-2);border-radius:999px;background:var(--bg);color:var(--tx-hi);font-size:.8125rem;font-weight:600;line-height:1.2;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.stp-go:hover{background:var(--s2)}
+.stp-go:focus-visible,.stp-m:focus-visible{border-radius:999px}
+.stp-cur .stp-go{border-color:var(--acc-ink);background:transparent;color:var(--acc-ink)}
+.stp-cur .stp-go:hover{background:var(--acc-hi)}
+.stp-cur .stp-go[aria-current="page"]{background:var(--acc-ink);color:var(--acc)}
+.stp-chips{display:none}
+/* The header's slim row (plan 13): the six steps between the logo and EN/VI once the band has gone up out of sight,
+   gone again when the band is back. Its room in the header is always kept and it only fades and slides (opacity,
+   transform), so nothing on the page moves. Phones: it scrolls sideways, the red badge first. */
+.stp-mini{flex:1 1 0;min-width:0;display:flex;visibility:hidden;opacity:0;transform:translateY(-6px);transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s}
+.stp-mini.stp-on{visibility:visible;opacity:1;transform:none;transition-delay:0s}
+.stp-mrow{display:flex;gap:6px;min-width:0;max-width:100%;margin:0;padding:10px 10px 6px 4px;list-style:none;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.stp-mrow::-webkit-scrollbar{display:none}
+.stp-mrow li{flex:none;display:flex}
+.stp-m{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:0 11px;border:1px solid var(--line);border-radius:999px;background:var(--s1);color:var(--tx);text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.stp-m:hover{background:var(--s2)}
+.stp-m .stp-lbl{font-size:.8125rem}
+.stp-m.stp-cur{background:var(--acc);border-color:var(--acc)}
+.stp-m.stp-cur:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.stp-m.stp-att.stp-d1{padding-right:18px}.stp-m.stp-att.stp-d2{padding-right:24px}.stp-m.stp-att.stp-d3{padding-right:32px}.stp-m.stp-att.stp-d4{padding-right:42px}
+@media (max-width:599px){
+  .stp-wide{display:none}
+  .stp .stp-chips{display:flex;gap:10px;overflow-x:auto;margin:-12px -4px -4px;padding:12px 12px 4px 4px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .stp-chips::-webkit-scrollbar{display:none}
+  .stp-chips li{flex:none;display:flex;align-items:center;scroll-snap-align:start}
+  .stp-chips .stp-top{flex-wrap:nowrap}
+  .stp-chips .stp-cl{line-height:30px;padding:0 10px;font-size:.8125rem}
+  .stp-chips .stp-b{flex-direction:row;align-items:center;gap:8px;min-height:44px;padding:0 10px 0 14px;border-radius:999px;white-space:nowrap}
+  .stp-chips .stp-att.stp-d1{padding-right:16px}  .stp-chips .stp-att.stp-d2{padding-right:22px}
+  .stp-chips .stp-att.stp-d3{padding-right:30px}  .stp-chips .stp-att.stp-d4{padding-right:44px}
+  .stp-chips .stp-att .stp-top{padding-right:0}
+  .stp-mrow .stp-pri{order:-1}
+}
+
+main{flex:1;padding:28px 0 56px;outline:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx-hi);font:500 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s}
+.btn:hover{background:var(--s2)}
+.btn-pr{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.btn-pr:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn-block{width:100%}
+.btn-sm{min-height:40px;padding:0 12px;font-size:.875rem}
+.btn-ln{border:0;background:none;min-height:44px;padding:0 6px;color:var(--acc-tx);font:500 .9375rem/1.2 var(--font);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.spin{width:16px;height:16px;flex:none;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.inp,.sel{display:block;width:100%;min-height:48px;padding:11px 14px;font-size:16px;color:var(--tx-hi);background:var(--s1);border:1px solid var(--field-ln);border-radius:12px}
+.sel{appearance:auto}
+.inp::placeholder{color:var(--tx-3)}
+.inp:focus,.sel:focus{outline:2px solid var(--ring);outline-offset:1px}
+.card-err{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--hot-bg);color:var(--hot-tx);font-size:.9375rem;margin-top:14px}
+.state{max-width:440px;margin:24px auto 0}
+.state h1{font-size:1.5rem;line-height:1.25;letter-spacing:-.02em;font-weight:600;color:var(--tx-hi)}
+.state p.lead{margin-top:8px;color:var(--tx-2)}
+.state .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.loading{display:flex;align-items:center;gap:10px;color:var(--tx-2);padding:40px 0}
+
+.login{max-width:440px;margin:16px auto 0;padding:24px 20px;background:var(--s1);border:1px solid var(--line);border-radius:16px}
+.login h1{font-size:1.5rem;line-height:1.25;letter-spacing:-.02em;font-weight:600;color:var(--tx-hi)}
+.login .lead{margin-top:8px;color:var(--tx-2);font-size:.9375rem}
+.login form{margin-top:20px}
+.login label{display:block;font-size:.875rem;font-weight:600;color:var(--tx-hi);margin-bottom:6px}
+.inp.code{font-size:1.5rem;letter-spacing:.45em;text-align:center;font-variant-numeric:tabular-nums;padding-left:calc(14px + .45em)}
+.login .btn-pr{margin-top:14px}
+.sent{padding:12px 14px;border-radius:12px;background:var(--s2);font-size:.9375rem;color:var(--tx-2)}
+.sent b{color:var(--tx-hi);font-weight:600;overflow-wrap:anywhere}
+.sent + label{margin-top:16px}
+.err{margin-top:8px;font-size:.875rem;color:var(--err-tx)}
+.note-ok{margin-top:8px;font-size:.875rem;color:var(--acc-tx)}
+.login .row2{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;margin-top:10px}
+.fine{margin-top:6px;font-size:.8125rem;color:var(--tx-3)}
+
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 16px;padding:18px 0 calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line);font-size:.8125rem;color:var(--tx-3);overflow-wrap:anywhere}
+.foot .btn-ln{font-size:.8125rem;padding:0}
+@media (min-width:768px){main{padding-top:40px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* A shell: begin (UX redesign A, 2026-10-18; byte-identical on every dashboard page, see ux_a/a_shell.css) */
+.ax{display:flex;flex-direction:column;gap:16px}
+.ax-sam{display:flex;align-items:center;gap:10px;padding:9px 10px 9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--s1);font-size:.875rem;line-height:1.45}
+.ax-sam-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--acc)}
+.ax-sam-txt{flex:1;min-width:0;color:var(--tx-2)}
+.ax-sam-txt b{color:var(--tx-hi);font-weight:600}
+.ax-sam-more{display:flex;flex-direction:column;gap:8px;padding:2px 0 0 18px}
+.ax-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px}
+.ax-h1{margin:0;font-size:1.6rem;line-height:1.2;letter-spacing:-.02em;color:var(--tx-hi);font-weight:600}
+.ax-count{color:var(--tx-3);font-size:.95rem}
+.ax-top-r{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ax-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:.82rem;color:var(--tx-3)}
+.ax-meta a{color:var(--tx-2)}
+.ax-lede{margin:0;color:var(--tx-2);font-size:.95rem;line-height:1.55}
+.ax-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;position:relative}
+.ax-chips::-webkit-scrollbar{display:none}
+.ax-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--tx-2);font:inherit;font-size:.82rem;cursor:pointer;white-space:nowrap}
+.ax-chip[aria-pressed="true"]{background:var(--tx-hi);border-color:var(--tx-hi);color:var(--bg);font-weight:600}
+.ax-chip:disabled{opacity:.5;cursor:default}
+.ax-chip .ax-n{font-variant-numeric:tabular-nums}
+.ax-lock{width:11px;height:11px;opacity:.75}
+.ax-split{display:grid;grid-template-columns:minmax(0,236px) minmax(0,1fr);border:1px solid var(--line);border-radius:16px;background:var(--s1);overflow:clip;min-height:320px}
+.ax-split.ax-wide{grid-template-columns:minmax(0,300px) minmax(0,1fr)}
+.ax-list{border-right:1px solid var(--line);display:flex;flex-direction:column;padding:6px;gap:2px;max-height:74vh;overflow-y:auto}
+.ax-row{display:flex;align-items:flex-start;gap:10px;width:100%;padding:9px 8px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ax-row:hover{background:var(--s2)}
+.ax-row[aria-current="true"]{background:var(--s3)}
+.ax-row-ico{width:30px;height:30px;flex:0 0 30px;border-radius:9px;background:var(--s2);display:flex;align-items:center;justify-content:center;color:var(--tx-2)}
+.ax-row-ico svg{width:15px;height:15px}
+.ax-row-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ax-row-k{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--tx-3);line-height:1.3}
+.ax-row-k .ax-age{margin-left:auto;white-space:nowrap}
+.ax-row-t{font-size:.86rem;font-weight:500;color:var(--tx-hi);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ax-row-s{font-size:.75rem;color:var(--tx-3);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ax-hot{color:var(--hot-tx);font-weight:600}
+.ax-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;margin-top:5px;background:var(--tx-3)}
+.ax-dot.ok{background:#3fbf6f}.ax-dot.late{background:var(--warm-tx)}.ax-dot.down{background:var(--hot-tx)}
+.ax-list-more{padding:8px 8px 6px 48px;font-size:.8rem;color:var(--tx-3)}
+.ax-empty{padding:40px 16px;text-align:center;color:var(--tx-3);font-size:.9rem;display:flex;flex-direction:column;align-items:center;gap:12px}
+.ax-det{display:flex;flex-direction:column;min-width:0}
+.ax-det-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px;min-width:0;overflow-wrap:anywhere}
+.ax-det-body a.lnk{display:inline-block;padding:7px 0}
+.ax-det-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.78rem;color:var(--tx-3)}
+.ax-det-h{margin:0;font-size:1.22rem;line-height:1.28;letter-spacing:-.01em;color:var(--tx-hi);font-weight:600;overflow-wrap:anywhere}
+.ax-det-sub{margin:-6px 0 0;color:var(--tx-3);font-size:.88rem}
+.ax-det p{margin:0}
+.ax-quote{margin:0;padding:12px 14px;border-radius:12px;background:var(--s2);border:1px solid var(--line);font-size:.92rem;line-height:1.5;color:var(--tx-hi);overflow-wrap:anywhere}
+.ax-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:10px 18px}
+.ax-fact{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ax-fact-k{font-size:.72rem;color:var(--tx-3)}
+.ax-fact-v{font-size:.88rem;color:var(--tx);overflow-wrap:anywhere}
+.ax-sec{display:flex;flex-direction:column;gap:8px}
+.ax-sec-h{margin:0;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tx-3);font-weight:600}
+.ax-bar{position:sticky;bottom:0;margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--s1);z-index:2}
+.ax-bar-r{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.ax-bar-note{font-size:.8rem;color:var(--tx-3)}
+.ax-kbd{font-family:var(--mono);font-size:.66rem;padding:1px 5px;border-radius:5px;border:1px solid var(--line-2);color:var(--tx-3);line-height:1.3}
+.ax-foot{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem}
+.ax-foot-a{border:0;border-bottom:1px dashed var(--line-2);background:none;padding:2px 0;color:var(--tx-2);font:inherit;cursor:pointer;text-decoration:none}
+.ax-foot-a[aria-pressed="true"]{color:var(--tx-hi);border-bottom-style:solid}
+.ax-foot-a.bad{color:var(--err-tx)}
+.ax-back{display:none}
+.ax-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:.72rem;font-weight:600;white-space:nowrap;background:var(--s2);color:var(--tx-2)}
+.ax-tag.hot{background:var(--hot-bg);color:var(--hot-tx)}
+.ax-tag.warm{background:var(--warm-bg);color:var(--warm-tx)}
+.ax-tag.watch{background:var(--watch-bg);color:var(--watch-tx)}
+.ax-tag.acc{background:var(--acc-soft);color:var(--acc-tx)}
+.ax-search{display:flex;align-items:center;gap:8px;flex:1 1 220px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--s1)}
+.ax-search input{flex:1;min-width:0;border:0;background:none;color:var(--tx-hi);font:inherit;font-size:.9rem;outline:none}
+.ax-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+@media (max-width:719px){
+.ax-split,.ax-split.ax-wide{display:block;min-height:0}
+.ax-list{border-right:0;max-height:none}
+.ax-det{display:none}
+.ax-split.ax-open .ax-list{display:none}
+.ax-split.ax-open .ax-det{display:flex}
+.ax-back{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0 12px;min-height:40px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--tx-2);font:inherit;font-size:.88rem;cursor:pointer}
+.ax-bar .ax-kbd{display:none}
+}
+/* A shell: end */
+/* The library in the A shell (UX redesign A, 2026-10-18): only what this page adds to the shared block (prefix lib-) */
+.lib-top .ax-h1{outline:none;scroll-margin-top:84px}
+.lib-view>.card-err{margin-top:0}
+.lib-tools .ax-search{flex:3 1 220px;min-height:42px}
+.lib-tools .ax-search .ic{color:var(--tx-3)}
+.lib-tools .ax-search:focus-within{border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}
+.lib-tools .ax-search input::placeholder{color:var(--tx-3)}
+.lib-tools .ax-search input::-webkit-search-cancel-button{cursor:pointer}
+.lib-tools .lib-go{flex:none;min-height:42px;padding:0 14px;border-radius:10px;font-size:.875rem}
+.lib-tools .lib-sel{flex:0 1 180px;width:auto;min-width:0;min-height:42px;padding:0 10px;border-color:var(--line-2);border-radius:10px;font-size:.9rem}
+.lib-list{list-style:none;margin:0}
+.lib-more{padding:6px 2px 4px}
+.lib-more .btn{min-height:40px;font-size:.875rem;border-radius:10px}
+.lib-empty{grid-column:1/-1}
+.lib-empty h2{margin:0;font-size:.95rem;font-weight:600;color:var(--tx-hi)}
+.lib-empty p{max-width:46ch}
+.lib-empty .btn{min-height:40px;font-size:.875rem;border-radius:10px}
+.lib-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.lib-ic-w{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--s2);color:var(--tx-2)}
+.ax-det-h{outline:none;scroll-margin-top:84px}
+.lib-det .chip{gap:4px}
+.lib-det .chip .ic{width:12px;height:12px}
+.lib-k-post{background:var(--hot-bg);color:var(--hot-tx)}
+.lib-k-video{background:var(--watch-bg);color:var(--watch-tx)}
+.lib-k-image{background:var(--warm-bg);color:var(--warm-tx)}
+.lib-det .chip-node{display:inline-flex;align-items:center;color:var(--tx-2)}
+.lib-det .lib-cl{display:inline-flex;align-items:center;height:22px;padding:0 8px;border:1px solid var(--line-2);border-radius:999px;color:var(--tx-2)}
+.lib-det .ax-det-sub{font-variant-numeric:tabular-nums}
+.lib-text{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tx);font-size:.95rem;line-height:1.6}
+.lib-det .said .who{display:block;margin-bottom:2px;font-size:.72rem;color:var(--tx-3)}
+.lib-plat{font-size:.84rem;color:var(--tx-3)}
+.ax-bar .btn{min-height:40px;padding:0 12px;font-size:.875rem;gap:7px;border-radius:10px}
+.lib-back .ic{width:16px;height:16px}
+@media (max-width:719px){
+.ax-split:not(.lib-picked) .ax-row[aria-current="true"]{background:transparent}
+.lib-top .ax-h1{font-size:1.4rem}
+.ax-split{border-radius:14px}
+.lib-tools input,.lib-tools select{font-size:16px}
+.lib-tools .lib-sel{flex:1 1 100%}
+}
+
+/* ── Lead magnets (2026-10-27): one card per magnet */
+.mg-view{padding:18px 0 40px}
+.mg-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between}
+.mg-head h1{margin:0}
+.mg-head select{max-width:260px}
+.mg-lead{color:var(--tx-2,#666);margin:6px 0 16px;max-width:70ch}
+.mg-card{border:1px solid var(--line,rgba(128,128,128,.25));border-radius:14px;padding:14px 16px;margin:10px 0;background:var(--bg-2,transparent)}
+.mg-link{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.mg-sum{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.mg-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line,rgba(128,128,128,.3));border-radius:999px;padding:3px 10px;font-size:.85rem}
+.mg-ok{border-color:#3aa76d;color:#2f8f5c}
+.mg-lang{font-size:.7rem;text-transform:uppercase;padding:1px 7px;margin-left:4px;vertical-align:2px}
+.mg-title{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
+.mg-meta{font-size:.8rem;color:var(--tx-3,#888);margin-top:2px;overflow-wrap:anywhere}
+.mg-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 8px}
+.mg-num b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.mg-num span{font-size:.75rem;color:var(--tx-3,#888)}
+.mg-acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mg-pages{margin-top:8px}
+.mg-pages summary{cursor:pointer;font-size:.85rem;color:var(--tx-2,#666)}
+.mg-page{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--line,rgba(128,128,128,.2));font-size:.85rem}
+.mg-page a{overflow-wrap:anywhere}
+.mg-page .mg-pn{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--tx-2,#666)}
+@media (max-width:599px){.mg-nums{grid-template-columns:repeat(2,minmax(0,1fr))}.mg-page{grid-template-columns:auto 1fr}.mg-page .mg-pn{grid-column:2}}
+</style>
+</head>
+<body>
+<a class="skip" href="#app" data-t="skip">Skip to your lead magnets</a>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="/" data-t-aria="brand_home" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <nav class="stp-mini" id="stp-mini" aria-label="Main, compact" hidden></nav>
+    <div class="hdr-r">
+      <div class="lang" role="group" data-t-aria="lang_group" aria-label="Language" hidden>
+        <button type="button" data-lang="en" lang="en" aria-pressed="false">EN</button>
+        <button type="button" data-lang="vi" lang="vi" aria-pressed="false">VI</button>
+      </div>
+    </div>
+  </div>
+</header>
+<nav class="stp-band" id="stp" aria-label="Main" hidden><div class="wrap stp"></div></nav>
+<main id="app" class="wrap" tabindex="-1">
+  <noscript><p>This page needs JavaScript. Trang này cần bật JavaScript.</p></noscript>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+<script>
+(() => {
+  'use strict';
+
+  // ── The EN/VI switch (owner, 16/10: English only for now). false: the switch is not shown and the page is in English
+  // whatever wc_report_lang holds (the stored choice is kept, only not used), so every request sends lang "en". true:
+  // the switch and the stored choice exactly as before; the i18n and both dictionaries stay in place either way.
+  const LANG_SWITCH = false;
+
+  // Lead magnets online (2026-10-27): the client's branded link and one card per lead magnet (one root address with its
+  // language branches and the pages joined to it) with its last-30-day numbers and its leads in the CRM. Read only.
+  // Server: dashboard2.py "SOLO AGENCY — magnets page" (POST /solo/magnets/view, owner session) on solo_magnets.py.
+  // Same sign-in, API base, language choice, band and look as content-library.html.
+  const Q0 = new URLSearchParams(location.search);
+  const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  // ?api=<origin> is a local-test hook only; production always calls its own origin.
+  const API_ORIGIN = (() => {
+    const raw = IS_LOCAL ? Q0.get('api') : '';
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      return (u.protocol === 'http:' || u.protocol === 'https:') ? u.origin : '';
+    } catch (e) { return ''; }
+  })();
+  const DEV = Q0.get('dev') === '1';
+  const BASE = API_ORIGIN + '/app/dashboard' + (DEV ? '2' : '');
+  const LANG_KEY = 'wc_report_lang'; // shared with report.html, approve.html, nodes.html and crmstore.html
+  const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+  const initClient = String(Q0.get('client') || '').trim().toLowerCase();
+
+  const I18N = {
+    en: {
+      doc_title: 'Your lead magnets', skip: 'Skip to your lead magnets', brand_home: 'WideCast home', lang_group: 'Language',
+      stp_main: 'Main', stp_mini: 'Main, compact', stp_crm: 'CRM', stp_library: 'Library', stp_magnets: 'Lead magnets', stp_again: 'Repeats every day', stp_for: 'for', stp_att: '{l}, {n} waiting for you',
+      stp_scan: 'Scan', stp_report: 'Report', stp_approve: 'Approve', stp_publish: 'Publish', stp_results: 'Results', stp_assets: 'CRM & Library',
+      stp_n_scan: 'Agents ready: {n}', stp_n_report: 'Ideas and people in your newest report: {n}', stp_n_approve: 'Waiting for you: {n}',
+      stp_n_publish: 'Being made now: {n}', stp_n_results: 'Results this week: {n}', stp_n_assets: 'New leads this week: {n}',
+      loading: 'Loading your lead magnets…', h1: 'Lead magnets', client_lbl: 'Client',
+      lead: 'The last {d} days. One magnet is one root address: its language versions under it (…/vi.html) and the pages joined to it count together. To add or join a magnet, tell Sam.',
+      link_h: 'Branded link', link_none: 'No branded link yet. Tell Sam: connect my lead magnet link.', link_ready: 'ready', link_wait: 'not ready yet',
+      tot_views: '{n} views', tot_emails: '{n} emails', tot_opened: '{n} opened', tot_leads: '{n} people in the CRM',
+      n_views: 'Views', n_emails: 'Emails', n_rate: 'Email rate', n_opened: 'Opened',
+      leads_n: '{n} leads in the CRM', leads_1: '1 lead in the CRM', leads_link: 'Its leads in the CRM', open: 'Open the page',
+      pages_n: '{n} pages', pages_h: 'Pages and languages', joined: 'joined', other_lang: 'other', k_hosted: 'branded link page', k_embed: 'embed page',
+      p_nums: '{v} views · {e} emails · leads: {l}', st_paused: 'paused', st_draft: 'draft',
+      empty_h: 'No lead magnets yet', empty_p: 'Give Sam a finished WideCast video or a document and say who it is for, or ask for a lead magnet for one of your pages.',
+      err_h: 'Your lead magnets could not be loaded', err_p: 'Check your connection and try again.', retry: 'Try again',
+      unavailable: 'Lead magnets are not available right now. Try again shortly.',
+      login_h: 'Sign in to see your lead magnets',
+      login_p: 'Use the email of your WideCast account. We will email you a 6-digit code.',
+      login_expired: 'Your session has ended. Sign in again to see your lead magnets.',
+      login_owner_only: 'This page is for the account owner. Sign in with the owner\'s WideCast email.',
+      email: 'Email', send_code: 'Send code', sending: 'Sending code…', code_sent: 'We sent a 6-digit code to',
+      code_lbl: '6-digit code', verify: 'Verify', verifying: 'Verifying…', resend: 'Resend code',
+      resent: 'A new code is on its way.', change_email: 'Change email',
+      spam_hint: 'No email? Check your spam or junk folder.', bad_email: 'Enter a valid email address.',
+      bad_code: 'Enter the 6-digit code.', send_failed: 'The code could not be sent. Please try again.',
+      code_failed: 'That code did not work. Please try again.', conn_err: 'Connection error. Please try again.',
+      net_err: 'Network error. Check your connection and try again.',
+      signed_in: 'Signed in as {e}', private_note: 'Private to your WideCast account.', other_email: 'Use another email'
+    },
+    vi: {
+      doc_title: 'Lead magnet của bạn', skip: 'Đến danh sách lead magnet', brand_home: 'Trang chủ WideCast', lang_group: 'Ngôn ngữ',
+      stp_main: 'Chính', stp_mini: 'Chính, thu gọn', stp_crm: 'CRM', stp_library: 'Thư viện', stp_magnets: 'Lead magnets', stp_again: 'Lặp lại mỗi ngày', stp_for: 'cho', stp_att: '{l}, {n} việc đang chờ bạn',
+      stp_scan: 'Quét', stp_report: 'Báo cáo', stp_approve: 'Duyệt', stp_publish: 'Đăng', stp_results: 'Kết quả', stp_assets: 'CRM & Thư viện',
+      stp_n_scan: 'Agent sẵn sàng: {n}', stp_n_report: 'Ý tưởng và người trong báo cáo mới nhất: {n}', stp_n_approve: 'Đang chờ bạn: {n}',
+      stp_n_publish: 'Đang được làm: {n}', stp_n_results: 'Kết quả tuần này: {n}', stp_n_assets: 'Khách tiềm năng mới tuần này: {n}',
+      loading: 'Đang tải lead magnet…', h1: 'Lead magnet', client_lbl: 'Khách hàng',
+      lead: '{d} ngày gần nhất. Một magnet là một địa chỉ gốc: các bản ngôn ngữ bên dưới (…/vi.html) và các trang đã gộp vào được tính chung. Muốn thêm hay gộp magnet, hãy nói với Sam.',
+      link_h: 'Link thương hiệu', link_none: 'Chưa có link thương hiệu. Hãy nói với Sam: kết nối link lead magnet.', link_ready: 'sẵn sàng', link_wait: 'chưa sẵn sàng',
+      tot_views: '{n} lượt xem', tot_emails: '{n} email', tot_opened: '{n} lượt mở', tot_leads: '{n} người trong CRM',
+      n_views: 'Lượt xem', n_emails: 'Email', n_rate: 'Tỷ lệ email', n_opened: 'Đã mở',
+      leads_n: '{n} lead trong CRM', leads_1: '1 lead trong CRM', leads_link: 'Lead của magnet trong CRM', open: 'Mở trang',
+      pages_n: '{n} trang', pages_h: 'Các trang và ngôn ngữ', joined: 'đã gộp', other_lang: 'khác', k_hosted: 'trang link thương hiệu', k_embed: 'trang nhúng',
+      p_nums: '{v} lượt xem · {e} email · {l} lead', st_paused: 'tạm dừng', st_draft: 'bản nháp',
+      empty_h: 'Chưa có lead magnet', empty_p: 'Gửi Sam một video WideCast đã xong hoặc một tài liệu và nói nó dành cho ai, hoặc nhờ làm lead magnet cho một trang của bạn.',
+      err_h: 'Chưa tải được lead magnet', err_p: 'Kiểm tra kết nối rồi thử lại.', retry: 'Thử lại',
+      unavailable: 'Lead magnet đang tạm ngưng. Hãy thử lại sau ít phút.',
+      login_h: 'Đăng nhập để xem lead magnet',
+      login_p: 'Dùng email tài khoản WideCast của bạn. Chúng tôi sẽ gửi mã 6 số qua email.',
+      login_expired: 'Phiên đăng nhập đã hết. Đăng nhập lại để xem lead magnet.',
+      login_owner_only: 'Trang này dành cho chủ tài khoản. Hãy đăng nhập bằng email WideCast của chủ tài khoản.',
+      email: 'Email', send_code: 'Gửi mã', sending: 'Đang gửi mã…', code_sent: 'Đã gửi mã 6 số đến',
+      code_lbl: 'Mã 6 số', verify: 'Xác nhận', verifying: 'Đang xác nhận…', resend: 'Gửi lại mã',
+      resent: 'Mã mới đang được gửi.', change_email: 'Đổi email',
+      spam_hint: 'Không thấy thư? Xem mục Spam hoặc Thư rác.', bad_email: 'Nhập địa chỉ email hợp lệ.',
+      bad_code: 'Nhập đủ mã 6 số.', send_failed: 'Chưa gửi được mã. Vui lòng thử lại.',
+      code_failed: 'Mã chưa đúng. Vui lòng thử lại.', conn_err: 'Lỗi kết nối. Vui lòng thử lại.',
+      net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
+      signed_in: 'Đăng nhập với {e}', private_note: 'Chỉ tài khoản WideCast của bạn xem được.', other_email: 'Dùng email khác'
+    }
+  };
+
+  // Tabler icons (outline, MIT).
+  const ICONS = {
+    search: ['M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0', 'M21 21l-6 -6'],
+    ext: ['M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6', 'M11 13l9 -9', 'M15 4h5v5'],
+    robot: ['M6 6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z', 'M12 2v2', 'M9 12v9', 'M15 12v9', 'M5 16l4 -2', 'M15 14l4 2', 'M9 18h6', 'M10 8v.01', 'M14 8v.01'],
+    message: ['M8 9h8', 'M8 13h6', 'M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z'],
+    book: ['M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0', 'M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0', 'M3 6l0 13', 'M12 6l0 13', 'M21 6l0 13'],
+    alert: ['M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0', 'M12 8v4', 'M12 16h.01'],
+    loop: ['M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3', 'M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3'],
+    photo: ['M15 8h.01', 'M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z', 'M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5', 'M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3'],
+    video: ['M15 10l4.553 -2.276a1 1 0 0 1 1.447 .894v6.764a1 1 0 0 1 -1.447 .894l-4.553 -2.276v-4z', 'M3 8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z'],
+    camera: ['M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2', 'M9 13a3 3 0 1 0 6 0a3 3 0 0 0 -6 0'],
+    script: ['M14 3v4a1 1 0 0 0 1 1h4', 'M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z', 'M9 9h1', 'M9 13h6', 'M9 17h6'],
+    file: ['M14 3v4a1 1 0 0 0 1 1h4', 'M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z'],
+    back: ['M15 6l-6 6l6 6']
+  };
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
+
+  let memSession = null; // used only when localStorage is blocked, so a fresh login still works
+  // Same keys and the same "logged in" rule as the SPA (kara.js isUserFullyAuthenticated).
+  function session() {
+    const tok = lsGet('google_auth_token') || '';
+    const mail = lsGet('google_auth_email') || '';
+    const cid = lsGet('company_id') || '';
+    if (tok && mail && cid) return { user_token: tok, user_email: mail, company_id: cid };
+    return memSession;
+  }
+  function storeSession(tok, mail, cid) {
+    const ok = [lsSet('google_auth_token', tok), lsSet('google_auth_email', mail),
+      lsSet('google_auth_timestamp', Date.now().toString()), lsSet('company_id', cid)].every(Boolean);
+    lsDel('wc_client_simplified');
+    memSession = ok ? null : { user_token: tok, user_email: mail, company_id: cid };
+  }
+  function initLang() {
+    if (!LANG_SWITCH) return 'en';                  // the switch is off: English (the stored choice stays)
+    const saved = lsGet(LANG_KEY);
+    return saved === 'en' || saved === 'vi' ? saved : 'en';  // English unless the viewer picked Vietnamese
+  }
+  let LANG = initLang();
+  const locale = () => (LANG === 'vi' ? 'vi-VN' : 'en-US');
+  function t(key, vars) {
+    let s = I18N[LANG][key];
+    if (s == null) s = I18N.en[key];
+    if (s == null) return '';
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const k of Object.keys(attrs)) {
+        const v = attrs[k];
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach((x) => add(el, x)); return; }
+    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  function icon(name, cls) {
+    const s = document.createElementNS(SVG_NS, 'svg');
+    const at = { viewBox: '0 0 24 24', class: 'ic' + (cls ? ' ' + cls : ''), 'aria-hidden': 'true', focusable: 'false', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    for (const k of Object.keys(at)) s.setAttribute(k, at[k]);
+    for (const d of ICONS[name]) {
+      const p = document.createElementNS(SVG_NS, 'path');
+      p.setAttribute('d', d);
+      s.appendChild(p);
+    }
+    return s;
+  }
+  const spinner = () => h('span', { class: 'spin', 'aria-hidden': 'true' });
+  function pageHref(path, params) {
+    const p = new URLSearchParams();
+    Object.keys(params || {}).forEach((k) => { if (params[k]) p.set(k, params[k]); });
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    const qs = p.toString();
+    return path + (qs ? '?' + qs : '');
+  }
+  function safeUrl(u) {
+    if (typeof u !== 'string' || !/^https?:\/\//i.test(u.trim())) return null;
+    try { return new URL(u.trim()).href; } catch (e) { return null; }
+  }
+  function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+  function fmtDay(sec) {
+    const n = Number(sec);
+    if (!(n > 0)) return '';
+    try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(n * 1000)); } catch (e) { return new Date(n * 1000).toISOString().slice(0, 10); }
+  }
+  const fmtNum = (n) => { try { return new Intl.NumberFormat(locale()).format(n); } catch (e) { return String(n); } };
+  function clip(s, n) { const a = Array.from(s); return a.length > n ? a.slice(0, n - 1).join('') + '…' : s; }
+
+  // ── API (the same session fields and headers as the other pages)
+  function setHeader(headers, k, v) { if (v && /^[\x20-\x7e]*$/.test(v)) headers[k] = v; }
+  function api(path, body) {
+    const s = session();
+    const headers = { 'Content-Type': 'application/json' };
+    const payload = Object.assign({}, body || {});
+    if (s) {
+      payload.company_id = s.company_id;
+      payload.user_email = s.user_email;
+      payload.user_token = s.user_token;
+      setHeader(headers, 'X-WideCast-Company', s.company_id);
+      setHeader(headers, 'X-WideCast-User-Email', s.user_email);
+      setHeader(headers, 'X-WideCast-User-Token', s.user_token);
+    }
+    return fetch(BASE + path, { method: 'POST', headers: headers, body: JSON.stringify(payload), cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => r.text().then((txt) => {
+        let data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; }
+        return { status: r.status, ok: r.ok, data: data };
+      }));
+  }
+  function errOf(res) {
+    const d = (res && res.data) || {};
+    const e = d.error;
+    if (e && typeof e === 'object') return { code: String(e.code || e.type || ''), message: String(e.message || '') };
+    if (typeof e === 'string') return { code: e, message: e };
+    if (d.error_code) return { code: String(d.error_code), message: String(d.error_message || '') };
+    return { code: 'http_' + (res ? res.status : 0), message: '' };
+  }
+  function authFailed(res) {
+    if (res.status === 401) {
+      if (errOf(res).code === 'owner_sign_in_required') S.ownerOnly = true;
+      return true;
+    }
+    const c = errOf(res).code.toUpperCase();
+    return c === 'AUTH_REQUIRED' || c === 'AUTH_INVALID';
+  }
+  function checkUser(body) {
+    return fetch(BASE + '/check_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then((r) => r.text().then((txt) => {
+        let data = null;
+        try { data = JSON.parse(txt); } catch (e) { data = null; }
+        return { status: r.status, data: data };
+      }));
+  }
+
+  // ── State
+  const S = {
+    mode: 'loading',          // loading | login | view | error
+    client: CLIENT_RE.test(initClient) ? initClient : '',
+    data: null, clients: [], busy: false, pageErr: '',
+    login: { step: 1, email: '', code: '', busy: false, err: '', note: '', expired: false, focus: false },
+    ownerOnly: false, seq: 0
+  };
+  const app = document.getElementById('app');
+  const foot = document.getElementById('foot');
+  const live = document.getElementById('live');
+  function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
+
+  // The address keeps the client, so a reload or a shared link shows the same magnets.
+  function syncUrl() {
+    const p = new URLSearchParams(location.search);
+    if (S.client) p.set('client', S.client); else p.delete('client');
+    const qs = p.toString();
+    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+  }
+
+  function load() {
+    if (!session()) { showLogin(false); return; }
+    stpLoad();                                       // the main navigation's numbers: once per page load and language
+    const seq = ++S.seq;
+    S.busy = true;
+    if (S.mode !== 'view') S.mode = 'loading';
+    render();
+    api('/solo/magnets/view', S.client ? { client: S.client } : {}).then((res) => {
+      if (seq !== S.seq) return;
+      S.busy = false;
+      if (authFailed(res)) { showLogin(true); return; }
+      const d = res && res.ok && obj(res.data) && res.data.object === 'magnets_view' ? res.data : null;
+      if (!d) { S.mode = 'error'; S.pageErr = res.status === 503 ? t('unavailable') : ''; render(); return; }
+      S.data = d;
+      S.clients = arr(d.clients).filter((c) => typeof c === 'string' && CLIENT_RE.test(c));
+      if (!S.client && CLIENT_RE.test(str(d.client))) { S.client = str(d.client); syncUrl(); }
+      S.mode = 'view';
+      render();
+      announce(t('h1') + ': ' + fmtNum(arr(d.magnets).length));
+    }).catch(() => {
+      if (seq !== S.seq) return;
+      S.busy = false; S.mode = 'error'; S.pageErr = ''; render();
+    });
+  }
+  function pickClient(c) {
+    if (!CLIENT_RE.test(c || '') || c === S.client) return;
+    S.client = c;
+    syncUrl();
+    load();
+  }
+
+  // ── Login (the same flow as the other pages)
+  function showLogin(expired) {
+    const s = session();
+    S.mode = 'login';
+    S.login = { step: 1, email: S.ownerOnly ? '' : (S.login.email || (s && s.user_email) || lsGet('google_auth_email') || ''), code: '', busy: false, err: '', note: '', expired: !!expired && !S.ownerOnly, ownerOnly: !!S.ownerOnly, focus: true };
+    render();
+  }
+  function sendCode(isResend) {
+    const L = S.login;
+    const email = String(L.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { L.err = t('bad_email'); L.focus = true; render(); return; }
+    L.email = email; L.busy = true; L.err = ''; L.note = '';
+    render();
+    checkUser({ email: email, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status !== 200) { L.err = t('conn_err'); }
+      else if (res.data && res.data.success) {
+        if (isResend) L.note = t('resent');
+        L.step = 2; L.code = '';
+      } else { L.err = (res.data && res.data.error_message) || t('send_failed'); }
+      L.focus = true;
+      render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); L.focus = true; render(); });
+  }
+  function verifyCode() {
+    const L = S.login;
+    if (L.busy) return;
+    if (!/^\d{6}$/.test(L.code)) { L.err = t('bad_code'); L.focus = true; render(); return; }
+    if (!L.email) { L.step = 1; render(); return; }
+    L.busy = true; L.err = ''; L.note = '';
+    render();
+    checkUser({ email: L.email, passcode: L.code, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) {
+        const d = res.data;
+        storeSession(String(d.user_token || ''), String(d.user_email || d.email || L.email), String(d.company_id || ''));
+        S.ownerOnly = false;
+        S.login = { step: 1, email: '', code: '', busy: false, err: '', note: '', expired: false, focus: false };
+        Object.assign(STP, { key: '', data: null, cache: {} });  // another account: its own numbers
+        load();
+        return;
+      }
+      L.err = res.status !== 200 ? t('conn_err') : ((res.data && res.data.error_message) || t('code_failed'));
+      L.code = ''; L.focus = true;
+      render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); L.focus = true; render(); });
+  }
+
+  // ── Main navigation (plan 13, 2026-10-16; the loop stepper of plan 12): Scan, Report, Approve, Publish, Results and
+  // back to Scan, plus CRM & Library (two links), in a full-width band under the header. Drawn from the `stepper` of
+  // this page's one /solo/coach/today answer; without one (still on its way, an error, nothing yet) the same steps with
+  // their links and no numbers, so the way around is never lost. Signed out: none of it (the sign-in form only).
+  // The lit tile is the page you are on (aria-current); a block that needs the Boss wears a red badge with its exact
+  // count and opens the engine's top suggestion (highlight_link). Phones get one scrolling row of chips, that block
+  // first. Once the band has gone up under the header, the header shows the six steps as a slim row of chips.
+  // Drawn again only when its data, the client or the language changes.
+  const STP_KEYS = ['scan', 'report', 'approve', 'publish', 'results', 'assets'];
+  const STP_PAGES = ['/report.html', '/approve.html', '/nodes.html', '/crmstore.html', '/content-library.html', '/magnets.html'];
+  // each step's own page (its link without an answer); CRM & Library opens two: the CRM and the library
+  const STP_PATH = { scan: '/nodes.html', report: '/report.html', approve: '/approve.html', publish: '/approve.html',
+    results: '/content-library.html', crm: '/crmstore.html', library: '/content-library.html', magnets: '/magnets.html' };
+  const STP_HERE = 'magnets';  // this page's own link (Lead magnets, in CRM & Library): lit, aria-current="page"
+  const stpEl = document.getElementById('stp');          // the band (the main navigation landmark)
+  const stpBox = stpEl && stpEl.querySelector('.stp');
+  const stpMini = document.getElementById('stp-mini');   // the header's slim row
+  let stpSig = null;
+  let stpOut = false;                                    // the band has gone up out of sight
+  const stpS = (v) => (typeof v === 'string' ? v : '');
+  function stpTarget(link) {
+    if (typeof link !== 'string' || !link) return null;     // no link (never this very page by accident)
+    let u = null;
+    try { u = new URL(String(link || ''), location.href); } catch (e) { return null; }
+    if (!/^https?:$/.test(u.protocol) || STP_PAGES.indexOf(u.pathname) < 0) return null;
+    const params = {};
+    u.searchParams.forEach((v, k) => { if (k !== 'dev' && k !== 'api') params[k] = v; });
+    return { path: u.pathname, params: params };
+  }
+  // Every step, always: the answer's block, else a bare one (its label and its link, no number, no line).
+  function stpBlocks(st) {
+    const by = {};
+    (st && Array.isArray(st.blocks) ? st.blocks : []).forEach((b) => {
+      if (b && typeof b === 'object' && STP_KEYS.indexOf(b.key) >= 0 && !by[b.key]) by[b.key] = b;
+    });
+    return STP_KEYS.map((k) => by[k] || { key: k, badge: null, line: '', empty_line: '', link: '', attention: false });
+  }
+  // Where a step goes: the engine's link when it opens the step's own page (it carries the client and the report),
+  // else that page for this client (Report: the newest report). Publish opens the Publish view of Approvals (tab=publish).
+  function stpLink(key, link, client) {
+    const tg = stpTarget(link);
+    const to = tg && tg.path === STP_PATH[key] ? tg : { path: STP_PATH[key], params: client && key !== 'report' ? { client: client } : {} };
+    if (key === 'publish') to.params = Object.assign({}, to.params, { tab: 'publish' });
+    return to;
+  }
+  // Two cues, never mixed: the lit tile is the page you are on (aria-current); a block that needs the Boss (attention,
+  // today only Approve) carries a red notification badge with its exact count in the top-right corner (round for one
+  // digit, a pill beyond, room kept beside the label), and opens the top suggestion (highlight_link).
+  const stpAtt = (b) => b.attention === true && typeof b.badge === 'number' && isFinite(b.badge) && b.badge > 0;
+  const stpNumOf = (b) => (typeof b.badge === 'number' && isFinite(b.badge) ? b.badge : null);
+  const stpRed = (n, digits) => h('span', { class: 'stp-alert' + (digits > 1 ? ' stp-pill' : ''), 'aria-hidden': 'true', text: fmtNum(n) });
+  // The accessible name says a block in one go: "Approve, 9 waiting for you. <line>" or "Scan. Agents ready: 2. <line>".
+  function stpName(b, label, n, att, line) {
+    return (att ? [t('stp_att', { l: label, n: fmtNum(n) })] : [label, n == null ? '' : t('stp_n_' + b.key, { n: fmtNum(n) })])
+      .filter(Boolean).concat(line ? [line] : []).join('. ');
+  }
+  // One step as a link. kind: 'w' a wide tile, 'c' a phone chip, 'm' a chip of the header's slim row, 'l' one of the
+  // two links of CRM & Library; key: the block's own, or 'crm' / 'library' for those two.
+  function stpItem(b, st, cl, kind, key) {
+    const k = key || b.key;
+    const side = k === 'library' || k === 'magnets';     // the box's own pages: no number, no alert of their own
+    const att = !side && stpAtt(b);
+    const cur = k === STP_HERE;
+    const tgt = (att && stpTarget(st.highlight_link)) || stpLink(k, side ? '' : b.link, cl);
+    const go = (ev) => stpGo(ev, b, att, tgt, st);
+    const href = pageHref(tgt.path, tgt.params);
+    const label = t('stp_' + k);
+    if (kind === 'l') return h('a', { class: 'stp-go', href: href, 'aria-current': cur ? 'page' : null, 'data-stp': 'l:' + k, onclick: go, text: label });
+    const n = side ? null : stpNumOf(b);
+    // no number (nothing measured yet, unknown, or no answer): no badge at all, never a made-up 0
+    const badge = n == null || att ? '' : (b.key === 'assets' && n > 0 ? '+' : '') + fmtNum(n);
+    const line = side ? '' : stpS(b.line) || stpS(b.empty_line);
+    const digits = att ? Math.min(4, String(Math.round(n)).length) : 0;
+    return h('a', { class: (kind === 'm' ? 'stp-m' : 'stp-b') + (cur ? ' stp-cur' : '') + (att ? ' stp-att stp-d' + digits : '') + (stpS(b.line) ? '' : ' stp-new'),
+      href: href, 'aria-label': stpName(b, label, n, att, line), 'aria-current': cur ? 'page' : null,
+      title: kind !== 'm' && line ? line : null, 'data-stp': kind + ':' + k, onclick: go },
+      kind === 'm' ? h('span', { class: 'stp-lbl', text: label })
+        : h('span', { class: 'stp-top' }, h('span', { class: 'stp-lbl', text: label }), badge ? h('span', { class: 'stp-n', text: badge }) : null),
+      kind === 'w' && line ? h('span', { class: 'stp-line', text: line }) : null,
+      att ? stpRed(n, digits) : null);
+  }
+  // CRM & Library on the wide layout: its count and line, and two real links, the CRM and the library.
+  function stpAssets(b, st, cl) {
+    const att = stpAtt(b);
+    const n = stpNumOf(b);
+    const label = t('stp_assets');
+    const line = stpS(b.line) || stpS(b.empty_line);
+    const badge = n == null || att ? '' : (n > 0 ? '+' : '') + fmtNum(n);
+    const digits = att ? Math.min(4, String(Math.round(n)).length) : 0;
+    const cur = STP_HERE === 'crm' || STP_HERE === 'library' || STP_HERE === 'magnets';
+    return h('div', { class: 'stp-b stp-box' + (cur ? ' stp-cur' : '') + (att ? ' stp-att stp-d' + digits : '') + (stpS(b.line) ? '' : ' stp-new'),
+      role: 'group', 'aria-label': stpName(b, label, n, att, line), 'data-stp': 'w:assets' },
+      h('span', { class: 'stp-top', 'aria-hidden': 'true' }, h('span', { class: 'stp-lbl', text: label }), badge ? h('span', { class: 'stp-n', text: badge }) : null),
+      line ? h('span', { class: 'stp-line', 'aria-hidden': 'true', text: line }) : null,
+      h('span', { class: 'stp-links' }, stpItem(b, st, cl, 'l', 'crm'), stpItem(b, st, cl, 'l', 'library'), stpItem(b, st, cl, 'l', 'magnets')),
+      att ? stpRed(n, digits) : null);
+  }
+  function stpPut(el, nodes) {                    // (no replaceChildren: the CRM page's tests run an older DOM)
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+    nodes.forEach((n) => el.appendChild(n));
+  }
+  // The page's own chip in sight when a chip row is narrower than its chips (phones): the row scrolls sideways to it and
+  // the chips keep their order. Only the row's own scrollLeft (never scrollIntoView, which can move the page), once per
+  // drawing (a new row starts at 0), no smooth scroll. It stops where a chip starts, the first one far enough: the phone
+  // row snaps to chip starts, so the browser keeps that place. A row that is not laid out (the wide layout) is left alone.
+  function stpReveal(row) {
+    if (!row || !row.clientWidth) return;
+    const lit = row.querySelector('.stp-cur');
+    if (!lit) return;
+    const r = row.getBoundingClientRect();
+    const at = (el) => { const c = el.getBoundingClientRect(); return { x: c.left - r.left + row.scrollLeft, w: c.width }; };
+    const c = at(lit);
+    const need = c.x + c.w + 12 - row.clientWidth;     // the least scroll that shows it whole (12 px: its badge, its ring)
+    if (need <= row.scrollLeft) return;
+    const starts = Array.prototype.map.call(row.children, (li) => at(li).x).filter((x) => x >= need).sort((a, b) => a - b);
+    row.scrollLeft = starts.length ? starts[0] : need;
+  }
+  function stpRender() {
+    if (!stpEl || !stpBox) return;
+    const on = stpOn();
+    const st = (on && stpData()) || {};
+    const cl = stpS(st.client) || stpClient();
+    const sig = on ? LANG + '|' + cl + '|' + JSON.stringify(st) : '';
+    if (sig === stpSig) return;
+    stpSig = sig;
+    if (!on) {                                    // signed out: no menu at all, the sign-in form only
+      stpEl.setAttribute('hidden', '');
+      stpPut(stpBox, []);
+      if (stpMini) { stpMini.setAttribute('hidden', ''); stpPut(stpMini, []); }
+      stpMiniSet();
+      return;
+    }
+    const a = document.activeElement;
+    const fk = a && (stpEl.contains(a) || (stpMini && stpMini.contains(a))) ? a.getAttribute('data-stp') : '';
+    const blocks = stpBlocks(st);
+    const loop = blocks.filter((b) => b.key !== 'assets');
+    const asset = blocks.filter((b) => b.key === 'assets')[0];
+    const ol = h('ol', { class: 'stp-loop' });
+    loop.forEach((b) => ol.appendChild(h('li', { class: 'stp-i' }, stpItem(b, st, cl, 'w'))));
+    // phones: one row of chips, the block that needs the Boss first; CRM & Library as its two links
+    const chips = h('ol', { class: 'stp-chips' });
+    blocks.filter((b) => stpAtt(b)).concat(blocks.filter((b) => !stpAtt(b))).forEach((b) => {
+      (b.key === 'assets' ? ['crm', 'library', 'magnets'] : [b.key]).forEach((k) => chips.appendChild(h('li', null, stpItem(b, st, cl, 'c', k))));
+    });
+    // the client this loop is about (pages can show different clients): "Repeats every day for leadup"; on phones
+    // its name opens the chip row
+    const who = stpS(st.client);
+    const chip = () => h('b', { class: 'stp-cl', title: who, text: who });
+    if (who) chips.insertBefore(h('li', { class: 'stp-who', 'aria-hidden': 'true' }, chip()), chips.firstChild);
+    stpEl.setAttribute('aria-label', t('stp_main'));
+    stpPut(stpBox, [h('div', { class: 'stp-wide' }, ol,
+      h('p', { class: 'stp-back' }, h('span', null, icon('loop'), t('stp_again'), who ? [' ' + t('stp_for') + ' ', chip()] : null)),
+      h('div', { class: 'stp-asset' }, stpAssets(asset, st, cl))), chips]);
+    stpEl.removeAttribute('hidden');
+    stpReveal(stpBox.querySelector('.stp-chips'));
+    if (stpMini) {
+      // the six steps, short (CRM for CRM & Library: the library is Results' page); on phones the red badge first
+      const row = h('ol', { class: 'stp-mrow' });
+      blocks.forEach((b) => row.appendChild(h('li', { class: stpAtt(b) ? 'stp-pri' : null },
+        stpItem(b, st, cl, 'm', b.key === 'assets' ? 'crm' : b.key))));
+      stpMini.setAttribute('aria-label', t('stp_mini'));
+      stpPut(stpMini, [row]);
+      stpMini.removeAttribute('hidden');
+      stpReveal(row);
+    }
+    stpMiniSet();
+    if (fk) { const el = document.querySelector('[data-stp="' + fk + '"]'); if (el) el.focus({ preventScroll: true }); }
+  }
+  // The header's slim row shows once the band has gone up out of sight and hides when the band is back in view. Its
+  // room in the header is kept and it only fades and slides (opacity, transform), so nothing on the page moves.
+  function stpMiniSet() {
+    if (!stpMini) return;
+    const on = stpOut && !!stpEl && !stpEl.hidden && !stpMini.hidden;
+    if (on) stpMini.classList.add('stp-on'); else stpMini.classList.remove('stp-on');
+  }
+  function stpWatch() {
+    if (!stpEl || !stpMini || typeof window.IntersectionObserver !== 'function') return;
+    const io = new window.IntersectionObserver((entries) => {
+      const e = entries[entries.length - 1];
+      if (!e) return;
+      const top = e.rootBounds ? e.rootBounds.top : 0;
+      stpOut = !e.isIntersecting && e.boundingClientRect.bottom <= top + 1;   // gone up (never: still below)
+      stpMiniSet();
+    }, { rootMargin: '-' + Math.round((document.querySelector('header.hdr') || {}).offsetHeight || 0) + 'px 0px 0px 0px', threshold: 0 });
+    io.observe(stpEl);
+  }
+  stpWatch();
+  // This page's one /solo/coach/today call per page load (again only for another language, never by a search, the
+  // client filter or "Show more"): the client in the address, or none and the server shows the one with the newest
+  // activity. view "stepper": this page shows only the stepper, so no suggestion is recorded as shown.
+  const STP_CLIENT = S.client;
+  const STP = { key: '', data: null, cache: {} };
+  function stpTz() {
+    try {
+      const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return typeof z === 'string' && z.length <= 64 ? z : '';
+    } catch (e) { return ''; }
+  }
+  function stpLoad() {
+    const key = STP_CLIENT + '|' + LANG;
+    if (STP.key === key) return;
+    STP.key = key;
+    if (STP.cache[key]) { STP.data = STP.cache[key]; stpRender(); return; }
+    const body = STP_CLIENT ? { client: STP_CLIENT, lang: LANG, view: 'stepper' } : { lang: LANG, view: 'stepper' };
+    const z = stpTz();
+    if (z) body.tz = z;
+    api('/solo/coach/today', body).then((res) => {
+      if (STP.key !== key) return;
+      const d = res && res.ok && obj(res.data) && res.data.object === 'solo_coach_suggest' && (!STP_CLIENT || res.data.client === STP_CLIENT) ? res.data : null;
+      STP.data = d;                                   // null: the steps and their links, no numbers (a new sign-in asks again)
+      if (d) STP.cache[key] = d;
+      stpRender();
+    }).catch(() => { if (STP.key === key) { STP.data = null; stpRender(); } });
+  }
+  function stpData() { return STP.data ? obj(STP.data.stepper) : null; }
+  // Shown whenever the Boss is signed in (the sign-in form shows none of it); the client for links without an answer.
+  function stpOn() { return S.mode !== 'login' && !!session(); }
+  function stpClient() { return S.client; }
+  // Lead magnets opens this page: stay here, at the top.
+  function stpGo(ev, b, lit, tgt) {
+    if (!tgt || tgt.path !== '/magnets.html') return;     // another page: the browser opens it
+    ev.preventDefault();
+    window.scrollTo(0, 0);
+    const hd = app.querySelector('h1');
+    if (hd) { hd.setAttribute('tabindex', '-1'); hd.focus({ preventScroll: true }); }
+  }
+
+  // ── Render
+  function render() {
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.getAttribute('data-t')); });
+    document.querySelectorAll('[data-t-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.getAttribute('data-t-aria'))); });
+    document.querySelectorAll('.lang button').forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === LANG)));
+    document.title = t('doc_title') + ' | WideCast';
+    const out = [];
+    if (S.mode === 'loading') out.push(h('div', { class: 'loading', role: 'status' }, spinner(), t('loading')));
+    else if (S.mode === 'login') out.push(renderLogin());
+    else if (S.mode === 'view') out.push(renderView());
+    else out.push(h('section', { class: 'state', 'aria-labelledby': 'st-h' },
+      h('h1', { id: 'st-h', text: t('err_h') }), h('p', { class: 'lead', role: 'alert', text: S.pageErr || t('err_p') }),
+      h('div', { class: 'acts' }, h('button', { type: 'button', class: 'btn btn-pr', onclick: () => load() }, t('retry')))));
+    app.replaceChildren.apply(app, out);
+    renderFoot();
+    if (S.mode === 'login' && S.login.focus) {
+      S.login.focus = false;
+      const f = app.querySelector(S.login.step === 1 ? '#lg-email' : '#lg-code');
+      if (f) { f.focus(); if (S.login.err) f.select(); }
+    }
+    stpRender();                                     // the main navigation above the page
+  }
+
+  const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : 0);
+  const pct = (a, b) => (b > 0 ? Math.round(100 * a / b) + '%' : '–');
+  const langOf = (code) => (str(code) ? str(code).toUpperCase() : t('other_lang'));
+
+  // The view: the title with the client picker, what the numbers cover, the branded link, the totals, then one card per
+  // magnet (its title and languages, its numbers, its leads in the CRM, its page, and its pages and languages).
+  function renderView() {
+    const d = S.data || {};
+    const view = h('section', { class: 'mg-view', 'aria-labelledby': 'mg-h' });
+    const head = h('div', { class: 'mg-head' }, h('h1', { id: 'mg-h', tabindex: '-1', text: t('h1') }));
+    if (S.clients.length > 1) {
+      const sel = h('select', { class: 'inp', 'aria-label': t('client_lbl'), onchange: (ev) => pickClient(ev.target.value) },
+        S.clients.map((c) => h('option', { value: c, selected: c === S.client }, c)));
+      head.appendChild(sel);
+    }
+    view.appendChild(head);
+    view.appendChild(h('p', { class: 'mg-lead', text: t('lead', { d: fmtNum(num(d.days) || 30) }) }));
+    const links = arr(d.links).filter(obj);
+    view.appendChild(h('div', { class: 'mg-card mg-link', 'aria-label': t('link_h') },
+      h('b', { text: t('link_h') + ':' }),
+      links.length ? links.map((l) => h('span', null, h('span', { text: str(l.host) + ' ' }),
+        h('span', { class: 'mg-pill' + (str(l.status) === 'ready' ? ' mg-ok' : ''), text: str(l.status) === 'ready' ? t('link_ready') : t('link_wait') })))
+        : h('span', { text: t('link_none') })));
+    const mags = arr(d.magnets).filter(obj);
+    const tot = obj(d.totals) || {};
+    if (mags.length) {
+      view.appendChild(h('div', { class: 'mg-sum' },
+        h('span', { class: 'mg-pill', text: t('tot_views', { n: fmtNum(num(tot.views)) }) }),
+        h('span', { class: 'mg-pill', text: t('tot_emails', { n: fmtNum(num(tot.emails)) }) + ' · ' + pct(num(tot.emails), num(tot.views)) }),
+        h('span', { class: 'mg-pill', text: t('tot_opened', { n: fmtNum(num(tot.opened)) }) }),
+        h('span', { class: 'mg-pill', text: t('tot_leads', { n: fmtNum(num(tot.leads)) }) })));
+      mags.forEach((m) => view.appendChild(renderMagnet(m)));
+    } else {
+      view.appendChild(h('section', { class: 'state' }, h('h2', { text: t('empty_h') }), h('p', { class: 'lead', text: t('empty_p') })));
+    }
+    return view;
+  }
+  function renderMagnet(m) {
+    const pages = arr(m.pages).filter(obj);
+    const card = h('article', { class: 'mg-card', 'data-magnet': str(m.magnet_id) });
+    const st = str(m.status);
+    card.appendChild(h('div', { class: 'mg-title' }, str(m.title) || str(m.magnet_id),
+      arr(m.languages).filter((x) => typeof x === 'string').map((lg) => h('span', { class: 'mg-pill mg-lang', text: lg })),
+      st && st !== 'live' ? h('span', { class: 'mg-pill mg-lang', text: t('st_' + st) || st }) : null));
+    card.appendChild(h('div', { class: 'mg-meta', text: [str(m.magnet_id), pages.length > 1 ? t('pages_n', { n: fmtNum(pages.length) }) : '',
+      num(m.leads) === 1 ? t('leads_1') : t('leads_n', { n: fmtNum(num(m.leads)) })].filter(Boolean).join(' · ') }));
+    const stat = (k, v) => h('div', { class: 'mg-num' }, h('b', { text: v }), h('span', { text: t(k) }));
+    card.appendChild(h('div', { class: 'mg-nums' }, stat('n_views', fmtNum(num(m.views))), stat('n_emails', fmtNum(num(m.emails))),
+      stat('n_rate', pct(num(m.emails), num(m.views))), stat('n_opened', fmtNum(num(m.opened)))));
+    const page = safeUrl(str(m.page_url));
+    card.appendChild(h('div', { class: 'mg-acts' },
+      h('a', { class: 'btn', href: pageHref('/crmstore.html', { client: S.client, magnet: str(m.magnet_id) }) }, t('leads_link')),
+      page ? h('a', { class: 'btn', href: page, target: '_blank', rel: 'noopener noreferrer' }, t('open'), icon('ext', 'ic-sm')) : null));
+    if (pages.length > 1) {
+      const det = h('details', { class: 'mg-pages' }, h('summary', { text: t('pages_h') }));
+      pages.forEach((p) => {
+        const href = safeUrl(str(p.page_url));
+        det.appendChild(h('div', { class: 'mg-page' },
+          h('span', { class: 'mg-pill mg-lang', text: langOf(p.language) }),
+          h('span', null, href ? h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: str(p.page_url) }) : str(p.magnet_id),
+            h('div', { class: 'mg-meta', text: [str(p.magnet_id), t(p.kind === 'hosted' ? 'k_hosted' : 'k_embed'), p.joined ? t('joined') : ''].filter(Boolean).join(' · ') })),
+          h('span', { class: 'mg-pn', text: t('p_nums', { v: fmtNum(num(p.views)), e: fmtNum(num(p.emails)), l: fmtNum(num(p.leads)) }) })));
+      });
+      card.appendChild(det);
+    }
+    return card;
+  }
+
+  function renderLogin() {
+    const L = S.login;
+    const errId = 'lg-err';
+    const card = h('section', { class: 'login', 'aria-labelledby': 'lg-h' },
+      h('h1', { id: 'lg-h', text: t('login_h') }),
+      h('p', { class: 'lead', text: L.ownerOnly ? t('login_owner_only') : (L.expired ? t('login_expired') : t('login_p')) }));
+    if (L.step === 1) {
+      const inp = h('input', { id: 'lg-email', class: 'inp', type: 'email', name: 'email', autocomplete: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false', required: true, value: L.email, 'aria-invalid': L.err ? 'true' : null, 'aria-describedby': L.err ? errId : null, disabled: L.busy });
+      inp.addEventListener('input', () => { L.email = inp.value; });
+      card.appendChild(h('form', { novalidate: true, onsubmit: (ev) => { ev.preventDefault(); L.email = inp.value; sendCode(false); } },
+        h('label', { for: 'lg-email', text: t('email') }), inp,
+        L.err ? h('p', { id: errId, class: 'err', role: 'alert', text: L.err }) : null,
+        h('button', { type: 'submit', class: 'btn btn-pr btn-block', disabled: L.busy }, L.busy ? [spinner(), t('sending')] : t('send_code'))));
+    } else {
+      const inp = h('input', { id: 'lg-code', class: 'inp code', type: 'text', name: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', pattern: '[0-9]*', value: L.code, 'aria-invalid': L.err ? 'true' : null, 'aria-describedby': 'lg-sent' + (L.err ? ' ' + errId : ''), disabled: L.busy });
+      inp.addEventListener('input', () => {
+        const val = inp.value.replace(/\D/g, '').slice(0, 6);
+        if (val !== inp.value) inp.value = val;
+        L.code = val;
+        if (val.length === 6) verifyCode();
+      });
+      card.appendChild(h('form', { novalidate: true, onsubmit: (ev) => { ev.preventDefault(); L.code = inp.value.replace(/\D/g, '').slice(0, 6); verifyCode(); } },
+        h('p', { id: 'lg-sent', class: 'sent' }, t('code_sent') + ' ', h('b', { text: L.email })),
+        h('label', { for: 'lg-code', text: t('code_lbl') }), inp,
+        L.err ? h('p', { id: errId, class: 'err', role: 'alert', text: L.err }) : null,
+        L.note ? h('p', { class: 'note-ok', role: 'status', text: L.note }) : null,
+        h('button', { type: 'submit', class: 'btn btn-pr btn-block', disabled: L.busy }, L.busy ? [spinner(), t('verifying')] : t('verify')),
+        h('div', { class: 'row2' },
+          h('button', { type: 'button', class: 'btn-ln', disabled: L.busy, onclick: () => sendCode(true) }, t('resend')),
+          h('button', { type: 'button', class: 'btn-ln', disabled: L.busy, onclick: () => { L.step = 1; L.err = ''; L.note = ''; L.focus = true; render(); } }, t('change_email'))),
+        h('p', { class: 'fine', text: t('spam_hint') })));
+    }
+    return card;
+  }
+
+  function renderFoot() {
+    const s = session();
+    const parts = [h('span', { text: t('private_note') })];
+    if (s && S.mode !== 'login') {
+      parts.push(h('span', null, t('signed_in', { e: s.user_email }) + ' ', h('button', { type: 'button', class: 'btn-ln', onclick: () => showLogin(false) }, t('other_email'))));
+    }
+    foot.replaceChildren.apply(foot, parts);
+  }
+
+  // The EN/VI switch is in the page only when LANG_SWITCH is on; otherwise it leaves (and so does a header box it emptied).
+  (() => {
+    const g = document.querySelector('.lang');
+    if (!g) return;
+    if (LANG_SWITCH) { g.removeAttribute('hidden'); return; }
+    const box = g.parentElement;
+    g.remove();
+    if (box && box.classList.contains('hdr-r') && !box.children.length) box.remove();
+  })();
+  document.querySelectorAll('.lang button').forEach((b) => {
+    b.addEventListener('click', () => {
+      const next = b.getAttribute('data-lang');
+      if (next === LANG) return;
+      LANG = next;
+      lsSet(LANG_KEY, LANG);
+      render();
+      if (STP.key) stpLoad();                         // the steps' lines in the new language (once per language)
+    });
+  });
+
+  function boot() {
+    render();
+    load();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+<script src="/office/link.js?v=1" defer></script>
+</body>
+</html>
