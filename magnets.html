@@ -386,7 +386,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
       link_h: 'Branded link', link_none: 'No branded link yet. Tell Sam: connect my lead magnet link.', link_ready: 'ready', link_wait: 'not ready yet',
       tot_views: '{n} views', tot_emails: '{n} emails', tot_opened: '{n} opened', tot_leads: '{n} people in the CRM',
       n_views: 'Views', n_emails: 'Emails', n_rate: 'Email rate', n_opened: 'Opened',
-      leads_n: '{n} leads in the CRM', leads_1: '1 lead in the CRM', leads_link: 'Its leads in the CRM', open: 'Open the page',
+      leads_n: '{n} leads in the CRM', leads_1: '1 lead in the CRM', leads_link: 'Its leads in the CRM', new_email: 'New email', open: 'Open the page',
       pages_n: '{n} pages', pages_h: 'Pages and languages', joined: 'joined', other_lang: 'other', k_hosted: 'branded link page', k_embed: 'embed page',
       p_nums: '{v} views · {e} emails · leads: {l}', st_paused: 'paused', st_draft: 'draft',
       empty_h: 'No lead magnets yet', empty_p: 'Give Sam a finished WideCast video or a document and say who it is for, or ask for a lead magnet for one of your pages.',
@@ -416,7 +416,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
       link_h: 'Link thương hiệu', link_none: 'Chưa có link thương hiệu. Hãy nói với Sam: kết nối link lead magnet.', link_ready: 'sẵn sàng', link_wait: 'chưa sẵn sàng',
       tot_views: '{n} lượt xem', tot_emails: '{n} email', tot_opened: '{n} lượt mở', tot_leads: '{n} người trong CRM',
       n_views: 'Lượt xem', n_emails: 'Email', n_rate: 'Tỷ lệ email', n_opened: 'Đã mở',
-      leads_n: '{n} lead trong CRM', leads_1: '1 lead trong CRM', leads_link: 'Lead của magnet trong CRM', open: 'Mở trang',
+      leads_n: '{n} lead trong CRM', leads_1: '1 lead trong CRM', leads_link: 'Lead của magnet trong CRM', new_email: 'Email mới', open: 'Mở trang',
       pages_n: '{n} trang', pages_h: 'Các trang và ngôn ngữ', joined: 'đã gộp', other_lang: 'khác', k_hosted: 'trang link thương hiệu', k_embed: 'trang nhúng',
       p_nums: '{v} lượt xem · {e} email · {l} lead', st_paused: 'tạm dừng', st_draft: 'bản nháp',
       empty_h: 'Chưa có lead magnet', empty_p: 'Gửi Sam một video WideCast đã xong hoặc một tài liệu và nói nó dành cho ai, hoặc nhờ làm lead magnet cho một trang của bạn.',
@@ -994,6 +994,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
     const page = safeUrl(str(m.page_url));
     card.appendChild(h('div', { class: 'mg-acts' },
       h('a', { class: 'btn', href: pageHref('/crmstore.html', { client: S.client, magnet: str(m.magnet_id) }) }, t('leads_link')),
+      // an email to this magnet's leads: broadcast.html opens a new email with this magnet already ticked
+      num(m.leads) ? h('a', { class: 'btn btn-pr', href: pageHref('/broadcast.html', { client: S.client, magnet: str(m.magnet_id) }) }, t('new_email')) : null,
       page ? h('a', { class: 'btn', href: page, target: '_blank', rel: 'noopener noreferrer' }, t('open'), icon('ext', 'ic-sm')) : null));
     if (pages.length > 1) {
       const det = h('details', { class: 'mg-pages' }, h('summary', { text: t('pages_h') }));

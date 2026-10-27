@@ -166,6 +166,7 @@ select.field{padding-right:28px}
   const LANG_KEY = 'wc_report_lang';
   const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
   const UID_RE = /^bc_[a-z2-7]{26}$/;
+  const MAGNET_RE = /^mg_[0-9a-f]{12}$/;
   const POLL_MS = 2000;
 
   const I18N = {
@@ -381,6 +382,9 @@ select.field{padding-right:28px}
     view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {} }, preview: null, prevErr: '',
     confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
     ownerOnly: false, wantEmail: UID_RE.test(str(Q0.get('email'))) ? Q0.get('email') : '',
+    // ?magnet=mg_… (the "New email" button of the online Lead magnets page, 2026-10-27): once, a new email with that
+    // magnet already ticked; the address forgets it at once
+    wantMagnet: MAGNET_RE.test(str(Q0.get('magnet'))) ? Q0.get('magnet') : '',
     login: { step: 1, email: '', code: '', busy: false, err: '' }
   };
   const app = document.getElementById('app');
@@ -391,6 +395,7 @@ select.field{padding-right:28px}
     const p = new URLSearchParams(location.search);
     if (S.client) p.set('client', S.client); else p.delete('client');
     if (S.view === 'edit' && S.edit && S.edit.uid) p.set('email', S.edit.uid); else p.delete('email');
+    p.delete('magnet');                               // a one-shot ask (wantMagnet), never kept
     const qs = p.toString();
     try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
     ['nav-approve', 'nav-crm'].forEach((id) => {
@@ -410,7 +415,8 @@ select.field{padding-right:28px}
       if (!res.ok || !res.data) { S.mode = 'error'; S.pageErr = msgOf(res); render(); return; }
       applyState(res.data);
       S.mode = 'view';
-      if (S.wantEmail) { const u = S.wantEmail; S.wantEmail = ''; openEmail(u); return; }
+      if (S.wantEmail) { const u = S.wantEmail; S.wantEmail = ''; S.wantMagnet = ''; openEmail(u); return; }
+      if (S.wantMagnet) { const m = S.wantMagnet; S.wantMagnet = ''; newEmailFor(m); return; }
       render();
       if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id);
     }).catch(() => { S.mode = 'error'; S.pageErr = t('net_err'); render(); });
@@ -589,6 +595,13 @@ select.field{padding-right:28px}
     return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false };
   }
   function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
+  // A new email for one magnet: its row in the list (an old page id finds the magnet it belongs to) is ticked; a magnet
+  // this client's list does not show leaves the new email with nothing ticked.
+  function newEmailFor(id) {
+    newEmail();
+    const row = S.magnets.filter((m) => m && (m.magnet_id === id || arr(m.pages).some((p) => p && p.magnet_id === id)))[0];
+    if (row) { S.aud.magnets = [row.magnet_id]; render(); }
+  }
   function resetAudience() { S.aud = { magnets: [], crm: false, langs: {} }; S.preview = null; S.prevErr = ''; S.confirm = false; }
   function openEmail(uid) {
     S.busy = 'open'; render();
