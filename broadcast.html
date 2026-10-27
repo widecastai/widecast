@@ -101,6 +101,8 @@ select.field{padding-right:28px}
 .chk .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
 .chk .m{font-size:.8125rem;color:var(--tx-3)}
 .chks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.mag{display:flex;flex-direction:column;gap:6px}.langs{display:flex;flex-wrap:wrap;gap:6px;margin-left:28px}
+.chk.sub{padding:6px 10px;align-items:center;gap:8px}
 .big{font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--tx-hi);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:12px;font-size:.9375rem}
 .kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
@@ -184,7 +186,7 @@ select.field{padding-right:28px}
       uploading: 'Uploading…', save: 'Save', saved: 'Saved', saving: 'Saving…', test: 'Send me a test', testing: 'Sending test…',
       test_sent: 'Test sent to {e}.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
       who: 'Who gets it', who_hint: 'Tick one or more lead magnets, or the whole CRM. Each person gets this email once.',
-      whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', check: 'Check numbers', checking: 'Checking…',
+      whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', lang_other: 'other pages', check: 'Check numbers', checking: 'Checking…',
       will_get: 'will get it now', from: 'From', not_sending: 'Not getting it this time', overlap: '{n} people are in more than one of the lists you ticked; they get it once.',
       overlap_1: '1 person is in more than one of the lists you ticked; they get it once.', this_send: 'This send',
       leads_1: '1 lead', contacts_1: '1 contact', send_n_1: 'Send to 1 person', confirm_q_1: 'Send now to 1 person? This cannot be undone.',
@@ -229,7 +231,7 @@ select.field{padding-right:28px}
       uploading: 'Đang tải lên…', save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…', test: 'Gửi thử cho tôi', testing: 'Đang gửi thử…',
       test_sent: 'Đã gửi thử tới {e}.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
       who: 'Ai nhận', who_hint: 'Chọn một hay nhiều lead magnet, hoặc toàn bộ CRM. Mỗi người nhận email này một lần.',
-      whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', check: 'Xem số người nhận', checking: 'Đang tính…',
+      whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', lang_other: 'trang khác', check: 'Xem số người nhận', checking: 'Đang tính…',
       will_get: 'người sẽ nhận lần này', from: 'Gửi từ', not_sending: 'Lần này không gửi cho', overlap: '{n} người nằm trong nhiều danh sách bạn chọn; họ chỉ nhận một lần.',
       this_send: 'Lần gửi này',
       greet: 'Tên sẽ hiện như sau', send_n: 'Gửi cho {n} người', confirm_q: 'Gửi ngay cho {n} người? Mỗi người nhận một lần. Không thể hoàn tác.',
@@ -376,7 +378,7 @@ select.field{padding-right:28px}
   const S = {
     mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [], gate: null,
     emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
-    view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false }, preview: null, prevErr: '',
+    view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {} }, preview: null, prevErr: '',
     confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
     ownerOnly: false, wantEmail: UID_RE.test(str(Q0.get('email'))) ? Q0.get('email') : '',
     login: { step: 1, email: '', code: '', busy: false, err: '' }
@@ -587,7 +589,7 @@ select.field{padding-right:28px}
     return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false };
   }
   function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
-  function resetAudience() { S.aud = { magnets: [], crm: false }; S.preview = null; S.prevErr = ''; S.confirm = false; }
+  function resetAudience() { S.aud = { magnets: [], crm: false, langs: {} }; S.preview = null; S.prevErr = ''; S.confirm = false; }
   function openEmail(uid) {
     S.busy = 'open'; render();
     api('/solo/broadcast/email/get', { client: S.client, uid: uid }).then((res) => {
@@ -655,7 +657,14 @@ select.field{padding-right:28px}
       S.view = 'list'; S.edit = null; refreshState().then(render); syncUrl();
     }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
   }
-  function audBody() { return { client: S.client, uid: S.edit.uid, magnets: S.aud.magnets.slice(), crm: !!S.aud.crm }; }
+  function audBody() {
+    // A magnet in several languages: only the branches left ticked (none listed = every page of the magnet).
+    const ml = {};
+    S.aud.magnets.forEach((mid) => { const l = (S.aud.langs || {})[mid]; if (l) ml[mid] = l.slice(); });
+    const b = { client: S.client, uid: S.edit.uid, magnets: S.aud.magnets.slice(), crm: !!S.aud.crm };
+    if (Object.keys(ml).length) b.magnet_languages = ml;
+    return b;
+  }
   function checkNumbers(keepMsg) {
     ensureSaved().then((ok) => {
       if (!ok) return;
@@ -794,12 +803,27 @@ select.field{padding-right:28px}
         can ? h('button', { class: 'btn', type: 'button', disabled: !!S.busy, onclick: sendTest }, S.busy === 'test' ? [spinner(), t('testing')] : t('test')) : null,
         e.uid && e.status === 'awaiting_approval' ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('reject')) : null,
         e.uid && e.status === 'draft' && !num(e.runs) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('discard')) : null));
-    const toggle = (mid) => (ev) => { const a = S.aud.magnets; const i = a.indexOf(mid); if (ev.target.checked && i < 0) a.push(mid); if (!ev.target.checked && i >= 0) a.splice(i, 1); S.preview = null; S.confirm = false; render(); };
+    const toggle = (mid) => (ev) => { const a = S.aud.magnets; const i = a.indexOf(mid); if (ev.target.checked && i < 0) a.push(mid); if (!ev.target.checked && i >= 0) a.splice(i, 1); delete S.aud.langs[mid]; S.preview = null; S.confirm = false; render(); };
+    const langsOf = (m) => arr(m.languages);
+    const langOn = (m, lg) => { const l = S.aud.langs[m.magnet_id]; return !l || l.indexOf(lg) >= 0; };
+    const toggleLang = (m, lg) => (ev) => {
+      const all = langsOf(m); let l = (S.aud.langs[m.magnet_id] || all).slice(); const i = l.indexOf(lg);
+      if (ev.target.checked && i < 0) l.push(lg); if (!ev.target.checked && i >= 0) l.splice(i, 1);
+      const a = S.aud.magnets, at = a.indexOf(m.magnet_id);
+      if (!l.length) { delete S.aud.langs[m.magnet_id]; if (at >= 0) a.splice(at, 1); }         // no language left: the magnet is off
+      else { if (at < 0) a.push(m.magnet_id); if (l.length === all.length) delete S.aud.langs[m.magnet_id]; else S.aud.langs[m.magnet_id] = l; }
+      S.preview = null; S.confirm = false; render();
+    };
+    const langLabel = (lg) => lg ? lg.toUpperCase() : t('lang_other');
+    const langBoxes = (m) => langsOf(m).length > 1 && S.aud.magnets.indexOf(m.magnet_id) >= 0 ? h('div', { class: 'langs' },
+      langsOf(m).map((lg) => h('label', { class: 'chk sub' }, h('input', { type: 'checkbox', checked: langOn(m, lg), onchange: toggleLang(m, lg) }),
+        h('span', { class: 'm', text: langLabel(lg) + ' · ' + tn('leads', num((m.language_leads || {})[lg])) })))) : null;
     const audCard = can ? h('section', { class: 'card' },
       h('h2', { text: t('who') }), h('p', { class: 'hint', text: t('who_hint') }),
       h('div', { class: 'chks' },
-        S.magnets.map((m) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
-          h('span', null, h('span', { class: 't', text: str(m.title) }), h('br'), h('span', { class: 'm', text: tn('leads', num(m.leads)) + (m.status && m.status !== 'live' ? ' · ' + m.status : '') })))),
+        S.magnets.map((m) => h('div', { class: 'mag' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
+          h('span', null, h('span', { class: 't', text: str(m.title) }), h('br'), h('span', { class: 'm', text: tn('leads', num(m.leads)) + (langsOf(m).length > 1 ? ' · ' + langsOf(m).map(langLabel).join(', ') : '') + (m.status && m.status !== 'live' ? ' · ' + m.status : '') }))),
+          langBoxes(m))),
         h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
           h('span', null, h('span', { class: 't', text: t('whole_crm') }), h('br'), h('span', { class: 'm', text: tn('contacts', S.crmTotal) })))),
       h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
