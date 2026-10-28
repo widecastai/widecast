@@ -111,11 +111,20 @@ select.field{padding-right:28px}
 .chip{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:.8125rem;color:var(--tx-2)}
 .list li.box{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .list li.box .n{overflow-wrap:anywhere;min-width:0}
-.fmenu{margin:0 0 10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
-.fmenu .chips{margin-top:6px}
-.fmenu button.chip{cursor:pointer;min-height:36px;color:var(--tx-hi);text-align:left;overflow-wrap:anywhere}
-.fmenu button.chip:hover{background:var(--s3)}
-.fmenu button.chip code{font-size:.75rem;color:var(--tx-2);margin-left:6px}
+.tags{margin:10px 0 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.tags .chips{margin-top:6px}
+.tags button.chip{cursor:pointer;min-height:36px;color:var(--tx-hi);text-align:left;overflow-wrap:anywhere;max-width:100%}
+.tags button.chip:hover{background:var(--s3)}
+.tags button.chip code{font-size:.75rem;color:var(--tx-2);margin-left:6px}
+.tagl{list-style:none;margin:6px 0 0;padding:0}
+.tagl li{padding:6px 0;border-top:1px solid var(--line)}
+.tagl li:first-child{border-top:0}
+.tagl .row.sp{gap:8px;align-items:center}
+.tagl .also{margin-top:4px}
+.tagl .aj{display:inline-flex;align-items:center;gap:2px;margin-right:8px}
+.tagl .aj .x{border:0;background:none;color:var(--tx-2);cursor:pointer;font-size:1rem;min-width:28px;min-height:28px}
+.linkbtn{border:0;background:none;padding:4px 0;color:var(--accent,var(--tx-hi));text-decoration:underline;cursor:pointer;font-size:.8125rem;text-align:left}
+.joinbox{margin-top:6px;padding:10px;border-radius:10px;background:var(--s2)}
 .bar{height:10px;border-radius:999px;background:var(--s3);overflow:hidden;margin-top:12px}
 .bar>i{display:block;height:100%;background:var(--acc-tx);border-radius:999px;transition:width .4s}
 .seg{display:inline-flex;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);gap:2px;flex-wrap:wrap}
@@ -192,9 +201,15 @@ select.field{padding-right:28px}
       sender_h: 'Connect your own sending address first', sender_p: 'Emails go out from hello@value.<your domain>, the address your lead magnet already uses. Connect value.<your domain> for this client on the lead magnet page, then come back.',
       events_h: 'Test emails work. Sending to your list switches on soon.', events_p: 'Bounce and spam reports are being connected, so we can stop emailing addresses that bounce or complain.',
       message: 'Message', subject: 'Subject', body: 'Message', insert_name: 'Insert field',
-      name_hint: 'A tag like {{first_name}} becomes each person\'s own value. Add a word for people without one: {{career_name|your field}}. With no word, {{first_name}} uses the word below and other tags stay empty.',
+      name_hint: 'Each tag becomes that person\'s own answer. For people with no answer, add a word after |, like {tag}. {{first_name}} with no word uses the word below; other tags stay empty.',
+      tags_title: 'Tags you can use', tags_none: 'Tick who gets it (below) to see the questions of their form here.',
+      tags_crm: 'Whole CRM: only the name, email and phone are known for everyone.', tags_one: 'Every question of the “{m}” form, and how many of its people answered it.',
+      tags_many: 'Only the questions all {n} ticked lead magnets ask.', tags_no_common: 'These lead magnets ask no question in common. Tick one at a time to use its own questions.',
+      tags_have: '{n} of {total} answered', tags_also: 'Also from:', tags_unjoin: 'Stop using {f}', tags_ex_word: 'word',
+      tags_join_q: '{n} did not answer it: same question on another page?', tags_join_hint: 'Pick the question that asks the same as “{f}” (on the other language page, say). The tag then takes whichever one a person answered, for later signups too.',
+      tags_joined: 'Joined', tags_unjoined: 'No longer joined',
       f_std: 'Every contact', f_form: 'From the lead magnet form', f_first_name: 'First name', f_full_name: 'Full name', f_email: 'Email', f_phone: 'Phone',
-      f_people: '{n} people', f_none: 'No form answers yet for the lists you ticked.', f_where: 'Goes where you last typed (subject or message).',
+      f_people: '{n} people', f_people_1: '1 person', f_none: 'No form answers yet for the lists you ticked.', f_where: 'Goes where you last typed (subject or message).',
       merge_h: 'Tags with no value for some people', merge_fb: '{n} without {tag}: they get "{f}"', merge_empty: '{n} without {tag}: it stays empty',
       lang: 'Footer language', fallback: 'When the name is unknown, use', file: 'Files', file_none: 'No file',
       choose_file: 'Add files', file_link: 'As links', file_attach: 'As attachments', remove: 'Remove',
@@ -256,7 +271,13 @@ select.field{padding-right:28px}
       sender_h: 'Hãy kết nối địa chỉ gửi riêng trước', sender_p: 'Email gửi từ hello@value.<domain của bạn>, đúng địa chỉ lead magnet đang dùng. Kết nối value.<domain> cho khách hàng này ở trang lead magnet rồi quay lại.',
       events_h: 'Gửi thử đã dùng được. Gửi cho danh sách sẽ bật sớm.', events_p: 'Đang nối báo cáo trả về và báo spam, để ngừng gửi cho địa chỉ bị trả về hoặc bị báo spam.',
       message: 'Nội dung', subject: 'Tiêu đề', body: 'Nội dung', insert_name: 'Chèn trường',
-      name_hint: 'Tag như {{first_name}} sẽ thành giá trị riêng của từng người. Thêm chữ cho người không có giá trị: {{career_name|ngành bạn chọn}}. Không thêm chữ thì {{first_name}} dùng chữ bên dưới, các tag khác để trống.',
+      name_hint: 'Mỗi tag sẽ thành câu trả lời của chính người nhận. Ai không có câu trả lời thì thêm chữ sau dấu |, ví dụ {tag}. {{first_name}} không có chữ thì dùng chữ ở ô bên dưới; các tag khác để trống.',
+      tags_title: 'Tag bạn có thể dùng', tags_none: 'Chọn người nhận ở mục bên dưới để thấy các câu hỏi trong form của họ ở đây.',
+      tags_crm: 'Toàn bộ CRM: chỉ có tên, email và số điện thoại là ai cũng có.', tags_one: 'Mọi câu hỏi trong form “{m}”, kèm số người đã trả lời.',
+      tags_many: 'Chỉ những câu hỏi mà cả {n} lead magnet đã chọn đều có.', tags_no_common: 'Các lead magnet này không có câu hỏi nào chung. Chọn từng cái một để dùng câu hỏi riêng của nó.',
+      tags_have: '{n}/{total} người có', tags_also: 'Gộp cả:', tags_unjoin: 'Bỏ gộp {f}', tags_ex_word: 'chữ thay thế',
+      tags_join_q: '{n} người chưa có: cùng câu hỏi ở trang khác?', tags_join_hint: 'Chọn câu hỏi giống “{f}” (ví dụ ở trang ngôn ngữ khác). Tag sẽ lấy câu trả lời nào người đó đã điền, cả với người đăng ký sau này.',
+      tags_joined: 'Đã gộp', tags_unjoined: 'Đã bỏ gộp',
       f_std: 'Mọi contact', f_form: 'Từ form của lead magnet', f_first_name: 'Tên', f_full_name: 'Họ tên', f_email: 'Email', f_phone: 'Số điện thoại',
       f_people: '{n} người', f_none: 'Các danh sách bạn chọn chưa có câu trả lời form nào.', f_where: 'Chèn vào chỗ bạn gõ gần nhất (tiêu đề hoặc nội dung).',
       merge_h: 'Tag mà một số người không có giá trị', merge_fb: '{n} người không có {tag}: dùng "{f}"', merge_empty: '{n} người không có {tag}: để trống',
@@ -668,6 +689,26 @@ select.field{padding-right:28px}
       S.settings = res.data; toast(t('saved')); render();
     }).catch(() => { S.setBusy = false; S.setErr = t('net_err'); render(); });
   }
+  // Join two keys of the same question (2026-10-28): the client's field_joins, then the magnets again (their tag
+  // lists are folded on the server).
+  function saveJoin(head, key, add) {
+    const cur = (S.settings && S.settings.field_joins) || {}, j = {};
+    Object.keys(cur).forEach((k) => { j[k] = arr(cur[k]).slice(); });
+    if (add) {
+      const moved = arr(j[key]); delete j[key];                    // a joined group joined into another keeps its keys
+      Object.keys(j).forEach((k) => { j[k] = j[k].filter((x) => x !== key && x !== head); if (!j[k].length) delete j[k]; });
+      j[head] = arr(j[head]).concat([key], moved).filter((x, i, a) => x !== head && a.indexOf(x) === i);
+    } else {
+      j[head] = arr(j[head]).filter((x) => x !== key); if (!j[head].length) delete j[head];
+    }
+    S.joinBusy = true; S.err = ''; render();
+    api('/solo/broadcast/settings', { client: S.client, field_joins: j }).then((res) => {
+      if (authFailed(res)) { S.joinBusy = false; showLogin(); return; }
+      if (!res.ok) { S.joinBusy = false; S.err = msgOf(res); render(); return; }
+      S.settings = res.data; S.joinOpen = '';
+      return refreshState().then(() => { S.joinBusy = false; toast(t(add ? 'tags_joined' : 'tags_unjoined')); render(); });
+    }).catch(() => { S.joinBusy = false; S.err = t('net_err'); render(); });
+  }
   function lookupCard() {
     const L = S.look;
     return h('section', { class: 'card' }, h('h2', { text: t('lookup') }),
@@ -910,33 +951,57 @@ select.field{padding-right:28px}
     const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), oninput: (ev) => { e.subject = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-subject'; } });
     const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-body'; } });
     body.value = str(e.body);
-    // Insert field (2026-10-28): the standard tags, then the form fields of the ticked lead magnets (all of them when
-    // none is ticked), into the subject or the message, wherever the owner typed last.
+    // Tags (2026-10-28, the Boss: "list như vậy thì làm sao user biết đường mà tag?"): always in view under the
+    // message, for the people ticked under Who gets it: the whole CRM → name, email, phone only; one magnet → every
+    // question of its form; several → only the questions every one of them asks. Each says how many of those people
+    // answered it; a question fewer people answered offers the same question under another key (the magnet's other
+    // language page: a form keys a question by its words) to join, so the tag takes whichever one a person answered.
     const insertTag = (key) => {
       const id = S.lastField === 'e-subject' ? 'e-subject' : 'e-body';
       const el = document.getElementById(id), tag = '{{' + key + '}}';
       const s = el.selectionStart != null ? el.selectionStart : el.value.length, en = el.selectionEnd != null ? el.selectionEnd : s;
       el.value = el.value.slice(0, s) + tag + el.value.slice(en);
       if (id === 'e-subject') e.subject = el.value; else e.body = el.value;
-      S.fieldMenu = false; mark(); render();
+      mark(); render();
       const el2 = document.getElementById(id); if (el2) { el2.focus(); el2.selectionStart = el2.selectionEnd = s + tag.length; }
     };
-    const formFields = () => {
+    const tagScope = () => {
+      if (S.aud.crm) return { mode: 'crm', fields: [] };
       const ticked = S.magnets.filter((m) => S.aud.magnets.indexOf(m.magnet_id) >= 0);
-      if (!ticked.length) return arr(S.fields);
-      const by = {};
-      ticked.forEach((m) => arr(m.fields).forEach((f) => { const o = by[f.key]; by[f.key] = o ? { key: f.key, label: o.label, count: num(o.count) + num(f.count) } : f; }));
-      return Object.keys(by).map((k) => by[k]).sort((a, b) => num(b.count) - num(a.count) || (a.key < b.key ? -1 : 1));
+      if (!ticked.length) return { mode: 'none', fields: [] };
+      if (ticked.length === 1) return { mode: 'one', title: str(ticked[0].title), fields: arr(ticked[0].fields).map((f) => Object.assign({ total: num(ticked[0].leads) }, f)) };
+      const maps = ticked.map((m) => { const o = {}; arr(m.fields).forEach((f) => { o[f.key] = f; }); return o; });
+      const total = ticked.reduce((a, m) => a + num(m.leads), 0);
+      const common = Object.keys(maps[0]).filter((k) => maps.every((o) => o[k])).map((k) => ({ key: k, label: maps[0][k].label, total: total,
+        count: maps.reduce((a, o) => a + num(o[k].count), 0), also: maps.reduce((a, o) => a.concat(arr(o[k].also)), []) }));
+      return { mode: 'many', n: ticked.length, fields: common.sort((a, b) => b.count - a.count || (a.key < b.key ? -1 : 1)) };
     };
-    const fieldMenu = () => {
-      const ff = formFields();
-      return h('div', { class: 'fmenu', id: 'fmenu' },
-        h('p', { class: 'small', text: t('f_where') }),
+    const fieldRow = (f, joinable) => {
+      const open = S.joinOpen === f.key, sug = joinable ? arr(f.suggest) : [], also = arr(f.also);
+      return h('li', null,
+        h('div', { class: 'row sp' },
+          h('button', { class: 'chip', type: 'button', onclick: () => insertTag(f.key) }, str(f.label) || f.key, h('code', { text: '{{' + f.key + '}}' })),
+          h('span', { class: 'small', text: t('tags_have', { n: fmtNum(num(f.count)), total: fmtNum(num(f.total)) }) })),
+        also.length ? h('p', { class: 'small also' }, t('tags_also'), ' ', also.map((a) => h('span', { class: 'aj' }, str(a.label) + ' (' + fmtNum(num(a.count)) + ')',
+          joinable ? h('button', { class: 'x', type: 'button', disabled: !!S.joinBusy, 'aria-label': t('tags_unjoin', { f: str(a.label) }), onclick: () => saveJoin(f.key, a.key, false) }, '×') : null))) : null,
+        sug.length ? h('button', { class: 'linkbtn', type: 'button', 'aria-expanded': open ? 'true' : 'false', onclick: () => { S.joinOpen = open ? '' : f.key; render(); } },
+          t('tags_join_q', { n: fmtNum(Math.max(0, num(f.total) - num(f.count))) })) : null,
+        open && sug.length ? h('div', { class: 'joinbox' }, h('p', { class: 'small', text: t('tags_join_hint', { f: str(f.label) || f.key }) }),
+          h('div', { class: 'chips' }, sug.map((s) => h('button', { class: 'chip', type: 'button', disabled: !!S.joinBusy, onclick: () => saveJoin(f.key, s.key, true) },
+            str(s.label) || s.key, h('code', { text: tn('f_people', num(s.count)) }))))) : null);
+    };
+    const tagBox = () => {
+      const sc = tagScope();
+      const lead = sc.mode === 'none' ? t('tags_none') : sc.mode === 'crm' ? t('tags_crm') : sc.mode === 'one' ? t('tags_one', { m: sc.title }) : t('tags_many', { n: sc.n });
+      const ex = '{{' + (sc.fields[0] ? sc.fields[0].key : 'first_name') + '|' + t('tags_ex_word') + '}}';
+      return h('div', { class: 'tags', id: 'tags' },
+        h('div', { class: 'row sp' }, h('b', { text: t('tags_title') }), h('span', { class: 'small', text: t('f_where') })),
+        h('p', { class: 'small', text: lead }),
         h('b', { class: 'small', text: t('f_std') }),
         h('div', { class: 'chips' }, ['first_name', 'full_name', 'email', 'phone'].map((k) => h('button', { class: 'chip', type: 'button', onclick: () => insertTag(k) }, t('f_' + k), h('code', { text: '{{' + k + '}}' })))),
-        h('b', { class: 'small', style: 'display:block;margin-top:10px', text: t('f_form') }),
-        ff.length ? h('div', { class: 'chips' }, ff.map((f) => h('button', { class: 'chip', type: 'button', title: t('f_people', { n: fmtNum(num(f.count)) }), onclick: () => insertTag(f.key) }, str(f.label) || f.key, h('code', { text: '{{' + f.key + '}}' }))))
-          : h('p', { class: 'small', text: t('f_none') }));
+        sc.fields.length ? [h('b', { class: 'small', style: 'display:block;margin-top:12px', text: t('f_form') }), h('ul', { class: 'tagl' }, sc.fields.map((f) => fieldRow(f, sc.mode === 'one')))]
+          : sc.mode === 'one' || sc.mode === 'many' ? h('p', { class: 'small', style: 'margin-top:10px', text: t(sc.mode === 'many' ? 'tags_no_common' : 'f_none') }) : null,
+        h('p', { class: 'small', style: 'margin-top:10px', text: t('name_hint', { tag: ex }) }));
     };
     const fl = arr(e.files), fmax = num(S.limits.files_max) || 10;
     const fileBox = h('div', { class: 'files' },
@@ -961,11 +1026,9 @@ select.field{padding-right:28px}
       h('div', { class: 'row sp' }, h('h2', { text: t('message') }), statusPill(e)),
       e.by_agent && e.note ? h('div', { class: 'note', style: 'margin-top:12px' }, h('b', { text: t('agent_note') }), h('p', { class: 'small', text: str(e.note) })) : null,
       h('label', { class: 'lbl', for: 'e-subject', text: t('subject') }), subject,
-      h('div', { class: 'row sp', style: 'margin-top:14px;margin-bottom:6px' }, h('label', { class: 'lbl', for: 'e-body', style: 'margin:0', text: t('body') }),
-        h('button', { class: 'btn sm', type: 'button', 'aria-expanded': S.fieldMenu ? 'true' : 'false', 'aria-controls': 'fmenu', onclick: () => { S.fieldMenu = !S.fieldMenu; render(); } }, t('insert_name'))),
-      S.fieldMenu ? fieldMenu() : null,
+      h('label', { class: 'lbl', for: 'e-body', text: t('body') }),
       body,
-      h('p', { class: 'small', style: 'margin-top:6px', text: t('name_hint') }),
+      tagBox(),
       h('div', { class: 'row', style: 'gap:12px;align-items:flex-end' },
         h('div', { style: 'flex:1 1 160px;min-width:0' }, h('label', { class: 'lbl', for: 'e-fb', text: t('fallback') }),
           h('input', { id: 'e-fb', class: 'field', maxlength: '40', placeholder: e.language === 'vi' ? 'bạn' : 'there', value: str(e.fallback), oninput: (ev) => { e.fallback = ev.target.value; mark(); } })),
