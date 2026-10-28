@@ -69,7 +69,8 @@ h1.pg{font-size:1.5rem;line-height:1.25;font-weight:600;color:var(--tx-hi);lette
 .note b{color:inherit}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx-hi);font:500 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
 .btn:hover{background:var(--s2)}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn[disabled],.btn.disabled{opacity:.5;cursor:not-allowed}
+.btn.disabled{pointer-events:none}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
 .btn.pri:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
 .btn.dark{background:var(--tx-hi);border-color:var(--tx-hi);color:var(--bg);font-weight:600}
@@ -108,6 +109,13 @@ select.field{padding-right:28px}
 .kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chip{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:.8125rem;color:var(--tx-2)}
+.list li.box{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.list li.box .n{overflow-wrap:anywhere;min-width:0}
+.fmenu{margin:0 0 10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.fmenu .chips{margin-top:6px}
+.fmenu button.chip{cursor:pointer;min-height:36px;color:var(--tx-hi);text-align:left;overflow-wrap:anywhere}
+.fmenu button.chip:hover{background:var(--s3)}
+.fmenu button.chip code{font-size:.75rem;color:var(--tx-2);margin-left:6px}
 .bar{height:10px;border-radius:999px;background:var(--s3);overflow:hidden;margin-top:12px}
 .bar>i{display:block;height:100%;background:var(--acc-tx);border-radius:999px;transition:width .4s}
 .seg{display:inline-flex;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);gap:2px;flex-wrap:wrap}
@@ -118,6 +126,10 @@ select.field{padding-right:28px}
 .seg label:has(input:focus-visible){outline:2px solid var(--ring);outline-offset:1px}
 .file{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:12px;background:var(--bg)}
 .file .n{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere;min-width:0}
+.files{display:flex;flex-direction:column;gap:8px}
+.files .file{flex-wrap:nowrap;padding:10px 12px}
+.files .file .n{flex:1 1 auto}
+.files .file .small{flex:0 0 auto;white-space:nowrap}
 .caps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.9375rem}
 .caps input{width:58px;min-height:40px;text-align:center;padding:6px}
 .hist{display:flex;flex-direction:column;gap:8px;list-style:none;padding:0;margin-top:10px}
@@ -179,27 +191,46 @@ select.field{padding-right:28px}
       plan_h: 'Email broadcast is part of the paid plans', plan_p: 'Upgrade to send emails to your leads from your own address.', plans: 'See plans',
       sender_h: 'Connect your own sending address first', sender_p: 'Emails go out from hello@value.<your domain>, the address your lead magnet already uses. Connect value.<your domain> for this client on the lead magnet page, then come back.',
       events_h: 'Test emails work. Sending to your list switches on soon.', events_p: 'Bounce and spam reports are being connected, so we can stop emailing addresses that bounce or complain.',
-      message: 'Message', subject: 'Subject', body: 'Message', insert_name: 'Insert first name',
-      name_hint: '{{first_name}} becomes each person\'s first name. People with no name get the word below.',
-      lang: 'Footer language', fallback: 'When the name is unknown, use', file: 'File', file_none: 'No file',
-      choose_file: 'Choose a file', file_link: 'As a link', file_attach: 'As an attachment', remove: 'Remove',
-      file_hint: 'A link works for any size (up to 100 MB) and tells you who opened it. An attachment is at most 10 MB.',
+      message: 'Message', subject: 'Subject', body: 'Message', insert_name: 'Insert field',
+      name_hint: 'A tag like {{first_name}} becomes each person\'s own value. Add a word for people without one: {{career_name|your field}}. With no word, {{first_name}} uses the word below and other tags stay empty.',
+      f_std: 'Every contact', f_form: 'From the lead magnet form', f_first_name: 'First name', f_full_name: 'Full name', f_email: 'Email', f_phone: 'Phone',
+      f_people: '{n} people', f_none: 'No form answers yet for the lists you ticked.', f_where: 'Goes where you last typed (subject or message).',
+      merge_h: 'Tags with no value for some people', merge_fb: '{n} without {tag}: they get "{f}"', merge_empty: '{n} without {tag}: it stays empty',
+      lang: 'Footer language', fallback: 'When the name is unknown, use', file: 'Files', file_none: 'No file',
+      choose_file: 'Add files', file_link: 'As links', file_attach: 'As attachments', remove: 'Remove',
+      file_hint: 'Up to {n} files. As links: up to 100 MB each, and you see who opened them. As attachments: at most 10 MB together.',
+      files_count: '{n} of {max} files · {size}', too_many_files: 'An email carries at most {n} files.',
+      attach_total: 'Attached files together are over 10 MB: send them as links.', attach_type: '{f} can only go as a link.',
+      some_failed: 'Some files were not added: {e}',
       uploading: 'Uploading…', save: 'Save', saved: 'Saved', saving: 'Saving…', test: 'Send me a test', testing: 'Sending test…',
       test_sent: 'Test sent to {e}.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
       who: 'Who gets it', who_hint: 'Tick one or more lead magnets, or the whole CRM. Each person gets this email once.',
       whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', lang_other: 'other pages', check: 'Check numbers', checking: 'Checking…',
       will_get: 'will get it now', from: 'From', not_sending: 'Not getting it this time', overlap: '{n} people are in more than one of the lists you ticked; they get it once.',
       overlap_1: '1 person is in more than one of the lists you ticked; they get it once.', this_send: 'This send',
-      leads_1: '1 lead', contacts_1: '1 contact', send_n_1: 'Send to 1 person', confirm_q_1: 'Send now to 1 person? This cannot be undone.',
+      leads_1: '1 lead', contacts_1: '1 contact', n_boxes: '{n} boxes', n_boxes_1: '1 box', send_n_1: 'Send to 1 person', confirm_q_1: 'Send now to 1 person? This cannot be undone.',
       greet: 'How names come out', send_n: 'Send to {n} people', confirm_q: 'Send now to {n} people? Each gets it once. This cannot be undone.',
       yes_send: 'Yes, send', cancel: 'Cancel', nobody: 'Nobody new to send to.', progress: 'Sending', sent_of: '{a} of {b} sent',
       stop: 'Stop', resume: 'Resume', st_run_queued: 'Starting', st_run_sending: 'Sending', st_run_done: 'Done', st_run_paused: 'Paused', st_run_stopped: 'Stopped',
+      st_run_waiting: 'Sending day by day', waiting_note: 'It goes on by itself {d}.', by_box: 'Per sendbox',
+      boxes_h: 'Sendboxes (your Gmail accounts)', boxes_hint: 'Gmail or Google Workspace mailboxes WideCast sends through and reads replies from. They belong to your account: every client can use them.',
+      box_add: 'Add a sendbox', box_email: 'Mailbox address', box_pw: 'App Password (16 letters)',
+      box_pw_hint: 'Google Account → Security → App passwords. WideCast logs in once to check it, keeps it encrypted and never shows it again. An App Password opens the whole mailbox: add only a mailbox you send from.',
+      box_add_btn: 'Connect', box_reconnect: 'Reconnect', box_pause: 'Pause', box_resume: 'Turn on', box_remove: 'Remove', box_remove_q: 'Remove {e}? WideCast forgets its password at once.',
+      box_today: 'Today: {a} of {b} sent', box_cap: 'Emails a day', box_cap_hint: 'Empty: its warm-up. At most {n} (Google locks a box that sends more); above 50 a new box risks the spam folder.',
+      box_checked: 'Replies checked {d}', box_st_healthy: 'Working', box_st_needs_reauth: 'Needs its App Password again', box_st_paused: 'Paused', box_none: 'No sendbox yet.', box_connecting: 'Checking with Google…',
+      send_with: 'Send with', via_link: 'Your link: {a}', via_boxes: 'Your sendboxes', via_boxes_none: 'No sendbox can send yet: add one under Sendboxes on the email list.', box_room: '{n} more today',
+      plan_all_today: 'Everyone gets it today (about {m} min).', plan_days: '{a} today (about {m} min). The other {b} go out by themselves over the next {d} day(s), done about {f}.',
+      plan_never: 'The ticked sendboxes cannot send any more. Tick other boxes, or raise their daily number.', plan_ses_faster: 'Through your link ({a}) it would all go out now, in a few minutes.',
+      from_boxes: '{n} <{a}> and {k} more box(es)',
       pause_complaints: 'Paused: people marked it as spam. Check the email before you continue.', pause_bounces: 'Paused: too many addresses bounced.',
       pause_other: 'Paused: {r}.', failed: 'Not taken by the email service', unconfirmed: 'Unknown (never sent again)', skipped: 'Already had it',
       held_note: '{n} more get it when you press Send again tomorrow (the daily limit).', skipped_optout: 'Unsubscribed or removed meanwhile',
       daily_note: 'Today\'s limit lets {a} go out now; the other {b} get it when you press Send again tomorrow.',
       history: 'History', no_history: 'Not sent yet.', run_line: '{d} · {n} sent', bounced: 'bounced', complained: 'spam', unsubscribed: 'unsubscribed', file_opened: 'opened the file',
       settings: 'Settings for this client', postal: 'Postal address (shown in every email\'s footer)', postal_ph: 'Street, city, state, ZIP',
+      from_name: 'Sender name (what people see next to the address)', from_name_hint: 'Empty: your link\'s business name ({n}).',
+      no_from_name: 'This email has no sender name, so inboxes show "{a}". Add a sender name in the settings below.',
       freq: 'How often one person can get an email', at_most: 'At most', emails_in: 'email(s) in', days: 'days', and: 'and', sender: 'Send from',
       lookup: 'Look up a person', lookup_ph: 'their email address', lookup_btn: 'Look up', lookup_none: 'This person has not got any email yet.',
       r_already_received: 'Already got this email', r_unsubscribed: 'Unsubscribed', r_bounced: 'Address bounced', r_suppressed: 'On a do-not-send list',
@@ -224,26 +255,45 @@ select.field{padding-right:28px}
       plan_h: 'Gửi email hàng loạt có trong các gói trả phí', plan_p: 'Nâng cấp để gửi email cho lead từ chính địa chỉ của bạn.', plans: 'Xem các gói',
       sender_h: 'Hãy kết nối địa chỉ gửi riêng trước', sender_p: 'Email gửi từ hello@value.<domain của bạn>, đúng địa chỉ lead magnet đang dùng. Kết nối value.<domain> cho khách hàng này ở trang lead magnet rồi quay lại.',
       events_h: 'Gửi thử đã dùng được. Gửi cho danh sách sẽ bật sớm.', events_p: 'Đang nối báo cáo trả về và báo spam, để ngừng gửi cho địa chỉ bị trả về hoặc bị báo spam.',
-      message: 'Nội dung', subject: 'Tiêu đề', body: 'Nội dung', insert_name: 'Chèn tên',
-      name_hint: '{{first_name}} sẽ thành tên của từng người. Ai không có tên sẽ dùng chữ bên dưới.',
+      message: 'Nội dung', subject: 'Tiêu đề', body: 'Nội dung', insert_name: 'Chèn trường',
+      name_hint: 'Tag như {{first_name}} sẽ thành giá trị riêng của từng người. Thêm chữ cho người không có giá trị: {{career_name|ngành bạn chọn}}. Không thêm chữ thì {{first_name}} dùng chữ bên dưới, các tag khác để trống.',
+      f_std: 'Mọi contact', f_form: 'Từ form của lead magnet', f_first_name: 'Tên', f_full_name: 'Họ tên', f_email: 'Email', f_phone: 'Số điện thoại',
+      f_people: '{n} người', f_none: 'Các danh sách bạn chọn chưa có câu trả lời form nào.', f_where: 'Chèn vào chỗ bạn gõ gần nhất (tiêu đề hoặc nội dung).',
+      merge_h: 'Tag mà một số người không có giá trị', merge_fb: '{n} người không có {tag}: dùng "{f}"', merge_empty: '{n} người không có {tag}: để trống',
       lang: 'Ngôn ngữ phần chân email', fallback: 'Khi không biết tên, dùng', file: 'Tệp', file_none: 'Không có tệp',
-      choose_file: 'Chọn tệp', file_link: 'Gửi dạng link', file_attach: 'Đính kèm', remove: 'Bỏ',
-      file_hint: 'Link dùng được cho mọi cỡ (tới 100 MB) và cho biết ai đã mở. Đính kèm tối đa 10 MB.',
+      choose_file: 'Thêm tệp', file_link: 'Gửi dạng link', file_attach: 'Đính kèm', remove: 'Bỏ',
+      file_hint: 'Tối đa {n} tệp. Dạng link: mỗi tệp tới 100 MB và cho biết ai đã mở. Đính kèm: tổng cộng tối đa 10 MB.',
+      files_count: '{n}/{max} tệp · {size}', too_many_files: 'Mỗi email mang tối đa {n} tệp.',
+      attach_total: 'Các tệp đính kèm cộng lại quá 10 MB: hãy gửi dạng link.', attach_type: '{f} chỉ gửi được dạng link.',
+      some_failed: 'Có tệp chưa thêm được: {e}',
       uploading: 'Đang tải lên…', save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…', test: 'Gửi thử cho tôi', testing: 'Đang gửi thử…',
       test_sent: 'Đã gửi thử tới {e}.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
       who: 'Ai nhận', who_hint: 'Chọn một hay nhiều lead magnet, hoặc toàn bộ CRM. Mỗi người nhận email này một lần.',
-      whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', lang_other: 'trang khác', check: 'Xem số người nhận', checking: 'Đang tính…',
+      whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', n_boxes: '{n} hộp', lang_other: 'trang khác', check: 'Xem số người nhận', checking: 'Đang tính…',
       will_get: 'người sẽ nhận lần này', from: 'Gửi từ', not_sending: 'Lần này không gửi cho', overlap: '{n} người nằm trong nhiều danh sách bạn chọn; họ chỉ nhận một lần.',
       this_send: 'Lần gửi này',
       greet: 'Tên sẽ hiện như sau', send_n: 'Gửi cho {n} người', confirm_q: 'Gửi ngay cho {n} người? Mỗi người nhận một lần. Không thể hoàn tác.',
       yes_send: 'Gửi', cancel: 'Huỷ', nobody: 'Không còn ai mới để gửi.', progress: 'Đang gửi', sent_of: 'Đã gửi {a}/{b}',
       stop: 'Dừng', resume: 'Tiếp tục', st_run_queued: 'Đang bắt đầu', st_run_sending: 'Đang gửi', st_run_done: 'Xong', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng',
+      st_run_waiting: 'Đang gửi dần theo ngày', waiting_note: 'Tự gửi tiếp vào {d}.', by_box: 'Theo từng sendbox',
+      boxes_h: 'Sendbox (tài khoản Gmail của bạn)', boxes_hint: 'Hộp thư Gmail hoặc Google Workspace mà WideCast dùng để gửi và đọc thư trả lời. Chúng thuộc tài khoản của bạn: khách hàng nào cũng dùng được.',
+      box_add: 'Thêm sendbox', box_email: 'Địa chỉ hộp thư', box_pw: 'App Password (16 chữ)',
+      box_pw_hint: 'Tài khoản Google → Bảo mật → Mật khẩu ứng dụng. WideCast đăng nhập một lần để kiểm, lưu mã hoá và không bao giờ hiện lại. App Password mở được toàn bộ hộp thư: chỉ thêm hộp thư bạn dùng để gửi.',
+      box_add_btn: 'Kết nối', box_reconnect: 'Kết nối lại', box_pause: 'Tạm dừng', box_resume: 'Bật lại', box_remove: 'Xoá', box_remove_q: 'Xoá {e}? WideCast quên mật khẩu của nó ngay.',
+      box_today: 'Hôm nay: đã gửi {a}/{b}', box_cap: 'Số email mỗi ngày', box_cap_hint: 'Để trống: theo lịch warmup. Tối đa {n} (Google khoá hộp thư gửi nhiều hơn); trên 50 thì hộp thư mới dễ vào spam.',
+      box_checked: 'Đã check reply {d}', box_st_healthy: 'Đang chạy', box_st_needs_reauth: 'Cần App Password lại', box_st_paused: 'Tạm dừng', box_none: 'Chưa có sendbox nào.', box_connecting: 'Đang kiểm với Google…',
+      send_with: 'Gửi bằng', via_link: 'Link của bạn: {a}', via_boxes: 'Sendbox của bạn', via_boxes_none: 'Chưa có sendbox nào gửi được: thêm ở mục Sendbox trên trang danh sách email.', box_room: 'còn {n} hôm nay',
+      plan_all_today: 'Mọi người nhận trong hôm nay (khoảng {m} phút).', plan_days: 'Hôm nay gửi {a} (khoảng {m} phút). {b} người còn lại tự gửi trong {d} ngày tới, xong khoảng {f}.',
+      plan_never: 'Các sendbox đã chọn không gửi thêm được. Chọn hộp khác, hoặc nâng số email mỗi ngày.', plan_ses_faster: 'Gửi bằng link của bạn ({a}) thì đi hết ngay, trong vài phút.',
+      from_boxes: '{n} <{a}> và {k} hộp khác',
       pause_complaints: 'Tạm dừng: có người báo spam. Xem lại email trước khi gửi tiếp.', pause_bounces: 'Tạm dừng: quá nhiều địa chỉ bị trả về.',
       pause_other: 'Tạm dừng: {r}.', failed: 'Dịch vụ email không nhận', unconfirmed: 'Chưa rõ (không gửi lại)', skipped: 'Đã có rồi',
       held_note: 'Thêm {n} người sẽ nhận khi bạn bấm Gửi lại vào ngày mai (giới hạn mỗi ngày).', skipped_optout: 'Vừa hủy nhận hoặc bị loại',
       daily_note: 'Giới hạn hôm nay cho gửi {a} người; {b} người còn lại nhận khi bạn bấm Gửi lại vào ngày mai.',
       history: 'Lịch sử', no_history: 'Chưa gửi lần nào.', run_line: '{d} · đã gửi {n}', bounced: 'bị trả về', complained: 'báo spam', unsubscribed: 'hủy nhận', file_opened: 'mở tệp',
       settings: 'Cài đặt cho khách hàng này', postal: 'Địa chỉ bưu chính (hiện ở chân mọi email)', postal_ph: 'Số nhà, đường, thành phố, bang, ZIP',
+      from_name: 'Tên người gửi (hiện cạnh địa chỉ email)', from_name_hint: 'Để trống: dùng tên doanh nghiệp của link ({n}).',
+      no_from_name: 'Email này chưa có tên người gửi nên hộp thư sẽ hiện "{a}". Thêm tên người gửi ở phần cài đặt bên dưới.',
       freq: 'Một người nhận email thường đến đâu', at_most: 'Tối đa', emails_in: 'email trong', days: 'ngày', and: 'và', sender: 'Gửi từ',
       lookup: 'Tra một người', lookup_ph: 'địa chỉ email của họ', lookup_btn: 'Tra', lookup_none: 'Người này chưa nhận email nào.',
       r_already_received: 'Đã nhận email này', r_unsubscribed: 'Đã hủy nhận', r_bounced: 'Địa chỉ bị trả về', r_suppressed: 'Trong danh sách không gửi',
@@ -317,6 +367,11 @@ select.field{padding-right:28px}
     if (!(n > 0)) return '';
     try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(n * 1000)); } catch (e) { return new Date(n * 1000).toISOString().slice(0, 16); }
   }
+  function fmtDate(iso) {
+    const d = new Date(str(iso) + 'T12:00:00Z');
+    if (!str(iso) || isNaN(d)) return str(iso);
+    try { return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d); } catch (e) { return str(iso); }
+  }
   function fmtSize(b) { const n = num(b); return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
   const spinner = () => h('span', { class: 'spin', 'aria-hidden': 'true' });
   const live = document.getElementById('live');
@@ -379,8 +434,9 @@ select.field{padding-right:28px}
   const S = {
     mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [], gate: null,
     emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
-    view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {} }, preview: null, prevErr: '',
+    view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }, preview: null, prevErr: '',
     confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
+    boxes: [], box: { email: '', pw: '', busy: '', err: '', caps: {}, re: {} },
     ownerOnly: false, wantEmail: UID_RE.test(str(Q0.get('email'))) ? Q0.get('email') : '',
     // ?magnet=mg_… (the "New email" button of the online Lead magnets page, 2026-10-27): once, a new email with that
     // magnet already ticked; the address forgets it at once
@@ -415,11 +471,52 @@ select.field{padding-right:28px}
       if (!res.ok || !res.data) { S.mode = 'error'; S.pageErr = msgOf(res); render(); return; }
       applyState(res.data);
       S.mode = 'view';
+      loadBoxes();                                    // the Send-with choice needs them too (a deep link opens an email)
       if (S.wantEmail) { const u = S.wantEmail; S.wantEmail = ''; S.wantMagnet = ''; openEmail(u); return; }
       if (S.wantMagnet) { const m = S.wantMagnet; S.wantMagnet = ''; newEmailFor(m); return; }
       render();
-      if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id);
+      if (S.active && S.active.state !== 'paused' && S.active.state !== 'waiting') startPoll(S.active.run_id);
     }).catch(() => { S.mode = 'error'; S.pageErr = t('net_err'); render(); });
+  }
+  // ── Sendboxes (2026-10-28): the account's Gmail boxes, on the server; the password is never shown again
+  function loadBoxes() {
+    return api('/solo/sendbox/list', {}).then((res) => { if (res.ok && res.data) { S.boxes = arr(res.data.data); render(); } }).catch(() => {});
+  }
+  function boxCall(path, body, busy) {
+    S.box.busy = busy; S.box.err = ''; render();
+    return api(path, body).then((res) => {
+      S.box.busy = '';
+      if (authFailed(res)) { showLogin(); return false; }
+      if (!res.ok) { S.box.err = msgOf(res); render(); return false; }
+      return loadBoxes().then(() => true);
+    }).catch(() => { S.box.busy = ''; S.box.err = t('net_err'); render(); return false; });
+  }
+  function boxesCard() {
+    const B = S.box;
+    const stPill = (st) => h('span', { class: st === 'healthy' ? 'pill sent' : st === 'needs_reauth' ? 'pill no' : 'pill wait', text: t('box_st_' + st) });
+    return h('section', { class: 'card', id: 'boxes' }, h('h2', { text: t('boxes_h') }), h('p', { class: 'hint', text: t('boxes_hint') }),
+      S.boxes.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.boxes.map((b) => h('li', { class: 'box' },
+        h('div', { class: 'row sp' }, h('b', { class: 'n', text: str(b.email) }), stPill(str(b.status))),
+        h('p', { class: 'small', text: t('box_today', { a: fmtNum(num(b.sent_today)), b: fmtNum(num(b.cap_today)) }) + (b.last_ok_at ? ' · ' + t('box_checked', { d: fmtDay(b.last_ok_at) }) : '') }),
+        b.status === 'needs_reauth' ? h('form', { class: 'row', style: 'margin-top:8px', onsubmit: (ev) => { ev.preventDefault(); boxCall('/solo/sendbox/add', { email: b.email, app_password: str(B.re[b.box_id]) }, 're:' + b.box_id).then((ok) => { if (ok) B.re[b.box_id] = ''; }); } },
+          h('input', { class: 'field', type: 'password', autocomplete: 'new-password', 'aria-label': t('box_pw'), placeholder: t('box_pw'), style: 'flex:1 1 200px', oninput: (ev) => { B.re[b.box_id] = ev.target.value; } }),
+          h('button', { class: 'btn sm pri', type: 'submit', disabled: !!B.busy }, B.busy === 're:' + b.box_id ? [spinner(), t('box_connecting')] : t('box_reconnect'))) : null,
+        h('div', { class: 'row', style: 'margin-top:8px;gap:8px;align-items:flex-end' },
+          h('label', { class: 'small', style: 'display:flex;flex-direction:column;gap:4px' }, t('box_cap'),
+            h('input', { class: 'field', type: 'number', min: '1', max: String(num(b.ceiling) || 400), style: 'width:110px', placeholder: String(num(b.cap_today)), value: b.daily_cap ? String(b.daily_cap) : '', 'aria-describedby': 'cap-' + b.box_id, oninput: (ev) => { B.caps[b.box_id] = ev.target.value; } })),
+          h('button', { class: 'btn sm', type: 'button', disabled: !!B.busy, onclick: () => { if (B.caps[b.box_id] === undefined) return; boxCall('/solo/sendbox/update', { box_id: b.box_id, daily_cap: str(B.caps[b.box_id]) }, 'cap').then((ok) => { if (ok) { delete B.caps[b.box_id]; toast(t('saved')); } }); } }, t('save')),
+          b.status === 'healthy' ? h('button', { class: 'btn sm ghost', type: 'button', disabled: !!B.busy, onclick: () => boxCall('/solo/sendbox/update', { box_id: b.box_id, paused: true }, 'pause') }, t('box_pause')) : null,
+          b.status === 'paused' ? h('button', { class: 'btn sm ghost', type: 'button', disabled: !!B.busy, onclick: () => boxCall('/solo/sendbox/update', { box_id: b.box_id, paused: false }, 'pause') }, t('box_resume')) : null,
+          h('button', { class: 'btn sm ghost danger', type: 'button', disabled: !!B.busy, onclick: () => { if (window.confirm(t('box_remove_q', { e: b.email }))) boxCall('/solo/sendbox/remove', { box_id: b.box_id }, 'remove'); } }, t('box_remove'))),
+        h('p', { class: 'small', id: 'cap-' + b.box_id, text: t('box_cap_hint', { n: fmtNum(num(b.ceiling) || 400) }) }))))
+        : h('p', { class: 'small', style: 'margin-top:8px', text: t('box_none') }),
+      h('h3', { class: 'lbl', style: 'margin-top:16px', text: t('box_add') }),
+      h('form', { class: 'stack', style: 'gap:8px', onsubmit: (ev) => { ev.preventDefault(); boxCall('/solo/sendbox/add', { email: str(B.email), app_password: str(B.pw) }, 'add').then((ok) => { if (ok) { B.email = ''; B.pw = ''; render(); } }); } },
+        h('input', { class: 'field', type: 'email', autocomplete: 'off', placeholder: t('box_email'), 'aria-label': t('box_email'), value: str(B.email), oninput: (ev) => { B.email = ev.target.value; } }),
+        h('input', { class: 'field', type: 'password', autocomplete: 'new-password', placeholder: t('box_pw'), 'aria-label': t('box_pw'), value: str(B.pw), oninput: (ev) => { B.pw = ev.target.value; } }),
+        h('p', { class: 'small', text: t('box_pw_hint') }),
+        h('div', null, h('button', { class: 'btn dark', type: 'submit', disabled: !!B.busy }, B.busy === 'add' ? [spinner(), t('box_connecting')] : t('box_add_btn')))),
+      B.err ? h('p', { class: 'err', role: 'alert', text: B.err }) : null);
   }
   function applyState(d) {
     S.clients = arr(d.clients).filter((c) => CLIENT_RE.test(c));
@@ -428,6 +525,7 @@ select.field{padding-right:28px}
     S.emails = arr(d.emails);
     S.settings = d.settings || {};
     S.magnets = arr(d.magnets);
+    S.fields = arr(d.fields);
     S.crmTotal = num(d.crm_total);
     S.active = d.active_run || null;
     S.limits = d.limits || {};
@@ -502,7 +600,7 @@ select.field{padding-right:28px}
     const meta = e.status === 'sent' && e.runs ? t('sent_times', { n: fmtNum(num(e.runs)), d: fmtDay(e.last_sent_at) }) : t('updated', { d: fmtDay(e.updated_at) });
     return h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openEmail(e.uid) },
       h('div', { class: 'row sp' }, h('span', { class: 't', text: str(e.subject) || t('untitled') }), statusPill(e)),
-      h('span', { class: 'm', text: meta + (e.has_file ? ' · ' + t('file') + ': ' + str(e.file_name) : '') })));
+      h('span', { class: 'm', text: meta + (e.has_file ? ' · ' + t('file') + ': ' + str(e.file_name) + (arr(e.files).length > 1 ? ' +' + (arr(e.files).length - 1) : '') : '') })));
   }
   function gateNotes() {
     const g = S.gate || {};
@@ -533,6 +631,7 @@ select.field{padding-right:28px}
         others.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, others.map(emailItem))
           : h('div', { style: 'margin-top:8px' }, h('p', { class: 'small', text: t('none_h') + '. ' + t('none_p') }))),
       can ? settingsCard() : null,
+      boxesCard(),
       S.client ? lookupCard() : null);
   }
   function settingsCard() {
@@ -544,6 +643,9 @@ select.field{padding-right:28px}
       h('summary', null, h('h2', { style: 'display:inline', text: t('settings') })),
       h('label', { class: 'lbl', for: 's-postal', text: t('postal') }),
       h('input', { id: 's-postal', class: 'field', maxlength: '200', placeholder: t('postal_ph'), value: str(st.postal_address), oninput: set('postal_address') }),
+      h('label', { class: 'lbl', for: 's-from', text: t('from_name') }),
+      h('input', { id: 's-from', class: 'field', maxlength: '80', autocomplete: 'off', placeholder: str((senders.filter((x) => x.host === st.sender_host)[0] || senders[0] || {}).business_name), value: str(st.from_name), oninput: set('from_name') }),
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('from_name_hint', { n: str((senders.filter((x) => x.host === st.sender_host)[0] || senders[0] || {}).business_name) || '—' }) }),
       h('label', { class: 'lbl', text: t('freq') }),
       h('div', { class: 'caps' }, h('span', { text: t('at_most') }), h('input', { class: 'field', type: 'number', min: '1', max: '20', 'aria-label': 'max short', value: v('cap_short_max'), oninput: set('cap_short_max') }),
         h('span', { text: t('emails_in') }), h('input', { class: 'field', type: 'number', min: '1', max: '30', 'aria-label': 'days short', value: v('cap_short_days'), oninput: set('cap_short_days') }), h('span', { text: t('days') })),
@@ -559,7 +661,7 @@ select.field{padding-right:28px}
     const st = S.settings || {};
     S.setBusy = true; S.setErr = ''; render();
     api('/solo/broadcast/settings', { client: S.client, postal_address: str(st.postal_address), cap_short_max: st.cap_short_max, cap_short_days: st.cap_short_days,
-      cap_long_max: st.cap_long_max, cap_long_days: st.cap_long_days, sender_host: str(st.sender_host) }).then((res) => {
+      cap_long_max: st.cap_long_max, cap_long_days: st.cap_long_days, sender_host: str(st.sender_host), from_name: str(st.from_name) }).then((res) => {
       S.setBusy = false;
       if (authFailed(res)) { showLogin(); return; }
       if (!res.ok) { S.setErr = msgOf(res); render(); return; }
@@ -592,7 +694,7 @@ select.field{padding-right:28px}
   // ── Editor
   function blank() {
     const sender = arr((S.gate || {}).senders)[0] || {};
-    return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false };
+    return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false, files: [] };
   }
   function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
   // A new email for one magnet: its row in the list (an old page id finds the magnet it belongs to) is ticked; a magnet
@@ -602,7 +704,7 @@ select.field{padding-right:28px}
     const row = S.magnets.filter((m) => m && (m.magnet_id === id || arr(m.pages).some((p) => p && p.magnet_id === id)))[0];
     if (row) { S.aud.magnets = [row.magnet_id]; render(); }
   }
-  function resetAudience() { S.aud = { magnets: [], crm: false, langs: {} }; S.preview = null; S.prevErr = ''; S.confirm = false; }
+  function resetAudience() { S.aud = { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }; S.preview = null; S.prevErr = ''; S.confirm = false; }
   function openEmail(uid) {
     S.busy = 'open'; render();
     api('/solo/broadcast/email/get', { client: S.client, uid: uid }).then((res) => {
@@ -624,7 +726,7 @@ select.field{padding-right:28px}
     S.busy = 'save'; S.err = ''; render();
     const body = { client: S.client, subject: e.subject, body: e.body, language: e.language, fallback: e.fallback, file_mode: e.file_mode };
     if (e.uid) body.uid = e.uid;
-    if (e._file_key !== undefined) { body.file_key = e._file_key; body.file_name = e.file_name; }
+    if (e._files) body.files = arr(e.files).map((f) => ({ file_key: f.file_key, file_name: f.file_name }));   // the whole list, in order
     return api('/solo/broadcast/email', body).then((res) => {
       S.busy = '';
       if (authFailed(res)) { showLogin(); return false; }
@@ -637,19 +739,46 @@ select.field{padding-right:28px}
     }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); return false; });
   }
   function ensureSaved() { return S.dirty || !S.edit.uid ? save(true) : Promise.resolve(true); }
-  function pickFile(file) {
+  const extOf = (n) => { const s = str(n).toLowerCase(); const i = s.lastIndexOf('.'); return i >= 0 ? s.slice(i) : ''; };
+  const filesSize = (fs) => arr(fs).reduce((a, f) => a + num(f.file_size), 0);
+  // Several files (2026-10-28): each is uploaded on its own, one after another; the email is then saved once with
+  // the whole list. A file that does not fit (count, attachment type or total) is skipped with its reason.
+  function pickFiles(list) {
     const e = S.edit;
     const mode = e.file_mode === 'attach' ? 'attach' : 'link';
+    const max = num(S.limits.files_max) || 10;
+    const files = Array.prototype.slice.call(list || []);
+    if (!files.length) return;
+    const errs = [];
     S.busy = 'upload'; S.err = ''; render();
-    upload(file, mode).then((res) => {
-      S.busy = '';
-      if (authFailed(res)) { showLogin(); return; }
-      if (!res.ok || !res.data) { S.err = msgOf(res); render(); return; }
-      e._file_key = res.data.file_key; e.file_name = res.data.file_name; e.file_size = res.data.file_size; e.has_file = true; e.file_mode = mode;
-      save(true).then((ok) => { if (ok) toast(t('saved')); });
-    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+    let added = 0;
+    const next = (i) => {
+      if (i >= files.length) {
+        S.busy = '';
+        if (!added) { S.err = errs.join(' '); render(); return; }
+        e._files = true; e.has_file = true; e.file_mode = mode;
+        save(true).then((ok) => { if (ok) { if (errs.length) { S.err = t('some_failed', { e: errs.join(' ') }); render(); } else toast(t('saved')); } });
+        return;
+      }
+      const f = files[i];
+      if (arr(e.files).length >= max) { errs.push(t('too_many_files', { n: max })); return next(files.length); }
+      if (mode === 'attach' && arr(S.limits.attach_exts).length && arr(S.limits.attach_exts).indexOf(extOf(f.name)) < 0) { errs.push(t('attach_type', { f: f.name })); return next(i + 1); }
+      if (mode === 'attach' && filesSize(e.files) + f.size > num(S.limits.attach_max_bytes)) { errs.push(t('attach_total')); return next(i + 1); }
+      upload(f, mode).then((res) => {
+        if (authFailed(res)) { S.busy = ''; showLogin(); return; }
+        if (!res.ok || !res.data) { errs.push(f.name + ': ' + msgOf(res)); return next(i + 1); }
+        e.files = arr(e.files).concat([{ file_key: res.data.file_key, file_name: res.data.file_name, file_size: res.data.file_size, file_type: res.data.file_type }]);
+        added += 1; render(); next(i + 1);
+      }).catch(() => { errs.push(f.name + ': ' + t('net_err')); next(i + 1); });
+    };
+    next(0);
   }
-  function removeFile() { const e = S.edit; e._file_key = ''; e.file_name = ''; e.file_size = 0; e.has_file = false; e.file_mode = 'none'; save(true); }
+  function removeFile(i) {
+    const e = S.edit;
+    e.files = arr(e.files).filter((_, j) => j !== i); e._files = true;
+    e.has_file = e.files.length > 0; if (!e.has_file) e.file_mode = 'none';
+    save(true);
+  }
   function sendTest() {
     ensureSaved().then((ok) => {
       if (!ok) return;
@@ -676,6 +805,7 @@ select.field{padding-right:28px}
     S.aud.magnets.forEach((mid) => { const l = (S.aud.langs || {})[mid]; if (l) ml[mid] = l.slice(); });
     const b = { client: S.client, uid: S.edit.uid, magnets: S.aud.magnets.slice(), crm: !!S.aud.crm };
     if (Object.keys(ml).length) b.magnet_languages = ml;
+    if (S.aud.transport === 'sendbox') { b.transport = 'sendbox'; b.boxes = S.aud.boxes.slice(); }
     return b;
   }
   function checkNumbers(keepMsg) {
@@ -716,7 +846,7 @@ select.field{padding-right:28px}
         const r = res.data;
         if (S.run && S.run.run_id === runId) S.run = r;
         if (S.active && S.active.run_id === runId) S.active = r;
-        if (r.state === 'queued' || r.state === 'sending') { pollTimer = setTimeout(tick, POLL_MS); redrawRun(r); return; }
+        if (r.state === 'queued' || r.state === 'sending') { pollTimer = setTimeout(tick, POLL_MS); redrawRun(r); return; }   // waiting: the next day
         pollTimer = null;
         refreshState().then(() => { loadHistory(); render(); });
       }).catch(() => { pollTimer = setTimeout(tick, POLL_MS * 2); });
@@ -747,11 +877,14 @@ select.field{padding-right:28px}
     const ev = r.events || {};
     return h('section', { class: 'card', id: withLink ? 'rc-list' : 'rc-edit', 'aria-live': 'polite' },
       h('div', { class: 'row sp' }, h('h2', { text: withLink ? str(r.subject) : t('this_send') }),
-        h('span', { class: st === 'done' ? 'pill sent' : st === 'paused' || st === 'stopped' ? 'pill wait' : 'pill live', text: t('st_run_' + st) })),
+        h('span', { class: st === 'done' ? 'pill sent' : st === 'paused' || st === 'stopped' || st === 'waiting' ? 'pill wait' : 'pill live', text: t('st_run_' + st) })),
       h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(planned), 'aria-valuenow': String(done) }, h('i', { style: 'width:' + pct + '%' })),
       h('p', { class: 'small', style: 'margin-top:8px', text: t('sent_of', { a: fmtNum(sent), b: fmtNum(planned) }) }),
       st === 'paused' ? h('div', { class: 'note warn', style: 'margin-top:10px', text: why === 'complaints' ? t('pause_complaints') : why === 'bounces' ? t('pause_bounces') : t('pause_other', { r: why }) }) : null,
       num(r.held_for_tomorrow) ? h('p', { class: 'small', style: 'margin-top:6px', text: t('held_note', { n: fmtNum(num(r.held_for_tomorrow)) }) }) : null,
+      st === 'waiting' && r.resume_at ? h('div', { class: 'note', style: 'margin-top:10px', text: t('waiting_note', { d: fmtDay(r.resume_at) }) }) : null,
+      Object.keys(r.by_box || {}).length ? h('div', { style: 'margin-top:8px' }, h('b', { class: 'small', text: t('by_box') }), h('div', { class: 'kv' },
+        Object.keys(r.by_box).map((id) => [h('span', { text: str((S.boxes.filter((x) => x.box_id === id)[0] || {}).email) || id }), h('span', { class: 'v', text: fmtNum(num(r.by_box[id])) })]))) : null,
       (num(r.failed) || num(r.unconfirmed) || num(r.skipped) || num(r.skipped_optout) || num(ev.bounced) || num(ev.complained) || num(ev.unsubscribed)) ? h('div', { class: 'kv' },
         num(r.skipped_optout) ? [h('span', { text: t('skipped_optout') }), h('span', { class: 'v', text: fmtNum(num(r.skipped_optout)) })] : null,
         num(r.failed) ? [h('span', { text: t('failed') }), h('span', { class: 'v', text: fmtNum(num(r.failed)) })] : null,
@@ -759,7 +892,7 @@ select.field{padding-right:28px}
         num(r.skipped) ? [h('span', { text: t('skipped') }), h('span', { class: 'v', text: fmtNum(num(r.skipped)) })] : null,
         ['bounced', 'complained', 'unsubscribed'].map((k) => num(ev[k]) ? [h('span', { text: t(k) }), h('span', { class: 'v', text: fmtNum(num(ev[k])) })] : null)) : null,
       h('div', { class: 'row', style: 'margin-top:12px' },
-        (st === 'queued' || st === 'sending' || st === 'paused') ? h('button', { class: 'btn sm danger', type: 'button', onclick: () => runAction('stop', r) }, t('stop')) : null,
+        (st === 'queued' || st === 'sending' || st === 'paused' || st === 'waiting') ? h('button', { class: 'btn sm danger', type: 'button', onclick: () => runAction('stop', r) }, t('stop')) : null,
         st === 'paused' ? h('button', { class: 'btn sm pri', type: 'button', onclick: () => runAction('resume', r) }, t('resume')) : null,
         withLink && r.email_uid ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => openEmail(r.email_uid) }, t('history')) : null));
   }
@@ -774,31 +907,63 @@ select.field{padding-right:28px}
       if (b) { b.className = 'btn pri'; b.textContent = t('save'); }
       if (S.preview) { S.preview = null; S.confirm = false; const pv = document.getElementById('pv'); if (pv) pv.remove(); }  // never send what was not checked
     };
-    const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), oninput: (ev) => { e.subject = ev.target.value; mark(); } });
-    const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); } });
+    const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), oninput: (ev) => { e.subject = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-subject'; } });
+    const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-body'; } });
     body.value = str(e.body);
-    const insertName = () => {
-      const el = document.getElementById('e-body');
+    // Insert field (2026-10-28): the standard tags, then the form fields of the ticked lead magnets (all of them when
+    // none is ticked), into the subject or the message, wherever the owner typed last.
+    const insertTag = (key) => {
+      const id = S.lastField === 'e-subject' ? 'e-subject' : 'e-body';
+      const el = document.getElementById(id), tag = '{{' + key + '}}';
       const s = el.selectionStart != null ? el.selectionStart : el.value.length, en = el.selectionEnd != null ? el.selectionEnd : s;
-      el.value = el.value.slice(0, s) + '{{first_name}}' + el.value.slice(en);
-      e.body = el.value; mark(); el.focus(); el.selectionStart = el.selectionEnd = s + 14;
+      el.value = el.value.slice(0, s) + tag + el.value.slice(en);
+      if (id === 'e-subject') e.subject = el.value; else e.body = el.value;
+      S.fieldMenu = false; mark(); render();
+      const el2 = document.getElementById(id); if (el2) { el2.focus(); el2.selectionStart = el2.selectionEnd = s + tag.length; }
     };
-    const fileBox = h('div', { class: 'file' },
-      e.has_file ? [h('span', { class: 'n', text: str(e.file_name) }), h('span', { class: 'small', text: fmtSize(e.file_size) }),
-        h('button', { class: 'btn sm ghost', type: 'button', onclick: removeFile, disabled: !!S.busy }, t('remove'))]
-        : [h('label', { class: 'btn sm', for: 'e-file' }, S.busy === 'upload' ? [spinner(), t('uploading')] : t('choose_file')),
-          h('input', { id: 'e-file', type: 'file', class: 'sr-only', accept: arr(S.limits.file_exts).join(','), onchange: (ev) => { const f = ev.target.files && ev.target.files[0]; if (f) pickFile(f); } }),
-          h('span', { class: 'small', text: t('file_none') })]);
+    const formFields = () => {
+      const ticked = S.magnets.filter((m) => S.aud.magnets.indexOf(m.magnet_id) >= 0);
+      if (!ticked.length) return arr(S.fields);
+      const by = {};
+      ticked.forEach((m) => arr(m.fields).forEach((f) => { const o = by[f.key]; by[f.key] = o ? { key: f.key, label: o.label, count: num(o.count) + num(f.count) } : f; }));
+      return Object.keys(by).map((k) => by[k]).sort((a, b) => num(b.count) - num(a.count) || (a.key < b.key ? -1 : 1));
+    };
+    const fieldMenu = () => {
+      const ff = formFields();
+      return h('div', { class: 'fmenu', id: 'fmenu' },
+        h('p', { class: 'small', text: t('f_where') }),
+        h('b', { class: 'small', text: t('f_std') }),
+        h('div', { class: 'chips' }, ['first_name', 'full_name', 'email', 'phone'].map((k) => h('button', { class: 'chip', type: 'button', onclick: () => insertTag(k) }, t('f_' + k), h('code', { text: '{{' + k + '}}' })))),
+        h('b', { class: 'small', style: 'display:block;margin-top:10px', text: t('f_form') }),
+        ff.length ? h('div', { class: 'chips' }, ff.map((f) => h('button', { class: 'chip', type: 'button', title: t('f_people', { n: fmtNum(num(f.count)) }), onclick: () => insertTag(f.key) }, str(f.label) || f.key, h('code', { text: '{{' + f.key + '}}' }))))
+          : h('p', { class: 'small', text: t('f_none') }));
+    };
+    const fl = arr(e.files), fmax = num(S.limits.files_max) || 10;
+    const fileBox = h('div', { class: 'files' },
+      fl.map((f, i) => h('div', { class: 'file' }, h('span', { class: 'n', text: str(f.file_name) }), h('span', { class: 'small', text: fmtSize(f.file_size) }),
+        h('button', { class: 'btn sm ghost', type: 'button', onclick: () => removeFile(i), disabled: !!S.busy || locked, 'aria-label': t('remove') + ' ' + str(f.file_name) }, t('remove')))),
+      h('div', { class: 'file' },
+        fl.length < fmax ? [h('label', { class: 'btn sm' + (S.busy || locked ? ' disabled' : ''), for: 'e-file' }, S.busy === 'upload' ? [spinner(), t('uploading')] : t('choose_file')),
+          h('input', { id: 'e-file', type: 'file', multiple: true, class: 'sr-only', disabled: !!S.busy || locked, accept: arr(S.limits.file_exts).join(','), onchange: (ev) => { const fs = ev.target.files; if (fs && fs.length) pickFiles(fs); ev.target.value = ''; } })] : null,
+        h('span', { class: 'small', text: fl.length ? t('files_count', { n: fl.length, max: fmax, size: fmtSize(filesSize(fl)) }) : t('file_none') })));
     const modeSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': t('file') },
       ['link', 'attach'].map((m) => h('label', null, h('input', { type: 'radio', name: 'fmode', value: m, checked: (e.file_mode === 'attach' ? 'attach' : 'link') === m,
-        onchange: () => { e.file_mode = m; if (!e.has_file) return; if (m === 'attach' && num(e.file_size) > num(S.limits.attach_max_bytes)) { S.err = 'Files over 10 MB go as a link, not as an attachment.'; e.file_mode = 'link'; render(); return; } mark(); } }),
+        onchange: () => {
+          if (m === 'attach' && e.has_file) {
+            const bad = arr(e.files).filter((f) => arr(S.limits.attach_exts).length && arr(S.limits.attach_exts).indexOf(extOf(f.file_name)) < 0)[0];
+            if (bad) { S.err = t('attach_type', { f: str(bad.file_name) }); render(); return; }
+            if (filesSize(e.files) > num(S.limits.attach_max_bytes)) { S.err = t('attach_total'); render(); return; }
+          }
+          e.file_mode = m; S.err = ''; if (e.has_file) mark(); else render();
+        } }),
         h('span', { text: t(m === 'link' ? 'file_link' : 'file_attach') }))));
     const msgCard = h('section', { class: 'card' },
       h('div', { class: 'row sp' }, h('h2', { text: t('message') }), statusPill(e)),
       e.by_agent && e.note ? h('div', { class: 'note', style: 'margin-top:12px' }, h('b', { text: t('agent_note') }), h('p', { class: 'small', text: str(e.note) })) : null,
       h('label', { class: 'lbl', for: 'e-subject', text: t('subject') }), subject,
       h('div', { class: 'row sp', style: 'margin-top:14px;margin-bottom:6px' }, h('label', { class: 'lbl', for: 'e-body', style: 'margin:0', text: t('body') }),
-        h('button', { class: 'btn sm', type: 'button', onclick: insertName }, t('insert_name'))),
+        h('button', { class: 'btn sm', type: 'button', 'aria-expanded': S.fieldMenu ? 'true' : 'false', 'aria-controls': 'fmenu', onclick: () => { S.fieldMenu = !S.fieldMenu; render(); } }, t('insert_name'))),
+      S.fieldMenu ? fieldMenu() : null,
       body,
       h('p', { class: 'small', style: 'margin-top:6px', text: t('name_hint') }),
       h('div', { class: 'row', style: 'gap:12px;align-items:flex-end' },
@@ -809,7 +974,7 @@ select.field{padding-right:28px}
             h('option', { value: 'en', selected: e.language !== 'vi', text: 'English' }), h('option', { value: 'vi', selected: e.language === 'vi', text: 'Tiếng Việt' })))),
       h('label', { class: 'lbl', text: t('file') }), fileBox,
       h('div', { class: 'row', style: 'margin-top:10px' }, modeSeg),
-      h('p', { class: 'small', style: 'margin-top:6px', text: t('file_hint') }),
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('file_hint', { n: num(S.limits.files_max) || 10 }) }),
       S.err ? h('p', { class: 'err', role: 'alert', text: S.err }) : null,
       h('div', { class: 'row', style: 'margin-top:16px' },
         h('button', { id: 'btn-save', class: S.dirty ? 'btn pri' : 'btn', type: 'button', disabled: !!S.busy || locked, onclick: () => save(false) }, S.busy === 'save' ? [spinner(), t('saving')] : (S.dirty ? t('save') : t('saved'))),
@@ -839,7 +1004,8 @@ select.field{padding-right:28px}
           langBoxes(m))),
         h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
           h('span', null, h('span', { class: 't', text: t('whole_crm') }), h('br'), h('span', { class: 'm', text: tn('contacts', S.crmTotal) })))),
-      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
+      sendWith(),
+      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm) || (S.aud.transport === 'sendbox' && !S.aud.boxes.length) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
         S.busy === 'preview' ? [spinner(), t('checking')] : t('check'))),
       S.prevErr ? h('p', { class: 'err', role: 'alert', text: S.prevErr }) : null,
       S.preview ? previewBox(S.preview, locked) : null) : null;
@@ -850,23 +1016,51 @@ select.field{padding-right:28px}
       audCard,
       historyCard());
   }
+  // Send with (2026-10-28): the client's link (hello@value.<domain>, SES) or the account's own sendboxes.
+  function sendWith() {
+    const A = S.aud;
+    const link = arr((S.gate || {}).senders)[0] || {};
+    const ok = S.boxes.filter((b) => b.status === 'healthy');
+    const pick = (v) => () => { A.transport = v; if (v === 'sendbox' && !A.boxes.length) A.boxes = ok.map((b) => b.box_id); S.preview = null; S.confirm = false; render(); };
+    const tick = (id) => (ev) => { const i = A.boxes.indexOf(id); if (ev.target.checked && i < 0) A.boxes.push(id); if (!ev.target.checked && i >= 0) A.boxes.splice(i, 1); S.preview = null; S.confirm = false; render(); };
+    return h('div', { style: 'margin-top:14px' }, h('b', { class: 'lbl', text: t('send_with') }),
+      h('div', { class: 'chks', role: 'radiogroup', 'aria-label': t('send_with') },
+        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', checked: A.transport !== 'sendbox', onchange: pick('ses') }), h('span', { class: 't', text: t('via_link', { a: str(link.from_addr) }) })),
+        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', checked: A.transport === 'sendbox', disabled: !ok.length, onchange: pick('sendbox') }),
+          h('span', null, h('span', { class: 't', text: t('via_boxes') }), h('br'), h('span', { class: 'm', text: ok.length ? tn('n_boxes', ok.length) : t('via_boxes_none') })))),
+      A.transport === 'sendbox' ? h('div', { class: 'chks', style: 'margin:6px 0 0 26px' }, ok.map((b) => h('label', { class: 'chk' },
+        h('input', { type: 'checkbox', checked: A.boxes.indexOf(b.box_id) >= 0, onchange: tick(b.box_id) }),
+        h('span', null, h('span', { class: 't', text: str(b.email) }), h('br'), h('span', { class: 'm', text: t('box_room', { n: fmtNum(num(b.broadcast_room)) }) }))))) : null);
+  }
   function previewBox(p, locked) {
     const n = num(p.will_send);
     const ex = p.excluded || {};
     const rows = REASONS.filter((r) => num(ex[r]) > 0);
     const sender = p.sender || {};
     const needPostal = !str((p.settings || {}).postal_address);
-    const evOk = !!p.events_ready;
+    const dv = p.delivery || {};
+    const viaBoxes = dv.transport === 'sendbox';
+    const evOk = !!p.events_ready || viaBoxes;
+    const bx = arr(dv.boxes);
+    const planLine = viaBoxes ? (n === 0 ? null : !num(dv.today) && dv.days == null ? h('div', { class: 'note warn', text: t('plan_never') })
+      : num(dv.today) >= n ? h('p', { class: 'small', text: t('plan_all_today', { m: fmtNum(Math.max(1, num(dv.minutes_today))) }) })
+      : h('div', { class: 'note', text: dv.days == null ? t('plan_never') : t('plan_days', { a: fmtNum(num(dv.today)), m: fmtNum(Math.max(1, num(dv.minutes_today))), b: fmtNum(n - num(dv.today)), d: fmtNum(num(dv.days) - 1), f: fmtDate(dv.finish_date) }) })) : null;
     return h('div', { class: 'stack', id: 'pv', style: 'margin-top:16px' },
       h('div', null, h('div', { class: 'big', text: fmtNum(n) }), h('div', { class: 'small', text: t('will_get') })),
-      h('p', { class: 'small' }, t('from') + ': ', h('b', { text: str(sender.from_name) + ' <' + str(sender.from_addr) + '>' })),
+      viaBoxes ? h('p', { class: 'small' }, t('from') + ': ', h('b', { text: bx.length > 1 ? t('from_boxes', { n: str(dv.from_name), a: str((bx[0] || {}).email), k: bx.length - 1 }) : (str(dv.from_name) + ' <' + str((bx[0] || {}).email) + '>') }))
+        : h('p', { class: 'small' }, t('from') + ': ', h('b', { text: (str(sender.from_name) ? str(sender.from_name) + ' ' : '') + '<' + str(sender.from_addr) + '>' })),
+      !str(viaBoxes ? dv.from_name : sender.from_name) ? h('div', { class: 'note warn', text: t('no_from_name', { a: viaBoxes ? str((bx[0] || {}).email).split('@')[0] : str(sender.from_addr).split('@')[0] }) }) : null,
+      planLine,
+      viaBoxes && num(dv.days) > 1 && str(sender.from_addr) ? h('p', { class: 'small', text: t('plan_ses_faster', { a: str(sender.from_addr) }) }) : null,
       rows.length ? h('div', null, h('b', { text: t('not_sending') }), h('div', { class: 'kv' }, rows.map((r) => [h('span', { text: t('r_' + r) }), h('span', { class: 'v', text: fmtNum(num(ex[r])) })]))) : null,
       num(p.overlap) ? h('p', { class: 'small', text: tn('overlap', num(p.overlap)) }) : null,
       arr(p.samples).length ? h('div', null, h('b', { text: t('greet') }), h('div', { class: 'chips' }, arr(p.samples).map((s) => h('span', { class: 'chip', text: s })))) : null,
+      arr(p.merge).filter((m) => num(m.missing) > 0).length ? h('div', null, h('b', { text: t('merge_h') }),
+        h('ul', { class: 'small', style: 'margin:6px 0 0 18px' }, arr(p.merge).filter((m) => num(m.missing) > 0).map((m) => h('li', { text: m.fallback != null ? t('merge_fb', { n: fmtNum(num(m.missing)), tag: '{{' + m.key + '}}', f: str(m.fallback) }) : (m.key === 'first_name' ? t('merge_fb', { n: fmtNum(num(m.missing)), tag: '{{' + m.key + '}}', f: str(S.edit && S.edit.fallback) || (S.edit && S.edit.language === 'vi' ? 'bạn' : 'there') }) : t('merge_empty', { n: fmtNum(num(m.missing)), tag: '{{' + m.key + '}}' })) })))) : null,
       needPostal ? h('div', { class: 'note warn', text: t('need_postal') }) : null,
       !evOk ? h('div', { class: 'note', text: t('events_h') }) : null,
       n === 0 ? h('p', { class: 'small', text: t('nobody') }) : null,
-      (() => { const room = Math.max(0, num(p.daily_max) - num(p.sent_today)); return n > room ? h('div', { class: 'note warn', text: t('daily_note', { a: fmtNum(room), b: fmtNum(n - room) }) }) : null; })(),
+      viaBoxes ? null : (() => { const room = Math.max(0, num(p.daily_max) - num(p.sent_today)); return n > room ? h('div', { class: 'note warn', text: t('daily_note', { a: fmtNum(room), b: fmtNum(n - room) }) }) : null; })(),
       S.confirm ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
         h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'send', onclick: doSend }, S.busy === 'send' ? [spinner(), t('yes_send')] : t('yes_send')),
           h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.confirm = false; render(); } }, t('cancel'))))
