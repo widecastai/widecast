@@ -218,7 +218,7 @@ select.field{padding-right:28px}
       attach_total: 'Attached files together are over 10 MB: send them as links.', attach_type: '{f} can only go as a link.',
       some_failed: 'Some files were not added: {e}',
       uploading: 'Uploading…', save: 'Save', saved: 'Saved', saving: 'Saving…', test: 'Send me a test', testing: 'Sending test…',
-      test_sent: 'Test sent to {e}.', test_sent_as: 'Test sent to {e}, its tags filled with the answers of {who}. Send another to see someone else.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
+      test_sent: 'Test sent to {e}, from {from}.', test_sent_as: 'Test sent to {e}, from {from}, its tags filled with the answers of {who}. Send another to see someone else.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
       who: 'Who gets it', who_hint: 'Tick one or more lead magnets, or the whole CRM. Each person gets this email once.',
       whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', lang_other: 'other pages', check: 'Check numbers', checking: 'Checking…',
       will_get: 'will get it now', from: 'From', not_sending: 'Not getting it this time', overlap: '{n} people are in more than one of the lists you ticked; they get it once.',
@@ -288,7 +288,7 @@ select.field{padding-right:28px}
       attach_total: 'Các tệp đính kèm cộng lại quá 10 MB: hãy gửi dạng link.', attach_type: '{f} chỉ gửi được dạng link.',
       some_failed: 'Có tệp chưa thêm được: {e}',
       uploading: 'Đang tải lên…', save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…', test: 'Gửi thử cho tôi', testing: 'Đang gửi thử…',
-      test_sent: 'Đã gửi thử tới {e}.', test_sent_as: 'Đã gửi thử tới {e}, tag lấy theo câu trả lời của {who}. Gửi thêm lần nữa để xem một người khác.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
+      test_sent: 'Đã gửi thử tới {e}, từ {from}.', test_sent_as: 'Đã gửi thử tới {e}, từ {from}, tag lấy theo câu trả lời của {who}. Gửi thêm lần nữa để xem một người khác.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
       who: 'Ai nhận', who_hint: 'Chọn một hay nhiều lead magnet, hoặc toàn bộ CRM. Mỗi người nhận email này một lần.',
       whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', n_boxes: '{n} hộp', lang_other: 'trang khác', check: 'Xem số người nhận', checking: 'Đang tính…',
       will_get: 'người sẽ nhận lần này', from: 'Gửi từ', not_sending: 'Lần này không gửi cho', overlap: '{n} người nằm trong nhiều danh sách bạn chọn; họ chỉ nhận một lần.',
@@ -836,7 +836,8 @@ select.field{padding-right:28px}
         const sm = res.data.sample;
         if (sm && sm.contact_id && S.edit === e) e._testSkip = arr(e._testSkip).concat([sm.contact_id]);
         render();
-        toast(sm ? t('test_sent_as', { e: str(res.data.to), who: str(sm.name) || str(sm.email) }) : t('test_sent', { e: str(res.data.to) }));
+        const d = res.data, from = str(d.via) ? (str(d.from_name) ? str(d.from_name) + ' <' + str(d.via) + '>' : str(d.via)) : '—';
+        toast(sm ? t('test_sent_as', { e: str(d.to), from: from, who: str(sm.name) || str(sm.email) }) : t('test_sent', { e: str(d.to), from: from }));
       }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
     });
   }
