@@ -120,6 +120,11 @@ a{color:var(--primary-deep)}
 .upd{font-size:13.5px;color:var(--muted)}
 .langrow{display:flex;justify-content:center;gap:6px;align-items:center;font-size:13.5px;color:var(--muted)}
 .langrow .btn.ln{min-height:32px;font:600 13.5px var(--f-body)}
+.langrow{flex-wrap:wrap;column-gap:14px}
+.langrow .lk{display:inline-flex;align-items:center;gap:4px}
+.lgrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--muted)}
+.lgrow .btn{min-height:34px}
+.lgrow .note{flex-basis:100%;margin:0}
 /* bundle */
 .item{background:var(--surface);border-radius:var(--r-card);padding:16px;display:grid;gap:12px;border:3px solid var(--line);box-shadow:0 5px 0 var(--line);transition:border-color .3s,opacity .3s}
 .item[data-s="ok"]{border-color:#9fdcc0;box-shadow:0 5px 0 #9fdcc0}
@@ -262,8 +267,12 @@ a{color:var(--primary-deep)}
       top_reactions: '{n} reactions', top_latest: 'Latest {t}', top_locked: 'Started · it keeps its place today',
       top_upd: 'Updated {t}, after the latest scan ({n} today)', top_upd_1: 'Updated {t}, after the latest scan (1 today)',
       top_same: 'Wizard and Advance show the same queue. Approve on either one and the other shows it.',
-      top_go: 'Make the bundle for problem {n}', top_go_locked: 'Continue problem {n}', top_lang: 'Written in {l}',
+      top_go: 'Make the bundle for problem {n}', top_go_locked: 'Continue problem {n}',
       change: 'Change', lang_en: 'English', lang_vi: 'Vietnamese', picking: 'Picking…',
+      top_lang_post: 'Post in {l}', top_lang_video: 'Video in {l}',
+      lg_written: 'Written in {l}', lg_switch: 'Write it in {l}', lg_post_note: 'Your next posts are written in {l} too.',
+      lg_video_note: 'Your next video scripts are written in {l} too.', lg_reply_note: 'Only this reply: it follows the post it answers.',
+      lg_reply_ask: 'Write it in:', lg_rewriting: 'Your agent is writing it again in {l}.', s_rewrite: 'Being written again',
       pick_brief: 'This problem is not ready to write yet. Pick another one.',
       none_h: 'Nothing to pick yet today', none_scan: 'Your agent keeps scanning. Today\'s top 3 shows up after the next scan.',
       prep_tag: 'Getting ready', prep_line: 'Your agent is writing its brief. You can pick it once it is ready.',
@@ -354,8 +363,12 @@ a{color:var(--primary-deep)}
       top_reactions: '{n} cảm xúc', top_latest: 'Mới nhất {t}', top_locked: 'Đang làm · giữ chỗ hôm nay',
       top_upd: 'Cập nhật {t}, sau đợt quét mới nhất ({n} đợt hôm nay)', top_upd_1: 'Cập nhật {t}, sau đợt quét mới nhất (1 đợt hôm nay)',
       top_same: 'Wizard và Advance là hai cách xem cùng một hàng chờ. Bạn duyệt ở bên nào thì bên kia cũng thấy.',
-      top_go: 'Làm bộ 3 từ vấn đề số {n}', top_go_locked: 'Tiếp tục vấn đề số {n}', top_lang: 'Viết bằng {l}',
+      top_go: 'Làm bộ 3 từ vấn đề số {n}', top_go_locked: 'Tiếp tục vấn đề số {n}',
       change: 'Đổi', lang_en: 'tiếng Anh', lang_vi: 'tiếng Việt', picking: 'Đang chọn…',
+      top_lang_post: 'Bài đăng bằng {l}', top_lang_video: 'Video bằng {l}',
+      lg_written: 'Viết bằng {l}', lg_switch: 'Viết lại bằng {l}', lg_post_note: 'Các bài đăng sau cũng viết bằng {l}.',
+      lg_video_note: 'Các kịch bản video sau cũng viết bằng {l}.', lg_reply_note: 'Chỉ câu trả lời này: nó theo ngôn ngữ của bài được trả lời.',
+      lg_reply_ask: 'Viết bằng:', lg_rewriting: 'Agent đang viết lại bằng {l}.', s_rewrite: 'Đang viết lại',
       pick_brief: 'Vấn đề này chưa sẵn sàng để viết. Bạn chọn vấn đề khác nhé.',
       none_h: 'Hôm nay chưa có vấn đề nào để chọn', none_scan: 'Agent của bạn vẫn đang quét. Top 3 hôm nay hiện sau đợt quét tới.',
       prep_tag: 'Đang chuẩn bị', prep_line: 'Agent đang chuẩn bị brief. Xong là chọn được.',
@@ -626,11 +639,13 @@ a{color:var(--primary-deep)}
     }
     return out;
   }
+  const pcLangTo = (c) => (str(obj(c) && c.language) === 'vi' ? 'en' : 'vi');
   function prodBody(it, act) {
     const c = it.card, u = ui(ik(it));
     const body = { client: it.client, item_id: it.item_id, kind: 'production', decision: act, stage: str(c.stage),
       fields: act === 'reject' ? {} : prodFields(it), content_hash: String(it.content_hash || '') };
     if (act !== 'reject' && c.can_approve && str(c.stage) !== 'scenes') body.remember = !!u.f.remember;
+    if (act === 'language') body.language = pcLangTo(c);   // 2026-10-29: written again in the other language
     return body;
   }
   function validateProd(it, act) {
@@ -996,12 +1011,13 @@ a{color:var(--primary-deep)}
     });
     const n = Number(d.scans) || 0;
     const sel = S.sel >= 0 ? list[S.sel] : null;
-    const lang = sel ? pickLang(sel) : 'en';
+    const lang = sel ? pickLangs(sel) : { post: 'en', video: 'en' };
+    const langBtn = (k) => h('span', { class: 'lk' }, h('span', { text: t(k === 'post' ? 'top_lang_post' : 'top_lang_video', { l: t('lang_' + lang[k]) }) }),
+      btn(t('change'), 'ln', () => setLang(k, lang[k] === 'vi' ? 'en' : 'vi'), { 'data-lang-kind': k }));
     const dock = !sel ? [btn(t('prep_none'), 'pr big', null, { disabled: true, id: 'go' })] : [
       btn(S.busy === 'pick' ? t('picking') : t(sel.locked ? 'top_go_locked' : 'top_go', { n: S.sel + 1 }), 'pr big', () => startProblem(sel),
         { disabled: S.busy !== '', id: 'go' }),
-      sel.locked ? null : h('div', { class: 'langrow' }, h('span', { text: t('top_lang', { l: t('lang_' + lang) }) }),
-        btn(t('change'), 'ln', () => { lsSet('wc_pick_lang:' + S.client, lang === 'vi' ? 'en' : 'vi'); go('top', false); }))
+      sel.locked ? null : h('div', { class: 'langrow' }, langBtn('post'), langBtn('video'))
     ];
     return section('top', [
       h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('top_eyebrow', { d: dayLabel(d.day) }) }),
@@ -1011,11 +1027,24 @@ a{color:var(--primary-deep)}
       d.updated_at ? h('p', { class: 'upd', text: n === 1 ? t('top_upd_1', { t: clock(d.updated_at) }) : t('top_upd', { t: clock(d.updated_at), n: fmtNum(n) }) }) : null,
       h('p', { class: 'note', text: t('top_same') })], dock);
   }
-  function pickLang(p) {
+  // 2026-10-29 (content language): the language of the client's posts and of its videos, kept on WideCast for the client
+  // (the state's languages, the same record Approvals reads and sets); before the client has one, this browser's last
+  // choice, then the idea's own language.
+  const LANGS = ['en', 'vi'];
+  function pickLangs(p) {
+    const mem = obj(S.data && S.data.languages) || {};
     const saved = lsGet('wc_pick_lang:' + S.client) || '';
-    if (saved === 'en' || saved === 'vi') return saved;
-    const l = p && p.pick && p.pick.lang;
-    return l === 'vi' ? 'vi' : 'en';
+    const l = p && p.pick && p.pick.lang === 'vi' ? 'vi' : 'en';
+    const of = (k) => (LANGS.indexOf(str(mem[k])) >= 0 ? str(mem[k]) : LANGS.indexOf(saved) >= 0 ? saved : l);
+    return { post: of('post'), video: of('video') };
+  }
+  function setLang(kind, lang) {
+    if (!S.data) return;
+    S.data.languages = Object.assign({}, obj(S.data.languages) || {}, { [kind]: lang });
+    go('top', false);
+    api('/solo/approvals/languages', { client: S.client, kind: kind, language: lang }).then((res) => {
+      if (res.ok && res.data && obj(res.data.languages) && S.data) S.data.languages = res.data.languages;
+    }, () => {});
   }
   // Tapping a problem is the Ideas tab's "Pick for production", Both (post + video): the same request. A started
   // problem is only opened again.
@@ -1035,7 +1064,8 @@ a{color:var(--primary-deep)}
     if (!p.pick) return;
     S.busy = 'pick';
     go('top', false);
-    api('/solo/report/pick', { id: p.pick.report_id, key: p.pick.key, format: 'both', language: pickLang(p) }).then((res) => {
+    const langs = pickLangs(p);
+    api('/solo/report/pick', { id: p.pick.report_id, key: p.pick.key, format: 'both', language: langs.post, languages: langs }).then((res) => {
       if (authFailed(res)) { S.busy = ''; go('login', true); return null; }
       if (!res.ok) {
         S.busy = '';
@@ -1076,6 +1106,7 @@ a{color:var(--primary-deep)}
       const d = sentDecision(x);
       if (d && d.decision === 'hold') return chip('mute', t('s_later'));
       if (d && d.decision === 'reject') return chip('mute', t('s_skip'));
+      if (d && d.decision === 'language') return chip('busy', t('s_rewrite'));
       if (d) return chip('ok', t(d.stage === 'post' || d.stage === 'video' ? 's_sent_pub' : d.stage === 'scenes' ? 's_sent_make' : 's_sent'));
       return skipped(x.item_id) ? chip('mute', t('s_skip')) : chip('wait', t('s_wait'));
     }
@@ -1216,6 +1247,7 @@ a{color:var(--primary-deep)}
       str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
       u.editing ? editBox(u, 'body', t('k_post')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.body : str(it.body) }),
       cardOf(it) ? placesRow(it, u) : viewLinks('p', it),
+      langRow(it, u),
       u.err ? h('p', { class: 'err', text: u.err }) : null,
       prodButtons(it, u, t('ap_post')));
   }
@@ -1229,8 +1261,32 @@ a{color:var(--primary-deep)}
       str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
       u.editing ? editBox(u, 'script', t('k_video')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.script : str(it.body) }),
       cardOf(it) ? h('p', { class: 'note', text: scenes ? t('script_scenes') : t('script_direct') }) : viewLinks('p', it),
+      langRow(it, u),
       u.err ? h('p', { class: 'err', text: u.err }) : null,
       prodButtons(it, u, t('ap_script')));
+  }
+  // 2026-10-29 (content language): a post or script the bridge can write again says its language and offers the other one
+  // (Approvals' "language" decision through prodBody); the client's next posts, or video scripts, follow it.
+  function langRow(it, u) {
+    const c = cardOf(it);
+    if (!c || !prodOpenAt(it) || u.editing || c.rewrite_ok !== true || LANGS.indexOf(str(c.language)) < 0) return null;
+    const st = str(c.stage);
+    if (st !== 'post' && st !== 'script') return null;
+    const to = pcLangTo(c);
+    return h('div', { class: 'lgrow' }, h('span', { text: t('lg_written', { l: t('lang_' + str(c.language)) }) }),
+      btn(t('lg_switch', { l: t('lang_' + to) }), 'gh', () => decideProd(it, 'language'), { disabled: S.busy !== '', 'data-lang-to': to }),
+      h('p', { class: 'note', text: t(st === 'post' ? 'lg_post_note' : 'lg_video_note', { l: t('lang_' + to) }) }));
+  }
+  function replyLang(c, u) {
+    const asked = LANGS.indexOf(str(c.rewrite_language)) >= 0 ? str(c.rewrite_language) : '';
+    if (asked) return h('div', { class: 'lgrow' }, h('span', { text: t('lg_rewriting', { l: t('lang_' + asked) }) }));
+    if (!cmOpen(c) || u.editing) return null;
+    const cur = LANGS.indexOf(str(c.language)) >= 0 ? str(c.language) : '';
+    const to = cur ? [cur === 'vi' ? 'en' : 'vi'] : LANGS;
+    return h('div', { class: 'lgrow' }, h('span', { text: cur ? t('lg_written', { l: t('lang_' + cur) }) : t('lg_reply_ask') }),
+      to.map((x) => btn(cur ? t('lg_switch', { l: t('lang_' + x) }) : t('lang_' + x), 'gh', () => decideReply(c, 'language', false, false, x),
+        { disabled: S.busy !== '', 'data-lang-to': x })),
+      h('p', { class: 'note', text: t('lg_reply_note') }));
   }
   function vsteps(now) {
     const s = (n, key) => h('span', { class: n < now ? 'done' : n === now ? 'now' : '', text: t(key) + (n < now ? ' ✓' : '') });
@@ -1249,6 +1305,7 @@ a{color:var(--primary-deep)}
       h('header', null, h('span', { class: 'kind', text: t('k_reply') }), stateChip('cm', c)),
       (who || str(p.text)) ? h('div', { class: 'quote' }, who ? h('span', { class: 'who', text: who }) : null, str(p.text) ? h('span', { text: str(p.text) }) : null) : null,
       textEl,
+      replyLang(c, u),
       viewLinks('cm', c),
       h('div', { class: 'self' }, h('span', { text: t('reply_self') }),
         h('div', { class: 'row' }, btn(t('copy'), 'gh', () => copyReply(c, u)),
@@ -1306,12 +1363,14 @@ a{color:var(--primary-deep)}
       load(true);
     });
   }
-  function decideReply(c, decision, self, inAll) {
+  function decideReply(c, decision, self, inAll, lang) {
     const k = 'cm:' + c.id, u = ui(k);
     const text = decision === 'reject' ? null : String(u.f && u.f.text != null ? u.f.text : c.text || '').trim();
     S.busy = k; u.err = '';
     repaintKeep();
-    return api('/solo/comments/decide', { client: c.client, id: c.id, decision: decision, text: text }).then((res) => {
+    const body = { client: c.client, id: c.id, decision: decision, text: text };
+    if (lang) body.language = lang;                 // 2026-10-29: the reply written again in it (never kept)
+    return api('/solo/comments/decide', body).then((res) => {
       S.busy = '';
       if (authFailed(res)) { go('login', true); return false; }
       if (!(res.ok && res.data && res.data.comment)) {
@@ -1321,6 +1380,7 @@ a{color:var(--primary-deep)}
         return false;
       }
       if (decision === 'save') { u.editing = ''; u.f = { text: str(res.data.comment.text) }; repaintKeep(); return true; }
+      if (decision === 'language') { u.f = null; load(true); return true; }
       S.cmSent[c.id] = decision;
       if (self) toast(t('self_done'));
       return (decision === 'reject' ? mark('skip', 'cm:' + c.id) : Promise.resolve()).then(() => { if (!inAll) load(true); return true; });
