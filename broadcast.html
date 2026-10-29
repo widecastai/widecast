@@ -218,7 +218,7 @@ select.field{padding-right:28px}
       attach_total: 'Attached files together are over 10 MB: send them as links.', attach_type: '{f} can only go as a link.',
       some_failed: 'Some files were not added: {e}',
       uploading: 'Uploading…', save: 'Save', saved: 'Saved', saving: 'Saving…', test: 'Send me a test', testing: 'Sending test…',
-      test_sent: 'Test sent to {e}.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
+      test_sent: 'Test sent to {e}.', test_sent_as: 'Test sent to {e}, its tags filled with the answers of {who}. Send another to see someone else.', reject: 'Turn down', discard: 'Delete draft', agent_note: 'Note from your agent',
       who: 'Who gets it', who_hint: 'Tick one or more lead magnets, or the whole CRM. Each person gets this email once.',
       whole_crm: 'Whole CRM', contacts: '{n} contacts', leads: '{n} leads', lang_other: 'other pages', check: 'Check numbers', checking: 'Checking…',
       will_get: 'will get it now', from: 'From', not_sending: 'Not getting it this time', overlap: '{n} people are in more than one of the lists you ticked; they get it once.',
@@ -288,7 +288,7 @@ select.field{padding-right:28px}
       attach_total: 'Các tệp đính kèm cộng lại quá 10 MB: hãy gửi dạng link.', attach_type: '{f} chỉ gửi được dạng link.',
       some_failed: 'Có tệp chưa thêm được: {e}',
       uploading: 'Đang tải lên…', save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…', test: 'Gửi thử cho tôi', testing: 'Đang gửi thử…',
-      test_sent: 'Đã gửi thử tới {e}.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
+      test_sent: 'Đã gửi thử tới {e}.', test_sent_as: 'Đã gửi thử tới {e}, tag lấy theo câu trả lời của {who}. Gửi thêm lần nữa để xem một người khác.', reject: 'Từ chối', discard: 'Xoá nháp', agent_note: 'Ghi chú của agent',
       who: 'Ai nhận', who_hint: 'Chọn một hay nhiều lead magnet, hoặc toàn bộ CRM. Mỗi người nhận email này một lần.',
       whole_crm: 'Toàn bộ CRM', contacts: '{n} contact', leads: '{n} lead', n_boxes: '{n} hộp', lang_other: 'trang khác', check: 'Xem số người nhận', checking: 'Đang tính…',
       will_get: 'người sẽ nhận lần này', from: 'Gửi từ', not_sending: 'Lần này không gửi cho', overlap: '{n} người nằm trong nhiều danh sách bạn chọn; họ chỉ nhận một lần.',
@@ -824,11 +824,19 @@ select.field{padding-right:28px}
     ensureSaved().then((ok) => {
       if (!ok) return;
       S.busy = 'test'; render();
-      api('/solo/broadcast/test', { client: S.client, uid: S.edit.uid }).then((res) => {
+      // 2026-10-28: the copy still goes only to the tester; its tags take a real lead of the people ticked below
+      // (nothing ticked: the whole CRM), someone else at each new test of this email.
+      const e = S.edit, a = audBody();
+      a.skip = arr(e._testSkip).slice(-50);
+      if (!a.magnets.length && !a.crm) a.crm = true;
+      api('/solo/broadcast/test', a).then((res) => {
         S.busy = '';
         if (authFailed(res)) { showLogin(); return; }
         if (!res.ok) { S.err = msgOf(res); render(); return; }
-        render(); toast(t('test_sent', { e: str(res.data.to) }));
+        const sm = res.data.sample;
+        if (sm && sm.contact_id && S.edit === e) e._testSkip = arr(e._testSkip).concat([sm.contact_id]);
+        render();
+        toast(sm ? t('test_sent_as', { e: str(res.data.to), who: str(sm.name) || str(sm.email) }) : t('test_sent', { e: str(res.data.to) }));
       }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
     });
   }
@@ -965,13 +973,28 @@ select.field{padding-right:28px}
       mark(); render();
       const el2 = document.getElementById(id); if (el2) { el2.focus(); el2.selectionStart = el2.selectionEnd = s + tag.length; }
     };
+    // A magnet's questions for the languages left ticked (2026-10-28): one language → that page's questions and its
+    // people; some of them → their questions together; all (no entry) → the whole magnet.
+    const magFields = (m) => {
+      const l = S.aud.langs[m.magnet_id], by = m.fields_by_lang || null, ll = m.language_leads || {};
+      if (!l || !by) return { fields: arr(m.fields), total: num(m.leads), joinable: true };
+      if (l.length === 1) return { fields: arr(by[l[0]]), total: num(ll[l[0]]), joinable: true };
+      const o = {};
+      l.forEach((lg) => arr(by[lg]).forEach((f) => { const x = o[f.key]; o[f.key] = x ? Object.assign({}, x, { count: num(x.count) + num(f.count) }) : Object.assign({}, f, { suggest: [] }); }));
+      return { fields: Object.keys(o).map((k) => o[k]).sort((a, b) => num(b.count) - num(a.count) || (a.key < b.key ? -1 : 1)),
+        total: l.reduce((a, lg) => a + num(ll[lg]), 0), joinable: false };
+    };
     const tagScope = () => {
       if (S.aud.crm) return { mode: 'crm', fields: [] };
       const ticked = S.magnets.filter((m) => S.aud.magnets.indexOf(m.magnet_id) >= 0);
       if (!ticked.length) return { mode: 'none', fields: [] };
-      if (ticked.length === 1) return { mode: 'one', title: str(ticked[0].title), fields: arr(ticked[0].fields).map((f) => Object.assign({ total: num(ticked[0].leads) }, f)) };
-      const maps = ticked.map((m) => { const o = {}; arr(m.fields).forEach((f) => { o[f.key] = f; }); return o; });
-      const total = ticked.reduce((a, m) => a + num(m.leads), 0);
+      if (ticked.length === 1) {
+        const mf = magFields(ticked[0]);
+        return { mode: 'one', title: str(ticked[0].title), joinable: mf.joinable, fields: mf.fields.map((f) => Object.assign({ total: mf.total }, f)) };
+      }
+      const mfs = ticked.map(magFields);
+      const maps = mfs.map((mf) => { const o = {}; mf.fields.forEach((f) => { o[f.key] = f; }); return o; });
+      const total = mfs.reduce((a, mf) => a + mf.total, 0);
       const common = Object.keys(maps[0]).filter((k) => maps.every((o) => o[k])).map((k) => ({ key: k, label: maps[0][k].label, total: total,
         count: maps.reduce((a, o) => a + num(o[k].count), 0), also: maps.reduce((a, o) => a.concat(arr(o[k].also)), []) }));
       return { mode: 'many', n: ticked.length, fields: common.sort((a, b) => b.count - a.count || (a.key < b.key ? -1 : 1)) };
@@ -999,7 +1022,7 @@ select.field{padding-right:28px}
         h('p', { class: 'small', text: lead }),
         h('b', { class: 'small', text: t('f_std') }),
         h('div', { class: 'chips' }, ['first_name', 'full_name', 'email', 'phone'].map((k) => h('button', { class: 'chip', type: 'button', onclick: () => insertTag(k) }, t('f_' + k), h('code', { text: '{{' + k + '}}' })))),
-        sc.fields.length ? [h('b', { class: 'small', style: 'display:block;margin-top:12px', text: t('f_form') }), h('ul', { class: 'tagl' }, sc.fields.map((f) => fieldRow(f, sc.mode === 'one')))]
+        sc.fields.length ? [h('b', { class: 'small', style: 'display:block;margin-top:12px', text: t('f_form') }), h('ul', { class: 'tagl' }, sc.fields.map((f) => fieldRow(f, sc.mode === 'one' && sc.joinable)))]
           : sc.mode === 'one' || sc.mode === 'many' ? h('p', { class: 'small', style: 'margin-top:10px', text: t(sc.mode === 'many' ? 'tags_no_common' : 'f_none') }) : null,
         h('p', { class: 'small', style: 'margin-top:10px', text: t('name_hint', { tag: ex }) }));
     };
