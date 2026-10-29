@@ -37,6 +37,12 @@ a{color:var(--primary-deep)}
 .mode a,.mode span{display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;font:700 14px/1 var(--f-body);min-height:40px;color:var(--muted);text-decoration:none}
 .mode span{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .smini{display:inline-flex;align-items:center;gap:6px;font:800 16px/1 var(--f-disp);color:var(--ink)}
+.crow{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px max(18px,env(safe-area-inset-right,0px)) 0 max(18px,env(safe-area-inset-left,0px));padding:0 4px 0 12px;border-radius:12px;background:var(--chip);font:600 14px/1.2 var(--f-body);color:var(--muted)}
+.crow b{color:var(--ink);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.crow span{display:flex;gap:6px;min-width:0}
+.crow .btn.ln{min-height:40px;font:700 14px var(--f-body)}
+.cbtn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left}
+.cbtn .chip{flex:none}
 .smini svg{width:20px;height:20px;color:var(--flame)}
 /* the trail: three stops and the flag */
 .prog{flex:none;padding:6px 22px 10px;display:grid;gap:8px}
@@ -144,7 +150,12 @@ a{color:var(--primary-deep)}
 .walker i::after{content:"";position:absolute;left:50%;top:4px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:var(--primary);box-shadow:0 3px 0 var(--primary-deep)}
 .walker svg{width:44px;height:44px;color:var(--primary)}
 .mini{list-style:none;margin:0;padding:0;display:grid;gap:8px;width:100%}
-.mini li{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:12px 14px;font-weight:700;border:1px solid var(--line);text-align:left}
+.mini li{display:grid;gap:4px;background:var(--surface);border-radius:14px;padding:12px 14px;font-weight:700;border:1px solid var(--line);text-align:left}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.views{display:flex;flex-wrap:wrap;gap:4px 16px}
+.vlink{display:inline-flex;align-items:center;min-height:40px;font:700 14px/1.2 var(--f-body);color:var(--primary-deep);text-decoration:underline;text-underline-offset:3px}
+.live{display:grid;gap:8px;background:var(--surface);border-radius:var(--r-card);padding:14px 16px;border:3px solid var(--line)}
+.live h2{font:800 18px/1.2 var(--f-disp)}
 .calm{font-size:15px;color:var(--muted);max-width:32ch}
 .banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sun);color:#3d2a00;border-radius:14px;padding:8px 8px 8px 14px;font-weight:700;font-size:14.5px}
 .banner .btn{min-height:40px;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--sun-deep);margin:0 0 3px}
@@ -186,6 +197,7 @@ a{color:var(--primary-deep)}
     <nav class="mode" aria-label="Two views of one queue"><span id="m-wiz" aria-current="page">Wizard</span><a id="m-adv" href="approve.html">Advance</a></nav>
     <span class="smini" id="smini" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3-1 4.6-2.5 6.3-1.4 1.6-2.9 3.3-2.9 6A5.4 5.4 0 0 0 12.6 20a5.6 5.6 0 0 0 5.6-5.6c0-2.6-1.3-4.4-2.4-5.6-.2 1.5-.9 2.6-2 3.1.6-3.4-.2-7-1.2-9.7Z"/></svg><span id="smini-n">0</span></span>
   </header>
+  <div class="crow" id="crow" hidden><span><span id="crow-l"></span><b id="crow-n"></b></span><button type="button" class="btn ln" id="crow-b"></button></div>
   <div class="prog" aria-hidden="true">
     <div class="trail"><span class="track"><i></i></span><span class="stop" data-n="1">1</span><span class="stop" data-n="2">2</span><span class="stop" data-n="3">3</span><span class="stop flag" data-n="4"><svg viewBox="0 0 24 24"><path d="M6 21V4m0 1h11l-2.5 4L17 13H6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span></div>
     <p><span id="plabel"></span><span class="psub" id="psub"></span></p>
@@ -236,6 +248,7 @@ a{color:var(--primary-deep)}
       open_adv: 'Open Approvals',
       off_h: 'The Wizard is not on for this account yet', off_p: 'Everything waits in Approvals, as before.',
       clients_h: 'Which business today?', clients_p: 'Pick one. You can switch any time.',
+      clients_wait: 'Something waits for you', clients_back: 'Back to {c}', crow_l: 'Business:', crow_b: 'Switch',
       top_eyebrow: 'Today · {d}', top_h: 'What is your audience asking most today?',
       top_sub: 'Tap a problem. The Wizard has your agent write a post, a reply and a video script for it.',
       top_tag: 'Suggested', top_posts_1: '1 post', top_posts: '{n} posts', top_comments: '{n} comments',
@@ -292,6 +305,7 @@ a{color:var(--primary-deep)}
       r_tomorrow: 'Tomorrow\'s top 3 comes after the first scan.',
       r_more: 'Make another bundle', r_adv: 'See everything in Advance', r_bye: 'Done, see you tomorrow', r_bye_t: 'See you tomorrow.',
       new_work: 'Something new is ready', new_go: 'Show me', net_err: 'No connection. Try again.',
+      view: 'View', view_on: 'View on {p}', live_h: 'Published today',
       decide_failed: 'That did not go through. Try again.', not_awaiting: 'This changed a moment ago. The latest is shown now.',
       magic_denied: 'Only the account owner can decide here.', stale: 'This changed a moment ago. The latest is shown now.',
       busy_h: 'One moment…', week_aria: 'The last 7 days',
@@ -315,6 +329,7 @@ a{color:var(--primary-deep)}
       open_adv: 'Mở Approval',
       off_h: 'Wizard chưa bật cho tài khoản này', off_p: 'Mọi thứ vẫn chờ bạn ở Approval như trước.',
       clients_h: 'Hôm nay làm cho doanh nghiệp nào?', clients_p: 'Chọn một. Bạn đổi được bất cứ lúc nào.',
+      clients_wait: 'Có việc chờ bạn', clients_back: 'Quay lại {c}', crow_l: 'Doanh nghiệp:', crow_b: 'Đổi',
       top_eyebrow: 'Hôm nay · {d}', top_h: 'Khán giả của bạn đang hỏi gì nhiều nhất?',
       top_sub: 'Chạm một vấn đề. Wizard nhờ agent của bạn viết một post, một comment trả lời và một script video cho nó.',
       top_tag: 'Đề xuất', top_posts_1: '1 bài', top_posts: '{n} bài', top_comments: '{n} bình luận',
@@ -371,6 +386,7 @@ a{color:var(--primary-deep)}
       r_tomorrow: 'Top 3 ngày mai có sau đợt quét đầu tiên.',
       r_more: 'Làm thêm một bộ', r_adv: 'Xem mọi thứ ở Advance', r_bye: 'Xong, hẹn mai', r_bye_t: 'Hẹn bạn ngày mai.',
       new_work: 'Có việc mới sẵn sàng', new_go: 'Xem ngay', net_err: 'Không kết nối được. Bạn thử lại nhé.',
+      view: 'Xem', view_on: 'Xem trên {p}', live_h: 'Đã đăng hôm nay',
       decide_failed: 'Chưa gửi được. Bạn thử lại nhé.', not_awaiting: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
       magic_denied: 'Chỉ chủ tài khoản mới duyệt được ở đây.', stale: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
       busy_h: 'Chờ một chút…', week_aria: '7 ngày qua',
@@ -627,7 +643,7 @@ a{color:var(--primary-deep)}
   // body; sent remembers a decision the server took until the next load shows it.
   const S = {
     client: '', data: null, screen: '', next: '', sel: -1, busy: '', ui: Object.create(null), sent: Object.create(null),
-    cmSent: Object.create(null), seen: new Set(), res: null, doneSent: '', timer: 0, loading: false, ownerOnly: false,
+    cmSent: Object.create(null), seen: new Set(), res: null, doneSent: '', timer: 0, loading: false, ownerOnly: false, prevClient: '',
     lastLoad: 0, fx: false
   };
   const app = document.getElementById('app');
@@ -817,6 +833,13 @@ a{color:var(--primary-deep)}
     const m = document.getElementById('smini');
     m.hidden = !sd;
     if (sd) document.getElementById('smini-n').textContent = fmtNum(Number(sd.days) || 0);
+    // The business row: only for an account with two clients or more, never on the picker itself.
+    const many = !!S.data && arr(S.data.clients).length > 1;
+    const crow = document.getElementById('crow');
+    crow.hidden = !(many && S.client && ['clients', 'login', 'off', 'loading'].indexOf(S.screen) < 0);
+    document.getElementById('crow-l').textContent = t('crow_l');
+    document.getElementById('crow-n').textContent = S.client;
+    document.getElementById('crow-b').textContent = t('crow_b');
     const adv = document.getElementById('m-adv');
     adv.setAttribute('href', advHref());
     adv.textContent = 'Advance';
@@ -885,10 +908,24 @@ a{color:var(--primary-deep)}
     return section('off', h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('off_h') }), h('p', { class: 'sub', text: t('off_p') })),
       h('a', { class: 'btn pr big', href: advHref(), text: t('open_adv') }));
   }
+  // The client picker: the clients with something waiting for a decision first, each marked; Back keeps the one open.
   function scrClients() {
-    const list = arr(S.data && S.data.clients).filter((c) => typeof c === 'string' && CLIENT_RE.test(c));
+    const waiting = arr(S.data && S.data.waiting_clients);
+    const list = arr(S.data && S.data.clients).filter((c) => typeof c === 'string' && CLIENT_RE.test(c))
+      .sort((a, b) => (waiting.indexOf(b) >= 0) - (waiting.indexOf(a) >= 0) || (a < b ? -1 : 1));
+    const pick = (c) => { S.client = c; S.prevClient = ''; lsSet('wc_wizard_client', c); S.data = null; S.sel = -1; go('loading', true); load(true); };
     return section('clients', [h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('clients_h') }), h('p', { class: 'sub', text: t('clients_p') })),
-      h('div', { class: 'clients' }, list.map((c) => btn(c, 'gh big', () => { S.client = c; lsSet('wc_wizard_client', c); S.data = null; go('loading', true); load(true); })))]);
+      h('div', { class: 'clients' }, list.map((c) => h('button', { type: 'button', class: 'btn gh big cbtn', 'data-client': c, onclick: () => pick(c) },
+        h('span', { text: c }), waiting.indexOf(c) >= 0 ? chip('wait', t('clients_wait')) : null)))],
+    S.prevClient ? btn(t('clients_back', { c: S.prevClient }), 'ln', () => pick(S.prevClient)) : null);
+  }
+  // "Switch": the picker, asked of the server without a client (it lists them and marks the ones waiting).
+  function switchClient() {
+    if (S.busy || !S.client) return;
+    S.prevClient = S.client;
+    S.client = '';
+    go('loading', true);
+    load(true);
   }
 
   // ── 1. Today's top 3
@@ -1000,6 +1037,32 @@ a{color:var(--primary-deep)}
     if (STOPPED.indexOf(x.state) >= 0) return chip('fix', t('s_stopped'));
     return chip('busy', t('s_making'));
   }
+  // Where a published post or video, or a posted reply, can be seen: the links Approvals shows (the row's lines, else the
+  // item's result; a reply's posted_url), each opened in a new tab.
+  function seenLinks(kind, x) {
+    const out = [], have = new Set();
+    const addL = (label, u) => {
+      const s = safeUrl(str(u));
+      if (s && !have.has(s)) { have.add(s); out.push({ label: str(label), url: s }); }
+    };
+    if (!x) return out;
+    if (kind === 'cm') addL('', x.posted_url);
+    else {
+      arr(obj(x.row) && x.row.lines).filter(obj).forEach((l) => addL(l.label, l.post_url));
+      arr(obj(x.result) && x.result.published).filter(obj).forEach((p) => addL(platLabel(p.platform), p.url));
+    }
+    return out;
+  }
+  const PLAT = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', linkedin: 'LinkedIn',
+    x: 'X', twitter: 'X', threads: 'Threads', pinterest: 'Pinterest' };
+  const platLabel = (p) => { const k = str(p).toLowerCase(); return own(PLAT, k) || str(p).replace(/^./, (c) => c.toUpperCase()); };
+  function viewLinks(kind, x) {
+    const L = seenLinks(kind, x);
+    if (!L.length) return null;
+    return h('span', { class: 'views' }, L.map((l) => h('a', { class: 'vlink', href: l.url, target: '_blank', rel: 'noopener noreferrer',
+      text: l.label ? t('view_on', { p: l.label }) : t('view') })));
+  }
+  const miniRow = (name, kind, x) => h('li', null, h('div', { class: 'mrow' }, h('span', { text: t(name) }), stateChip(kind, x)), viewLinks(kind, x));
   function scrWrite() {
     const b = bundle(S.data);
     const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
@@ -1103,7 +1166,7 @@ a{color:var(--primary-deep)}
       pic,
       str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
       u.editing ? editBox(u, 'body', t('k_post')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.body : str(it.body) }),
-      cardOf(it) ? placesRow(it, u) : null,
+      cardOf(it) ? placesRow(it, u) : viewLinks('p', it),
       u.err ? h('p', { class: 'err', text: u.err }) : null,
       prodButtons(it, u, t('ap_post')));
   }
@@ -1116,7 +1179,7 @@ a{color:var(--primary-deep)}
       vsteps(1),
       str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
       u.editing ? editBox(u, 'script', t('k_video')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.script : str(it.body) }),
-      cardOf(it) ? h('p', { class: 'note', text: scenes ? t('script_scenes') : t('script_direct') }) : null,
+      cardOf(it) ? h('p', { class: 'note', text: scenes ? t('script_scenes') : t('script_direct') }) : viewLinks('p', it),
       u.err ? h('p', { class: 'err', text: u.err }) : null,
       prodButtons(it, u, t('ap_script')));
   }
@@ -1137,6 +1200,7 @@ a{color:var(--primary-deep)}
       h('header', null, h('span', { class: 'kind', text: t('k_reply') }), stateChip('cm', c)),
       (who || str(p.text)) ? h('div', { class: 'quote' }, who ? h('span', { class: 'who', text: who }) : null, str(p.text) ? h('span', { text: str(p.text) }) : null) : null,
       textEl,
+      viewLinks('cm', c),
       h('div', { class: 'self' }, h('span', { text: t('reply_self') }),
         h('div', { class: 'row' }, btn(t('copy'), 'gh', () => copyReply(c, u)),
           pu ? h('a', { class: 'btn gh', href: pu, target: '_blank', rel: 'noopener noreferrer', text: t('open_post') }) : null)),
@@ -1281,7 +1345,7 @@ a{color:var(--primary-deep)}
     const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
     return section('wait', h('div', { class: 'wait-hero' }, walker(),
       h('h1', { class: 'status-line', text: waitLine(b) }),
-      h('ul', { class: 'mini' }, rows.map((r) => h('li', null, h('span', { text: t(r[0]) }), stateChip(r[2], r[1])))),
+      h('ul', { class: 'mini' }, rows.map((r) => miniRow(r[0], r[2], r[1]))),
       h('p', { class: 'calm', text: t('w_calm') })),
     btn(t('close_call'), 'pr big', closeApp));
   }
@@ -1314,7 +1378,7 @@ a{color:var(--primary-deep)}
     const r = obj(it && it.row) || {};
     return section('problem', [h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('pr_h') }),
       h('p', { class: 'sub', text: str(r.plain) || str(r.status_line) })),
-    h('ul', { class: 'mini' }, [['k_post', b.post], ['k_video', b.video]].filter((x) => x[1]).map((x) => h('li', null, h('span', { text: t(x[0]) }), stateChip('p', x[1]))))],
+    h('ul', { class: 'mini' }, [['k_post', b.post], ['k_video', b.video]].filter((x) => x[1]).map((x) => miniRow(x[0], 'p', x[1])))],
     [r.can_retry ? btn(t('pr_retry'), 'pr big', () => decideRow(it, 'retry'), { disabled: S.busy !== '' }) : null,
       h('a', { class: 'btn gh', href: advHref(), text: t('open_adv') })]);
   }
@@ -1351,6 +1415,9 @@ a{color:var(--primary-deep)}
       week.length ? h('ol', { class: 'week', 'aria-label': t('week_aria') }, week) : null,
       sd.paused ? h('p', { class: 'note', text: t('r_paused') }) : null,
       h('p', { class: 'note', text: t('r_streak_note') }))];
+    const b = S.data && bundle(S.data);
+    const live = b ? [['k_post', 'p', b.post], ['k_reply', 'cm', b.cm], ['k_video', 'p', b.video]].filter((x) => seenLinks(x[1], x[2]).length) : [];
+    if (live.length) kids.push(h('div', { class: 'live' }, h('h2', { text: t('live_h') }), h('ul', { class: 'mini' }, live.map((x) => miniRow(x[0], x[1], x[2])))));
     if (r) {
       kids.push(h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('b', { text: r.views_7d == null ? '·' : fmtNum(r.views_7d) }), h('span', { text: t('r_views') })),
@@ -1417,7 +1484,10 @@ a{color:var(--primary-deep)}
   window.addEventListener('pagehide', leave);
 
   const want0 = Q0.get('client');
-  S.client = want0 && CLIENT_RE.test(want0) ? want0 : (lsGet('wc_wizard_client') || '');
+  // Opened without ?client (a notice for several clients, a bookmark): the server opens the only client, or the picker
+  // with the waiting ones marked; the last client is never reused silently, its decision may belong to another one.
+  S.client = want0 && CLIENT_RE.test(want0) ? want0 : '';
+  document.getElementById('crow-b').addEventListener('click', switchClient);
   document.documentElement.lang = LANG;
   document.getElementById('m-wiz').textContent = 'Wizard';
   document.querySelector('nav.mode').setAttribute('aria-label', t('mode_label'));
