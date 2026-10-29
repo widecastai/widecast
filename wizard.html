@@ -110,6 +110,9 @@ a{color:var(--primary-deep)}
 .prob .lock{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--s-ok)}
 .prob .lock svg{width:16px;height:16px}
 .prob[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 5px 0 var(--primary-deep)}
+.prob.prep{opacity:.62;border-style:dashed;box-shadow:none;cursor:default}
+.prob.prep .tag{background:var(--chip);color:var(--muted)}
+.prob .pline{font-size:13.5px;font-weight:600;color:var(--muted)}
 .prob[aria-pressed="true"] .rank{background:var(--primary);border-color:var(--primary);color:#fff}
 .flagline{position:relative;z-index:1;display:flex;align-items:center;gap:10px;font:700 14px/1.2 var(--f-body);color:var(--muted);padding-left:16px}
 .flagline i{width:40px;height:40px;border-radius:50%;background:var(--sun);display:grid;place-items:center;color:#3d2a00;flex:none;box-shadow:0 4px 0 var(--sun-deep)}
@@ -262,7 +265,10 @@ a{color:var(--primary-deep)}
       top_go: 'Make the bundle for problem {n}', top_go_locked: 'Continue problem {n}', top_lang: 'Written in {l}',
       change: 'Change', lang_en: 'English', lang_vi: 'Vietnamese', picking: 'Picking…',
       pick_brief: 'This problem is not ready to write yet. Pick another one.',
-      none_h: 'No strong problem yet today', none_scan: 'Your agent keeps scanning. Today\'s top 3 shows up after the next scan.',
+      none_h: 'Nothing to pick yet today', none_scan: 'Your agent keeps scanning. Today\'s top 3 shows up after the next scan.',
+      prep_tag: 'Getting ready', prep_line: 'Your agent is writing its brief. You can pick it once it is ready.',
+      prep_none: 'Nothing to pick yet', prep_note_1: '1 idea today is being prepared. It can be picked once its brief is ready.',
+      prep_note: '{n} ideas today are being prepared. Each one can be picked once its brief is ready.',
       none_noscan: 'No scan has run today yet. Today\'s top 3 shows up after the first one.',
       write_h: 'Writing the bundle for problem {n}. I will call you when it is ready.',
       write_calm: 'This usually takes 5 to 15 minutes. You can close the app.',
@@ -351,7 +357,10 @@ a{color:var(--primary-deep)}
       top_go: 'Làm bộ 3 từ vấn đề số {n}', top_go_locked: 'Tiếp tục vấn đề số {n}', top_lang: 'Viết bằng {l}',
       change: 'Đổi', lang_en: 'tiếng Anh', lang_vi: 'tiếng Việt', picking: 'Đang chọn…',
       pick_brief: 'Vấn đề này chưa sẵn sàng để viết. Bạn chọn vấn đề khác nhé.',
-      none_h: 'Hôm nay chưa có vấn đề nào đủ mạnh', none_scan: 'Agent của bạn vẫn đang quét. Top 3 hôm nay hiện sau đợt quét tới.',
+      none_h: 'Hôm nay chưa có vấn đề nào để chọn', none_scan: 'Agent của bạn vẫn đang quét. Top 3 hôm nay hiện sau đợt quét tới.',
+      prep_tag: 'Đang chuẩn bị', prep_line: 'Agent đang chuẩn bị brief. Xong là chọn được.',
+      prep_none: 'Chưa có vấn đề để chọn', prep_note_1: 'Hôm nay có 1 ý tưởng đang được chuẩn bị. Có brief là chọn được.',
+      prep_note: 'Hôm nay có {n} ý tưởng đang được chuẩn bị. Ý tưởng nào có brief là chọn được.',
       none_noscan: 'Hôm nay chưa có đợt quét nào. Top 3 hôm nay hiện sau đợt quét đầu tiên.',
       write_h: 'Đang soạn bộ 3 cho vấn đề số {n}. Xong tôi gọi bạn.',
       write_calm: 'Thường mất 5 đến 15 phút. Bạn đóng app được.',
@@ -960,39 +969,44 @@ a{color:var(--primary-deep)}
   // ── 1. Today's top 3
   function scrTop() {
     const d = S.data, list = arr(d.problems).filter(obj);
-    if (S.sel < 0 || S.sel >= list.length) {
+    const pickable = (p) => !!p && (p.locked || !!p.pick);
+    if (S.sel < 0 || S.sel >= list.length || !pickable(list[S.sel])) {
       const started = list.findIndex((p) => p.locked);
-      S.sel = started >= 0 ? started : 0;
+      S.sel = started >= 0 ? started : list.findIndex(pickable);
     }
     const maxScore = Math.max(1, ...list.map((p) => (Number(p.posts) || 0) * 10 + (Number(p.comments) || 0) + (Number(p.reactions) || 0) / 5));
-    const firstFree = list.findIndex((p) => !p.locked);
+    const firstFree = list.findIndex((p) => !p.locked && !!p.pick);
+    const preparing = list.filter((p) => p.preparing).length;
     const cards = list.map((p, i) => {
       const sig = [Number(p.posts) === 1 ? t('top_posts_1') : t('top_posts', { n: fmtNum(Number(p.posts) || 0) }),
         t('top_comments', { n: fmtNum(Number(p.comments) || 0) }) + ' · ' + t('top_reactions', { n: fmtNum(Number(p.reactions) || 0) })];
       const lt = isoClock(p.latest);
       if (lt) sig.push(t('top_latest', { t: lt }));
       const score = (Number(p.posts) || 0) * 10 + (Number(p.comments) || 0) + (Number(p.reactions) || 0) / 5;
-      return h('button', { type: 'button', class: 'prob', 'aria-pressed': String(i === S.sel), 'data-i': String(i),
-        onclick: () => { S.sel = i; go('top', false); } },
+      // a problem whose brief is on its way: shown so the day is not empty, never pickable until the brief is ready
+      return h('button', { type: 'button', class: 'prob' + (p.preparing ? ' prep' : ''), 'aria-pressed': String(i === S.sel), 'data-i': String(i),
+        'aria-disabled': p.preparing ? 'true' : null, onclick: () => { if (pickable(p)) { S.sel = i; go('top', false); } } },
       h('span', { class: 'rank', text: String(i + 1) }),
-      i === firstFree && !p.locked ? h('span', { class: 'tag', text: t('top_tag') }) : null,
+      p.preparing ? h('span', { class: 'tag', text: t('prep_tag') }) : i === firstFree && !p.locked ? h('span', { class: 'tag', text: t('top_tag') }) : null,
       h('span', { class: 'ptitle', text: str(p.title) }),
       h('span', { class: 'sig' }, sig.map((x) => h('span', { text: x }))),
       h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.round(Math.max(0.08, score / maxScore) * 100) + '%' })),
+      p.preparing ? h('span', { class: 'pline', text: t('prep_line') }) : null,
       p.locked ? h('span', { class: 'lock' }, svg(ICON_LOCK, 2), t('top_locked')) : null);
     });
     const n = Number(d.scans) || 0;
-    const sel = list[S.sel];
+    const sel = S.sel >= 0 ? list[S.sel] : null;
     const lang = sel ? pickLang(sel) : 'en';
-    const dock = sel ? [
+    const dock = !sel ? [btn(t('prep_none'), 'pr big', null, { disabled: true, id: 'go' })] : [
       btn(S.busy === 'pick' ? t('picking') : t(sel.locked ? 'top_go_locked' : 'top_go', { n: S.sel + 1 }), 'pr big', () => startProblem(sel),
         { disabled: S.busy !== '', id: 'go' }),
       sel.locked ? null : h('div', { class: 'langrow' }, h('span', { text: t('top_lang', { l: t('lang_' + lang) }) }),
         btn(t('change'), 'ln', () => { lsSet('wc_pick_lang:' + S.client, lang === 'vi' ? 'en' : 'vi'); go('top', false); }))
-    ] : null;
+    ];
     return section('top', [
       h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('top_eyebrow', { d: dayLabel(d.day) }) }),
         h('h1', { class: 'h', text: t('top_h') }), h('p', { class: 'sub', text: t('top_sub') })),
+      preparing ? h('p', { class: 'note', text: preparing === 1 ? t('prep_note_1') : t('prep_note', { n: fmtNum(preparing) }) }) : null,
       h('div', { class: 'probs' }, cards, h('div', { class: 'flagline' }, h('i', null, svg(ICON_FLAG, 2.4)), t('k_post') + ' · ' + t('k_reply') + ' · ' + t('k_video'))),
       d.updated_at ? h('p', { class: 'upd', text: n === 1 ? t('top_upd_1', { t: clock(d.updated_at) }) : t('top_upd', { t: clock(d.updated_at), n: fmtNum(n) }) }) : null,
       h('p', { class: 'note', text: t('top_same') })], dock);
