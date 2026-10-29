@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#eef5ff">
+<title>Wizard | WideCast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* WideCast Wizard (2026-10-29), direction A "the path": the day is a board-game trail with three stops and a flag.
+   One decision per screen, big thumb-reach buttons, chunky pressable buttons; motion only around the action, never
+   over what is being reviewed, and never moving on by itself. */
+:root{
+ --page:#cfe2fa;--bg:#eef5ff;--surface:#ffffff;--ink:#13234a;--muted:#55678c;--line:#d3e0f4;--chip:#e2ecfb;
+ --primary:#2f66e8;--primary-deep:#1d47b0;--on-primary:#ffffff;--sun:#ffc53d;--sun-deep:#d99a12;
+ --s-wait:#8a5a00;--s-wait-bg:#fff1cc;--s-ok:#137a50;--s-ok-bg:#d8f5e7;--s-fix:#b42c45;--s-fix-bg:#ffe1e6;
+ --s-busy:#1d47b0;--s-busy-bg:#dbe6ff;--s-you:#7a3fb0;--s-you-bg:#f1e4ff;--flame:#f08a1c;
+ --toast-bg:#13234a;--toast-ink:#ffffff;--focus:#ffb000;
+ --f-disp:"Baloo 2","Be Vietnam Pro",system-ui,sans-serif;--f-body:"Be Vietnam Pro",system-ui,sans-serif;
+ --r-card:22px;--r-btn:18px;--t-dur:.55s;--t-ease:cubic-bezier(.2,1.25,.35,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+a{color:var(--primary-deep)}
+.app{position:relative;max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;isolation:isolate}
+@media (min-width:560px){body{padding:16px 0}.app{height:min(900px,calc(100% - 0px));border-radius:34px;box-shadow:0 30px 80px -30px rgba(10,20,60,.45)}}
+.top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 6px max(18px,env(safe-area-inset-left,0px))}
+.mode{display:inline-flex;background:var(--chip);border-radius:999px;padding:4px}
+.mode a,.mode span{display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;font:700 14px/1 var(--f-body);min-height:40px;color:var(--muted);text-decoration:none}
+.mode span{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.smini{display:inline-flex;align-items:center;gap:6px;font:800 16px/1 var(--f-disp);color:var(--ink)}
+.smini svg{width:20px;height:20px;color:var(--flame)}
+/* the trail: three stops and the flag */
+.prog{flex:none;padding:6px 22px 10px;display:grid;gap:8px}
+.trail{position:relative;height:34px;display:flex;justify-content:space-between;align-items:center}
+.trail .track{position:absolute;left:16px;right:16px;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:repeating-linear-gradient(90deg,#b8cdee 0 10px,transparent 10px 18px)}
+.trail .track i{display:block;height:100%;width:calc(var(--p,0)*100%);background:var(--primary);border-radius:3px;transition:width .9s cubic-bezier(.3,1.2,.4,1)}
+.stop{position:relative;z-index:1;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#fff;border:3px solid #b8cdee;font:800 16px/1 var(--f-disp);color:var(--muted);transition:background .4s,border-color .4s,color .4s,transform .4s}
+.stop svg{width:18px;height:18px}
+.app[data-step="1"] .stop[data-n="1"],.app[data-step="2"] .stop[data-n="2"],.app[data-step="3"] .stop[data-n="3"]{border-color:var(--primary);color:var(--primary);transform:scale(1.15);box-shadow:0 0 0 6px rgba(47,102,232,.15)}
+.app[data-step="2"] .stop[data-n="1"],.app[data-step="3"] .stop[data-n="1"],.app[data-step="3"] .stop[data-n="2"],.app[data-step="4"] .stop{background:var(--primary);border-color:var(--primary);color:#fff}
+.app[data-step="4"] .stop.flag{background:var(--sun);border-color:var(--sun-deep);color:#3d2a00;transform:scale(1.2)}
+.app[data-step="0"] .prog{visibility:hidden}
+.prog p{display:flex;justify-content:space-between;gap:8px;font:700 14px/1.2 var(--f-body)}
+.prog .psub{color:var(--muted);font-weight:600;text-align:right}
+/* screens */
+.screens{position:relative;flex:1;min-height:0}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);transition:transform var(--t-dur) var(--t-ease),opacity calc(var(--t-dur)*.7) ease}
+.scr.enter{transform:translateX(104%);opacity:0}
+.scr.leave{transform:translateX(-30%) scale(.96);opacity:0;pointer-events:none}
+.body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px max(20px,env(safe-area-inset-right,0px)) 28px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.dock{flex:none;padding:12px max(20px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:grid;gap:8px;background:var(--bg);border-top:1px solid var(--line)}
+.dock .hint{text-align:center;font-size:13.5px;color:var(--muted);font-weight:600}
+.gate-h{display:grid;gap:8px}
+.eyebrow{font:700 12.5px/1.2 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.h{font:800 30px/1.05 var(--f-disp);text-wrap:balance;color:var(--ink)}
+.h.sm{font-size:24px;line-height:1.1}
+.sub{font-size:16px;color:var(--muted);line-height:1.5}
+.note{font-size:13.5px;color:var(--muted);line-height:1.45}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 18px;border:0;border-radius:var(--r-btn);font:700 16px/1.1 var(--f-disp);text-decoration:none;text-align:center;transition:transform .08s ease,box-shadow .08s ease,opacity .2s}
+.btn.big{min-height:62px;font-size:21px;width:100%}
+.btn.pr{background:var(--primary);color:var(--on-primary);box-shadow:0 6px 0 var(--primary-deep);margin-bottom:6px}
+.btn.pr:active:not(:disabled){transform:translateY(5px);box-shadow:0 1px 0 var(--primary-deep)}
+.btn.gh{background:var(--chip);color:var(--ink);box-shadow:0 4px 0 #c3d4ef;margin-bottom:4px}
+.btn.gh:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #c3d4ef}
+.btn.ln{background:none;color:var(--ink);text-decoration:underline;text-underline-offset:3px;min-height:44px;padding:0 6px;box-shadow:none}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn .spin{width:18px;height:18px;border-radius:50%;border:3px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.btn{flex:1 1 0;min-width:0;padding:0 10px}
+.acts{display:grid;gap:8px}
+.acts>.btn.pr{width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font:700 12.5px/1.2 var(--f-body);white-space:nowrap;color:var(--s-wait);background:var(--s-wait-bg)}
+.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.chip[data-s="ok"]{color:var(--s-ok);background:var(--s-ok-bg)}
+.chip[data-s="fix"]{color:var(--s-fix);background:var(--s-fix-bg)}
+.chip[data-s="busy"]{color:var(--s-busy);background:var(--s-busy-bg)}
+.chip[data-s="busy"]::before{animation:blink 1.1s ease-in-out infinite}
+.chip[data-s="you"]{color:var(--s-you);background:var(--s-you-bg)}
+.chip[data-s="mute"]{color:var(--muted);background:var(--chip)}
+.chip.pop{animation:pop .5s cubic-bezier(.2,1.7,.4,1)}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes blink{50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* top 3: stops on the trail */
+.probs{display:grid;gap:14px;position:relative}
+.probs::before{content:"";position:absolute;left:33px;top:30px;bottom:30px;border-left:4px dashed #b8cdee;z-index:0}
+.prob{position:relative;text-align:left;border:3px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-card);padding:16px 16px 14px 66px;display:grid;gap:7px;width:100%;box-shadow:0 5px 0 #d3e0f4}
+.prob:nth-child(2){margin-left:10px;width:calc(100% - 10px)}
+.prob .rank{position:absolute;left:14px;top:14px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:800 20px/1 var(--f-disp);background:#fff;border:3px solid #b8cdee;color:var(--ink);z-index:1}
+.prob .tag{justify-self:start;font:800 11.5px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;border-radius:6px;background:var(--sun);color:#3d2a00}
+.prob .ptitle{font:700 19px/1.25 var(--f-disp);text-wrap:balance}
+.prob .sig{font-size:13.5px;line-height:1.45;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px}
+.prob .meter{height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.prob .meter i{display:block;height:100%;border-radius:3px;background:var(--primary)}
+.prob .lock{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--s-ok)}
+.prob .lock svg{width:16px;height:16px}
+.prob[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 5px 0 var(--primary-deep)}
+.prob[aria-pressed="true"] .rank{background:var(--primary);border-color:var(--primary);color:#fff}
+.flagline{position:relative;z-index:1;display:flex;align-items:center;gap:10px;font:700 14px/1.2 var(--f-body);color:var(--muted);padding-left:16px}
+.flagline i{width:40px;height:40px;border-radius:50%;background:var(--sun);display:grid;place-items:center;color:#3d2a00;flex:none;box-shadow:0 4px 0 var(--sun-deep)}
+.flagline svg{width:20px;height:20px}
+.upd{font-size:13.5px;color:var(--muted)}
+.langrow{display:flex;justify-content:center;gap:6px;align-items:center;font-size:13.5px;color:var(--muted)}
+.langrow .btn.ln{min-height:32px;font:600 13.5px var(--f-body)}
+/* bundle */
+.item{background:var(--surface);border-radius:var(--r-card);padding:16px;display:grid;gap:12px;border:3px solid var(--line);box-shadow:0 5px 0 var(--line);transition:border-color .3s,opacity .3s}
+.item[data-s="ok"]{border-color:#9fdcc0;box-shadow:0 5px 0 #9fdcc0}
+.item[data-s="mute"]{opacity:.7}
+.item>header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.kind{font:800 13px/1 var(--f-disp);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ttl{font:700 18px/1.3 var(--f-disp)}
+.txt{font-size:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.ta{width:100%;min-height:150px;border:2px dashed var(--s-fix);border-radius:12px;padding:10px;background:var(--s-fix-bg);font-size:16px;line-height:1.5;resize:vertical}
+.pic{width:100%;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;background:var(--chip);display:block}
+.quote{border-left:4px solid var(--line);padding:10px 12px;background:var(--chip);border-radius:0 12px 12px 0;font-size:14.5px;line-height:1.5;display:grid;gap:4px;overflow-wrap:anywhere}
+.quote .who{font-weight:700;font-size:13px;color:var(--ink)}
+.self{display:grid;gap:8px;background:var(--s-you-bg);color:var(--s-you);padding:12px;border-radius:12px;font-size:14px;font-weight:600;line-height:1.45}
+.places{display:flex;flex-wrap:wrap;gap:8px}
+.place{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:999px;border:2px solid var(--line);background:var(--surface);font:700 14px/1 var(--f-body)}
+.place[aria-pressed="true"]{border-color:var(--primary);background:var(--s-busy-bg);color:var(--primary-deep)}
+.place:disabled{opacity:.5}
+.vsteps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font:700 12.5px/1 var(--f-body)}
+.vsteps span{padding:6px 9px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.vsteps span.now{background:var(--primary);color:var(--on-primary)}
+.vsteps span.done{background:var(--s-ok-bg);color:var(--s-ok)}
+.vsteps em{font-style:normal;color:var(--muted)}
+.err{color:var(--s-fix);font-size:14px;font-weight:600}
+.missing{opacity:.75}
+/* waiting */
+.wait-hero{display:grid;justify-items:center;gap:20px;text-align:center;padding-top:18px}
+.status-line{font:800 27px/1.18 var(--f-disp);text-wrap:balance}
+.walker{width:130px;height:130px;border-radius:50%;background:#dbe6ff;position:relative;display:grid;place-items:center}
+.walker::before{content:"";position:absolute;inset:10px;border-radius:50%;border:4px dashed #9fb8ec}
+.walker i{position:absolute;inset:0;animation:spin 3.2s linear infinite}
+.walker i::after{content:"";position:absolute;left:50%;top:4px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:var(--primary);box-shadow:0 3px 0 var(--primary-deep)}
+.walker svg{width:44px;height:44px;color:var(--primary)}
+.mini{list-style:none;margin:0;padding:0;display:grid;gap:8px;width:100%}
+.mini li{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:12px 14px;font-weight:700;border:1px solid var(--line);text-align:left}
+.calm{font-size:15px;color:var(--muted);max-width:32ch}
+.banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sun);color:#3d2a00;border-radius:14px;padding:8px 8px 8px 14px;font-weight:700;font-size:14.5px}
+.banner .btn{min-height:40px;background:#fff;color:var(--ink);box-shadow:0 3px 0 var(--sun-deep);margin:0 0 3px}
+/* gates */
+.vid{display:block;width:min(64%,240px);aspect-ratio:9/16;max-width:100%;margin:0 auto;border-radius:20px;background:#0b1430}
+.cardline{background:var(--surface);border:3px solid var(--line);border-radius:var(--r-card);padding:16px;display:grid;gap:10px}
+/* results */
+.res-hero{position:relative;text-align:center;display:grid;gap:8px;padding:16px 0 4px}
+.res-hero canvas{position:absolute;left:-20px;top:-10px;width:calc(100% + 40px);height:calc(100% + 20px);pointer-events:none}
+.streak{display:grid;gap:12px;background:var(--surface);border-radius:var(--r-card);padding:16px;border:3px solid var(--line)}
+.streak .big{display:flex;align-items:baseline;gap:10px}
+.streak .big b{font:800 46px/1 var(--f-disp);font-variant-numeric:tabular-nums}
+.streak .big span{font:700 17px/1.2 var(--f-disp)}
+.week{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.week li{display:grid;justify-items:center;gap:6px;font:700 12px/1 var(--f-body);color:var(--muted)}
+.week li i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#e2ecfb;border:3px solid #c9d8f0;font-style:normal;font-weight:800}
+.week li[data-s="done"] i{background:var(--primary);border-color:var(--primary);color:#fff}
+.week li[data-s="rest"] i{background:#fff;border-style:dashed}
+.week li[data-s="today"] i{background:#fff;border-color:var(--sun-deep)}
+.week li[data-s="today-done"] i{background:var(--sun);border-color:var(--sun-deep);color:#3d2a00;animation:pop .6s cubic-bezier(.2,1.7,.4,1)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border-radius:16px;padding:14px;border:1px solid var(--line);display:grid;gap:4px}
+.stat b{font:800 32px/1 var(--f-disp);font-variant-numeric:tabular-nums;color:var(--primary)}
+.stat span{font-size:13.5px;color:var(--muted);line-height:1.35}
+.work{background:var(--chip);border-radius:16px;padding:14px 16px;font-size:15px;line-height:1.5;display:grid;gap:6px}
+.clients{display:grid;gap:12px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--toast-bg);color:var(--toast-ink);padding:12px 16px;border-radius:14px;font:600 14.5px/1.35 var(--f-body);max-width:min(92vw,420px);z-index:50;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){
+  .scr,.scr.enter,.scr.leave{transform:none!important;transition:opacity .01s!important}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-step="0">
+  <header class="top">
+    <nav class="mode" aria-label="Two views of one queue"><span id="m-wiz" aria-current="page">Wizard</span><a id="m-adv" href="approve.html">Advance</a></nav>
+    <span class="smini" id="smini" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3-1 4.6-2.5 6.3-1.4 1.6-2.9 3.3-2.9 6A5.4 5.4 0 0 0 12.6 20a5.6 5.6 0 0 0 5.6-5.6c0-2.6-1.3-4.4-2.4-5.6-.2 1.5-.9 2.6-2 3.1.6-3.4-.2-7-1.2-9.7Z"/></svg><span id="smini-n">0</span></span>
+  </header>
+  <div class="prog" aria-hidden="true">
+    <div class="trail"><span class="track"><i></i></span><span class="stop" data-n="1">1</span><span class="stop" data-n="2">2</span><span class="stop" data-n="3">3</span><span class="stop flag" data-n="4"><svg viewBox="0 0 24 24"><path d="M6 21V4m0 1h11l-2.5 4L17 13H6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span></div>
+    <p><span id="plabel"></span><span class="psub" id="psub"></span></p>
+  </div>
+  <main class="screens" id="screens"></main>
+</div>
+<div class="sr" id="live" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  'use strict';
+
+  // The EN/VI switch, as on approve.html (owner, 16/10: English only for now). Both dictionaries stay in place.
+  const LANG_SWITCH = false;
+
+  const Q0 = new URLSearchParams(location.search);
+  const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const API_ORIGIN = (() => {
+    const raw = IS_LOCAL ? Q0.get('api') : '';
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      return (u.protocol === 'http:' || u.protocol === 'https:') ? u.origin : '';
+    } catch (e) { return ''; }
+  })();
+  const DEV = Q0.get('dev') === '1';
+  const BASE = API_ORIGIN + '/app/dashboard' + (DEV ? '2' : '');
+  const LANG_KEY = 'wc_report_lang'; // shared with report.html so one choice covers both pages
+  const REFRESH_MS = 30000;
+  const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+  const BODY_MAX = 20000;     // solo_approvals: body_text and script_text
+  const TITLE_MAX = 200;      // solo_approvals: title
+  const CAPTION_MAX = 5000;   // the bridge refuses a longer caption when it approves a script
+  const SCRIPT_RAW_MAX = 500; // production.go productionScriptHardMax: words counting links
+  const CONFLICTS = ['stale_item', 'not_awaiting', 'already_decided'];
+  const WRITING = ['picked', 'writing', 'image_pending'];
+  const STOPPED = ['failed', 'needs_check', 'partial'];
+
+  const I18N = {
+    en: {
+      title: 'Wizard | WideCast', mode_label: 'Two views of one queue',
+      p_step1: 'Step 1/3 · Pick a problem', p_step2w: 'Step 2/3 · Writing the bundle', p_step2: 'Step 2/3 · Approve the bundle',
+      p_step3: 'Step 3/3 · The video', p_done: 'Done for today',
+      p_left3: '3 steps left', p_left2: '2 steps left', p_left1: '1 step left', p_left0: 'See you tomorrow',
+      loading: 'Loading your day…',
+      login_h: 'Sign in first', login_p: 'Sign in on the Approvals page, then come back here.',
+      owner_only: 'This page is for the account owner. Sign in as the owner on the Approvals page.',
+      open_adv: 'Open Approvals',
+      off_h: 'The Wizard is not on for this account yet', off_p: 'Everything waits in Approvals, as before.',
+      clients_h: 'Which business today?', clients_p: 'Pick one. You can switch any time.',
+      top_eyebrow: 'Today · {d}', top_h: 'What is your audience asking most today?',
+      top_sub: 'Tap a problem. The Wizard has your agent write a post, a reply and a video script for it.',
+      top_tag: 'Suggested', top_posts_1: '1 post', top_posts: '{n} posts', top_comments: '{n} comments',
+      top_reactions: '{n} reactions', top_latest: 'Latest {t}', top_locked: 'Started · it keeps its place today',
+      top_upd: 'Updated {t}, after the latest scan ({n} today)', top_upd_1: 'Updated {t}, after the latest scan (1 today)',
+      top_same: 'Wizard and Advance show the same queue. Approve on either one and the other shows it.',
+      top_go: 'Make the bundle for problem {n}', top_go_locked: 'Continue problem {n}', top_lang: 'Written in {l}',
+      change: 'Change', lang_en: 'English', lang_vi: 'Vietnamese', picking: 'Picking…',
+      pick_brief: 'This problem is not ready to write yet. Pick another one.',
+      none_h: 'No strong problem yet today', none_scan: 'Your agent keeps scanning. Today\'s top 3 shows up after the next scan.',
+      none_noscan: 'No scan has run today yet. Today\'s top 3 shows up after the first one.',
+      write_h: 'Writing the bundle for problem {n}. I will call you when it is ready.',
+      write_calm: 'This usually takes 5 to 15 minutes. You can close the app.',
+      write_held: 'Your agent picks this up at its next check.',
+      k_post: 'Post', k_reply: 'Reply', k_video: 'Video script',
+      s_wait: 'Waiting for you', s_writing: 'Writing', s_none: 'None today', s_ok: 'Approved',
+      s_sent: 'Sent to your agent', s_skip: 'Skipped', s_later: 'Later',
+      s_publishing: 'Publishing', s_published: 'Published', s_making: 'Being made', s_stopped: 'Stopped',
+      s_cm_approved: 'Your agent posts it', s_cm_posting: 'Posting', s_cm_posted: 'Posted', s_cm_rejected: 'Not posted by your agent',
+      close_call: 'Close, call me when it is ready',
+      b_eyebrow: 'The bundle for problem {n}', b_sub: 'Look at all of them. Approve one by one, or the whole bundle once you have seen it all.',
+      edit: 'Edit', save: 'Save edit', skip: 'Skip', ap_post: 'Approve and publish', ap_reply: 'Approve, my agent posts it',
+      ap_script: 'Approve the script', places: 'Publishes to', no_places: 'No place to publish yet. Open Advance to choose one.',
+      reply_self: 'Rather post it yourself? Copy it, open the post and paste it there. Then tap "I posted it myself" so your agent does not post it too.',
+      copy: 'Copy', open_post: 'Open the post', posted_self: 'I posted it myself',
+      copied: 'Copied. Open the post and paste it.', copy_sel: 'The reply is selected. Use your phone\'s Copy.',
+      self_done: 'Noted: your agent will not post this reply.',
+      script_scenes: 'Approving the script makes the scenes. You look at them before the video is made.',
+      script_direct: 'Approving the script makes the video. You publish it after.',
+      missing_reply: 'No reply today: no post asked exactly this.',
+      all: 'Approve the whole bundle', all_seen: '{n} of {m} seen. Scroll to see them all.', all_ready: 'You have seen all {m}.',
+      all_next: 'Continue', all_done: 'All {m} decided.',
+      w_sent: 'Sent to your agent. It picks this up within a few minutes.',
+      w_scenes: 'The video is making its scenes. I will call you to look at them.',
+      w_making: 'The video is being made. I will call you to publish it.',
+      w_render: 'The video is rendering. I will call you to publish it.',
+      w_publishing: 'The video is being published.', w_calm: 'You do not need to wait here or check back.',
+      sc_eyebrow: 'Video · gate 2 of 3', sc_h: 'The scenes are ready. Look before the video is made.',
+      sc_view: 'Watch the scenes', sc_ok: 'Approve and make the video', sc_fix: 'Edit the scenes',
+      sc_note: 'Making the video takes about 10 to 15 minutes. Nothing is published yet: Publish comes after.',
+      st_script: '1 Script', st_scenes: '2 Scenes', st_video: '3 Video',
+      pu_eyebrow: 'Video · gate 3 of 3', pu_h: 'The video is ready. Publish it?', pu_ok: 'Publish', pu_later: 'Later, keep it here',
+      pr_h: 'Something stopped', pr_retry: 'Retry', adv_h: 'This step is done in Advance',
+      adv_p: 'Recording a video and other steps that need more room stay in Advance.',
+      r_eyebrow: 'Done for today', r_h: 'Today\'s bundle is done.', r_h_quiet: 'A quiet day, and you still walked the path.',
+      r_days_1: 'day on track', r_days: 'days on track',
+      r_streak_note: 'The streak counts the days you walk the path, never the approvals. Skipping an item or one busy day does not break it.',
+      r_paused: 'Yesterday was missed, so the streak is paused. Walk today\'s path to keep it going.',
+      r_views: 'views, last 7 days', r_replies: 'comments, last 7 days',
+      r_work: 'Today your agent read {p} posts in {s} scans and set aside {j} as junk or ads.',
+      r_work_1: 'Today your agent read {p} posts in one scan and set aside {j} as junk or ads.',
+      r_work_some: 'Today your agent ran {s} scans and found {i} ideas to write about.',
+      r_work_some_1: 'Today your agent ran one scan and found {i} ideas to write about.',
+      r_tomorrow: 'Tomorrow\'s top 3 comes after the first scan.',
+      r_more: 'Make another bundle', r_adv: 'See everything in Advance', r_bye: 'Done, see you tomorrow', r_bye_t: 'See you tomorrow.',
+      new_work: 'Something new is ready', new_go: 'Show me', net_err: 'No connection. Try again.',
+      decide_failed: 'That did not go through. Try again.', not_awaiting: 'This changed a moment ago. The latest is shown now.',
+      magic_denied: 'Only the account owner can decide here.', stale: 'This changed a moment ago. The latest is shown now.',
+      busy_h: 'One moment…', week_aria: 'The last 7 days',
+      v_title_long: 'The title is too long. Keep it to {max} characters or fewer.',
+      v_body_long: 'The text is too long. Keep it to {max} characters or fewer.',
+      v_caption_long: 'The caption is too long. Keep it to {max} characters or fewer.',
+      v_post_empty: 'A post cannot be empty.', v_script_empty: 'A video needs a script.',
+      v_script_long: 'The script has {n} spoken words; this account allows at most {max}.',
+      v_script_short: 'The script has {n} spoken words; the minimum is {min}.',
+      v_script_raw: 'The script has {n} words counting links; WideCast takes at most {max}.',
+      v_no_target: 'Choose at least one place to publish.'
+    },
+    vi: {
+      title: 'Wizard | WideCast', mode_label: 'Hai cách xem cùng một hàng chờ',
+      p_step1: 'Bước 1/3 · Chọn vấn đề', p_step2w: 'Bước 2/3 · Đang soạn bộ 3', p_step2: 'Bước 2/3 · Duyệt bộ 3',
+      p_step3: 'Bước 3/3 · Video', p_done: 'Xong hôm nay',
+      p_left3: 'Còn 3 bước', p_left2: 'Còn 2 bước', p_left1: 'Còn 1 bước', p_left0: 'Hẹn bạn ngày mai',
+      loading: 'Đang mở ngày của bạn…',
+      login_h: 'Bạn cần đăng nhập', login_p: 'Đăng nhập ở trang Approval, rồi quay lại đây.',
+      owner_only: 'Trang này dành cho chủ tài khoản. Bạn đăng nhập bằng tài khoản chủ ở trang Approval.',
+      open_adv: 'Mở Approval',
+      off_h: 'Wizard chưa bật cho tài khoản này', off_p: 'Mọi thứ vẫn chờ bạn ở Approval như trước.',
+      clients_h: 'Hôm nay làm cho doanh nghiệp nào?', clients_p: 'Chọn một. Bạn đổi được bất cứ lúc nào.',
+      top_eyebrow: 'Hôm nay · {d}', top_h: 'Khán giả của bạn đang hỏi gì nhiều nhất?',
+      top_sub: 'Chạm một vấn đề. Wizard nhờ agent của bạn viết một post, một comment trả lời và một script video cho nó.',
+      top_tag: 'Đề xuất', top_posts_1: '1 bài', top_posts: '{n} bài', top_comments: '{n} bình luận',
+      top_reactions: '{n} cảm xúc', top_latest: 'Mới nhất {t}', top_locked: 'Đang làm · giữ chỗ hôm nay',
+      top_upd: 'Cập nhật {t}, sau đợt quét mới nhất ({n} đợt hôm nay)', top_upd_1: 'Cập nhật {t}, sau đợt quét mới nhất (1 đợt hôm nay)',
+      top_same: 'Wizard và Advance là hai cách xem cùng một hàng chờ. Bạn duyệt ở bên nào thì bên kia cũng thấy.',
+      top_go: 'Làm bộ 3 từ vấn đề số {n}', top_go_locked: 'Tiếp tục vấn đề số {n}', top_lang: 'Viết bằng {l}',
+      change: 'Đổi', lang_en: 'tiếng Anh', lang_vi: 'tiếng Việt', picking: 'Đang chọn…',
+      pick_brief: 'Vấn đề này chưa sẵn sàng để viết. Bạn chọn vấn đề khác nhé.',
+      none_h: 'Hôm nay chưa có vấn đề nào đủ mạnh', none_scan: 'Agent của bạn vẫn đang quét. Top 3 hôm nay hiện sau đợt quét tới.',
+      none_noscan: 'Hôm nay chưa có đợt quét nào. Top 3 hôm nay hiện sau đợt quét đầu tiên.',
+      write_h: 'Đang soạn bộ 3 cho vấn đề số {n}. Xong tôi gọi bạn.',
+      write_calm: 'Thường mất 5 đến 15 phút. Bạn đóng app được.',
+      write_held: 'Agent của bạn nhận việc này ở lần kiểm tra tới.',
+      k_post: 'Post', k_reply: 'Comment', k_video: 'Script video',
+      s_wait: 'Chờ bạn duyệt', s_writing: 'Đang soạn', s_none: 'Không có hôm nay', s_ok: 'Đã duyệt',
+      s_sent: 'Đã gửi cho agent', s_skip: 'Bỏ qua', s_later: 'Để sau',
+      s_publishing: 'Đang đăng', s_published: 'Đã đăng', s_making: 'Đang làm', s_stopped: 'Bị dừng',
+      s_cm_approved: 'Agent sẽ đăng', s_cm_posting: 'Đang đăng', s_cm_posted: 'Đã đăng', s_cm_rejected: 'Agent không đăng',
+      close_call: 'Đóng, xong thì gọi tôi',
+      b_eyebrow: 'Bộ 3 cho vấn đề số {n}', b_sub: 'Xem cả bộ. Duyệt từng món, hoặc duyệt cả bộ khi bạn đã xem hết.',
+      edit: 'Sửa', save: 'Lưu bản sửa', skip: 'Bỏ qua', ap_post: 'Duyệt và đăng', ap_reply: 'Duyệt, để agent đăng',
+      ap_script: 'Duyệt script', places: 'Đăng lên', no_places: 'Chưa có nơi đăng. Bạn mở Advance để chọn.',
+      reply_self: 'Muốn tự đăng? Bạn copy, mở bài gốc rồi dán vào đó. Sau đó bấm "Tôi đã tự đăng" để agent không đăng thêm lần nữa.',
+      copy: 'Copy', open_post: 'Mở bài gốc', posted_self: 'Tôi đã tự đăng',
+      copied: 'Đã copy. Bạn mở bài gốc rồi dán vào.', copy_sel: 'Đã chọn sẵn câu trả lời. Bạn bấm Copy của điện thoại.',
+      self_done: 'Đã ghi: agent của bạn sẽ không đăng comment này.',
+      script_scenes: 'Duyệt script thì mới làm scenes. Bạn xem scenes trước khi làm video.',
+      script_direct: 'Duyệt script thì video được làm luôn. Bạn đăng nó sau.',
+      missing_reply: 'Hôm nay không có comment: chưa có bài nào hỏi đúng vấn đề này.',
+      all: 'Duyệt cả bộ', all_seen: 'Bạn đã xem {n}/{m} món. Lướt xuống để xem hết.', all_ready: 'Bạn đã xem cả {m} món.',
+      all_next: 'Tiếp tục', all_done: 'Đã quyết định cả {m} món.',
+      w_sent: 'Đã gửi cho agent của bạn. Agent nhận trong vài phút.',
+      w_scenes: 'Video đang làm scenes. Xong tôi gọi bạn duyệt scenes.',
+      w_making: 'Video đang được làm. Xong tôi gọi bạn bấm Publish.',
+      w_render: 'Đang render video. Xong tôi gọi bạn bấm Publish.',
+      w_publishing: 'Video đang được đăng.', w_calm: 'Bạn không cần ngồi chờ hay tự quay lại kiểm tra.',
+      sc_eyebrow: 'Video · cổng 2/3', sc_h: 'Scenes xong rồi. Bạn xem trước khi làm video.',
+      sc_view: 'Xem scenes', sc_ok: 'Duyệt để render', sc_fix: 'Sửa scenes',
+      sc_note: 'Render mất khoảng 10 đến 15 phút. Chưa có gì được đăng: Publish là cổng sau.',
+      st_script: '1 Script', st_scenes: '2 Scenes', st_video: '3 Video',
+      pu_eyebrow: 'Video · cổng 3/3', pu_h: 'Video sẵn sàng. Đăng nhé?', pu_ok: 'Publish', pu_later: 'Để sau, giữ ở cổng này',
+      pr_h: 'Có một bước bị dừng', pr_retry: 'Thử lại', adv_h: 'Bước này làm ở Advance',
+      adv_p: 'Quay video và các bước cần nhiều chỗ hơn vẫn làm ở Advance.',
+      r_eyebrow: 'Xong lộ trình hôm nay', r_h: 'Bộ 3 hôm nay đã xong.', r_h_quiet: 'Hôm nay ít tín hiệu, bạn vẫn đi hết lộ trình.',
+      r_days_1: 'ngày đều đặn', r_days: 'ngày đều đặn',
+      r_streak_note: 'Chuỗi tính theo ngày bạn đi hết lộ trình, không tính số món duyệt. Bỏ qua một món hay một ngày bận không làm mất chuỗi.',
+      r_paused: 'Hôm qua bị lỡ nên chuỗi đang tạm dừng. Bạn đi hết lộ trình hôm nay để giữ chuỗi.',
+      r_views: 'lượt xem, 7 ngày qua', r_replies: 'bình luận, 7 ngày qua',
+      r_work: 'Hôm nay agent của bạn đã đọc {p} bài trong {s} đợt quét và lọc {j} bài rác hoặc quảng cáo.',
+      r_work_1: 'Hôm nay agent của bạn đã đọc {p} bài trong một đợt quét và lọc {j} bài rác hoặc quảng cáo.',
+      r_work_some: 'Hôm nay agent của bạn đã chạy {s} đợt quét và tìm được {i} ý tưởng để viết.',
+      r_work_some_1: 'Hôm nay agent của bạn đã chạy một đợt quét và tìm được {i} ý tưởng để viết.',
+      r_tomorrow: 'Top 3 ngày mai có sau đợt quét đầu tiên.',
+      r_more: 'Làm thêm một bộ', r_adv: 'Xem mọi thứ ở Advance', r_bye: 'Xong, hẹn mai', r_bye_t: 'Hẹn bạn ngày mai.',
+      new_work: 'Có việc mới sẵn sàng', new_go: 'Xem ngay', net_err: 'Không kết nối được. Bạn thử lại nhé.',
+      decide_failed: 'Chưa gửi được. Bạn thử lại nhé.', not_awaiting: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
+      magic_denied: 'Chỉ chủ tài khoản mới duyệt được ở đây.', stale: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
+      busy_h: 'Chờ một chút…', week_aria: '7 ngày qua',
+      v_title_long: 'Tiêu đề quá dài. Tối đa {max} ký tự.',
+      v_body_long: 'Nội dung quá dài. Tối đa {max} ký tự.',
+      v_caption_long: 'Chú thích quá dài. Tối đa {max} ký tự.',
+      v_post_empty: 'Bài đăng cần có nội dung.', v_script_empty: 'Video cần có kịch bản.',
+      v_script_long: 'Kịch bản có {n} từ đọc; tài khoản này cho tối đa {max}.',
+      v_script_short: 'Kịch bản có {n} từ đọc; tối thiểu là {min}.',
+      v_script_raw: 'Kịch bản có {n} từ nếu tính cả đường dẫn; WideCast nhận tối đa {max}.',
+      v_no_target: 'Hãy chọn ít nhất một nơi để đăng.'
+    }
+  };
+
+  // ── Shared with approve.html, byte for byte (test_wizard_page.py compares the hashes): the item helpers, the
+  // session and the requests, and the bodies Approvals sends for each decision.
+  const own = (map, k) => (Object.prototype.hasOwnProperty.call(map, k) ? map[k] : undefined);
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+  const ik = (it) => String(it.client || '') + '|' + String(it.item_id || '');
+  const isEmail = (it) => it.kind === 'email_draft';
+  function cardOf(it) { const c = !isEmail(it) && it.state === 'awaiting_approval' ? obj(it.card) : null; return c; }
+  function rowOf(it) { const r = !isEmail(it) && it.state !== 'awaiting_approval' ? obj(it.row) : null; return r; }
+  function derr(it) {
+    const e = obj(it.decision_error);
+    return e && (str(e.code) || str(e.message)) ? e : null;
+  }
+  function voided(it) {
+    const e = derr(it), d = obj(it.decision);
+    return !!(e && d && str(e.decision_id) && str(e.decision_id) === str(d.decision_id));
+  }
+  function effDecision(it) {
+    const d = obj(it.decision);
+    if (!d || voided(it) || d.decision === 'save') return null;
+    return d;
+  }
+  const isPending = (it) => it.state === 'awaiting_approval' && !effDecision(it);
+  function chanOf(it) {
+    if (isEmail(it)) return 'email';
+    const c = obj(it.card) || obj(it.row);
+    const ch = c && str(c.channel);
+    if (ch === 'owned_post' || ch === 'video') return ch;
+    return it.stage === 'video' || it.stage === 'script' || it.stage === 'scenes' ? 'video' : 'owned_post';
+  }
+  const runes = (s) => Array.from(String(s || '')).length;
+  const RE_IMG = /!\[[^\]]*\]\([^)]*\)/g;
+  const RE_LINK = /\[([^\]]*)\]\([^)]*\)/g;
+  const RE_URL = /https?:\/\/\S+/g;
+  const RE_WS = /\s+/;
+  function spoken(s) {
+    s = String(s || '').replace(RE_IMG, ' ').replace(RE_LINK, '$1').replace(RE_URL, ' ').trim();
+    return s === '' ? 0 : s.split(RE_WS).length;
+  }
+  function isHosted(it) {
+    const c = obj(it.card) || {};
+    const w = arr(it.warnings).concat(arr(c.warnings));
+    return w.indexOf('hosted_unsupported_target') >= 0 || it.runtime === 'hosted' || c.runtime === 'hosted';
+  }
+  function shownMode(c) { const m = str(c.mode); return m === 'avatar' || (m === 'teleprompter' && c.teleprompter_ok) ? m : 'faceless'; }
+  function freshFields(it) {
+    const c = it.card;
+    const hosted = isHosted(it);
+    const tg = Object.create(null);
+    arr(c.api_targets).forEach((x) => { if (obj(x) && str(x.key)) tg[x.key] = !!x.selected; });
+    arr(c.browser_targets).forEach((x) => { if (obj(x) && str(x.key)) tg[x.key] = !hosted && !!x.selected; });
+    return { title: str(c.title), body: str(c.body), script: str(c.script), mode: shownMode(c), tg: tg, rm: Object.create(null), remember: true };
+  }
+  function savedFields(it) {
+    const s = obj(it.saved);
+    const f = s && obj(s.fields);
+    return f || null;
+  }
+  function applySaved(fresh, it) {
+    const s = savedFields(it);
+    if (!s) return fresh;
+    const c = it.card;
+    if (typeof s.title === 'string') fresh.title = s.title;
+    if (typeof s.body_text === 'string') fresh.body = s.body_text;
+    if (typeof s.script_text === 'string') fresh.script = s.script_text;
+    if (s.video_mode === 'faceless' || (s.video_mode === 'avatar' && c.avatar_ok) || (s.video_mode === 'teleprompter' && c.teleprompter_ok)) fresh.mode = s.video_mode;
+    if (Array.isArray(s.targets)) {
+      const want = new Set(s.targets);
+      targetBoxes(it).forEach((b) => { fresh.tg[b.key] = !b.off && want.has(b.key); });
+    }
+    if (Array.isArray(s.media_keep)) {
+      const keep = new Set(s.media_keep);
+      arr(c.media).forEach((m) => { if (obj(m) && str(m.path) && !keep.has(m.path)) fresh.rm[m.path] = true; });
+    }
+    return fresh;
+  }
+  function targetBoxes(it) {
+    const c = it.card;
+    const hosted = isHosted(it);
+    const out = [];
+    arr(c.api_targets).forEach((x) => { if (obj(x) && str(x.key)) out.push({ key: x.key, label: str(x.label) || x.key, off: false, browser: false }); });
+    arr(c.browser_targets).forEach((x) => { if (obj(x) && str(x.key)) out.push({ key: x.key, label: str(x.label) || x.key, off: hosted, browser: true }); });
+    return out;
+  }
+  const stageShowsTargets = (st) => st === 'post' || st === 'video';
+  function rowBody(it, act) {
+    const body = { client: it.client, item_id: it.item_id, kind: 'production', decision: act, fields: {}, content_hash: String(it.content_hash || '') };
+    if (['post', 'script', 'scenes', 'video'].indexOf(it.stage) >= 0) body.stage = it.stage;
+    return body;
+  }
+  function wordLimits(c) {
+    const max = Number(c.max_words) > 0 ? Math.floor(Number(c.max_words)) : 360;
+    const min = Number(c.min_words) > 0 ? Math.floor(Number(c.min_words)) : 80;
+    return { max: max, min: min };
+  }
+  const vHas = (o) => !!o && Number(o.step) >= 1 && Number(o.step) <= 3;
+  const vSceneFirst = (c, mode) => vHas(c) && str(c.step2_key) === 'scenes' && (mode || shownMode(c)) === 'faceless' &&
+    (c.scenes_on_faceless === true || (c.scenes_on_faceless == null && str(c.step2) !== 'skip'));
+  function sessionHeaders(s, extra) {
+    const headers = Object.assign({}, extra || {});
+    if (s) {
+      setHeader(headers, 'X-WideCast-Company', s.company_id);
+      setHeader(headers, 'X-WideCast-User-Email', s.user_email);
+      setHeader(headers, 'X-WideCast-User-Token', s.user_token);
+    }
+    return headers;
+  }
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
+  let memSession = null; // used only when localStorage is blocked, so a fresh login still works
+  function session() {
+    const tok = lsGet('google_auth_token') || '';
+    const mail = lsGet('google_auth_email') || '';
+    const cid = lsGet('company_id') || '';
+    if (tok && mail && cid) return { user_token: tok, user_email: mail, company_id: cid, since: lsGet('google_auth_timestamp') || '' };
+    return memSession;
+  }
+  function initLang() {
+    if (!LANG_SWITCH) return 'en';                  // the switch is off: English (the stored choice stays)
+    const saved = lsGet(LANG_KEY);
+    if (saved === 'en' || saved === 'vi') return saved;
+    return 'en'; // system language is English; Vietnamese only when the viewer picks it (saved choice above)
+  }
+  let LANG = initLang();
+  const locale = () => (LANG === 'vi' ? 'vi-VN' : 'en-US');
+  function t(key, vars) {
+    let s = I18N[LANG][key];
+    if (s == null) s = I18N.en[key];
+    if (s == null) return '';
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function setHeader(headers, k, v) { if (v && /^[\x20-\x7e]*$/.test(v)) headers[k] = v; }
+  function api(path, body, keep) {
+    const s = session();
+    const headers = sessionHeaders(s, { 'Content-Type': 'application/json' });
+    const payload = Object.assign({}, body || {});
+    if (s) {
+      payload.company_id = s.company_id;
+      payload.user_email = s.user_email;
+      payload.user_token = s.user_token;
+    }
+    const opts = { method: 'POST', headers: headers, body: JSON.stringify(payload), cache: 'no-store', credentials: 'same-origin' };
+    if (keep) opts.keepalive = true;          // a coach mark sent while the link opens another page
+    return fetch(BASE + path, opts)
+      .then((r) => r.text().then((txt) => {
+        let data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; }
+        return { status: r.status, ok: r.ok, data: data };
+      }));
+  }
+  function errOf(res) {
+    const d = (res && res.data) || {};
+    const e = d.error;
+    if (e && typeof e === 'object') return { code: String(e.code || e.type || ''), message: String(e.message || '') };
+    if (typeof e === 'string') return { code: e, message: e };
+    if (d.error_code) return { code: String(d.error_code), message: String(d.error_message || '') };
+    return { code: 'http_' + (res ? res.status : 0), message: '' };
+  }
+  function authFailed(res) {
+    if (res.status === 401) {
+      // 2026-10-12: a shared client link is sent to sign in as the owner (server: owner_sign_in_required)
+      if (errOf(res).code === 'owner_sign_in_required') S.ownerOnly = true;
+      return true;
+    }
+    const c = errOf(res).code.toUpperCase();
+    return c === 'AUTH_REQUIRED' || c === 'AUTH_INVALID';
+  }
+  const fmtNum = (n) => { try { return new Intl.NumberFormat(locale()).format(n); } catch (e) { return String(n); } };
+  function safeUrl(u) {
+    if (typeof u !== 'string' || !/^https?:\/\//i.test(u.trim())) return null;
+    try { return new URL(u.trim()).href; } catch (e) { return null; }
+  }
+  function prodFields(it) {
+    const c = it.card, f = ui(ik(it)).f, st = str(c.stage);
+    const out = {};
+    if (f.title !== str(c.title)) out.title = f.title;
+    if (f.body !== str(c.body)) out.body_text = f.body;
+    if (st === 'script') {
+      if (f.script !== str(c.script)) out.script_text = f.script;
+      // Sent when the owner changed the select, or when the card forces it (a server that cannot make an
+      // avatar video at all); an untouched select never rewrites a remembered choice.
+      if (f.mode !== shownMode(c) || str(c.force_mode)) out.video_mode = f.mode;
+    }
+    if (stageShowsTargets(st)) {
+      const boxes = targetBoxes(it);
+      if (boxes.length) out.targets = boxes.filter((b) => !b.off && f.tg[b.key]).map((b) => b.key);
+    }
+    if (st === 'post') {
+      const media = arr(c.media).filter((m) => obj(m) && str(m.path));
+      if (media.some((m) => f.rm[m.path])) out.media_keep = media.filter((m) => !f.rm[m.path]).map((m) => m.path);
+    }
+    return out;
+  }
+  function prodBody(it, act) {
+    const c = it.card, u = ui(ik(it));
+    const body = { client: it.client, item_id: it.item_id, kind: 'production', decision: act, stage: str(c.stage),
+      fields: act === 'reject' ? {} : prodFields(it), content_hash: String(it.content_hash || '') };
+    if (act !== 'reject' && c.can_approve && str(c.stage) !== 'scenes') body.remember = !!u.f.remember;
+    return body;
+  }
+  function validateProd(it, act) {
+    const c = it.card, f = ui(ik(it)).f, st = str(c.stage);
+    if (act === 'reject') return '';
+    if (runes(f.title) > TITLE_MAX) return t('v_title_long', { max: fmtNum(TITLE_MAX) });
+    if (runes(f.body) > BODY_MAX) return t('v_body_long', { max: fmtNum(BODY_MAX) });
+    if (st === 'script' && runes(f.script) > BODY_MAX) return t('v_body_long', { max: fmtNum(BODY_MAX) });
+    if (st === 'post' && !f.body.trim() && (act === 'approve' || f.body !== str(c.body))) return t('v_post_empty');
+    if (act !== 'approve') return '';
+    if (st === 'script') {
+      if (!f.script.trim()) return t('v_script_empty');
+      const n = spoken(f.script), lim = wordLimits(c);
+      if (n < lim.min) return t('v_script_short', { n: fmtNum(n), min: fmtNum(lim.min) });
+      if (n > lim.max) return t('v_script_long', { n: fmtNum(n), max: fmtNum(lim.max) });
+      const raw = f.script.trim().split(RE_WS).length;
+      if (raw > SCRIPT_RAW_MAX) return t('v_script_raw', { n: fmtNum(raw), max: fmtNum(SCRIPT_RAW_MAX) });
+      if (runes(f.body) > CAPTION_MAX) return t('v_caption_long', { max: fmtNum(CAPTION_MAX) });
+    }
+    if (stageShowsTargets(st)) {
+      const boxes = targetBoxes(it);
+      if (boxes.length && !boxes.some((b) => !b.off && f.tg[b.key])) return t('v_no_target');
+    }
+    return '';
+  }
+  function postDecide(body) {
+    return api('/solo/approvals/decide', body).then((res) => {
+      if (authFailed(res)) return { kind: 'auth' };
+      if (res.ok && res.data && typeof res.data === 'object' && !res.data.error) return { kind: 'ok', decision: res.data };
+      const e = errOf(res);
+      if (res.status === 409 && CONFLICTS.indexOf(e.code) >= 0) return { kind: 'conflict', code: e.code };
+      if (res.status === 409) return { kind: 'error', message: (LANG === 'en' && e.message) || t('not_awaiting'), refresh: true };
+      if (e.code === 'client_magic_denied') return { kind: 'error', message: t('magic_denied') };
+      return { kind: 'error', message: (LANG === 'en' && e.message) || t('decide_failed') };
+    }, () => ({ kind: 'error', message: t('net_err') }));
+  }
+
+  // ── The Wizard's own state. ui(k) holds the same card fields approve.html keeps (u.f), so prodBody builds the same
+  // body; sent remembers a decision the server took until the next load shows it.
+  const S = {
+    client: '', data: null, screen: '', next: '', sel: -1, busy: '', ui: Object.create(null), sent: Object.create(null),
+    cmSent: Object.create(null), seen: new Set(), res: null, doneSent: '', timer: 0, loading: false, ownerOnly: false,
+    lastLoad: 0, fx: false
+  };
+  const app = document.getElementById('app');
+  const screens = document.getElementById('screens');
+  const RM = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function ui(k) {
+    if (!S.ui[k]) S.ui[k] = { f: null, hash: null, editing: '', err: '' };
+    return S.ui[k];
+  }
+  // approve.html's prodUi without its "the card changed" note: the fields of the card as the server has them now.
+  function cardUi(it) {
+    const u = ui(ik(it));
+    const hsh = String(it.content_hash || '');
+    if (!u.f || u.hash !== hsh) { u.f = applySaved(freshFields(it), it); u.hash = hsh; u.editing = ''; }
+    return u;
+  }
+  const tz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
+
+  // ── DOM: built with createElement and textContent only.
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    Object.keys(attrs || {}).forEach((k) => {
+      const v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === 'text') el.textContent = String(v);
+      else if (k === 'class') el.className = v;
+      else if (k.indexOf('on') === 0 && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'disabled') el.disabled = !!v;
+      else el.setAttribute(k, v === true ? '' : String(v));
+    });
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, kid) {
+    if (kid == null || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach((k) => add(el, k)); return; }
+    el.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid);
+  }
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(d, sw) {
+    const s = document.createElementNS(SVGNS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('aria-hidden', 'true');
+    const p = document.createElementNS(SVGNS, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', sw ? 'none' : 'currentColor');
+    if (sw) { p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', String(sw)); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round'); }
+    s.appendChild(p);
+    return s;
+  }
+  const ICON_FLAG = 'M6 21V4m0 1h11l-2.5 4L17 13H6';
+  const ICON_LOCK = 'M7 10.5V8a5 5 0 0 1 10 0v2.5M5.5 10.5h13v10h-13z';
+  const ICON_VIDEO = 'M3.5 5.5h13v13h-13zM16.5 10l4-2.5v9l-4-2.5';
+  let toastTimer = 0;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), 3200);
+    const live = document.getElementById('live');
+    if (live) live.textContent = msg;
+  }
+  const btn = (label, cls, onclick, extra) => h('button', Object.assign({ type: 'button', class: 'btn ' + (cls || 'gh'), onclick: onclick }, extra || {}), label);
+  const chip = (s, label) => h('span', { class: 'chip', 'data-s': s, text: label });
+  function pageHref(path, params) {
+    const p = new URLSearchParams();
+    Object.keys(params || {}).forEach((k) => { if (params[k]) p.set(k, params[k]); });
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    const qs = p.toString();
+    return path + (qs ? '?' + qs : '');
+  }
+  const advHref = () => pageHref('approve.html', { client: S.client });
+  function clock(sec) {
+    const d = new Date(Number(sec) * 1000);
+    if (isNaN(d.getTime()) || !(Number(sec) > 0)) return '';
+    try { return new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }).format(d); } catch (e) { return d.toTimeString().slice(0, 5); }
+  }
+  function isoClock(s) {
+    const d = new Date(String(s || ''));
+    return isNaN(d.getTime()) ? '' : clock(d.getTime() / 1000);
+  }
+  function dayLabel(iso) {
+    const d = new Date(String(iso || '') + 'T12:00:00');
+    if (isNaN(d.getTime())) return String(iso || '');
+    try { return new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'numeric' }).format(d); } catch (e) { return iso; }
+  }
+  function weekday(iso) {
+    const d = new Date(String(iso || '') + 'T12:00:00');
+    try { return new Intl.DateTimeFormat(locale(), { weekday: 'narrow' }).format(d); } catch (e) { return ''; }
+  }
+
+  // ── Loading and the screen the day is at
+  function load(userAct) {
+    if (S.loading) return Promise.resolve();
+    const s = session();
+    if (!s) { S.data = null; go('login', true); return Promise.resolve(); }
+    S.loading = true;
+    const body = { tz: tz(), open: document.visibilityState !== 'hidden' };
+    if (S.client) body.client = S.client;
+    return api('/solo/wizard/state', body).then((res) => {
+      S.loading = false;
+      S.lastLoad = Date.now();
+      if (authFailed(res)) { S.data = null; go('login', true); return; }
+      if (!(res.ok && res.data && typeof res.data === 'object' && !res.data.error)) {
+        if (!S.data) go('off', true);
+        toast(t('net_err'));
+        return;
+      }
+      S.data = res.data;
+      if (res.data.client) { S.client = res.data.client; lsSet('wc_wizard_client', S.client); }
+      settle();
+      paintChrome();
+      const w = want(S.data);
+      if (userAct || !S.screen || S.screen === 'loading' || S.screen === w || ['login', 'off', 'clients'].indexOf(S.screen) >= 0) go(w, userAct);
+      else { S.next = w; repaint(); }
+    }, () => { S.loading = false; toast(t('net_err')); if (!S.screen || S.screen === 'loading') go('off', true); });
+  }
+  // A decision the server now shows (or an item that moved on) no longer needs the local memory of it.
+  function settle() {
+    const b = bundle(S.data);
+    if (!b) return;
+    [b.post, b.video].forEach((it) => {
+      if (!it) return;
+      const k = ik(it), m = S.sent[k];
+      if (m && (m.hash !== String(it.content_hash || '') || effDecision(it) || it.state !== 'awaiting_approval')) delete S.sent[k];
+    });
+    if (b.cm && S.cmSent[b.cm.id] && b.cm.state !== 'awaiting') delete S.cmSent[b.cm.id];
+  }
+  function bundle(d) {
+    const a = d && obj(d.active);
+    if (!a) return null;
+    const items = arr(a.items).filter(obj);
+    return {
+      a: a, post: items.find((it) => chanOf(it) === 'owned_post') || null, video: items.find((it) => chanOf(it) === 'video') || null,
+      cm: obj(a.comment), picked: obj(a.picked), pending: obj(a.pending), n: problemNo(d, a)
+    };
+  }
+  function problemNo(d, a) {
+    const i = arr(d.problems).findIndex((p) => obj(p) && p.id === a.id);
+    return i >= 0 ? i + 1 : 1;
+  }
+  const skipped = (id) => arr(S.data && S.data.skipped).indexOf(id) >= 0;
+  const sentOk = (it) => { const m = S.sent[ik(it)]; return !!m && m.hash === String(it.content_hash || ''); };
+  const firstGate = (it) => { const c = cardOf(it); return !!c && (str(c.stage) === 'post' || str(c.stage) === 'script'); };
+  const prodOpen = (it) => !!it && firstGate(it) && isPending(it) && !sentOk(it) && !skipped(it.item_id);
+  const cmOpen = (c) => !!c && c.state === 'awaiting' && !S.cmSent[c.id] && !skipped('cm:' + c.id);
+  function want(d) {
+    if (!session()) return 'login';
+    if (!d) return 'loading';
+    if (d.enabled === false) return 'off';
+    if (!d.client) return 'clients';
+    const b = bundle(d);
+    if (!b) return arr(d.problems).length ? 'top' : 'none';
+    const parts = [b.post, b.video].filter(Boolean);
+    const need = b.picked && b.picked.format === 'both' ? 2 : 1;
+    if (parts.length < need || parts.some((it) => WRITING.indexOf(it.state) >= 0)) return 'write';
+    if (parts.some(prodOpen) || cmOpen(b.cm)) return 'bundle';
+    const v = b.video;
+    if (v && !skipped(v.item_id)) {
+      const c = cardOf(v);
+      if (c && isPending(v) && !sentOk(v)) {
+        if (str(c.stage) === 'scenes') return 'scenes';
+        if (str(c.stage) === 'video') return 'publish';
+      }
+      if (v.state === 'recording') return 'advance';
+      if (STOPPED.indexOf(v.state) >= 0) return 'problem';
+      if (['published', 'rejected', 'held'].indexOf(v.state) < 0) return 'wait';
+    }
+    const p = b.post;
+    if (p && STOPPED.indexOf(p.state) >= 0 && !skipped(p.item_id)) return 'problem';
+    return 'results';
+  }
+
+  // ── The trail, the streak and the Advance link
+  const STEP = { login: 0, off: 0, clients: 0, loading: 0, top: 1, none: 1, write: 2, bundle: 2, wait: 3, scenes: 3, publish: 3, problem: 3, advance: 3, results: 4 };
+  const FILL = { top: 0.06, none: 0.06, write: 0.2, bundle: 0.36, wait: 0.62, scenes: 0.72, problem: 0.72, advance: 0.72, publish: 0.9, results: 1 };
+  function paintChrome() {
+    const st = STEP[S.screen] || 0;
+    app.dataset.step = String(st);
+    app.style.setProperty('--p', String(FILL[S.screen] || 0));
+    const lab = { 1: 'p_step1', 2: S.screen === 'write' ? 'p_step2w' : 'p_step2', 3: 'p_step3', 4: 'p_done' }[st];
+    document.getElementById('plabel').textContent = lab ? t(lab) : '';
+    document.getElementById('psub').textContent = st ? t(['', 'p_left3', 'p_left2', 'p_left1', 'p_left0'][st]) : '';
+    const sd = S.data && obj(S.data.streak);
+    const m = document.getElementById('smini');
+    m.hidden = !sd;
+    if (sd) document.getElementById('smini-n').textContent = fmtNum(Number(sd.days) || 0);
+    const adv = document.getElementById('m-adv');
+    adv.setAttribute('href', advHref());
+    adv.textContent = 'Advance';
+    document.title = t('title');
+  }
+
+  // ── Screens: go() moves with the trail's slide; repaint() redraws the same screen in place.
+  function go(name, userAct) {
+    const same = name === S.screen;
+    S.screen = name;
+    if (!same || S.next === name) S.next = '';
+    paintChrome();
+    const el = build(name);
+    const old = screens.querySelector('.scr:not(.leave)');
+    if (same && old) {
+      const sc = old.querySelector('.body');
+      const top = sc ? sc.scrollTop : 0;
+      screens.replaceChild(el, old);
+      const nb = el.querySelector('.body');
+      if (nb) nb.scrollTop = top;
+    } else {
+      if (old && !RM) {
+        old.classList.add('leave');
+        setTimeout(() => { if (old.parentNode) old.parentNode.removeChild(old); }, 650);
+      } else if (old) old.parentNode.removeChild(old);
+      if (!RM && old) el.classList.add('enter');
+      screens.appendChild(el);
+      if (!RM && old) { void el.offsetWidth; el.classList.remove('enter'); }
+      const first = el.querySelector('.h, .status-line');
+      if (first && userAct) { first.setAttribute('tabindex', '-1'); try { first.focus({ preventScroll: true }); } catch (e) { /* old browser */ } }
+    }
+    after(name, el);
+  }
+  function repaint() { if (!S.editing()) go(S.screen, false); }
+  S.editing = () => Object.keys(S.ui).some((k) => S.ui[k].editing) || S.busy !== '';
+  function section(name, bodyKids, dockKids) {
+    const banner = S.next && S.next !== name
+      ? h('div', { class: 'banner', role: 'status' }, h('span', { text: t('new_work') }), btn(t('new_go'), 'gh', () => go(S.next, true)))
+      : null;
+    return h('section', { class: 'scr', 'data-screen': name },
+      h('div', { class: 'body' }, banner, bodyKids),
+      dockKids ? h('div', { class: 'dock' }, dockKids) : null);
+  }
+  function build(name) {
+    const fn = {
+      loading: scrLoading, login: scrLogin, off: scrOff, clients: scrClients, top: scrTop, none: scrNone, write: scrWrite,
+      bundle: scrBundle, wait: scrWait, scenes: scrScenes, publish: scrPublish, problem: scrProblem, advance: scrAdvance,
+      results: scrResults
+    }[name] || scrLoading;
+    return fn();
+  }
+  function after(name, el) {
+    if (name === 'bundle') watchSeen(el);
+    if (name === 'results') enterResults();
+    if (name === 'none' && !S.res) loadResults(false);
+  }
+
+  function scrLoading() { return section('loading', h('div', { class: 'wait-hero' }, walker(), h('p', { class: 'calm', text: t('loading') }))); }
+  function walker() { return h('div', { class: 'walker', 'aria-hidden': 'true' }, h('i'), svg(ICON_VIDEO, 2)); }
+  function scrLogin() {
+    return section('login', h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('login_h') }),
+      h('p', { class: 'sub', text: S.ownerOnly ? t('owner_only') : t('login_p') })),
+    h('a', { class: 'btn pr big', href: advHref(), text: t('open_adv') }));
+  }
+  function scrOff() {
+    return section('off', h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('off_h') }), h('p', { class: 'sub', text: t('off_p') })),
+      h('a', { class: 'btn pr big', href: advHref(), text: t('open_adv') }));
+  }
+  function scrClients() {
+    const list = arr(S.data && S.data.clients).filter((c) => typeof c === 'string' && CLIENT_RE.test(c));
+    return section('clients', [h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('clients_h') }), h('p', { class: 'sub', text: t('clients_p') })),
+      h('div', { class: 'clients' }, list.map((c) => btn(c, 'gh big', () => { S.client = c; lsSet('wc_wizard_client', c); S.data = null; go('loading', true); load(true); })))]);
+  }
+
+  // ── 1. Today's top 3
+  function scrTop() {
+    const d = S.data, list = arr(d.problems).filter(obj);
+    if (S.sel < 0 || S.sel >= list.length) {
+      const started = list.findIndex((p) => p.locked);
+      S.sel = started >= 0 ? started : 0;
+    }
+    const maxScore = Math.max(1, ...list.map((p) => (Number(p.posts) || 0) * 10 + (Number(p.comments) || 0) + (Number(p.reactions) || 0) / 5));
+    const firstFree = list.findIndex((p) => !p.locked);
+    const cards = list.map((p, i) => {
+      const sig = [Number(p.posts) === 1 ? t('top_posts_1') : t('top_posts', { n: fmtNum(Number(p.posts) || 0) }),
+        t('top_comments', { n: fmtNum(Number(p.comments) || 0) }) + ' · ' + t('top_reactions', { n: fmtNum(Number(p.reactions) || 0) })];
+      const lt = isoClock(p.latest);
+      if (lt) sig.push(t('top_latest', { t: lt }));
+      const score = (Number(p.posts) || 0) * 10 + (Number(p.comments) || 0) + (Number(p.reactions) || 0) / 5;
+      return h('button', { type: 'button', class: 'prob', 'aria-pressed': String(i === S.sel), 'data-i': String(i),
+        onclick: () => { S.sel = i; go('top', false); } },
+      h('span', { class: 'rank', text: String(i + 1) }),
+      i === firstFree && !p.locked ? h('span', { class: 'tag', text: t('top_tag') }) : null,
+      h('span', { class: 'ptitle', text: str(p.title) }),
+      h('span', { class: 'sig' }, sig.map((x) => h('span', { text: x }))),
+      h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.round(Math.max(0.08, score / maxScore) * 100) + '%' })),
+      p.locked ? h('span', { class: 'lock' }, svg(ICON_LOCK, 2), t('top_locked')) : null);
+    });
+    const n = Number(d.scans) || 0;
+    const sel = list[S.sel];
+    const lang = sel ? pickLang(sel) : 'en';
+    const dock = sel ? [
+      btn(S.busy === 'pick' ? t('picking') : t(sel.locked ? 'top_go_locked' : 'top_go', { n: S.sel + 1 }), 'pr big', () => startProblem(sel),
+        { disabled: S.busy !== '', id: 'go' }),
+      sel.locked ? null : h('div', { class: 'langrow' }, h('span', { text: t('top_lang', { l: t('lang_' + lang) }) }),
+        btn(t('change'), 'ln', () => { lsSet('wc_pick_lang:' + S.client, lang === 'vi' ? 'en' : 'vi'); go('top', false); }))
+    ] : null;
+    return section('top', [
+      h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('top_eyebrow', { d: dayLabel(d.day) }) }),
+        h('h1', { class: 'h', text: t('top_h') }), h('p', { class: 'sub', text: t('top_sub') })),
+      h('div', { class: 'probs' }, cards, h('div', { class: 'flagline' }, h('i', null, svg(ICON_FLAG, 2.4)), t('k_post') + ' · ' + t('k_reply') + ' · ' + t('k_video'))),
+      d.updated_at ? h('p', { class: 'upd', text: n === 1 ? t('top_upd_1', { t: clock(d.updated_at) }) : t('top_upd', { t: clock(d.updated_at), n: fmtNum(n) }) }) : null,
+      h('p', { class: 'note', text: t('top_same') })], dock);
+  }
+  function pickLang(p) {
+    const saved = lsGet('wc_pick_lang:' + S.client) || '';
+    if (saved === 'en' || saved === 'vi') return saved;
+    const l = p && p.pick && p.pick.lang;
+    return l === 'vi' ? 'vi' : 'en';
+  }
+  // Tapping a problem is the Ideas tab's "Pick for production", Both (post + video): the same request. A started
+  // problem is only opened again.
+  function startProblem(p) {
+    if (S.busy) return;
+    if (p.locked) {
+      const at = obj(p.picked) || {};
+      S.busy = 'pick';
+      api('/solo/wizard/day', { client: S.client, action: 'open', report_id: at.report_id, key: at.key, title: p.title, tz: tz() }).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { go('login', true); return; }
+        if (!res.ok) { toast(errOf(res).message || t('decide_failed')); go('top', false); return; }
+        load(true);
+      }, () => { S.busy = ''; toast(t('net_err')); go('top', false); });
+      return;
+    }
+    if (!p.pick) return;
+    S.busy = 'pick';
+    go('top', false);
+    api('/solo/report/pick', { id: p.pick.report_id, key: p.pick.key, format: 'both', language: pickLang(p) }).then((res) => {
+      if (authFailed(res)) { S.busy = ''; go('login', true); return null; }
+      if (!res.ok) {
+        S.busy = '';
+        const e = errOf(res);
+        toast(e.code === 'brief_not_ready' || e.code === 'locked' ? t('pick_brief') : (LANG === 'en' && e.message) || t('decide_failed'));
+        go('top', false);
+        return null;
+      }
+      return api('/solo/wizard/day', { client: S.client, action: 'start', report_id: p.pick.report_id, key: p.pick.key, pos: Number(p.pos) || 0, title: p.title, tz: tz() });
+    }).then((res) => {
+      if (!res) return;
+      S.busy = '';
+      load(true);
+    }, () => { S.busy = ''; toast(t('net_err')); go('top', false); });
+  }
+
+  // ── No problem today
+  function scrNone() {
+    const d = S.data;
+    return section('none', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('top_eyebrow', { d: dayLabel(d.day) }) }),
+      h('h1', { class: 'h', text: t('none_h') }), h('p', { class: 'sub', text: Number(d.scans) ? t('none_scan') : t('none_noscan') })),
+    resultsBlock()], h('a', { class: 'btn gh big', href: advHref(), text: t('r_adv') }));
+  }
+
+  // ── 2. Writing, then the bundle
+  function stateChip(kind, x) {
+    if (!x) return chip('mute', t('s_none'));
+    if (kind === 'cm') {
+      if (x.state === 'awaiting') return S.cmSent[x.id] ? chip('ok', t('s_sent')) : chip('wait', t('s_wait'));
+      if (x.state === 'approved') return chip('busy', t('s_cm_approved'));
+      if (x.state === 'posting') return chip('busy', t('s_cm_posting'));
+      if (x.state === 'posted') return chip('ok', t('s_cm_posted'));
+      if (x.state === 'failed') return chip('fix', t('s_stopped'));
+      return chip('mute', t('s_cm_rejected'));
+    }
+    if (WRITING.indexOf(x.state) >= 0) return chip('busy', t('s_writing'));
+    if (x.state === 'awaiting_approval') return sentOk(x) || effDecision(x) ? chip('ok', t('s_sent')) : skipped(x.item_id) ? chip('mute', t('s_skip')) : chip('wait', t('s_wait'));
+    if (x.state === 'publishing') return chip('busy', t('s_publishing'));
+    if (x.state === 'published') return chip('ok', t('s_published'));
+    if (x.state === 'held') return chip('mute', t('s_later'));
+    if (x.state === 'rejected') return chip('mute', t('s_skip'));
+    if (STOPPED.indexOf(x.state) >= 0) return chip('fix', t('s_stopped'));
+    return chip('busy', t('s_making'));
+  }
+  function scrWrite() {
+    const b = bundle(S.data);
+    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
+    return section('write', h('div', { class: 'wait-hero' }, walker(),
+      h('h1', { class: 'status-line', text: t('write_h', { n: b.n }) }),
+      h('ul', { class: 'mini' }, rows.map((r) => h('li', null, h('span', { text: t(r[0]) }),
+        r[1] ? stateChip(r[2], r[1]) : (r[2] === 'cm' ? chip('busy', t('s_writing')) : chip('busy', t('s_writing')))))),
+      h('p', { class: 'calm', text: b.pending && b.pending.stage === 'queued' ? t('write_held') : t('write_calm') })),
+    btn(t('close_call'), 'pr big', closeApp));
+  }
+  function closeApp() {
+    leave();
+    toast(t('w_calm'));
+  }
+  function scrBundle() {
+    const b = bundle(S.data);
+    const cards = [];
+    if (b.post) cards.push(postCard(b.post));
+    cards.push(b.cm ? replyCard(b.cm) : h('article', { class: 'item missing', 'data-k': 'cm' }, h('header', null, h('span', { class: 'kind', text: t('k_reply') }), chip('mute', t('s_none'))), h('p', { class: 'note', text: t('missing_reply') })));
+    if (b.video) cards.push(scriptCard(b.video));
+    const open = openItems(b);
+    const m = open.length;
+    const seen = open.filter((x) => S.seen.has(x.key)).length;
+    const dock = m === 0
+      ? [btn(t('all_next'), 'pr big', () => go(want(S.data), true)), h('span', { class: 'hint', text: t('all_done', { m: [b.post, b.cm, b.video].filter(Boolean).length }) })]
+      : [btn(S.busy === 'all' ? t('busy_h') : t('all'), 'pr big', approveAll, { id: 'all', disabled: seen < m || S.busy !== '' }),
+        h('span', { class: 'hint', id: 'seen', text: seen < m ? t('all_seen', { n: seen, m: m }) : t('all_ready', { m: m }) })];
+    return section('bundle', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('b_eyebrow', { n: b.n }) }),
+      h('h1', { class: 'h sm', text: str(b.a.title) }), h('p', { class: 'sub', text: t('b_sub') })), cards], dock);
+  }
+  // The items of the bundle still waiting for their first decision, in screen order.
+  function openItems(b) {
+    const out = [];
+    if (prodOpen(b.post)) out.push({ key: 'p:' + ik(b.post), kind: 'post', it: b.post });
+    if (cmOpen(b.cm)) out.push({ key: 'cm:' + b.cm.id, kind: 'cm', c: b.cm });
+    if (prodOpen(b.video)) out.push({ key: 'p:' + ik(b.video), kind: 'video', it: b.video });
+    return out;
+  }
+  function itemState(it) { return prodOpen(it) ? 'wait' : (sentOk(it) || effDecision(it) ? 'ok' : 'mute'); }
+  // The post's picture. One the bridge uploaded ("solo-media:<ref>") is asked for the way approve.html asks for it
+  // (/solo/approvals/media, the session in the headers only, never in the address, no redirect followed); the short-lived
+  // link it answers with is kept 50 minutes.
+  const MEDIA_REF_RE = /^solo-media:([A-Za-z0-9][A-Za-z0-9._:-]{0,199})$/;
+  const MSRC = new Map();
+  function picEl(c) {
+    let ref = '', src = '';
+    arr(c.media).filter(obj).some((m) => {
+      const u = str(m.url).trim(), r = MEDIA_REF_RE.exec(u);
+      if (r) ref = r[1]; else src = safeUrl(u) || '';
+      return !!(ref || src);
+    });
+    if (!ref && !src) return null;
+    const img = h('img', { class: 'pic', alt: '', referrerpolicy: 'no-referrer' });
+    const known = ref ? MSRC.get(ref) : null;
+    if (src || (known && Date.now() - known.at < 50 * 60 * 1000)) { img.src = src || known.src; return img; }
+    fetch(BASE + '/solo/approvals/media?ref=' + encodeURIComponent(ref) + '&format=json', { method: 'GET',
+      headers: sessionHeaders(session(), { Accept: 'application/json' }), cache: 'no-store', credentials: 'same-origin',
+      redirect: 'error', referrerPolicy: 'no-referrer' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const u = j && safeUrl(j.url);
+        if (!u) return;
+        MSRC.set(ref, { src: u, at: Date.now() });
+        img.src = u;
+      }, () => {});
+    return img;
+  }
+  function placesRow(it, u) {
+    const boxes = targetBoxes(it);
+    if (!boxes.length) return h('p', { class: 'err', text: t('no_places') });
+    return h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('places') }),
+      h('div', { class: 'places' }, boxes.map((x) => h('button', { type: 'button', class: 'place', 'aria-pressed': String(!x.off && !!u.f.tg[x.key]), disabled: x.off || !prodOpenAt(it),
+        onclick: () => { u.f.tg[x.key] = !u.f.tg[x.key]; repaintKeep(); } }, x.label))));
+  }
+  const prodOpenAt = (it) => !!cardOf(it) && isPending(it) && !sentOk(it);
+  function repaintKeep() { go(S.screen, false); }
+  function editBox(u, field, label) {
+    const ta = h('textarea', { class: 'ta', 'aria-label': label });
+    ta.value = u.f[field];
+    ta.addEventListener('input', () => { u.f[field] = ta.value; });
+    return ta;
+  }
+  function prodButtons(it, u, approveLabel) {
+    if (!prodOpen(it)) return null;
+    const k = ik(it);
+    if (u.editing) {
+      return h('div', { class: 'row' }, btn(t('save'), 'pr', () => decideProd(it, 'save'), { disabled: S.busy !== '' }));
+    }
+    return h('div', { class: 'acts' },
+      btn(S.busy === k ? t('busy_h') : approveLabel, 'pr', () => decideProd(it, 'approve'), { disabled: S.busy !== '' }),
+      h('div', { class: 'row' },
+        btn(t('edit'), 'gh', () => { u.editing = 'on'; repaintKeep(); }, { disabled: S.busy !== '' }),
+        btn(t('skip'), 'gh', () => skipProd(it), { disabled: S.busy !== '' })));
+  }
+  function postCard(it) {
+    const c = cardOf(it) || obj(it.row) || {};
+    const u = cardOf(it) ? cardUi(it) : { f: { tg: {} } };
+    const pic = cardOf(it) ? picEl(c) : null;
+    return h('article', { class: 'item', 'data-k': 'p:' + ik(it), 'data-s': itemState(it) },
+      h('header', null, h('span', { class: 'kind', text: t('k_post') }), stateChip('p', it)),
+      pic,
+      str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
+      u.editing ? editBox(u, 'body', t('k_post')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.body : str(it.body) }),
+      cardOf(it) ? placesRow(it, u) : null,
+      u.err ? h('p', { class: 'err', text: u.err }) : null,
+      prodButtons(it, u, t('ap_post')));
+  }
+  function scriptCard(it) {
+    const c = cardOf(it) || {};
+    const u = cardOf(it) ? cardUi(it) : { f: {} };
+    const scenes = cardOf(it) ? vSceneFirst(c) : false;
+    return h('article', { class: 'item', 'data-k': 'p:' + ik(it), 'data-s': itemState(it) },
+      h('header', null, h('span', { class: 'kind', text: t('k_video') }), stateChip('p', it)),
+      vsteps(1),
+      str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
+      u.editing ? editBox(u, 'script', t('k_video')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.script : str(it.body) }),
+      cardOf(it) ? h('p', { class: 'note', text: scenes ? t('script_scenes') : t('script_direct') }) : null,
+      u.err ? h('p', { class: 'err', text: u.err }) : null,
+      prodButtons(it, u, t('ap_script')));
+  }
+  function vsteps(now) {
+    const s = (n, key) => h('span', { class: n < now ? 'done' : n === now ? 'now' : '', text: t(key) + (n < now ? ' ✓' : '') });
+    return h('div', { class: 'vsteps' }, s(1, 'st_script'), h('em', { text: '→' }), s(2, 'st_scenes'), h('em', { text: '→' }), s(3, 'st_video'));
+  }
+  function replyCard(c) {
+    const p = obj(c.post) || {};
+    const k = 'cm:' + c.id;
+    const u = ui(k);
+    if (u.f == null) u.f = { text: str(c.text) };
+    const pu = safeUrl(str(p.url));
+    const open = cmOpen(c);
+    const who = [str(p.author), str(p.group)].filter(Boolean).join(' · ');
+    const textEl = u.editing ? editBox(u, 'text', t('k_reply')) : h('p', { class: 'txt', id: 'reply-' + c.id, text: u.f.text });
+    return h('article', { class: 'item', 'data-k': k, 'data-s': open ? 'wait' : (S.cmSent[c.id] || c.state !== 'rejected' ? 'ok' : 'mute') },
+      h('header', null, h('span', { class: 'kind', text: t('k_reply') }), stateChip('cm', c)),
+      (who || str(p.text)) ? h('div', { class: 'quote' }, who ? h('span', { class: 'who', text: who }) : null, str(p.text) ? h('span', { text: str(p.text) }) : null) : null,
+      textEl,
+      h('div', { class: 'self' }, h('span', { text: t('reply_self') }),
+        h('div', { class: 'row' }, btn(t('copy'), 'gh', () => copyReply(c, u)),
+          pu ? h('a', { class: 'btn gh', href: pu, target: '_blank', rel: 'noopener noreferrer', text: t('open_post') }) : null)),
+      u.err ? h('p', { class: 'err', text: u.err }) : null,
+      open ? (u.editing
+        ? h('div', { class: 'row' }, btn(t('save'), 'pr', () => decideReply(c, 'save'), { disabled: S.busy !== '' }))
+        : h('div', { class: 'acts' },
+          btn(S.busy === k ? t('busy_h') : t('ap_reply'), 'pr', () => decideReply(c, 'approve'), { disabled: S.busy !== '' }),
+          h('div', { class: 'row' }, btn(t('edit'), 'gh', () => { u.editing = 'on'; repaintKeep(); }, { disabled: S.busy !== '' }),
+            btn(t('skip'), 'gh', () => decideReply(c, 'reject'), { disabled: S.busy !== '' })),
+          btn(t('posted_self'), 'ln', () => decideReply(c, 'reject', true), { disabled: S.busy !== '' }))) : null);
+  }
+  function copyReply(c, u) {
+    const text = String(u.f.text || '');
+    const sel = () => {
+      const el = document.getElementById('reply-' + c.id);
+      if (el && window.getSelection) { const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+      toast(t('copy_sel'));
+    };
+    try { navigator.clipboard.writeText(text).then(() => toast(t('copied')), sel); } catch (e) { sel(); }
+  }
+
+  // ── Decisions: the very requests approve.html sends (prodBody / rowBody to /solo/approvals/decide, the comment body
+  // to /solo/comments/decide); Skip on a post or a video is Advance's Hold, on a reply its Skip.
+  function decideProd(it, act, then) {
+    const u = cardUi(it), k = ik(it);
+    const v = validateProd(it, act);
+    if (v) { u.err = v; repaintKeep(); return Promise.resolve(false); }
+    S.busy = k; u.err = '';
+    repaintKeep();
+    return postDecide(prodBody(it, act)).then((r) => {
+      S.busy = '';
+      if (r.kind === 'auth') { go('login', true); return false; }
+      if (r.kind === 'conflict') { toast(t('stale')); load(true); return false; }
+      if (r.kind !== 'ok') { u.err = r.message; repaintKeep(); return false; }
+      if (act === 'save') { u.editing = ''; repaintKeep(); toast(t('s_ok')); return true; }
+      S.sent[k] = { decision: act, hash: String(it.content_hash || '') };
+      if (then) return then();
+      load(true);
+      return true;
+    });
+  }
+  function skipProd(it) {
+    return decideProd(it, 'hold', () => mark('skip', it.item_id).then(() => { load(true); return true; }));
+  }
+  function decideRow(it, act) {
+    S.busy = ik(it);
+    repaintKeep();
+    return postDecide(rowBody(it, act)).then((r) => {
+      S.busy = '';
+      if (r.kind === 'auth') { go('login', true); return; }
+      if (r.kind === 'conflict') { toast(t('stale')); load(true); return; }
+      if (r.kind !== 'ok') { toast(r.message); repaintKeep(); return; }
+      load(true);
+    });
+  }
+  function decideReply(c, decision, self, inAll) {
+    const k = 'cm:' + c.id, u = ui(k);
+    const text = decision === 'reject' ? null : String(u.f && u.f.text != null ? u.f.text : c.text || '').trim();
+    S.busy = k; u.err = '';
+    repaintKeep();
+    return api('/solo/comments/decide', { client: c.client, id: c.id, decision: decision, text: text }).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { go('login', true); return false; }
+      if (!(res.ok && res.data && res.data.comment)) {
+        const e = errOf(res);
+        u.err = e.message || t('decide_failed');
+        if (e.code === 'already_decided' || e.code === 'posting') load(true); else repaintKeep();
+        return false;
+      }
+      if (decision === 'save') { u.editing = ''; u.f = { text: str(res.data.comment.text) }; repaintKeep(); return true; }
+      S.cmSent[c.id] = decision;
+      if (self) toast(t('self_done'));
+      return (decision === 'reject' ? mark('skip', 'cm:' + c.id) : Promise.resolve()).then(() => { if (!inAll) load(true); return true; });
+    }, () => { S.busy = ''; u.err = t('net_err'); repaintKeep(); return false; });
+  }
+  // "Approve the whole bundle": the same per-item approvals, one after another, only once every item was on screen.
+  function approveAll() {
+    const b = bundle(S.data);
+    const open = openItems(b);
+    if (open.some((x) => !S.seen.has(x.key)) || S.busy) return;
+    for (const x of open) {
+      if (x.kind !== 'cm') { cardUi(x.it); const v = validateProd(x.it, 'approve'); if (v) { cardUi(x.it).err = v; repaintKeep(); return; } }
+    }
+    S.busy = 'all';
+    repaintKeep();
+    let chain = Promise.resolve(true);
+    open.forEach((x) => {
+      chain = chain.then((ok) => {
+        if (!ok) return false;
+        S.busy = 'all';
+        if (x.kind === 'cm') return decideReply(x.c, 'approve', false, true).then((r) => { S.busy = 'all'; return r; });
+        return decideProd(x.it, 'approve', () => true).then((r) => { S.busy = 'all'; return r; });
+      });
+    });
+    chain.then(() => { S.busy = ''; load(true); });
+  }
+  function mark(action, id) {
+    return api('/solo/wizard/day', { client: S.client, action: action, id: id, tz: tz() }).then((res) => {
+      if (res.ok && res.data && res.data.today && S.data) S.data.skipped = arr(res.data.today.skipped);
+      return res;
+    }, () => null);
+  }
+  // A card counts as seen once its end has been on screen (a card taller than the phone: scrolled through to its end).
+  function watchSeen(el) {
+    const sc = el.querySelector('.body');
+    const cards = Array.from(el.querySelectorAll('.item[data-k]'));
+    let queued = false;
+    const check = () => {
+      queued = false;
+      if (!sc.isConnected) return;
+      const box = sc.getBoundingClientRect();
+      cards.forEach((c) => {
+        const r = c.getBoundingClientRect();
+        if (r.bottom <= box.bottom + 4 && r.bottom > box.top) S.seen.add(c.getAttribute('data-k'));
+      });
+      const b = bundle(S.data);
+      if (!b) return;
+      const open = openItems(b), m = open.length, n = open.filter((x) => S.seen.has(x.key)).length;
+      const all = el.querySelector('#all'), hint = el.querySelector('#seen');
+      if (all) all.disabled = n < m || S.busy !== '';
+      if (hint) hint.textContent = n < m ? t('all_seen', { n: n, m: m }) : t('all_ready', { m: m });
+    };
+    sc.addEventListener('scroll', () => { if (!queued) { queued = true; setTimeout(check, 60); } }, { passive: true });
+    setTimeout(check, 60);
+    setTimeout(check, 700);                               // once the slide-in has settled
+  }
+
+  // ── 3. Waiting, the scenes gate, the publish gate
+  function waitLine(b) {
+    const v = b.video;
+    if (!v || skipped(v.item_id)) return t('w_sent');
+    if (v.state === 'awaiting_approval') return t('w_sent');
+    if (v.state === 'scenes_making') return t('w_scenes');
+    if (v.state === 'video_creating') return vSceneFirst(obj(v.row) || {}) ? t('w_scenes') : t('w_making');
+    if (v.state === 'video_rendering') return t('w_render');
+    if (v.state === 'publishing') return t('w_publishing');
+    return t('w_making');
+  }
+  function scrWait() {
+    const b = bundle(S.data);
+    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
+    return section('wait', h('div', { class: 'wait-hero' }, walker(),
+      h('h1', { class: 'status-line', text: waitLine(b) }),
+      h('ul', { class: 'mini' }, rows.map((r) => h('li', null, h('span', { text: t(r[0]) }), stateChip(r[2], r[1])))),
+      h('p', { class: 'calm', text: t('w_calm') })),
+    btn(t('close_call'), 'pr big', closeApp));
+  }
+  function scrScenes() {
+    const v = bundle(S.data).video, c = cardOf(v) || {};
+    const watch = safeUrl(str(c.review_url)) || safeUrl(str(c.widecast_url));
+    const k = ik(v);
+    return section('scenes', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('sc_eyebrow') }), vsteps(2),
+      h('h1', { class: 'h', text: t('sc_h') })),
+    h('div', { class: 'cardline' }, h('p', { class: 'ttl', text: str(c.title) }),
+      watch ? h('a', { class: 'btn gh', href: watch, target: '_blank', rel: 'noopener noreferrer', text: t('sc_view') }) : null),
+    h('p', { class: 'note', text: t('sc_note') }), cardUi(v).err ? h('p', { class: 'err', text: cardUi(v).err }) : null],
+    [btn(S.busy === k ? t('busy_h') : t('sc_ok'), 'pr big', () => decideProd(v, 'approve'), { disabled: S.busy !== '' }),
+      watch ? h('a', { class: 'btn gh', href: watch, target: '_blank', rel: 'noopener noreferrer', text: t('sc_fix') }) : null]);
+  }
+  function scrPublish() {
+    const v = bundle(S.data).video, c = cardOf(v) || {};
+    const u = cardUi(v), k = ik(v);
+    const src = safeUrl(str(c.video_url));
+    return section('publish', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('pu_eyebrow') }), vsteps(3),
+      h('h1', { class: 'h', text: t('pu_h') })),
+    src ? h('video', { class: 'vid', src: src, controls: true, playsinline: true, preload: 'metadata' }) : null,
+    h('p', { class: 'ttl', text: str(c.title) }), placesRow(v, u), u.err ? h('p', { class: 'err', text: u.err }) : null],
+    [btn(S.busy === k ? t('busy_h') : t('pu_ok'), 'pr big', () => decideProd(v, 'approve'), { disabled: S.busy !== '' }),
+      btn(t('pu_later'), 'ln', () => skipProd(v), { disabled: S.busy !== '' })]);
+  }
+  function scrProblem() {
+    const b = bundle(S.data);
+    const it = [b.video, b.post].find((x) => x && STOPPED.indexOf(x.state) >= 0) || b.video || b.post;
+    const r = obj(it && it.row) || {};
+    return section('problem', [h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('pr_h') }),
+      h('p', { class: 'sub', text: str(r.plain) || str(r.status_line) })),
+    h('ul', { class: 'mini' }, [['k_post', b.post], ['k_video', b.video]].filter((x) => x[1]).map((x) => h('li', null, h('span', { text: t(x[0]) }), stateChip('p', x[1]))))],
+    [r.can_retry ? btn(t('pr_retry'), 'pr big', () => decideRow(it, 'retry'), { disabled: S.busy !== '' }) : null,
+      h('a', { class: 'btn gh', href: advHref(), text: t('open_adv') })]);
+  }
+  function scrAdvance() {
+    return section('advance', h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('adv_h') }), h('p', { class: 'sub', text: t('adv_p') })),
+      h('a', { class: 'btn pr big', href: advHref(), text: t('open_adv') }));
+  }
+
+  // ── The round's result: the streak (days walked, never approvals), views and comments, the day's work.
+  function enterResults() {
+    const d = S.data;
+    if (d && d.client && !d.done_today && S.doneSent !== d.day) {
+      S.doneSent = d.day;
+      api('/solo/wizard/day', { client: S.client, action: 'done', tz: tz() }).then(() => loadResults(true), () => loadResults(true));
+    } else if (!S.res || S.res.day !== (d && d.day)) loadResults(false);
+  }
+  function loadResults(fresh) {
+    return api('/solo/wizard/results', { client: S.client, tz: tz() }).then((res) => {
+      if (!(res.ok && res.data && res.data.enabled)) return;
+      S.res = res.data;
+      if (S.data && fresh) { S.data.streak = res.data.streak; S.data.done_today = true; paintChrome(); }
+      if (S.screen === 'results' || S.screen === 'none') { go(S.screen, false); if (S.screen === 'results' && fresh && !S.fx) { S.fx = true; confetti(); } }
+    }, () => {});
+  }
+  function resultsBlock() {
+    const r = S.res, sd = (r && obj(r.streak)) || (S.data && obj(S.data.streak)) || { days: 0, week: [] };
+    const week = arr(sd.week).filter(obj).map((w) => {
+      const s = w.state === 'today' && (sd.today_done || (S.data && S.data.done_today)) ? 'today-done' : str(w.state);
+      return h('li', { 'data-s': s }, h('i', { text: s === 'done' || s === 'today-done' ? '✓' : '·' }), weekday(w.date));
+    });
+    const days = Number(sd.days) || 0;
+    const kids = [h('div', { class: 'streak' },
+      h('div', { class: 'big' }, h('b', { text: fmtNum(days) }), h('span', { text: days === 1 ? t('r_days_1') : t('r_days') })),
+      week.length ? h('ol', { class: 'week', 'aria-label': t('week_aria') }, week) : null,
+      sd.paused ? h('p', { class: 'note', text: t('r_paused') }) : null,
+      h('p', { class: 'note', text: t('r_streak_note') }))];
+    if (r) {
+      kids.push(h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('b', { text: r.views_7d == null ? '·' : fmtNum(r.views_7d) }), h('span', { text: t('r_views') })),
+        h('div', { class: 'stat' }, h('b', { text: r.comments_7d == null ? '·' : fmtNum(r.comments_7d) }), h('span', { text: t('r_replies') }))));
+      const one = Number(r.scans) === 1;
+      const work = r.posts_scanned != null && r.junk_filtered != null
+        ? t(one ? 'r_work_1' : 'r_work', { p: fmtNum(r.posts_scanned), s: fmtNum(r.scans), j: fmtNum(r.junk_filtered) })
+        : t(one ? 'r_work_some_1' : 'r_work_some', { s: fmtNum(r.scans), i: fmtNum(r.ideas) });
+      kids.push(h('div', { class: 'work' }, h('span', { text: work }), h('span', { text: t('r_tomorrow') })));
+      kids.push(h('a', { class: 'btn ln', href: advHref(), text: t('r_adv') }));
+    }
+    return kids;
+  }
+  function scrResults() {
+    const quiet = arr(S.data && S.data.problems).length < 2;
+    return section('results', [h('div', { class: 'res-hero' }, h('canvas', { id: 'fx', 'aria-hidden': 'true' }),
+      h('span', { class: 'eyebrow', text: t('r_eyebrow') }), h('h1', { class: 'h', text: quiet ? t('r_h_quiet') : t('r_h') })),
+    resultsBlock()],
+    [btn(t('r_bye'), 'pr big', () => { leave(); toast(t('r_bye_t')); }),
+      arr(S.data && S.data.problems).some((p) => obj(p) && !p.locked) ? btn(t('r_more'), 'ln', () => {
+        api('/solo/wizard/day', { client: S.client, action: 'back', tz: tz() }).then(() => { S.sel = -1; load(true); });
+      }) : null]);
+  }
+  // Only inside the results header, where nothing waits for a review; never on a busy phone setting.
+  function confetti() {
+    const c = document.getElementById('fx');
+    if (!c || RM || typeof c.getContext !== 'function') return;
+    const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const x = c.getContext('2d');
+    if (!x || !r.width) return;
+    c.width = r.width * dpr; c.height = r.height * dpr; x.scale(dpr, dpr);
+    const colors = ['#2f66e8', '#ffc53d', '#1c9a66', '#d9435a'];
+    const P = [];
+    for (let i = 0; i < 70; i++) P.push({ x: r.width / 2, y: r.height * 0.55, vx: (Math.random() - 0.5) * 9, vy: -Math.random() * 7 - 3, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.3, c: colors[i % 4], s: 4 + Math.random() * 5 });
+    let n = 0;
+    (function f() {
+      n++;
+      x.clearRect(0, 0, r.width, r.height);
+      P.forEach((p) => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.25; p.vx *= 0.985; p.a += p.va;
+        x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.globalAlpha = Math.max(0, 1 - n / 85); x.fillStyle = p.c;
+        x.beginPath();
+        for (let i = 0; i < 5; i++) { const a = i * 1.2566 - 1.5708; x.lineTo(Math.cos(a) * p.s, Math.sin(a) * p.s); const q = a + 0.6283; x.lineTo(Math.cos(q) * p.s * 0.45, Math.sin(q) * p.s * 0.45); }
+        x.closePath(); x.fill(); x.restore();
+      });
+      if (n < 85) window.requestAnimationFrame(f); else x.clearRect(0, 0, r.width, r.height);
+    })();
+  }
+
+  // ── Open and closed: the server hears "open" with every load while the page is visible (so a call-back notice
+  // waits), and "left" when it is hidden (so the next decision calls the Boss back).
+  function leave() {
+    if (!S.client || !session()) return;
+    api('/solo/wizard/day', { client: S.client, action: 'left', tz: tz() }, true).catch(() => {});
+  }
+  function tick() {
+    if (document.visibilityState === 'hidden' || S.editing() || S.loading) return;
+    load(false);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') leave();
+    else if (Date.now() - S.lastLoad > 15000) load(false);
+  });
+  window.addEventListener('pagehide', leave);
+
+  const want0 = Q0.get('client');
+  S.client = want0 && CLIENT_RE.test(want0) ? want0 : (lsGet('wc_wizard_client') || '');
+  document.documentElement.lang = LANG;
+  document.getElementById('m-wiz').textContent = 'Wizard';
+  document.querySelector('nav.mode').setAttribute('aria-label', t('mode_label'));
+  go(session() ? 'loading' : 'login', false);
+  if (session()) load(true);
+  S.timer = setInterval(tick, REFRESH_MS);
+})();
+</script>
+</body>
+</html>

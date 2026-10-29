@@ -737,7 +737,7 @@ select.field{padding-right:28px}
     const sender = arr((S.gate || {}).senders)[0] || {};
     return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false, files: [] };
   }
-  function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
+  function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); restoreAudience(null); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
   // A new email for one magnet: its row in the list (an old page id finds the magnet it belongs to) is ticked; a magnet
   // this client's list does not show leaves the new email with nothing ticked.
   function newEmailFor(id) {
@@ -746,13 +746,35 @@ select.field{padding-right:28px}
     if (row) { S.aud.magnets = [row.magnet_id]; render(); }
   }
   function resetAudience() { S.aud = { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }; S.preview = null; S.prevErr = ''; S.confirm = false; }
+  // 2026-10-28 (the Boss: "refresh thì nó lại mất sự lựa chọn này, nó nên nhớ các lựa chọn của lần cuối"): an email
+  // opens with what was ticked for it when its numbers were last checked (who gets it, what it goes with); a new
+  // email with what this client's last email went with. A magnet, a language or a box that is gone is left out.
+  function restoreAudience(a) {
+    const A = S.aud;
+    if (a) {
+      const known = {};
+      S.magnets.forEach((m) => { known[m.magnet_id] = m; });
+      A.magnets = arr(a.magnets).filter((mid) => known[mid]);
+      A.crm = !!a.crm;
+      A.magnets.forEach((mid) => {
+        const all = arr(known[mid].languages), l = arr((a.magnet_languages || {})[mid]).filter((lg) => all.indexOf(lg) >= 0);
+        if (l.length && l.length < all.length) A.langs[mid] = l;
+      });
+    }
+    const last = a || (S.settings || {}).last_send || {};
+    if (last.transport === 'sendbox') {
+      const ok = S.boxes.filter((b) => b.status === 'healthy').map((b) => b.box_id);
+      const keep = arr(last.boxes).filter((id) => !S.boxes.length || ok.indexOf(id) >= 0);
+      if (keep.length) { A.transport = 'sendbox'; A.boxes = keep; }
+    }
+  }
   function openEmail(uid) {
     S.busy = 'open'; render();
     api('/solo/broadcast/email/get', { client: S.client, uid: uid }).then((res) => {
       S.busy = '';
       if (authFailed(res)) { showLogin(); return; }
       if (!res.ok || !res.data) { S.view = 'list'; S.err = ''; render(); toast(msgOf(res)); return; }
-      S.edit = res.data; S.view = 'edit'; S.dirty = false; S.err = ''; resetAudience();
+      S.edit = res.data; S.view = 'edit'; S.dirty = false; S.err = ''; resetAudience(); restoreAudience(res.data.audience || null);
       S.run = S.active && S.active.email_uid === uid ? S.active : null;
       render(); syncUrl(); loadHistory();
       if (S.run && S.run.state !== 'paused') startPoll(S.run.run_id);
@@ -855,7 +877,10 @@ select.field{padding-right:28px}
     S.aud.magnets.forEach((mid) => { const l = (S.aud.langs || {})[mid]; if (l) ml[mid] = l.slice(); });
     const b = { client: S.client, uid: S.edit.uid, magnets: S.aud.magnets.slice(), crm: !!S.aud.crm };
     if (Object.keys(ml).length) b.magnet_languages = ml;
-    if (S.aud.transport === 'sendbox') { b.transport = 'sendbox'; b.boxes = S.aud.boxes.slice(); }
+    if (S.aud.transport === 'sendbox') {
+      const ok = S.boxes.filter((x) => x.status === 'healthy').map((x) => x.box_id);
+      b.transport = 'sendbox'; b.boxes = S.boxes.length ? S.aud.boxes.filter((id) => ok.indexOf(id) >= 0) : S.aud.boxes.slice();
+    }
     return b;
   }
   function checkNumbers(keepMsg) {
