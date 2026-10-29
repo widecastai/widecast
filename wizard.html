@@ -263,9 +263,9 @@ a{color:var(--primary-deep)}
       write_h: 'Writing the bundle for problem {n}. I will call you when it is ready.',
       write_calm: 'This usually takes 5 to 15 minutes. You can close the app.',
       write_held: 'Your agent picks this up at its next check.',
-      k_post: 'Post', k_reply: 'Reply', k_video: 'Video script',
+      k_post: 'Post', k_reply: 'Reply', k_video: 'Video script', k_vid: 'Video',
       s_wait: 'Waiting for you', s_writing: 'Writing', s_none: 'None today', s_ok: 'Approved',
-      s_sent: 'Sent to your agent', s_skip: 'Skipped', s_later: 'Later',
+      s_sent: 'Sent to your agent', s_sent_pub: 'Publish sent to your agent', s_sent_make: 'Sent: your agent makes the video', s_skip: 'Skipped', s_later: 'Later',
       s_publishing: 'Publishing', s_published: 'Published', s_making: 'Being made', s_stopped: 'Stopped',
       s_cm_approved: 'Your agent posts it', s_cm_posting: 'Posting', s_cm_posted: 'Posted', s_cm_rejected: 'Not posted by your agent',
       close_call: 'Close, call me when it is ready',
@@ -282,6 +282,8 @@ a{color:var(--primary-deep)}
       all: 'Approve the whole bundle', all_seen: '{n} of {m} seen. Scroll to see them all.', all_ready: 'You have seen all {m}.',
       all_next: 'Continue', all_done: 'All {m} decided.',
       w_sent: 'Sent to your agent. It picks this up within a few minutes.',
+      w_sent_pub: 'Publish is sent. Your agent publishes the video within a few minutes.',
+      w_sent_make: 'Sent. Your agent makes the video; I will call you to publish it.',
       w_scenes: 'The video is making its scenes. I will call you to look at them.',
       w_making: 'The video is being made. I will call you to publish it.',
       w_render: 'The video is rendering. I will call you to publish it.',
@@ -344,9 +346,9 @@ a{color:var(--primary-deep)}
       write_h: 'Đang soạn bộ 3 cho vấn đề số {n}. Xong tôi gọi bạn.',
       write_calm: 'Thường mất 5 đến 15 phút. Bạn đóng app được.',
       write_held: 'Agent của bạn nhận việc này ở lần kiểm tra tới.',
-      k_post: 'Post', k_reply: 'Comment', k_video: 'Script video',
+      k_post: 'Post', k_reply: 'Comment', k_video: 'Script video', k_vid: 'Video',
       s_wait: 'Chờ bạn duyệt', s_writing: 'Đang soạn', s_none: 'Không có hôm nay', s_ok: 'Đã duyệt',
-      s_sent: 'Đã gửi cho agent', s_skip: 'Bỏ qua', s_later: 'Để sau',
+      s_sent: 'Đã gửi cho agent', s_sent_pub: 'Đã gửi lệnh đăng cho agent', s_sent_make: 'Đã gửi: agent làm video', s_skip: 'Bỏ qua', s_later: 'Để sau',
       s_publishing: 'Đang đăng', s_published: 'Đã đăng', s_making: 'Đang làm', s_stopped: 'Bị dừng',
       s_cm_approved: 'Agent sẽ đăng', s_cm_posting: 'Đang đăng', s_cm_posted: 'Đã đăng', s_cm_rejected: 'Agent không đăng',
       close_call: 'Đóng, xong thì gọi tôi',
@@ -363,6 +365,8 @@ a{color:var(--primary-deep)}
       all: 'Duyệt cả bộ', all_seen: 'Bạn đã xem {n}/{m} món. Lướt xuống để xem hết.', all_ready: 'Bạn đã xem cả {m} món.',
       all_next: 'Tiếp tục', all_done: 'Đã quyết định cả {m} món.',
       w_sent: 'Đã gửi cho agent của bạn. Agent nhận trong vài phút.',
+      w_sent_pub: 'Đã gửi lệnh đăng. Agent đăng video trong vài phút.',
+      w_sent_make: 'Đã gửi. Agent làm video, xong tôi gọi bạn bấm Publish.',
       w_scenes: 'Video đang làm scenes. Xong tôi gọi bạn duyệt scenes.',
       w_making: 'Video đang được làm. Xong tôi gọi bạn bấm Publish.',
       w_render: 'Đang render video. Xong tôi gọi bạn bấm Publish.',
@@ -788,6 +792,14 @@ a{color:var(--primary-deep)}
     return i >= 0 ? i + 1 : 1;
   }
   const skipped = (id) => arr(S.data && S.data.skipped).indexOf(id) >= 0;
+  // The decision sent on an item still waiting for the agent (this page's, else the server's), and its step.
+  function sentDecision(it) {
+    const m = S.sent[ik(it)];
+    const d = m && m.hash === String(it.content_hash || '') ? m.decision : str((effDecision(it) || {}).decision);
+    return d ? { decision: d, stage: str(obj(it.card) && it.card.stage) } : null;
+  }
+  // A video is its script until the script is approved; then it is the video.
+  const vidKey = (it) => (!it || WRITING.indexOf(it.state) >= 0 || str(obj(it.card) && it.card.stage) === 'script' ? 'k_video' : 'k_vid');
   const sentOk = (it) => { const m = S.sent[ik(it)]; return !!m && m.hash === String(it.content_hash || ''); };
   const firstGate = (it) => { const c = cardOf(it); return !!c && (str(c.stage) === 'post' || str(c.stage) === 'script'); };
   const prodOpen = (it) => !!it && firstGate(it) && isPending(it) && !sentOk(it) && !skipped(it.item_id);
@@ -1029,7 +1041,13 @@ a{color:var(--primary-deep)}
       return chip('mute', t('s_cm_rejected'));
     }
     if (WRITING.indexOf(x.state) >= 0) return chip('busy', t('s_writing'));
-    if (x.state === 'awaiting_approval') return sentOk(x) || effDecision(x) ? chip('ok', t('s_sent')) : skipped(x.item_id) ? chip('mute', t('s_skip')) : chip('wait', t('s_wait'));
+    if (x.state === 'awaiting_approval') {
+      const d = sentDecision(x);
+      if (d && d.decision === 'hold') return chip('mute', t('s_later'));
+      if (d && d.decision === 'reject') return chip('mute', t('s_skip'));
+      if (d) return chip('ok', t(d.stage === 'post' || d.stage === 'video' ? 's_sent_pub' : d.stage === 'scenes' ? 's_sent_make' : 's_sent'));
+      return skipped(x.item_id) ? chip('mute', t('s_skip')) : chip('wait', t('s_wait'));
+    }
     if (x.state === 'publishing') return chip('busy', t('s_publishing'));
     if (x.state === 'published') return chip('ok', t('s_published'));
     if (x.state === 'held') return chip('mute', t('s_later'));
@@ -1065,7 +1083,7 @@ a{color:var(--primary-deep)}
   const miniRow = (name, kind, x) => h('li', null, h('div', { class: 'mrow' }, h('span', { text: t(name) }), stateChip(kind, x)), viewLinks(kind, x));
   function scrWrite() {
     const b = bundle(S.data);
-    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
+    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], [vidKey(b.video), b.video, 'p']];
     return section('write', h('div', { class: 'wait-hero' }, walker(),
       h('h1', { class: 'status-line', text: t('write_h', { n: b.n }) }),
       h('ul', { class: 'mini' }, rows.map((r) => h('li', null, h('span', { text: t(r[0]) }),
@@ -1175,7 +1193,7 @@ a{color:var(--primary-deep)}
     const u = cardOf(it) ? cardUi(it) : { f: {} };
     const scenes = cardOf(it) ? vSceneFirst(c) : false;
     return h('article', { class: 'item', 'data-k': 'p:' + ik(it), 'data-s': itemState(it) },
-      h('header', null, h('span', { class: 'kind', text: t('k_video') }), stateChip('p', it)),
+      h('header', null, h('span', { class: 'kind', text: t(vidKey(it)) }), stateChip('p', it)),
       vsteps(1),
       str(c.title) ? h('p', { class: 'ttl', text: str(c.title) }) : null,
       u.editing ? editBox(u, 'script', t('k_video')) : h('p', { class: 'txt', text: cardOf(it) ? u.f.script : str(it.body) }),
@@ -1333,7 +1351,10 @@ a{color:var(--primary-deep)}
   function waitLine(b) {
     const v = b.video;
     if (!v || skipped(v.item_id)) return t('w_sent');
-    if (v.state === 'awaiting_approval') return t('w_sent');
+    if (v.state === 'awaiting_approval') {
+      const d = sentDecision(v);
+      return t(d && d.stage === 'video' ? 'w_sent_pub' : d && d.stage === 'scenes' ? 'w_sent_make' : 'w_sent');
+    }
     if (v.state === 'scenes_making') return t('w_scenes');
     if (v.state === 'video_creating') return vSceneFirst(obj(v.row) || {}) ? t('w_scenes') : t('w_making');
     if (v.state === 'video_rendering') return t('w_render');
@@ -1342,7 +1363,7 @@ a{color:var(--primary-deep)}
   }
   function scrWait() {
     const b = bundle(S.data);
-    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], ['k_video', b.video, 'p']];
+    const rows = [['k_post', b.post, 'p'], ['k_reply', b.cm, 'cm'], [vidKey(b.video), b.video, 'p']];
     return section('wait', h('div', { class: 'wait-hero' }, walker(),
       h('h1', { class: 'status-line', text: waitLine(b) }),
       h('ul', { class: 'mini' }, rows.map((r) => miniRow(r[0], r[2], r[1]))),
@@ -1378,7 +1399,7 @@ a{color:var(--primary-deep)}
     const r = obj(it && it.row) || {};
     return section('problem', [h('div', { class: 'gate-h' }, h('h1', { class: 'h', text: t('pr_h') }),
       h('p', { class: 'sub', text: str(r.plain) || str(r.status_line) })),
-    h('ul', { class: 'mini' }, [['k_post', b.post], ['k_video', b.video]].filter((x) => x[1]).map((x) => miniRow(x[0], 'p', x[1])))],
+    h('ul', { class: 'mini' }, [['k_post', b.post], [vidKey(b.video), b.video]].filter((x) => x[1]).map((x) => miniRow(x[0], 'p', x[1])))],
     [r.can_retry ? btn(t('pr_retry'), 'pr big', () => decideRow(it, 'retry'), { disabled: S.busy !== '' }) : null,
       h('a', { class: 'btn gh', href: advHref(), text: t('open_adv') })]);
   }
@@ -1416,7 +1437,7 @@ a{color:var(--primary-deep)}
       sd.paused ? h('p', { class: 'note', text: t('r_paused') }) : null,
       h('p', { class: 'note', text: t('r_streak_note') }))];
     const b = S.data && bundle(S.data);
-    const live = b ? [['k_post', 'p', b.post], ['k_reply', 'cm', b.cm], ['k_video', 'p', b.video]].filter((x) => seenLinks(x[1], x[2]).length) : [];
+    const live = b ? [['k_post', 'p', b.post], ['k_reply', 'cm', b.cm], [vidKey(b.video), 'p', b.video]].filter((x) => seenLinks(x[1], x[2]).length) : [];
     if (live.length) kids.push(h('div', { class: 'live' }, h('h2', { text: t('live_h') }), h('ul', { class: 'mini' }, live.map((x) => miniRow(x[0], x[1], x[2])))));
     if (r) {
       kids.push(h('div', { class: 'stats' },
