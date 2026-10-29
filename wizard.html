@@ -170,7 +170,11 @@ a{color:var(--primary-deep)}
 .streak .big b{font:800 46px/1 var(--f-disp);font-variant-numeric:tabular-nums}
 .streak .big span{font:700 17px/1.2 var(--f-disp)}
 .week{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.week li{display:grid;justify-items:center;gap:6px;font:700 12px/1 var(--f-body);color:var(--muted)}
+.week li{display:grid;justify-items:center;font:700 12px/1 var(--f-body);color:var(--muted)}
+.week .wd{display:grid;justify-items:center;gap:6px;width:100%;min-height:58px;padding:4px 0;border:0;background:none;color:inherit;font:inherit}
+.week button.wd{cursor:pointer}
+.week button.wd:hover i{box-shadow:0 0 0 4px rgba(47,102,232,.15)}
+.week li[data-s="future"]{opacity:.4}
 .week li i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#e2ecfb;border:3px solid #c9d8f0;font-style:normal;font-weight:800}
 .week li[data-s="done"] i{background:var(--primary);border-color:var(--primary);color:#fff}
 .week li[data-s="rest"] i{background:#fff;border-style:dashed}
@@ -308,6 +312,12 @@ a{color:var(--primary-deep)}
       r_more: 'Make another bundle', r_adv: 'See everything in Advance', r_bye: 'Done, see you tomorrow', r_bye_t: 'See you tomorrow.',
       new_work: 'Something new is ready', new_go: 'Show me', net_err: 'No connection. Try again.',
       view: 'View', view_on: 'View on {p}', live_h: 'Published today',
+      past_done: 'What you did that day', past_part: 'You started the path that day', past_none: 'No path walked that day',
+      past_back: 'Back to today', day_open: 'Open {d}', p_noscan: 'No scan ran that day.',
+      p_work: 'That day your agent read {p} posts in {s} scans and set aside {j} as junk or ads.',
+      p_work_1: 'That day your agent read {p} posts in one scan and set aside {j} as junk or ads.',
+      p_work_some: 'That day your agent ran {s} scans and found {i} ideas to write about.',
+      p_work_some_1: 'That day your agent ran one scan and found {i} ideas to write about.',
       decide_failed: 'That did not go through. Try again.', not_awaiting: 'This changed a moment ago. The latest is shown now.',
       magic_denied: 'Only the account owner can decide here.', stale: 'This changed a moment ago. The latest is shown now.',
       busy_h: 'One moment…', week_aria: 'The last 7 days',
@@ -391,6 +401,12 @@ a{color:var(--primary-deep)}
       r_more: 'Làm thêm một bộ', r_adv: 'Xem mọi thứ ở Advance', r_bye: 'Xong, hẹn mai', r_bye_t: 'Hẹn bạn ngày mai.',
       new_work: 'Có việc mới sẵn sàng', new_go: 'Xem ngay', net_err: 'Không kết nối được. Bạn thử lại nhé.',
       view: 'Xem', view_on: 'Xem trên {p}', live_h: 'Đã đăng hôm nay',
+      past_done: 'Những gì bạn đã làm hôm đó', past_part: 'Hôm đó bạn đã bắt đầu lộ trình', past_none: 'Hôm đó chưa đi lộ trình',
+      past_back: 'Về hôm nay', day_open: 'Xem {d}', p_noscan: 'Hôm đó không có đợt quét nào.',
+      p_work: 'Hôm đó agent của bạn đã đọc {p} bài trong {s} đợt quét và lọc {j} bài rác hoặc quảng cáo.',
+      p_work_1: 'Hôm đó agent của bạn đã đọc {p} bài trong một đợt quét và lọc {j} bài rác hoặc quảng cáo.',
+      p_work_some: 'Hôm đó agent của bạn đã chạy {s} đợt quét và tìm được {i} ý tưởng để viết.',
+      p_work_some_1: 'Hôm đó agent của bạn đã chạy một đợt quét và tìm được {i} ý tưởng để viết.',
       decide_failed: 'Chưa gửi được. Bạn thử lại nhé.', not_awaiting: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
       magic_denied: 'Chỉ chủ tài khoản mới duyệt được ở đây.', stale: 'Mục này vừa đổi. Đã hiện bản mới nhất.',
       busy_h: 'Chờ một chút…', week_aria: '7 ngày qua',
@@ -763,6 +779,7 @@ a{color:var(--primary-deep)}
       settle();
       paintChrome();
       const w = want(S.data);
+      if (S.screen === 'past' && !userAct) return;      // a day looked at again stays on screen
       if (userAct || !S.screen || S.screen === 'loading' || S.screen === w || ['login', 'off', 'clients'].indexOf(S.screen) >= 0) go(w, userAct);
       else { S.next = w; repaint(); }
     }, () => { S.loading = false; toast(t('net_err')); if (!S.screen || S.screen === 'loading') go('off', true); });
@@ -832,7 +849,7 @@ a{color:var(--primary-deep)}
   }
 
   // ── The trail, the streak and the Advance link
-  const STEP = { login: 0, off: 0, clients: 0, loading: 0, top: 1, none: 1, write: 2, bundle: 2, wait: 3, scenes: 3, publish: 3, problem: 3, advance: 3, results: 4 };
+  const STEP = { login: 0, off: 0, clients: 0, loading: 0, past: 0, top: 1, none: 1, write: 2, bundle: 2, wait: 3, scenes: 3, publish: 3, problem: 3, advance: 3, results: 4 };
   const FILL = { top: 0.06, none: 0.06, write: 0.2, bundle: 0.36, wait: 0.62, scenes: 0.72, problem: 0.72, advance: 0.72, publish: 0.9, results: 1 };
   function paintChrome() {
     const st = STEP[S.screen] || 0;
@@ -899,7 +916,7 @@ a{color:var(--primary-deep)}
     const fn = {
       loading: scrLoading, login: scrLogin, off: scrOff, clients: scrClients, top: scrTop, none: scrNone, write: scrWrite,
       bundle: scrBundle, wait: scrWait, scenes: scrScenes, publish: scrPublish, problem: scrProblem, advance: scrAdvance,
-      results: scrResults
+      results: scrResults, past: scrPast
     }[name] || scrLoading;
     return fn();
   }
@@ -1424,11 +1441,50 @@ a{color:var(--primary-deep)}
       if (S.screen === 'results' || S.screen === 'none') { go(S.screen, false); if (S.screen === 'results' && fresh && !S.fx) { S.fx = true; confetti(); } }
     }, () => {});
   }
+  function workLine(r, pre) {
+    if (pre === 'p_' && !Number(r.scans)) return t('p_noscan');
+    const one = Number(r.scans) === 1;
+    return r.posts_scanned != null && r.junk_filtered != null
+      ? t(pre + (one ? 'work_1' : 'work'), { p: fmtNum(r.posts_scanned), s: fmtNum(r.scans), j: fmtNum(r.junk_filtered) })
+      : t(pre + (one ? 'work_some_1' : 'work_some'), { s: fmtNum(r.scans), i: fmtNum(r.ideas) });
+  }
+  // An earlier day of the week, looked at again: what was picked, what went out (with its links), the day's scans.
+  function openDay(date) {
+    if (S.busy) return;
+    S.busy = 'day';
+    api('/solo/wizard/results', { client: S.client, tz: tz(), date: date }).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { go('login', true); return; }
+      if (!(res.ok && res.data && res.data.enabled)) { toast(t('net_err')); return; }
+      S.past = res.data;
+      go('past', true);
+    }, () => { S.busy = ''; toast(t('net_err')); });
+  }
+  function scrPast() {
+    const r = S.past || {};
+    const bundles = arr(r.bundles).filter(obj);
+    const head = bundles.some((x) => x.walked) ? 'past_done' : bundles.length ? 'past_part' : 'past_none';
+    const cards = bundles.map((x) => {
+      const its = arr(x.items).filter(obj);
+      const post = its.find((it) => chanOf(it) === 'owned_post') || null, vid = its.find((it) => chanOf(it) === 'video') || null;
+      const rows = [['k_post', 'p', post], ['k_reply', 'cm', obj(x.comment)], [vidKey(vid), 'p', vid]].filter((y) => y[2]);
+      return h('div', { class: 'live' }, h('h2', { text: str(x.title) }), h('ul', { class: 'mini' }, rows.map((y) => miniRow(y[0], y[1], y[2]))));
+    });
+    return section('past', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: dayLabel(r.day) }), h('h1', { class: 'h', text: t(head) })),
+      cards, h('div', { class: 'work' }, h('span', { text: workLine(r, 'p_') }))],
+    btn(t('past_back'), 'pr big', () => { S.past = null; go(want(S.data), true); }));
+  }
   function resultsBlock() {
     const r = S.res, sd = (r && obj(r.streak)) || (S.data && obj(S.data.streak)) || { days: 0, week: [] };
+    // Monday to Sunday; an earlier day of the week opens what was done that day.
+    const today = (S.data && S.data.day) || '';
     const week = arr(sd.week).filter(obj).map((w) => {
       const s = w.state === 'today' && (sd.today_done || (S.data && S.data.done_today)) ? 'today-done' : str(w.state);
-      return h('li', { 'data-s': s }, h('i', { text: s === 'done' || s === 'today-done' ? '✓' : '·' }), weekday(w.date));
+      const kids = [h('i', { text: s === 'done' || s === 'today-done' ? '✓' : '·' }), weekday(w.date)];
+      const past = s !== 'future' && str(w.date) < today;
+      return h('li', { 'data-s': s }, past
+        ? h('button', { type: 'button', class: 'wd', 'data-date': str(w.date), 'aria-label': t('day_open', { d: dayLabel(w.date) }), onclick: () => openDay(str(w.date)) }, kids)
+        : h('span', { class: 'wd' }, kids));
     });
     const days = Number(sd.days) || 0;
     const kids = [h('div', { class: 'streak' },
@@ -1443,10 +1499,7 @@ a{color:var(--primary-deep)}
       kids.push(h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('b', { text: r.views_7d == null ? '·' : fmtNum(r.views_7d) }), h('span', { text: t('r_views') })),
         h('div', { class: 'stat' }, h('b', { text: r.comments_7d == null ? '·' : fmtNum(r.comments_7d) }), h('span', { text: t('r_replies') }))));
-      const one = Number(r.scans) === 1;
-      const work = r.posts_scanned != null && r.junk_filtered != null
-        ? t(one ? 'r_work_1' : 'r_work', { p: fmtNum(r.posts_scanned), s: fmtNum(r.scans), j: fmtNum(r.junk_filtered) })
-        : t(one ? 'r_work_some_1' : 'r_work_some', { s: fmtNum(r.scans), i: fmtNum(r.ideas) });
+      const work = workLine(r, 'r_');
       kids.push(h('div', { class: 'work' }, h('span', { text: work }), h('span', { text: t('r_tomorrow') })));
       kids.push(h('a', { class: 'btn ln', href: advHref(), text: t('r_adv') }));
     }
