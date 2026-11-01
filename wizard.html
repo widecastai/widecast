@@ -113,6 +113,7 @@ a{color:var(--primary-deep)}
 .prob.prep{opacity:.62;border-style:dashed;box-shadow:none;cursor:default}
 .prob.prep .tag{background:var(--chip);color:var(--muted)}
 .prob .pline{font-size:13.5px;font-weight:600;color:var(--muted)}
+.prob .ago{justify-self:start;font:700 12.5px/1 var(--f-body);padding:5px 8px;border-radius:6px;background:var(--chip);color:var(--muted)}
 .prob[aria-pressed="true"] .rank{background:var(--primary);border-color:var(--primary);color:#fff}
 .flagline{position:relative;z-index:1;display:flex;align-items:center;gap:10px;font:700 14px/1.2 var(--f-body);color:var(--muted);padding-left:16px}
 .flagline i{width:40px;height:40px;border-radius:50%;background:var(--sun);display:grid;place-items:center;color:#3d2a00;flex:none;box-shadow:0 4px 0 var(--sun-deep)}
@@ -263,6 +264,7 @@ a{color:var(--primary-deep)}
       clients_wait: 'Something waits for you', clients_back: 'Back to {c}', crow_l: 'Business:', crow_b: 'Switch',
       top_eyebrow: 'Today · {d}', top_h: 'What is your audience asking most today?',
       top_sub: 'Tap a problem. The Wizard has your agent write a post, a reply and a video script for it.',
+      ago_1: 'Yesterday', ago_n: '{n} days ago',
       top_tag: 'Suggested', top_posts_1: '1 post', top_posts: '{n} posts', top_comments: '{n} comments',
       top_reactions: '{n} reactions', top_latest: 'Latest {t}', top_locked: 'Started · it keeps its place today',
       top_upd: 'Updated {t}, after the latest scan ({n} today)', top_upd_1: 'Updated {t}, after the latest scan (1 today)',
@@ -286,6 +288,7 @@ a{color:var(--primary-deep)}
       s_wait: 'Waiting for you', s_writing: 'Writing', s_none: 'None today', s_ok: 'Approved',
       s_sent: 'Sent to your agent', s_sent_pub: 'Publish sent to your agent', s_sent_make: 'Sent: your agent makes the video', s_skip: 'Skipped', s_later: 'Later',
       s_publishing: 'Publishing', s_published: 'Published', s_making: 'Being made', s_stopped: 'Stopped',
+      s_cm_reask: 'Approved over a day ago: check it on Approvals', s_cm_chat: 'Waits for you in your chat',
       s_cm_approved: 'Your agent posts it', s_cm_posting: 'Posting', s_cm_posted: 'Posted', s_cm_rejected: 'Not posted by your agent',
       close_call: 'Close, call me when it is ready',
       b_eyebrow: 'The bundle for problem {n}', b_sub: 'Look at all of them. Approve one by one, or the whole bundle once you have seen it all.',
@@ -359,6 +362,7 @@ a{color:var(--primary-deep)}
       clients_wait: 'Có việc chờ bạn', clients_back: 'Quay lại {c}', crow_l: 'Doanh nghiệp:', crow_b: 'Đổi',
       top_eyebrow: 'Hôm nay · {d}', top_h: 'Khán giả của bạn đang hỏi gì nhiều nhất?',
       top_sub: 'Chạm một vấn đề. Wizard nhờ agent của bạn viết một post, một comment trả lời và một script video cho nó.',
+      ago_1: 'Hôm qua', ago_n: '{n} ngày trước',
       top_tag: 'Đề xuất', top_posts_1: '1 bài', top_posts: '{n} bài', top_comments: '{n} bình luận',
       top_reactions: '{n} cảm xúc', top_latest: 'Mới nhất {t}', top_locked: 'Đang làm · giữ chỗ hôm nay',
       top_upd: 'Cập nhật {t}, sau đợt quét mới nhất ({n} đợt hôm nay)', top_upd_1: 'Cập nhật {t}, sau đợt quét mới nhất (1 đợt hôm nay)',
@@ -382,6 +386,7 @@ a{color:var(--primary-deep)}
       s_wait: 'Chờ bạn duyệt', s_writing: 'Đang soạn', s_none: 'Không có hôm nay', s_ok: 'Đã duyệt',
       s_sent: 'Đã gửi cho agent', s_sent_pub: 'Đã gửi lệnh đăng cho agent', s_sent_make: 'Đã gửi: agent làm video', s_skip: 'Bỏ qua', s_later: 'Để sau',
       s_publishing: 'Đang đăng', s_published: 'Đã đăng', s_making: 'Đang làm', s_stopped: 'Bị dừng',
+      s_cm_reask: 'Duyệt hơn một ngày trước: xem lại ở trang Duyệt', s_cm_chat: 'Chờ bạn trong chat',
       s_cm_approved: 'Agent sẽ đăng', s_cm_posting: 'Đang đăng', s_cm_posted: 'Đã đăng', s_cm_rejected: 'Agent không đăng',
       close_call: 'Đóng, xong thì gọi tôi',
       b_eyebrow: 'Bộ 3 cho vấn đề số {n}', b_sub: 'Xem cả bộ. Duyệt từng món, hoặc duyệt cả bộ khi bạn đã xem hết.',
@@ -991,7 +996,8 @@ a{color:var(--primary-deep)}
     }
     const maxScore = Math.max(1, ...list.map((p) => (Number(p.posts) || 0) * 10 + (Number(p.comments) || 0) + (Number(p.reactions) || 0) / 5));
     const firstFree = list.findIndex((p) => !p.locked && !!p.pick);
-    const preparing = list.filter((p) => p.preparing).length;
+    // T-J7KRR4: an empty day shows earlier days' ideas; today's ideas still on their way are counted by the server then
+    const preparing = list.filter((p) => p.preparing).length || Number(d.preparing_today) || 0;
     const cards = list.map((p, i) => {
       const sig = [Number(p.posts) === 1 ? t('top_posts_1') : t('top_posts', { n: fmtNum(Number(p.posts) || 0) }),
         t('top_comments', { n: fmtNum(Number(p.comments) || 0) }) + ' · ' + t('top_reactions', { n: fmtNum(Number(p.reactions) || 0) })];
@@ -1003,6 +1009,7 @@ a{color:var(--primary-deep)}
         'aria-disabled': p.preparing ? 'true' : null, onclick: () => { if (pickable(p)) { S.sel = i; go('top', false); } } },
       h('span', { class: 'rank', text: String(i + 1) }),
       p.preparing ? h('span', { class: 'tag', text: t('prep_tag') }) : i === firstFree && !p.locked ? h('span', { class: 'tag', text: t('top_tag') }) : null,
+      Number(p.ago) > 0 ? h('span', { class: 'ago', text: Number(p.ago) === 1 ? t('ago_1') : t('ago_n', { n: fmtNum(Number(p.ago)) }) }) : null,
       h('span', { class: 'ptitle', text: str(p.title) }),
       h('span', { class: 'sig' }, sig.map((x) => h('span', { text: x }))),
       h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.round(Math.max(0.08, score / maxScore) * 100) + '%' })),
@@ -1095,7 +1102,7 @@ a{color:var(--primary-deep)}
     if (!x) return chip('mute', t('s_none'));
     if (kind === 'cm') {
       if (x.state === 'awaiting') return S.cmSent[x.id] ? chip('ok', t('s_sent')) : chip('wait', t('s_wait'));
-      if (x.state === 'approved') return chip('busy', t('s_cm_approved'));
+      if (x.state === 'approved') return x.needs_reconfirm === true ? chip('fix', t('s_cm_reask')) : x.needs_chat === true ? chip('busy', t('s_cm_chat')) : chip('busy', t('s_cm_approved'));
       if (x.state === 'posting') return chip('busy', t('s_cm_posting'));
       if (x.state === 'posted') return chip('ok', t('s_cm_posted'));
       if (x.state === 'failed') return chip('fix', t('s_stopped'));
