@@ -433,7 +433,7 @@ const TOOLS = [
       "`platforms` defaults to ALL connected platforms of the chosen channel group. " +
       "`channel_group` (integer, default 0 = primary) picks which CHANNEL GROUP — a separate set of connected accounts, e.g. 'Vietnamese channels' vs 'English channels' — the post goes through; one call = one group. When the account has more than one group (see widecast_channel_groups), confirm the group with the user too. " +
       "ALWAYS confirm the exact content AND the target platforms with the user in THIS conversation before calling — publishing is public and irreversible; a prior or implied request is NOT confirmation. Never guess platforms. " +
-      "Returns request_id(s) immediately (publishing runs in the background); then poll widecast_get_status(request_id) for per-platform post URLs in result.posts.",
+      "Returns request_id(s) immediately (publishing runs in the background); then poll widecast_get_status(request_id) for per-platform post URLs in result.posts. The response `warnings` lists any trimmed caption (caption_trimmed) or ignored setting (setting_ignored).",
     inputSchema: {
       type: "object",
       properties: {
@@ -441,7 +441,8 @@ const TOOLS = [
         text: { type: "string", description: "Arbitrary text to post." },
         video_url: { type: "string", description: "A direct video FILE url (mp4/mov/…) to download + publish. Requires `title`." },
         title: { type: "string", description: "Caption/title. Required for video_url; optional override for topic_id." },
-        description: { type: "string", description: "Optional body/description text." },
+        description: { type: "string", description: "Post body, hashtags included. Shown as the description on YouTube/Facebook/LinkedIn/Pinterest; on TikTok/Instagram/Threads/X/Bluesky (video and photo posts) WideCast posts title + blank line + description (or the description alone when it already starts with the title) as the caption, trimmed to the platform limit." },
+        thumbnail_url: { type: "string", description: "Video only: http(s) image URL for the cover (e.g. get_url from widecast_upload_asset). Used by YouTube, LinkedIn, X and Facebook (VIDEO type). Instagram/TikTok/Pinterest covers go in platform_settings: instagram.cover_url or thumb_offset (ms); tiktok.cover_timestamp (ms) or tiktok_cover_image_url; pinterest.pinterest_cover_image_url." },
         photo_urls: { type: "array", items: { type: "string" }, description: "Optional image URLs to attach (with `text`)." },
         platforms: {
           type: "array",
@@ -452,7 +453,7 @@ const TOOLS = [
         platform_settings: {
           type: "object",
           additionalProperties: { type: "object" },
-          description: "Per-call overrides {platform: {key: value}} merged over the saved settings for THIS post only (saved settings unchanged). Facebook: facebook_media_type REELS (default; Facebook trims long videos to ~90s) | VIDEO (long-form) | STORIES; facebook_page_id; facebook_video_state Published|Draft. Instagram: media_type REELS|STORIES. YouTube: privacyStatus public|unlisted|private. Example for a video over 90s: {facebook:{facebook_media_type:\"VIDEO\"}}.",
+          description: "Per-call overrides {platform: {key: value}} merged over the saved settings for THIS post only (saved settings unchanged). Each key applies to its own platform only: Upload-Post option names for that platform, or any '<platform>_' key such as tiktok_title / x_title (your own <platform>_title wins over the automatic caption); a bare title/description inside a platform block becomes <platform>_title / <platform>_description; whole-post fields (user, platform, video, photos, schedule) are ignored and listed in the response `warnings`. Facebook: facebook_media_type REELS (default; Facebook trims long videos to ~90s) | VIDEO (long-form) | STORIES; facebook_page_id; facebook_video_state Published|Draft. Instagram: media_type REELS|STORIES. YouTube: privacyStatus public|unlisted|private. Example for a video over 90s: {facebook:{facebook_media_type:\"VIDEO\"}}.",
         },
         scheduled_date: { type: "string", description: "Optional ISO date/time to schedule (with `timezone`)." },
         timezone: { type: "string", description: "Timezone for scheduled_date (default UTC)." },
@@ -1589,7 +1590,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     }
     if (name === "widecast_publish") {
       const body: Record<string, unknown> = {};
-      for (const k of ["topic_id", "text", "video_url", "title", "description", "photo_urls", "platforms", "channel_group", "platform_settings", "scheduled_date", "timezone", "callback_url", "metadata"]) {
+      for (const k of ["topic_id", "text", "video_url", "title", "description", "thumbnail_url", "photo_urls", "platforms", "channel_group", "platform_settings", "scheduled_date", "timezone", "callback_url", "metadata"]) {
         if (args[k] !== undefined) body[k] = args[k];
       }
       // Sync-return: request_ids land immediately; the model polls

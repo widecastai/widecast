@@ -104,6 +104,19 @@ select.field{padding-right:28px}
 .chks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .mag{display:flex;flex-direction:column;gap:6px}.langs{display:flex;flex-wrap:wrap;gap:6px;margin-left:28px}
 .chk.sub{padding:6px 10px;align-items:center;gap:8px}
+.magrow{display:flex;align-items:flex-start;gap:8px}.magrow>.chk{flex:1}.magrow>.btn{margin-top:8px}
+.expbox{display:flex;flex-direction:column;gap:8px;margin-left:28px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--s1)}
+.expbox .langs{margin-left:0}
+.mlwrap{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
+.mlbox{width:min(820px,100%);display:flex;flex-direction:column;gap:12px;margin:auto 0}
+.mlbox code{font-size:.8125rem;overflow-wrap:anywhere}
+.mltbl{width:100%;border-collapse:collapse;font-size:.875rem}
+.mltbl th{text-align:left;font-weight:600;color:var(--tx-2);padding:6px 4px;border-bottom:1px solid var(--line)}
+.mltbl td{padding:4px;border-bottom:1px solid var(--line);vertical-align:middle}
+.mltbl .field{min-height:36px;padding:6px 8px;border-radius:8px;min-width:90px}
+.mltbl .field.bad{border-color:var(--err-tx)}
+.mlscroll{overflow-x:auto}
+.mlsum{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
 .big{font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--tx-hi);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:12px;font-size:.9375rem}
 .kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
@@ -209,6 +222,8 @@ select.field{padding-right:28px}
       tags_join_q: '{n} did not answer it: same question on another page?', tags_join_hint: 'Pick the question that asks the same as “{f}” (on the other language page, say). The tag then takes whichever one a person answered, for later signups too.',
       tags_joined: 'Joined', tags_unjoined: 'No longer joined',
       f_std: 'Every contact', f_form: 'From the lead magnet form', f_first_name: 'First name', f_full_name: 'Full name', f_email: 'Email', f_phone: 'Phone',
+      exp: 'Export', exp_hint: 'Pick the columns. The .csv file has one line per person, its columns split by commas, the tag names on the first line.',
+      exp_go: 'Download CSV', exporting: 'Exporting…', exp_done: '{n} people exported.', exp_done_1: '1 person exported.', exp_locked: '{n} locked by your plan are not in the file.',
       f_people: '{n} people', f_people_1: '1 person', f_none: 'No form answers yet for the lists you ticked.', f_where: 'Goes where you last typed (subject or message).',
       merge_h: 'Tags with no value for some people', merge_fb: '{n} without {tag}: they get "{f}"', merge_empty: '{n} without {tag}: it stays empty',
       lang: 'Footer language', fallback: 'When the name is unknown, use', file: 'Files', file_none: 'No file',
@@ -251,6 +266,29 @@ select.field{padding-right:28px}
       r_already_received: 'Already got this email', r_unsubscribed: 'Unsubscribed', r_bounced: 'Address bounced', r_suppressed: 'On a do-not-send list',
       r_do_not_contact: 'Marked do not contact', r_locked: 'Locked by your plan', r_deleted: 'Deleted from the CRM', r_no_email: 'No email address',
       r_over_cap: 'Got an email recently (frequency limit)', r_duplicate_inbox: 'Same inbox as another contact',
+      r_left_out: 'On your leave-out list', r_not_in_list: 'Not on your mail list',
+      ml_btn: 'Upload mail list', ml_edit: 'Edit mail list', ml_sum: 'Mail list: {n} people · {m}', ml_title: 'Mail list for this email',
+      ml_mode_add: 'Also send to these people', ml_mode_exclude: 'Leave these people out', ml_mode_only: 'Only these people',
+      ml_mode_add_h: 'They get it on top of the people ticked above; someone in both gets it once. Someone new to your CRM becomes a contact when their email goes.',
+      ml_mode_exclude_h: 'Of the people ticked above, anyone on this list does not get it.',
+      ml_mode_only_h: 'Of the people ticked above, only those on this list get it.',
+      ml_fmt: 'This email uses {n} tags. Each line holds: {cols}', ml_fmt_1: 'This email uses 1 tag. Each line holds: {cols}',
+      ml_fmt_0: 'This email uses no tag. Each line holds an email address.', ml_fmt_ex: 'Each line holds an email address.',
+      ml_first: 'First line of the file (the column names):', ml_eg: 'Then one line per person, like', ml_eg_name: 'Huy',
+      ml_order: 'A file with no first line of names is read in this order.', ml_tpl: 'Download a template', ml_file: 'Choose a file (.csv or .txt)',
+      ml_replace_q: 'Replace the {n} people on the list with this file?', ml_read: '{n} people read from {f}.',
+      ml_bad: '{n} lines left out, not an email address: {l}', ml_bad_1: '1 line left out, not an email address: {l}',
+      ml_dup: '{n} repeated addresses kept once.', ml_dup_1: '1 repeated address kept once.',
+      ml_extra: 'Columns that match no tag of this email, not used: {c}',
+      ml_nocol: 'The list has no column for {t}: those people get the CRM value or the fallback word.',
+      ml_q: 'Search the list', ml_more: 'Showing {a} of {b}. Search to find the others.', ml_add: 'Add a person',
+      ml_empty: 'No one on the list yet. Choose a file or add people by hand.', ml_done: 'Done', ml_remove: 'Remove the list',
+      ml_close: 'Close', ml_discard_q: 'Close without keeping your changes?', ml_saved: 'Mail list saved.', ml_removed: 'Mail list removed.',
+      ml_row_bad: 'Person {n}: "{e}" is not an email address.', ml_too_big: 'The file is over 1 MB.', ml_too_many: 'A mail list holds at most {n} people.',
+      ml_consent: 'Only add people who agreed to hear from you. A list of strangers bounces, and a send pauses itself once 5% bounce.',
+      ml_del: 'Remove {e}', ml_col_email: 'email',
+      pv_list: 'Mail list ({m}): {n} people, {k} of them already in your CRM.', pv_list_new: '{n} new: they join your CRM when their email goes.',
+      pv_list_out: '{n} on the list are not among the people ticked above.',
       need_postal: 'Add your postal address in the settings below first.', changed: 'The numbers changed. Check them again.',
       unsaved: 'Save your changes first.', err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
       unavailable: 'Email broadcast is not available right now. Try again in a few minutes.',
@@ -279,6 +317,8 @@ select.field{padding-right:28px}
       tags_join_q: '{n} người chưa có: cùng câu hỏi ở trang khác?', tags_join_hint: 'Chọn câu hỏi giống “{f}” (ví dụ ở trang ngôn ngữ khác). Tag sẽ lấy câu trả lời nào người đó đã điền, cả với người đăng ký sau này.',
       tags_joined: 'Đã gộp', tags_unjoined: 'Đã bỏ gộp',
       f_std: 'Mọi contact', f_form: 'Từ form của lead magnet', f_first_name: 'Tên', f_full_name: 'Họ tên', f_email: 'Email', f_phone: 'Số điện thoại',
+      exp: 'Export', exp_hint: 'Chọn các cột. File .csv có mỗi người một dòng, các cột cách nhau bằng dấu phẩy, dòng đầu là tên tag.',
+      exp_go: 'Tải file CSV', exporting: 'Đang xuất…', exp_done: 'Đã xuất {n} người.', exp_locked: '{n} người bị khoá theo gói không có trong file.',
       f_people: '{n} người', f_none: 'Các danh sách bạn chọn chưa có câu trả lời form nào.', f_where: 'Chèn vào chỗ bạn gõ gần nhất (tiêu đề hoặc nội dung).',
       merge_h: 'Tag mà một số người không có giá trị', merge_fb: '{n} người không có {tag}: dùng "{f}"', merge_empty: '{n} người không có {tag}: để trống',
       lang: 'Ngôn ngữ phần chân email', fallback: 'Khi không biết tên, dùng', file: 'Tệp', file_none: 'Không có tệp',
@@ -320,6 +360,29 @@ select.field{padding-right:28px}
       r_already_received: 'Đã nhận email này', r_unsubscribed: 'Đã hủy nhận', r_bounced: 'Địa chỉ bị trả về', r_suppressed: 'Trong danh sách không gửi',
       r_do_not_contact: 'Đánh dấu không liên hệ', r_locked: 'Đang khoá theo gói', r_deleted: 'Đã xoá khỏi CRM', r_no_email: 'Không có email',
       r_over_cap: 'Vừa nhận email gần đây (giới hạn tần suất)', r_duplicate_inbox: 'Trùng hộp thư với contact khác',
+      r_left_out: 'Trong danh sách loại trừ', r_not_in_list: 'Không có trong mail list',
+      ml_btn: 'Upload mail list', ml_edit: 'Sửa mail list', ml_sum: 'Mail list: {n} người · {m}', ml_title: 'Mail list của email này',
+      ml_mode_add: 'Gửi thêm cho những người này', ml_mode_exclude: 'Trừ những người trong danh sách này', ml_mode_only: 'Chỉ những người trong danh sách này',
+      ml_mode_add_h: 'Họ nhận thêm, ngoài những người đã chọn ở trên; ai có ở cả hai chỉ nhận một lần. Người chưa có trong CRM sẽ thành contact khi email của họ được gửi.',
+      ml_mode_exclude_h: 'Trong những người đã chọn ở trên, ai có trong danh sách này sẽ không nhận.',
+      ml_mode_only_h: 'Trong những người đã chọn ở trên, chỉ ai có trong danh sách này mới nhận.',
+      ml_fmt: 'Email này dùng {n} tag. Mỗi dòng gồm: {cols}', ml_fmt_1: 'Email này dùng 1 tag. Mỗi dòng gồm: {cols}', ml_fmt_0: 'Email này không dùng tag nào. Mỗi dòng là một địa chỉ email.',
+      ml_fmt_ex: 'Mỗi dòng là một địa chỉ email.',
+      ml_first: 'Dòng đầu của file (tên các cột):', ml_eg: 'Rồi mỗi người một dòng, ví dụ', ml_eg_name: 'Huy',
+      ml_order: 'File không có dòng tên cột thì được đọc theo đúng thứ tự này.', ml_tpl: 'Tải file mẫu', ml_file: 'Chọn file (.csv hoặc .txt)',
+      ml_replace_q: 'Thay {n} người đang có trong list bằng file này?', ml_read: 'Đã đọc {n} người từ {f}.',
+      ml_bad: '{n} dòng bị bỏ vì không phải địa chỉ email: {l}', ml_bad_1: '1 dòng bị bỏ vì không phải địa chỉ email: {l}',
+      ml_dup: '{n} địa chỉ lặp lại, chỉ giữ một.', ml_dup_1: '1 địa chỉ lặp lại, chỉ giữ một.',
+      ml_extra: 'Các cột không khớp tag nào của email này, không dùng: {c}',
+      ml_nocol: 'List chưa có cột {t}: những người này sẽ lấy giá trị trong CRM hoặc chữ thay thế.',
+      ml_q: 'Tìm trong list', ml_more: 'Đang hiện {a}/{b} người. Tìm để thấy những người khác.', ml_add: 'Thêm một người',
+      ml_empty: 'List chưa có ai. Chọn file hoặc thêm người bằng tay.', ml_done: 'Xong', ml_remove: 'Gỡ list',
+      ml_close: 'Đóng', ml_discard_q: 'Đóng mà không giữ các thay đổi?', ml_saved: 'Đã lưu mail list.', ml_removed: 'Đã gỡ mail list.',
+      ml_row_bad: 'Người thứ {n}: "{e}" không phải địa chỉ email.', ml_too_big: 'File lớn hơn 1 MB.', ml_too_many: 'Mỗi mail list tối đa {n} người.',
+      ml_consent: 'Chỉ đưa vào những người đã đồng ý nhận email của bạn. Danh sách người lạ dễ bị trả về, và đợt gửi tự dừng khi 5% bị trả về.',
+      ml_del: 'Xoá {e}', ml_col_email: 'email',
+      pv_list: 'Mail list ({m}): {n} người, {k} người đã có trong CRM.', pv_list_new: '{n} người mới: họ vào CRM khi email của họ được gửi.',
+      pv_list_out: '{n} người trong list không thuộc những người đã chọn ở trên.',
       need_postal: 'Thêm địa chỉ bưu chính ở phần cài đặt bên dưới trước.', changed: 'Số người đã thay đổi. Xem lại số.',
       unsaved: 'Lưu thay đổi trước.', err: 'Có lỗi. Thử lại.', net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
       unavailable: 'Tính năng tạm ngưng. Thử lại sau ít phút.',
@@ -331,7 +394,7 @@ select.field{padding-right:28px}
       private_note: 'Chỉ tài khoản WideCast của bạn xem được trang này.', loading: 'Đang tải…', retry: 'Thử lại'
     }
   };
-  const REASONS = ['already_received', 'unsubscribed', 'bounced', 'suppressed', 'do_not_contact', 'locked', 'deleted', 'no_email', 'over_cap', 'duplicate_inbox'];
+  const REASONS = ['not_in_list', 'left_out', 'already_received', 'unsubscribed', 'bounced', 'suppressed', 'do_not_contact', 'locked', 'deleted', 'no_email', 'over_cap', 'duplicate_inbox'];
 
   function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -457,6 +520,9 @@ select.field{padding-right:28px}
     emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }, preview: null, prevErr: '',
     confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
+    exp: null,   // the open Export of one magnet: { mid, cols: [tag keys], busy, err }
+    ml: null,    // the open email's mail list as saved: { mode, columns, rows [{email, v}], count, file_name }
+    mle: null,   // the mail-list window while open: { mode, rows, file_name, q, note, busy, err, dirty, badRow }
     boxes: [], box: { email: '', pw: '', busy: '', err: '', caps: {}, re: {} },
     ownerOnly: false, wantEmail: UID_RE.test(str(Q0.get('email'))) ? Q0.get('email') : '',
     // ?magnet=mg_… (the "New email" button of the online Lead magnets page, 2026-10-27): once, a new email with that
@@ -709,6 +775,244 @@ select.field{padding-right:28px}
       return refreshState().then(() => { S.joinBusy = false; toast(t(add ? 'tags_joined' : 'tags_unjoined')); render(); });
     }).catch(() => { S.joinBusy = false; S.err = t('net_err'); render(); });
   }
+  // Export one magnet's people (2026-11-01): the columns are tag keys, standard ones first, then the magnet's form
+  // questions; the server answers CSV text and the page saves it as a file (with a BOM, so a spreadsheet reads the
+  // accents right).
+  const EXP_STD = ['first_name', 'full_name', 'email', 'phone'];
+  const expKeys = (m) => EXP_STD.concat(arr(m.fields).map((f) => str(f.key)).filter((k) => k && EXP_STD.indexOf(k) < 0));
+  function openExport(m) {
+    S.exp = S.exp && S.exp.mid === m.magnet_id ? null : { mid: m.magnet_id, cols: ['full_name', 'email'], busy: false, err: '' };
+    render();
+  }
+  function csvName(title) {
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    const slug = str(title).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
+      .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'lead-magnet';
+    return slug + '_' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '.csv';
+  }
+  function saveCsv(name, text) {
+    const url = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+    const a = h('a', { href: url, download: name, hidden: true });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  function runExport(m) {
+    const x = S.exp;
+    if (!x || x.mid !== m.magnet_id || x.busy) return;
+    const cols = expKeys(m).filter((k) => x.cols.indexOf(k) >= 0);
+    x.busy = true; x.err = ''; render();
+    api('/solo/broadcast/export', { client: S.client, magnet_id: m.magnet_id, columns: cols }).then((res) => {
+      if (authFailed(res)) { x.busy = false; showLogin(); return; }
+      if (!res.ok || !res.data) { x.busy = false; x.err = msgOf(res); render(); return; }
+      saveCsv(csvName(m.title), str(res.data.csv));
+      if (S.exp === x) S.exp = null;
+      render();
+      const locked = num(res.data.locked);
+      toast(tn('exp_done', num(res.data.rows)) + (locked ? ' ' + t('exp_locked', { n: fmtNum(locked) }) : ''));
+    }).catch(() => { x.busy = false; x.err = t('net_err'); render(); });
+  }
+  function exportBox(m) {
+    const x = S.exp;
+    if (!x || x.mid !== m.magnet_id) return null;
+    const label = (k) => { if (EXP_STD.indexOf(k) >= 0) return t('f_' + k); const f = arr(m.fields).find((y) => y.key === k); return (f && str(f.label)) || k; };
+    const opt = (k) => h('label', { class: 'chk sub' },
+      h('input', { type: 'checkbox', checked: x.cols.indexOf(k) >= 0, disabled: x.busy, onchange: (ev) => {
+        const i = x.cols.indexOf(k); if (ev.target.checked && i < 0) x.cols.push(k); if (!ev.target.checked && i >= 0) x.cols.splice(i, 1); render();
+      } }),
+      h('span', { class: 'm' }, label(k), ' ', h('code', { text: k })));
+    const form = expKeys(m).filter((k) => EXP_STD.indexOf(k) < 0);
+    return h('div', { class: 'expbox', id: 'exp-' + m.magnet_id },
+      h('p', { class: 'hint', text: t('exp_hint') }),
+      h('div', { class: 'langs' }, EXP_STD.map(opt)),
+      form.length ? h('div', { class: 'langs' }, form.map(opt)) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn sm pri', type: 'button', disabled: x.busy || !x.cols.length, onclick: () => runExport(m) }, x.busy ? [spinner(), t('exporting')] : t('exp_go')),
+        h('button', { class: 'btn sm ghost', type: 'button', disabled: x.busy, onclick: () => { S.exp = null; render(); } }, t('cancel'))),
+      x.err ? h('p', { class: 'err', role: 'alert', text: x.err }) : null);
+  }
+  // ── Mail list (2026-11-02, the Boss): one list per email, uploaded as a file or typed by hand; its columns are the
+  // tags the email uses, then the email address ("nội dung email có dùng 3 tag, thì cấu trúc mẫu mỗi dòng cũng phải đủ
+  // 3 cột"). Three ways to use it: also these people, leave these out, only these. A first line of tag names maps the
+  // columns (the Export file and the template have one); without it the columns are read in the order shown.
+  const ML_MAX = 5000, ML_FILE_MAX = 1024 * 1024, ML_SHOWN = 200, ML_MODES = ['add', 'exclude', 'only'];
+  const ML_EMAIL_RE = /^[^\s@,;<>"'()]+@[^\s@,;<>"'()]+\.[^\s@,;<>"'()]{2,}$/;
+  const ML_EMAIL_HEADS = ['email', 'e_mail', 'email_address', 'mail'];
+  let mlqTimer = null;
+  function emailTags() {
+    const e = S.edit || {}, out = [], re = /\{\{\s*([A-Za-z0-9_]{1,40})\s*(?:\|\s*[^{}\r\n|]{0,80}?\s*)?\}\}/g;
+    [str(e.subject), str(e.body)].forEach((txt) => {
+      let m; re.lastIndex = 0;
+      while ((m = re.exec(txt))) { const k = m[1].toLowerCase(); if (k !== 'email' && out.indexOf(k) < 0) out.push(k); }
+    });
+    return out;
+  }
+  const mlAdds = () => !!(S.ml && num(S.ml.count) && S.ml.mode === 'add');
+  function csvSplit(line, sep) {
+    const out = []; let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"' && !cur.trim()) { q = true; cur = ''; }
+      else if (c === sep) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map((x) => x.trim());
+  }
+  const headKey = (s) => str(s).replace(/[{}]/g, '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  function parseList(text, cols) {
+    const lines = str(text).replace(/^﻿/, '').split(/\r\n|\n|\r/).map((s, i) => ({ n: i + 1, s: s })).filter((l) => l.s.trim());
+    const res = { rows: [], bad: [], dup: 0, extra: [] };
+    if (!lines.length) return res;
+    const first = lines[0].s;
+    const sep = first.indexOf('\t') >= 0 ? '\t' : (first.indexOf(';') >= 0 && first.indexOf(',') < 0 ? ';' : ',');
+    let map = null;                                  // column → 'email', a tag, or null (not used)
+    const h0 = csvSplit(first, sep);
+    if (!h0.some((c) => ML_EMAIL_RE.test(c))) {
+      const named = (k) => (k === 'name' ? (cols.indexOf('first_name') >= 0 ? 'first_name' : cols.indexOf('full_name') >= 0 ? 'full_name' : null) : null);
+      const m = h0.map(headKey).map((k) => (ML_EMAIL_HEADS.indexOf(k) >= 0 ? 'email' : cols.indexOf(k) >= 0 ? k : named(k)));
+      if (m.indexOf('email') >= 0) { map = m; res.extra = h0.filter((c, i) => m[i] === null && c); lines.shift(); }
+    }
+    const seen = {};
+    lines.forEach((l) => {
+      const cells = csvSplit(l.s, sep), v = {};
+      let email = '';
+      if (map) cells.forEach((c, i) => { const k = map[i]; if (k === 'email') email = c; else if (k && c) v[k] = c; });
+      else {
+        const at = cells.findIndex((c) => ML_EMAIL_RE.test(c));
+        if (at >= 0) email = cells[at];
+        let j = 0;
+        cells.forEach((c, i) => { if (i === at) return; const k = cols[j++]; if (k && c) v[k] = c; });
+      }
+      email = email.toLowerCase();
+      if (!ML_EMAIL_RE.test(email)) { res.bad.push(l.n); return; }
+      if (seen[email]) { res.dup += 1; return; }
+      seen[email] = true;
+      res.rows.push({ email: email, v: v });
+    });
+    return res;
+  }
+  function openMailList() {
+    ensureSaved().then((ok) => {
+      if (!ok || !S.edit || !S.edit.uid) return;
+      const cur = S.ml || {};
+      S.mle = { mode: ML_MODES.indexOf(cur.mode) >= 0 ? cur.mode : 'add', rows: arr(cur.rows).map((r) => ({ email: str(r.email), v: Object.assign({}, r.v || {}) })),
+        file_name: str(cur.file_name), q: '', note: null, busy: '', err: '', dirty: false, badRow: -1 };
+      document.body.style.overflow = 'hidden';
+      render();
+      setTimeout(() => { const el = document.getElementById('ml-title'); if (el) el.focus(); }, 0);
+    });
+  }
+  function closeMailList(force) {
+    const x = S.mle;
+    if (!x || (x.busy && !force)) return;
+    if (!force && x.dirty && !window.confirm(t('ml_discard_q'))) return;
+    S.mle = null; document.body.style.overflow = ''; render();
+    const b = document.getElementById('ml-open'); if (b) b.focus();
+  }
+  function mlFile(file) {
+    const x = S.mle;
+    if (!x || !file) return;
+    if (file.size > ML_FILE_MAX) { x.err = t('ml_too_big'); render(); return; }
+    if (x.rows.length && !window.confirm(t('ml_replace_q', { n: fmtNum(x.rows.length) }))) return;
+    file.text().then((txt) => {
+      const r = parseList(txt, emailTags());
+      if (r.rows.length > ML_MAX) { x.err = t('ml_too_many', { n: fmtNum(ML_MAX) }); render(); return; }
+      x.rows = r.rows; x.file_name = str(file.name).slice(0, 120); x.note = r; x.q = ''; x.err = ''; x.badRow = -1; x.dirty = true;
+      render();
+    }).catch(() => { x.err = t('err'); render(); });
+  }
+  function mlDone() {
+    const x = S.mle;
+    if (!x || x.busy) return;
+    const rows = [], seen = {};
+    for (let i = 0; i < x.rows.length; i++) {
+      const r = x.rows[i], e = str(r.email).trim().toLowerCase();
+      if (!e && !Object.keys(r.v).some((k) => str(r.v[k]).trim())) continue;     // an empty line typed by hand
+      if (!ML_EMAIL_RE.test(e)) { x.err = t('ml_row_bad', { n: i + 1, e: str(r.email) }); x.badRow = i; x.q = ''; render(); return; }
+      if (seen[e]) continue;
+      seen[e] = true;
+      const v = {};
+      Object.keys(r.v).forEach((k) => { const s = str(r.v[k]).trim(); if (s) v[k] = s; });
+      rows.push({ email: e, v: v });
+    }
+    const cols = emailTags();
+    rows.forEach((r) => Object.keys(r.v).forEach((k) => { if (cols.indexOf(k) < 0) cols.push(k); }));
+    const body = { client: S.client, uid: S.edit.uid };
+    if (rows.length) Object.assign(body, { mode: x.mode, columns: cols.slice(0, 20), rows: rows, file_name: x.file_name });
+    else body.clear = true;
+    x.busy = 'save'; x.err = ''; render();
+    api('/solo/broadcast/mail-list', body).then((res) => {
+      if (authFailed(res)) { x.busy = ''; showLogin(); return; }
+      if (!res.ok || !res.data) { x.busy = ''; x.err = msgOf(res); render(); return; }
+      S.ml = res.data; S.preview = null; S.confirm = false;
+      closeMailList(true);
+      toast(t(body.clear ? 'ml_removed' : 'ml_saved'));
+    }).catch(() => { x.busy = ''; x.err = t('net_err'); render(); });
+  }
+  // The line under the audience: the list in use, or the button to make one; a tag the email uses that the list has
+  // no column for is said here (those people keep the CRM's value).
+  function mailListRow(disabled) {
+    const m = S.ml && num(S.ml.count) ? S.ml : null;
+    const miss = m && m.mode !== 'exclude' ? emailTags().filter((k) => arr(m.columns).indexOf(k) < 0) : [];
+    return h('div', null,
+      h('div', { class: 'mlsum' },
+        h('button', { id: 'ml-open', class: 'btn sm', type: 'button', disabled: disabled, onclick: openMailList }, t(m ? 'ml_edit' : 'ml_btn')),
+        m ? h('span', { class: 'small', text: t('ml_sum', { n: fmtNum(num(m.count)), m: t('ml_mode_' + m.mode) }) + (str(m.file_name) ? ' · ' + str(m.file_name) : '') }) : null),
+      miss.length ? h('div', { class: 'note warn', style: 'margin-top:8px', text: t('ml_nocol', { t: miss.map((k) => '{{' + k + '}}').join(', ') }) }) : null);
+  }
+  function mailListModal() {
+    const x = S.mle;
+    if (!x) return null;
+    const cols = x.mode === 'exclude' ? [] : emailTags();
+    const lineCols = cols.map((k) => '{{' + k + '}}').concat([t('ml_col_email')]);
+    const head = cols.concat(['email']).join(',');
+    const eg = cols.map((k) => (k === 'first_name' || k === 'full_name' ? t('ml_eg_name') : '…')).concat(['goldenhuy@gmail.com']).join(',');
+    const fmt = x.mode === 'exclude' ? t('ml_fmt_ex') : !cols.length ? t('ml_fmt_0') : t(cols.length === 1 ? 'ml_fmt_1' : 'ml_fmt', { n: cols.length, cols: lineCols.join(', ') });
+    const q = str(x.q).trim().toLowerCase(), idx = [];
+    x.rows.forEach((r, i) => { if (!q || str(r.email).toLowerCase().indexOf(q) >= 0 || Object.keys(r.v).some((k) => str(r.v[k]).toLowerCase().indexOf(q) >= 0)) idx.push(i); });
+    const shown = idx.slice(0, ML_SHOWN);
+    const cell = (i, k) => h('input', { class: 'field' + (k === 'email' && i === x.badRow ? ' bad' : ''), type: k === 'email' ? 'email' : 'text',
+      value: k === 'email' ? str(x.rows[i].email) : str(x.rows[i].v[k]), 'aria-label': (k === 'email' ? t('ml_col_email') : '{{' + k + '}}') + ' · ' + (i + 1),
+      oninput: (ev) => { const r = x.rows[i]; if (k === 'email') r.email = ev.target.value; else r.v[k] = ev.target.value; x.dirty = true; } });
+    const radio = (m) => h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'ml-mode', checked: x.mode === m, disabled: !!x.busy, onchange: () => { x.mode = m; x.dirty = true; render(); } }),
+      h('span', null, h('span', { class: 't', text: t('ml_mode_' + m) }), h('br'), h('span', { class: 'm', text: t('ml_mode_' + m + '_h') })));
+    const n = x.note;
+    return h('div', { class: 'mlwrap', onclick: (ev) => { if (ev.target === ev.currentTarget) closeMailList(false); } },
+      h('section', { class: 'card mlbox', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'ml-title' },
+        h('div', { class: 'row sp' }, h('h2', { id: 'ml-title', tabindex: '-1', text: t('ml_title') }),
+          h('button', { class: 'btn ghost sm', type: 'button', disabled: !!x.busy, onclick: () => closeMailList(false) }, t('ml_close'))),
+        h('div', { class: 'chks', role: 'radiogroup', 'aria-labelledby': 'ml-title' }, ML_MODES.map(radio)),
+        h('div', { class: 'note stack' },
+          h('p', { text: fmt }),
+          cols.length ? [h('p', { class: 'small', text: t('ml_first') }), h('code', { text: head }), h('p', { class: 'small', text: t('ml_eg') }), h('code', { text: eg }),
+            h('p', { class: 'small', text: t('ml_order') })] : null,
+          h('div', { class: 'row' },
+            h('label', { class: 'btn sm' + (x.busy ? ' disabled' : ''), for: 'ml-file' }, t('ml_file')),
+            h('input', { id: 'ml-file', type: 'file', class: 'sr-only', accept: '.csv,.txt,text/csv,text/plain', disabled: !!x.busy,
+              onchange: (ev) => { const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; mlFile(f); } }),
+            h('button', { class: 'btn sm ghost', type: 'button', onclick: () => saveCsv('mail-list-template.csv', head + '\r\n') }, t('ml_tpl')))),
+        x.mode === 'add' ? h('p', { class: 'small', text: t('ml_consent') }) : null,
+        n ? h('div', { class: 'small stack', role: 'status' }, h('span', { text: t('ml_read', { n: fmtNum(n.rows.length), f: x.file_name }) }),
+          n.bad.length ? h('span', { text: t(n.bad.length === 1 ? 'ml_bad_1' : 'ml_bad', { n: fmtNum(n.bad.length), l: n.bad.slice(0, 20).join(', ') + (n.bad.length > 20 ? '…' : '') }) }) : null,
+          n.dup ? h('span', { text: t(n.dup === 1 ? 'ml_dup_1' : 'ml_dup', { n: fmtNum(n.dup) }) }) : null,
+          n.extra.length ? h('span', { text: t('ml_extra', { c: n.extra.join(', ') }) }) : null) : null,
+        x.rows.length > 10 ? h('input', { id: 'ml-q', class: 'field', type: 'search', placeholder: t('ml_q'), 'aria-label': t('ml_q'), value: x.q,
+          oninput: (ev) => { x.q = ev.target.value; clearTimeout(mlqTimer); mlqTimer = setTimeout(() => { render(); const el = document.getElementById('ml-q'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 250); } }) : null,
+        x.rows.length ? h('div', { class: 'mlscroll' }, h('table', { class: 'mltbl' },
+          h('thead', null, h('tr', null, cols.map((k) => h('th', null, h('code', { text: '{{' + k + '}}' }))), h('th', { text: t('ml_col_email') }), h('th', null))),
+          h('tbody', null, shown.map((i) => h('tr', null, cols.map((k) => h('td', null, cell(i, k))), h('td', null, cell(i, 'email')),
+            h('td', null, h('button', { class: 'btn ghost sm', type: 'button', disabled: !!x.busy, 'aria-label': t('ml_del', { e: str(x.rows[i].email) || '#' + (i + 1) }),
+              onclick: () => { x.rows.splice(i, 1); x.badRow = -1; x.dirty = true; render(); } }, '×'))))))) : h('p', { class: 'small', text: t('ml_empty') }),
+        idx.length > shown.length ? h('p', { class: 'small', text: t('ml_more', { a: fmtNum(shown.length), b: fmtNum(idx.length) }) }) : null,
+        h('div', null, h('button', { class: 'btn sm', type: 'button', disabled: !!x.busy || x.rows.length >= ML_MAX,
+          onclick: () => { x.rows.unshift({ email: '', v: {} }); x.q = ''; x.badRow = -1; x.dirty = true; render(); setTimeout(() => { const el = document.querySelector('.mltbl tbody input'); if (el) el.focus(); }, 0); } }, '+ ' + t('ml_add'))),
+        x.err ? h('p', { class: 'err', role: 'alert', text: x.err }) : null,
+        h('div', { class: 'row sp' },
+          S.ml && num(S.ml.count) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!x.busy, onclick: () => { x.rows = []; mlDone(); } }, t('ml_remove')) : h('span'),
+          h('button', { class: 'btn pri', type: 'button', disabled: !!x.busy, onclick: mlDone }, x.busy ? [spinner(), t('ml_done')] : t('ml_done')))));
+  }
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && S.mle) { ev.preventDefault(); closeMailList(false); } });
   function lookupCard() {
     const L = S.look;
     return h('section', { class: 'card' }, h('h2', { text: t('lookup') }),
@@ -737,7 +1041,7 @@ select.field{padding-right:28px}
     const sender = arr((S.gate || {}).senders)[0] || {};
     return { uid: '', subject: '', body: '', language: sender.language === 'vi' ? 'vi' : 'en', fallback: '', file_mode: 'none', status: 'draft', has_file: false, files: [] };
   }
-  function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); restoreAudience(null); S.history = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
+  function newEmail() { S.edit = blank(); S.view = 'edit'; resetAudience(); restoreAudience(null); S.history = null; S.ml = null; S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('e-subject'); if (el) el.focus(); }, 0); }
   // A new email for one magnet: its row in the list (an old page id finds the magnet it belongs to) is ticked; a magnet
   // this client's list does not show leaves the new email with nothing ticked.
   function newEmailFor(id) {
@@ -775,6 +1079,7 @@ select.field{padding-right:28px}
       if (authFailed(res)) { showLogin(); return; }
       if (!res.ok || !res.data) { S.view = 'list'; S.err = ''; render(); toast(msgOf(res)); return; }
       S.edit = res.data; S.view = 'edit'; S.dirty = false; S.err = ''; resetAudience(); restoreAudience(res.data.audience || null);
+      S.ml = res.data.mail_list || null;
       S.run = S.active && S.active.email_uid === uid ? S.active : null;
       render(); syncUrl(); loadHistory();
       if (S.run && S.run.state !== 'paused') startPoll(S.run.run_id);
@@ -850,7 +1155,7 @@ select.field{padding-right:28px}
       // (nothing ticked: the whole CRM), someone else at each new test of this email.
       const e = S.edit, a = audBody();
       a.skip = arr(e._testSkip).slice(-50);
-      if (!a.magnets.length && !a.crm) a.crm = true;
+      if (!a.magnets.length && !a.crm && !mlAdds()) a.crm = true;
       api('/solo/broadcast/test', a).then((res) => {
         S.busy = '';
         if (authFailed(res)) { showLogin(); return; }
@@ -1111,13 +1416,15 @@ select.field{padding-right:28px}
     const audCard = can ? h('section', { class: 'card' },
       h('h2', { text: t('who') }), h('p', { class: 'hint', text: t('who_hint') }),
       h('div', { class: 'chks' },
-        S.magnets.map((m) => h('div', { class: 'mag' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
+        S.magnets.map((m) => h('div', { class: 'mag' }, h('div', { class: 'magrow' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
           h('span', null, h('span', { class: 't', text: str(m.title) }), h('br'), h('span', { class: 'm', text: tn('leads', num(m.leads)) + (langsOf(m).length > 1 ? ' · ' + langsOf(m).map(langLabel).join(', ') : '') + (m.status && m.status !== 'live' ? ' · ' + m.status : '') }))),
-          langBoxes(m))),
+          num(m.leads) ? h('button', { class: 'btn sm ghost', type: 'button', 'aria-expanded': S.exp && S.exp.mid === m.magnet_id ? 'true' : 'false', 'aria-controls': 'exp-' + m.magnet_id, onclick: () => openExport(m) }, t('exp')) : null),
+          langBoxes(m), exportBox(m))),
         h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
           h('span', null, h('span', { class: 't', text: t('whole_crm') }), h('br'), h('span', { class: 'm', text: tn('contacts', S.crmTotal) })))),
       sendWith(),
-      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm) || (S.aud.transport === 'sendbox' && !S.aud.boxes.length) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
+      mailListRow(!!S.busy || locked),
+      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || locked || (!S.aud.magnets.length && !S.aud.crm && !mlAdds()) || (S.aud.transport === 'sendbox' && !S.aud.boxes.length) || !str(e.subject).trim() || !str(e.body).trim(), onclick: () => checkNumbers(false) },
         S.busy === 'preview' ? [spinner(), t('checking')] : t('check'))),
       S.prevErr ? h('p', { class: 'err', role: 'alert', text: S.prevErr }) : null,
       S.preview ? previewBox(S.preview, locked) : null) : null;
@@ -1164,6 +1471,9 @@ select.field{padding-right:28px}
       !str(viaBoxes ? dv.from_name : sender.from_name) ? h('div', { class: 'note warn', text: t('no_from_name', { a: viaBoxes ? str((bx[0] || {}).email).split('@')[0] : str(sender.from_addr).split('@')[0] }) }) : null,
       planLine,
       viaBoxes && num(dv.days) > 1 && str(sender.from_addr) ? h('p', { class: 'small', text: t('plan_ses_faster', { a: str(sender.from_addr) }) }) : null,
+      p.list ? h('div', { class: 'small stack' }, h('span', { text: t('pv_list', { m: t('ml_mode_' + str(p.list.mode)), n: fmtNum(num(p.list.people)), k: fmtNum(num(p.list.in_crm)) }) }),
+        num(p.list.new) ? h('span', { text: t('pv_list_new', { n: fmtNum(num(p.list.new)) }) }) : null,
+        num(p.list.outside) > 0 ? h('span', { text: t('pv_list_out', { n: fmtNum(num(p.list.outside)) }) }) : null) : null,
       rows.length ? h('div', null, h('b', { text: t('not_sending') }), h('div', { class: 'kv' }, rows.map((r) => [h('span', { text: t('r_' + r) }), h('span', { class: 'v', text: fmtNum(num(ex[r])) })]))) : null,
       num(p.overlap) ? h('p', { class: 'small', text: tn('overlap', num(p.overlap)) }) : null,
       arr(p.samples).length ? h('div', null, h('b', { text: t('greet') }), h('div', { class: 'chips' }, arr(p.samples).map((s) => h('span', { class: 'chip', text: s })))) : null,
@@ -1193,11 +1503,16 @@ select.field{padding-right:28px}
   }
 
   function render() {
+    const mlw = document.querySelector('.mlwrap'), mlTop = mlw ? mlw.scrollTop : 0;     // the open list keeps its place
     app.textContent = '';
     if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
     else if (S.mode === 'login') app.appendChild(loginView());
     else if (S.mode === 'error') app.appendChild(h('div', { class: 'note bad stack', role: 'alert' }, h('p', { text: S.pageErr || t('err') }), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => { S.mode = 'loading'; render(); load(); } }, t('retry')))));
     else app.appendChild(S.view === 'edit' && S.edit ? editorView() : listView());
+    if (S.mle && S.view === 'edit' && S.edit && S.mode === 'view') {
+      app.appendChild(mailListModal());
+      const w = document.querySelector('.mlwrap'); if (w) w.scrollTop = mlTop;
+    }
     foot.textContent = '';
     const s = session();
     if (s && S.mode === 'view') foot.appendChild(h('span', { text: s.user_email }));

@@ -22,14 +22,15 @@ Publishing is asynchronous on the platform side: this returns the upstream `requ
 | `text` | string | one-of | Arbitrary text to post. |
 | `video_url` | string (url) | one-of | A direct video file URL to download + publish. Requires `title`. |
 | `title` | string | conditional | Caption/title. **Required** with `video_url`; optional override for `topic_id`. |
-| `description` | string | no | Optional body/description text. |
+| `description` | string | no | Post body, hashtags included. YouTube, Facebook, LinkedIn and Pinterest show it as the description. TikTok, Instagram, Threads, X and Bluesky have no description field, so for video and photo posts WideCast posts `title` + blank line + `description` (or the description alone when it already starts with the title) as their caption, trimmed at a sentence or word boundary to each platform's limit with the trailing hashtags kept: TikTok 2,200 (UTF-16 units; photo: title 90, description 4,000), Instagram 2,200, Threads 500 UTF-8 bytes, X 280, Bluesky 300. A trim is listed in `warnings` (`caption_trimmed`). Your own `platform_settings.<platform>.<platform>_title` always wins. Text posts are unchanged. |
+| `thumbnail_url` | string (url) | no | Video only: http(s) image URL for the cover (e.g. the `get_url` from `/v1/upload_asset`). Used by YouTube, LinkedIn, X and Facebook (`facebook_media_type: VIDEO`). Instagram, TikTok and Pinterest covers go in `platform_settings`: `instagram.cover_url` or `instagram.thumb_offset` (ms); `tiktok.cover_timestamp` (ms) or `tiktok.tiktok_cover_image_url` (only if the TikTok account allows custom covers); `pinterest.pinterest_cover_image_url`. Threads and Bluesky take no cover. |
 | `photo_urls` | array[string] | no | Image URLs to attach (with `text`). |
 | `platforms` | array[string] | no | Target platforms. Defaults to **all connected** in the chosen channel group. SDK constant `PUBLISH_PLATFORMS`: `youtube`, `tiktok`, `instagram`, `facebook`, `linkedin`, `x`, `threads`, `pinterest`, `reddit`, `bluesky`, `google_business`. |
 | `channel_group` | integer | no | Channel group to publish through (`0` = primary, default). One call = one group. See `GET /v1/channel_groups`. |
 | `scheduled_date` | string | no | ISO date/time to schedule the post (with `timezone`). |
 | `timezone` | string | no | Timezone for `scheduled_date` (default `UTC`). |
 | `metadata` | object | no | Echoed back on the response. |
-| `platform_settings` | object | no | Per-call overrides `{platform: {key: value}}` merged over the saved settings of the chosen group for **this post only** (saved settings unchanged). Facebook keys: `facebook_media_type` = `REELS` (default; Facebook trims long videos to ~90 s) | `VIDEO` (long-form video post) | `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` | `Draft`. Instagram `media_type` = `REELS` \| `STORIES`; YouTube `privacyStatus` = `public` \| `unlisted` \| `private`. Example: `{"facebook": {"facebook_media_type": "VIDEO"}}` for a video longer than 90 s. |
+| `platform_settings` | object | no | Per-call overrides `{platform: {key: value}}` merged over the saved settings of the chosen group for **this post only** (saved settings unchanged). Each block applies to its own platform only: that platform's Upload-Post options, or any `<platform>_` key (e.g. `tiktok_title`, `x_title`, `youtube_description`). A bare `title` / `description` inside a block becomes `<platform>_title` / `<platform>_description`. Whole-post fields (`user`, `platform[]`, `video`, `photos[]`, `scheduled_date`, `thumbnail_url`, …) and unknown keys are not sent and are listed in `warnings` (`setting_ignored`). Facebook keys: `facebook_media_type` = `REELS` (default; Facebook trims long videos to ~90 s), `VIDEO` (long-form video post) or `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` or `Draft`. Instagram `media_type` = `REELS` or `STORIES`; YouTube `privacyStatus` = `public`, `unlisted` or `private`. Example: `{"facebook": {"facebook_media_type": "VIDEO"}}` for a video longer than 90 s. |
 
 ### Response — `202 Accepted` → poll `/v1/status`
 
@@ -48,6 +49,8 @@ Publishing is asynchronous on the platform side: this returns the upstream `requ
 ```
 
 `topic_id` is present only when you published a WideCast video or article. `content_kind` says what went out: `video`, `article`, `text` or `photo`. `agent_note` is a short, generic instruction for agents that keep a local dashboard library: poll the status id, then record the post (see [Recording what you publish](#recording-what-you-publish)); ignore it if you keep none.
+
+`warnings` appears only when something was changed or left out: `caption_trimmed` `{platform, field, limit, unit}` (a caption was cut to fit), `setting_ignored` `{platform, key, reason}` (a `platform_settings` key was not sent), `thumbnail_ignored` (`thumbnail_url` on a non-video post).
 
 Poll `GET /v1/status/{request_id}` (cadence 5s). For a publish id, `type` is `"publish"` and `result.posts[]` carries `{platform, success, post_url, post_id, error}`:
 - `status == "completed"` → all platforms reported back; check each `result.posts[].success`.

@@ -108,7 +108,13 @@
 <td><code>description</code></td>
 <td>string</td>
 <td>no</td>
-<td>Optional body/description text.</td>
+<td>Post body, hashtags included. YouTube, Facebook, LinkedIn and Pinterest show it as the description. TikTok, Instagram, Threads, X and Bluesky have no description field, so for video and photo posts WideCast posts <code>title</code> + blank line + <code>description</code> (or the description alone when it already starts with the title) as their caption, trimmed at a sentence or word boundary to each platform's limit with the trailing hashtags kept: TikTok 2,200 (UTF-16 units; photo: title 90, description 4,000), Instagram 2,200, Threads 500 UTF-8 bytes, X 280, Bluesky 300. A trim is listed in <code>warnings</code> (<code>caption_trimmed</code>). Your own <code>platform_settings.&lt;platform&gt;.&lt;platform&gt;_title</code> always wins. Text posts are unchanged.</td>
+</tr>
+<tr>
+<td><code>thumbnail_url</code></td>
+<td>string (url)</td>
+<td>no</td>
+<td>Video only: http(s) image URL for the cover (e.g. the <code>get_url</code> from <code>/v1/upload_asset</code>). Used by YouTube, LinkedIn, X and Facebook (<code>facebook_media_type: VIDEO</code>). Instagram, TikTok and Pinterest covers go in <code>platform_settings</code>: <code>instagram.cover_url</code> or <code>instagram.thumb_offset</code> (ms); <code>tiktok.cover_timestamp</code> (ms) or <code>tiktok.tiktok_cover_image_url</code> (only if the TikTok account allows custom covers); <code>pinterest.pinterest_cover_image_url</code>. Threads and Bluesky take no cover.</td>
 </tr>
 <tr>
 <td><code>photo_urls</code></td>
@@ -150,7 +156,7 @@
 <td><code>platform_settings</code></td>
 <td>object</td>
 <td>no</td>
-<td>Per-call overrides <code>{platform: {key: value}}</code> merged over the saved settings of the chosen group for <strong>this post only</strong> (saved settings unchanged). Facebook keys: <code>facebook_media_type</code> = <code>REELS</code> (default; Facebook trims long videos to ~90 s)</td>
+<td>Per-call overrides <code>{platform: {key: value}}</code> merged over the saved settings of the chosen group for <strong>this post only</strong> (saved settings unchanged). Each block applies to its own platform only: that platform's Upload-Post options, or any <code>&lt;platform&gt;_</code> key (e.g. <code>tiktok_title</code>, <code>x_title</code>, <code>youtube_description</code>). A bare <code>title</code> / <code>description</code> inside a block becomes <code>&lt;platform&gt;_title</code> / <code>&lt;platform&gt;_description</code>. Whole-post fields (<code>user</code>, <code>platform[]</code>, <code>video</code>, <code>photos[]</code>, <code>scheduled_date</code>, <code>thumbnail_url</code>, …) and unknown keys are not sent and are listed in <code>warnings</code> (<code>setting_ignored</code>). Facebook keys: <code>facebook_media_type</code> = <code>REELS</code> (default; Facebook trims long videos to ~90 s), <code>VIDEO</code> (long-form video post) or <code>STORIES</code>; <code>facebook_page_id</code>; <code>facebook_video_state</code> = <code>Published</code> or <code>Draft</code>. Instagram <code>media_type</code> = <code>REELS</code> or <code>STORIES</code>; YouTube <code>privacyStatus</code> = <code>public</code>, <code>unlisted</code> or <code>private</code>. Example: <code>{"facebook": {"facebook_media_type": "VIDEO"}}</code> for a video longer than 90 s.</td>
 </tr>
 </tbody>
 </table>
@@ -169,6 +175,7 @@
 </code></pre></div>
 
 <p><code>topic_id</code> is present only when you published a WideCast video or article. <code>content_kind</code> says what went out: <code>video</code>, <code>article</code>, <code>text</code> or <code>photo</code>. <code>agent_note</code> is a short, generic instruction for agents that keep a local dashboard library: poll the status id, then record the post (see <a href="#recording-what-you-publish">Recording what you publish</a>); ignore it if you keep none.</p>
+<p><code>warnings</code> appears only when something was changed or left out: <code>caption_trimmed</code> <code>{platform, field, limit, unit}</code> (a caption was cut to fit), <code>setting_ignored</code> <code>{platform, key, reason}</code> (a <code>platform_settings</code> key was not sent), <code>thumbnail_ignored</code> (<code>thumbnail_url</code> on a non-video post).</p>
 <p>Poll <code>GET /v1/status/{request_id}</code> (cadence 5s). For a publish id, <code>type</code> is <code>"publish"</code> and <code>result.posts[]</code> carries <code>{platform, success, post_url, post_id, error}</code>:
 - <code>status == "completed"</code> → all platforms reported back; check each <code>result.posts[].success</code>.
 - <code>status == "failed"</code> → the publish job failed upstream.</p>
