@@ -316,6 +316,13 @@ main{flex:1;padding:28px 0 56px;outline:none}
 .mg-num b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
 .mg-num span{font-size:.75rem;color:var(--tx-3,#888)}
 .mg-acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mg-embed h2{font-size:1rem;margin:0 0 4px}.mg-embed p{margin:0 0 10px}
+.mg-embed label{display:block;font-weight:600;font-size:.875rem;color:var(--tx-hi);margin:12px 0 6px}
+.mg-embed label.mg-check{display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px}
+.mg-embed label.mg-check input{width:18px;height:18px;margin:0;flex:none}
+.mg-hint{font-size:.8125rem;color:var(--tx-3);margin-top:4px}
+.mg-embed textarea{display:block;width:100%;min-height:96px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border:1px solid var(--field-ln);border-radius:10px;background:var(--s1);color:var(--tx-hi);resize:vertical;word-break:break-all}
+.mg-embed .mg-acts{margin-top:12px}
 .mg-pages{margin-top:8px}
 .mg-pages summary{cursor:pointer;font-size:.85rem;color:var(--tx-2,#666)}
 .mg-page{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--line,rgba(128,128,128,.2));font-size:.85rem}
@@ -403,7 +410,17 @@ main{flex:1;padding:28px 0 56px;outline:none}
       bad_code: 'Enter the 6-digit code.', send_failed: 'The code could not be sent. Please try again.',
       code_failed: 'That code did not work. Please try again.', conn_err: 'Connection error. Please try again.',
       net_err: 'Network error. Check your connection and try again.',
-      signed_in: 'Signed in as {e}', private_note: 'Private to your WideCast account.', other_email: 'Use another email'
+      signed_in: 'Signed in as {e}', private_note: 'Private to your WideCast account.', other_email: 'Use another email',
+      emb_h: 'Add a form from another site',
+      emb_p: 'Paste one line into a page and its own form becomes a lead magnet. Nothing else on the page changes. Every email the form sends reaches this client\'s CRM, and the page shows here after its first visit.',
+      emb_open: 'Make an embed line', emb_sites: 'Sites where you paste it', emb_sites_hint: 'For example class.widecast.ai, example.com. Up to 10 (www counts).',
+      emb_name: 'What the form is (optional)', emb_name_hint: 'Used in the confirmation email, for example: Course sign-up.',
+      emb_lang: 'Email language', emb_lang_link: 'As the branded link', emb_lang_en: 'English', emb_lang_vi: 'Vietnamese',
+      emb_confirm: 'Send each person a confirmation email', emb_noconfirm: 'Confirmation emails start once the branded link is ready.',
+      emb_make: 'Make the line', emb_making: 'Making the line…', emb_line: 'Your line', emb_copy: 'Copy', emb_copied: 'Copied',
+      emb_how: 'Paste it once into each page with a form, just before </body>.', emb_again: 'Make another line', emb_cancel: 'Cancel',
+      emb_err: 'The line could not be made. Try again.', emb_ready: 'Your line is ready. Copy it into your page.',
+      emb_for: 'For: {d}', emb_mail_on: 'Each person gets a confirmation email in {l}.', emb_mail_off: 'No email is sent; the leads still reach the CRM.'
     },
     vi: {
       doc_title: 'Lead magnet của bạn', skip: 'Đến danh sách lead magnet', brand_home: 'Trang chủ WideCast', lang_group: 'Ngôn ngữ',
@@ -433,7 +450,17 @@ main{flex:1;padding:28px 0 56px;outline:none}
       bad_code: 'Nhập đủ mã 6 số.', send_failed: 'Chưa gửi được mã. Vui lòng thử lại.',
       code_failed: 'Mã chưa đúng. Vui lòng thử lại.', conn_err: 'Lỗi kết nối. Vui lòng thử lại.',
       net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
-      signed_in: 'Đăng nhập với {e}', private_note: 'Chỉ tài khoản WideCast của bạn xem được.', other_email: 'Dùng email khác'
+      signed_in: 'Đăng nhập với {e}', private_note: 'Chỉ tài khoản WideCast của bạn xem được.', other_email: 'Dùng email khác',
+      emb_h: 'Thêm form từ trang khác',
+      emb_p: 'Dán một dòng vào trang, form sẵn có của trang đó thành lead magnet. Trang không phải sửa gì khác. Mọi email form gửi đều vào CRM của khách hàng này, và trang hiện ở đây sau lượt xem đầu tiên.',
+      emb_open: 'Tạo dòng nhúng', emb_sites: 'Các trang web sẽ dán dòng này', emb_sites_hint: 'Ví dụ class.widecast.ai, example.com. Tối đa 10 (tính cả www).',
+      emb_name: 'Form này là gì (không bắt buộc)', emb_name_hint: 'Dùng trong email xác nhận, ví dụ: Đăng ký khoá học.',
+      emb_lang: 'Ngôn ngữ email', emb_lang_link: 'Theo link thương hiệu', emb_lang_en: 'Tiếng Anh', emb_lang_vi: 'Tiếng Việt',
+      emb_confirm: 'Gửi email xác nhận cho từng người', emb_noconfirm: 'Email xác nhận chỉ gửi được khi link thương hiệu đã sẵn sàng.',
+      emb_make: 'Tạo dòng', emb_making: 'Đang tạo dòng…', emb_line: 'Dòng của bạn', emb_copy: 'Sao chép', emb_copied: 'Đã sao chép',
+      emb_how: 'Dán một lần vào mỗi trang có form, ngay trước </body>.', emb_again: 'Tạo dòng khác', emb_cancel: 'Huỷ',
+      emb_err: 'Chưa tạo được dòng. Vui lòng thử lại.', emb_ready: 'Dòng đã sẵn sàng. Hãy sao chép vào trang.',
+      emb_for: 'Dùng cho: {d}', emb_mail_on: 'Mỗi người nhận một email xác nhận bằng {l}.', emb_mail_off: 'Không gửi email nào; lead vẫn vào CRM.'
     }
   };
 
@@ -596,7 +623,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
     client: CLIENT_RE.test(initClient) ? initClient : '',
     data: null, clients: [], busy: false, pageErr: '',
     login: { step: 1, email: '', code: '', busy: false, err: '', note: '', expired: false, focus: false },
-    ownerOnly: false, seq: 0
+    ownerOnly: false, seq: 0,
+    emb: null                 // the embed line card (2026-11-02): {open, sites, name, confirm, busy, err, line, copied}
   };
   const app = document.getElementById('app');
   const foot = document.getElementById('foot');
@@ -638,6 +666,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
   function pickClient(c) {
     if (!CLIENT_RE.test(c || '') || c === S.client) return;
     S.client = c;
+    S.emb = null;                                    // a line belongs to one client
     syncUrl();
     load();
   }
@@ -965,6 +994,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
       links.length ? links.map((l) => h('span', null, h('span', { text: str(l.host) + ' ' }),
         h('span', { class: 'mg-pill' + (str(l.status) === 'ready' ? ' mg-ok' : ''), text: str(l.status) === 'ready' ? t('link_ready') : t('link_wait') })))
         : h('span', { text: t('link_none') })));
+    view.appendChild(renderEmbed(links.some((l) => str(l.status) === 'ready')));
     const mags = arr(d.magnets).filter(obj);
     const tot = obj(d.totals) || {};
     if (mags.length) {
@@ -1010,6 +1040,110 @@ main{flex:1;padding:28px 0 56px;outline:none}
       card.appendChild(det);
     }
     return card;
+  }
+
+  // An embed line for another site's form (2026-11-02): the page's own form becomes the box; the line is signed by the
+  // server (POST /solo/magnets/embed) and nothing is kept about it. ready: the client's branded link can send.
+  function emb() {
+    if (!S.emb) S.emb = { open: false, sites: '', name: '', confirm: true, lang: '', busy: false, err: '', line: '', copied: false, made: null };
+    return S.emb;
+  }
+  function renderEmbed(ready) {
+    const E = emb();
+    const card = h('section', { class: 'mg-card mg-embed', 'aria-labelledby': 'emb-h' },
+      h('h2', { id: 'emb-h', text: t('emb_h') }), h('p', { class: 'mg-meta', text: t('emb_p') }));
+    if (E.line) {
+      card.appendChild(h('label', { for: 'emb-line', text: t('emb_line') }));
+      card.appendChild(h('textarea', { id: 'emb-line', readonly: true, rows: 4, spellcheck: 'false', text: E.line,
+        onfocus: (ev) => ev.target.select() }));
+      const M = E.made || {};
+      card.appendChild(h('p', { class: 'mg-hint', text: t('emb_how') }));
+      card.appendChild(h('p', { class: 'mg-hint', text: t('emb_for', { d: arr(M.domains).filter((x) => typeof x === 'string').join(', ') }) + ' · ' +
+        (str(M.delivery) === 'confirm' ? t('emb_mail_on', { l: str(M.language) === 'vi' ? t('emb_lang_vi') : t('emb_lang_en') }) : t('emb_mail_off')) }));
+      card.appendChild(h('div', { class: 'mg-acts' },
+        h('button', { type: 'button', class: 'btn btn-pr', id: 'emb-copy', onclick: copyLine }, E.copied ? t('emb_copied') : t('emb_copy')),
+        h('button', { type: 'button', class: 'btn', onclick: () => { S.emb = null; emb().open = true; render(); focusEl('#emb-sites'); } }, t('emb_again'))));
+      return card;
+    }
+    if (!E.open) {
+      card.appendChild(h('div', { class: 'mg-acts' }, h('button', { type: 'button', class: 'btn btn-pr', id: 'emb-open',
+        onclick: () => { E.open = true; render(); focusEl('#emb-sites'); } }, t('emb_open'))));
+      return card;
+    }
+    const errId = 'emb-err';
+    card.appendChild(h('label', { for: 'emb-sites', text: t('emb_sites') }));
+    card.appendChild(h('input', { id: 'emb-sites', class: 'inp', type: 'text', inputmode: 'url', autocapitalize: 'off', spellcheck: 'false',
+      value: E.sites, disabled: E.busy, 'aria-describedby': 'emb-sites-hint' + (E.err ? ' ' + errId : ''), 'aria-invalid': E.err ? 'true' : null,
+      oninput: (ev) => { E.sites = ev.target.value; }, onkeydown: (ev) => { if (ev.key === 'Enter' && !ev.isComposing) makeLine(ready); } }));
+    card.appendChild(h('p', { id: 'emb-sites-hint', class: 'mg-hint', text: t('emb_sites_hint') }));
+    card.appendChild(h('label', { for: 'emb-name', text: t('emb_name') }));
+    card.appendChild(h('input', { id: 'emb-name', class: 'inp', type: 'text', maxlength: '120', value: E.name, disabled: E.busy,
+      'aria-describedby': 'emb-name-hint', oninput: (ev) => { E.name = ev.target.value; } }));
+    card.appendChild(h('p', { id: 'emb-name-hint', class: 'mg-hint', text: t('emb_name_hint') }));
+    card.appendChild(h('label', { class: 'mg-check' }, h('input', { type: 'checkbox', id: 'emb-confirm', checked: ready && E.confirm,
+      disabled: !ready || E.busy, onchange: (ev) => { E.confirm = ev.target.checked; } }), t('emb_confirm')));
+    if (!ready) card.appendChild(h('p', { class: 'mg-hint', text: t('emb_noconfirm') }));
+    else {
+      card.appendChild(h('label', { for: 'emb-lang', text: t('emb_lang') }));
+      card.appendChild(h('select', { id: 'emb-lang', class: 'sel', disabled: E.busy, onchange: (ev) => { E.lang = ev.target.value; } },
+        [['', 'emb_lang_link'], ['en', 'emb_lang_en'], ['vi', 'emb_lang_vi']].map((o) => h('option', { value: o[0], selected: E.lang === o[0] }, t(o[1])))));
+    }
+    if (E.err) card.appendChild(h('p', { id: errId, class: 'err', role: 'alert', text: E.err }));
+    card.appendChild(h('div', { class: 'mg-acts' },
+      h('button', { type: 'button', class: 'btn btn-pr', id: 'emb-make', disabled: E.busy, onclick: () => makeLine(ready) },
+        E.busy ? [spinner(), t('emb_making')] : t('emb_make')),
+      h('button', { type: 'button', class: 'btn', disabled: E.busy, onclick: () => { S.emb = null; render(); focusEl('#emb-open'); } }, t('emb_cancel'))));
+    return card;
+  }
+  function focusEl(sel) { setTimeout(() => { const el = app.querySelector(sel); if (el) el.focus(); }, 0); }
+  function makeLine(ready) {
+    const E = emb();
+    if (E.busy) return;
+    E.busy = true; E.err = '';
+    render();
+    announce(t('emb_making'));
+    const client = S.client;
+    api('/solo/magnets/embed', { client: client, domains: E.sites, name: E.name.trim(),
+      delivery: ready && E.confirm ? 'confirm' : 'none', language: E.lang }).then((res) => {
+      if (S.emb !== E || client !== S.client) return;
+      E.busy = false;
+      if (authFailed(res)) { showLogin(true); return; }
+      const d = res && res.ok && obj(res.data) && res.data.object === 'magnets_embed_line' ? res.data : null;
+      if (d && str(d.line)) {
+        E.line = str(d.line);
+        E.made = d;
+        render();
+        focusEl('#emb-copy');
+        announce(t('emb_ready'));
+        return;
+      }
+      E.err = errOf(res).message || t('emb_err');
+      render();
+      focusEl('#emb-sites');
+    }).catch(() => {
+      if (S.emb !== E) return;
+      E.busy = false; E.err = t('net_err'); render(); focusEl('#emb-sites');
+    });
+  }
+  function copyLine() {
+    const E = emb();
+    const done = () => {
+      E.copied = true; render(); focusEl('#emb-copy'); announce(t('emb_copied'));
+      setTimeout(() => {
+        if (S.emb !== E || !E.copied) return;
+        const had = document.activeElement && document.activeElement.id === 'emb-copy';
+        E.copied = false; render();
+        if (had) focusEl('#emb-copy');                // never takes the focus from where the person moved it
+      }, 2500);
+    };
+    const fallback = () => {
+      const ta = app.querySelector('#emb-line');
+      if (!ta) return;
+      ta.focus(); ta.select();
+      try { if (document.execCommand('copy')) done(); } catch (e) { /* the line stays selected: the person copies it */ }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(E.line).then(done, fallback);
+    else fallback();
   }
 
   function renderLogin() {
