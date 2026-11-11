@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
+<title>Group posts | WideCast</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Group posts (2026-11-11): the email broadcast page's look (tokens, header, sign-in), for Facebook groups. */
+:root{color-scheme:light;
+--bg:#f5f5f2;--s1:#fdfdfb;--s2:#efefea;--s3:#e5e5df;--line:#e1e1da;--line-2:#d0d0c8;--field-ln:#8f908a;
+--tx:#26272a;--tx-hi:#0e0f11;--tx-2:#4a4b47;--tx-3:#64655f;
+--acc:#c6f135;--acc-hi:#b8e425;--acc-ink:#141a05;--acc-soft:#eef7cf;--acc-line:#c3dc72;--acc-tx:#46560a;--ring:#46560a;
+--hot-bg:#fde7df;--hot-tx:#982b12;--hot-ln:#f3c2b2;--warm-bg:#fbefd3;--warm-tx:#774b00;--warm-ln:#ebd197;--watch-bg:#e5ebf9;--watch-tx:#2d4795;--watch-ln:#c3cff0;
+--ok-bg:#e3f3e1;--ok-tx:#1f6a24;--ok-ln:#b8dcb4;
+--err-tx:#a0261a;--shadow:0 1px 2px rgba(14,15,17,.05);
+--font:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+--bg:#0e0f11;--s1:#16181b;--s2:#1c1f23;--s3:#262a30;--line:#25282d;--line-2:#34373e;--field-ln:#696c74;
+--tx:#eceae4;--tx-hi:#f5f3ec;--tx-2:#b9b7af;--tx-3:#8f8d87;
+--acc:#c6f135;--acc-hi:#d3f65c;--acc-ink:#141a05;--acc-soft:#1c230a;--acc-line:#46540f;--acc-tx:#c6f135;--ring:#c6f135;
+--hot-bg:#2b1711;--hot-tx:#ffa189;--hot-ln:#5c2c1e;--warm-bg:#2a2111;--warm-tx:#f2c76a;--warm-ln:#5b4419;--watch-bg:#151d2f;--watch-tx:#a3b8ff;--watch-ln:#2d3c64;
+--ok-bg:#132514;--ok-tx:#8fd894;--ok-ln:#2b4d2d;
+--err-tx:#ffa189;--shadow:none}}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+h1,h2,h3,p,ul,ol{margin:0}
+img,svg,video{display:block;max-width:100%}
+a{color:var(--acc-tx);text-underline-offset:3px}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wrap{width:min(100% - 32px,760px);margin-inline:auto}
+.hdr{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
+.brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--tx-hi);text-decoration:none;font-weight:600;letter-spacing:-.01em}
+.brand .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#0e0f11;border:1px solid var(--line)}
+.brand img{width:24px;height:24px}
+.hdr-r{display:flex;align-items:center;gap:8px;min-width:0}
+.hdr-links{display:flex;gap:4px}
+.hdr-links a{display:inline-flex;align-items:center;min-height:40px;padding:0 10px;border-radius:10px;color:var(--tx-2);text-decoration:none;font-size:.875rem;font-weight:500}
+.hdr-links a:hover{background:var(--s2);color:var(--tx-hi)}
+@media (max-width:560px){.brand>span:not(.mark){display:none}.hdr-links a{padding:0 8px}}
+main{flex:1;padding:24px 0 64px;outline:none}
+.foot{padding:20px 0 32px;color:var(--tx-3);font-size:.8125rem}
+h1.pg{font-size:1.5rem;line-height:1.25;font-weight:600;color:var(--tx-hi);letter-spacing:-.015em}
+.sub{color:var(--tx-2);margin-top:4px;max-width:60ch}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sp{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
+.card .hint{color:var(--tx-3);font-size:.875rem;margin-top:2px}
+.note{border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--s2)}
+.note.warn{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.note.bad{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.note.good{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.note b{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx-hi);font:500 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--s2)}
+.btn[disabled],.btn.disabled{opacity:.5;cursor:not-allowed}
+.btn.disabled{pointer-events:none}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.btn.pri:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.btn.dark{background:var(--tx-hi);border-color:var(--tx-hi);color:var(--bg);font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--tx-2)}
+.btn.ghost:hover{background:var(--s2)}
+.btn.danger{color:var(--err-tx)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:.875rem;border-radius:10px}
+.btn.wide{width:100%}
+label.lbl{display:block;font-size:.875rem;font-weight:600;color:var(--tx-hi);margin:14px 0 6px}
+.field{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--field-ln);border-radius:12px;background:var(--bg);color:var(--tx-hi)}
+textarea.field{min-height:200px;resize:vertical;line-height:1.55}
+select.field{padding-right:28px}
+.field:focus{outline:2px solid var(--ring);outline-offset:1px}
+.small{font-size:.8125rem;color:var(--tx-3)}
+.err{color:var(--err-tx);font-size:.875rem;margin-top:8px}
+.pill{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;border:1px solid var(--line-2);background:var(--s2);color:var(--tx-2)}
+.pill.wait{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.pill.sent{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.pill.live{background:var(--watch-bg);border-color:var(--watch-ln);color:var(--watch-tx)}
+.pill.no{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.list{display:flex;flex-direction:column;gap:10px;list-style:none;padding:0}
+.item{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--s1);cursor:pointer;color:var(--tx);min-width:0}
+.item:hover{background:var(--s2);border-color:var(--line-2)}
+.item .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.item .m{font-size:.8125rem;color:var(--tx-3)}
+.chk{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;min-width:0}
+.chk:hover{border-color:var(--line-2)}
+.chk input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--acc-tx)}
+.chk .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.chk .m{font-size:.8125rem;color:var(--tx-3)}
+.chks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.big{font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--tx-hi);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:12px;font-size:.9375rem}
+.kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx);font-size:.875rem;cursor:pointer}
+.chip code{font-family:var(--mono);font-size:.75rem;color:var(--tx-3)}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
+.media .m1{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);min-width:0}
+.media img,.media video{width:100%;height:110px;object-fit:cover;background:var(--s3)}
+.media .cap{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;font-size:.75rem;color:var(--tx-3)}
+.media .cap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);min-width:0}
+.grp .n{flex:1 1 auto;min-width:0}
+.grp .n b{display:block;color:var(--tx-hi);overflow-wrap:anywhere}
+.grp select{width:auto;min-height:36px;padding:4px 8px;border-radius:10px}
+.caps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.9375rem}
+.caps input{width:64px;min-height:40px;text-align:center;padding:6px}
+.tbl{width:100%;border-collapse:collapse;font-size:.875rem;margin-top:10px}
+.tbl td,.tbl th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.tbl th{color:var(--tx-2);font-weight:600}
+.scroll{overflow-x:auto}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.login{max-width:420px}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="/" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <div class="hdr-r">
+      <nav class="hdr-links" aria-label="Pages">
+        <a href="approve.html" id="nav-approve">Approvals</a>
+        <a href="crmstore.html" id="nav-crm">CRM</a>
+      </nav>
+    </div>
+  </div>
+</header>
+<main id="app" class="wrap" tabindex="-1">
+  <noscript><p>This page needs JavaScript. Trang này cần bật JavaScript.</p></noscript>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+<script>
+(() => {
+  'use strict';
+  // Group posts (2026-11-11). Server: the dashboard2.py block "SOLO AGENCY, group posts" on solo_group_post.py. The owner
+  // writes one post (text, pictures, videos), ticks Facebook groups instead of lead magnets, checks the numbers, posts
+  // a test into his test group and presses Send; his cloud agent posts each copy as it comes due, never twice to one
+  // group. Same sign-in, API base, language choice and look as broadcast.html.
+  const LANG_SWITCH = false;              // as the other pages: English for now, both dictionaries kept
+  const Q0 = new URLSearchParams(location.search);
+  const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const API_ORIGIN = (() => {
+    const raw = IS_LOCAL ? Q0.get('api') : '';
+    if (!raw) return '';
+    try { const u = new URL(raw); return (u.protocol === 'http:' || u.protocol === 'https:') ? u.origin : ''; } catch (e) { return ''; }
+  })();
+  const DEV = Q0.get('dev') === '1';
+  const BASE = API_ORIGIN + '/app/dashboard' + (DEV ? '2' : '');
+  const LANG_KEY = 'wc_report_lang';
+  const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+  const UID_RE = /^gp_[a-z2-7]{26}$/;
+  const POLL_MS = 15000;
+  const LANGS = ['en', 'vi'];
+
+  const I18N = {
+    en: {
+      title: 'Group posts', sub: 'Write one post, tick the Facebook groups, send. Your cloud agent posts it into each group over the days you choose, never twice into one group.',
+      client: 'Client', new_post: 'New post', posts: 'Posts', none_h: 'No posts yet', none_p: 'Write your first one.',
+      untitled: '(no text yet)', st_draft: 'Draft', st_sent: 'Sent', updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}',
+      back: 'All posts', email_page: 'Email broadcast',
+      no_poster_h: 'No cloud agent is connected', no_poster_p: 'Group posts go out from your cloud agent (Muse). Connect it to WideCast, then come back.',
+      poster: 'Posted by {n}', plan_day: 'Your plan posts {n} group post a day.',
+      groups_h: 'Groups', groups_hint: 'The groups your agent watches and the ones you add. Your agent checks each one: whether its Facebook account is a member, and how many members it has.',
+      groups_none: 'No groups yet. Add one below, or ask Sam to find groups for this client.',
+      g_members: '{n} members', g_members_unknown: 'members not known yet',
+      m_yes: 'Member', m_no: 'Not a member', m_pending: 'Waiting to join', m_: 'Not checked yet',
+      p_open: 'Posts go live', p_admin: 'Admin approves posts', last_post: 'Last post {d}',
+      g_lang: 'Language', g_lang_none: 'Any', g_remove: 'Remove', g_removed: 'Group removed.', g_add: 'Add a group',
+      g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Add', g_added: 'Group added. Your agent checks it soon.',
+      settings_h: 'How fast posts go out', settings_hint: 'Like the email frequency limit: these keep your Facebook account safe. Your daily group scan runs on the same account.',
+      s_daily: 'At most', s_daily2: 'group posts a day for the account', s_gap: 'Wait', s_gap2: 'to', s_gap3: 'minutes between two posts',
+      s_cap: 'One group gets at most', s_cap2: 'post(s) in', s_cap3: 'days', s_test: 'Test group', s_test_hint: 'A group of your own (only you in it, or a few friends). A test copy of each post goes there first.',
+      save: 'Save', saved: 'Saved', saving: 'Saving…',
+      post_h: 'Post', text: 'Text', main_lang: 'Language of this text', tag_h: 'Tag', tag_hint: '{{group_name}} becomes each group\'s name. Add a word after | for a group whose name is unknown: {{group_name|everyone}}.',
+      version_h: 'Version in {l}', version_hint: 'Groups whose language is {l} get this text instead. Leave it empty to give them the main text.',
+      add_version: 'Add a version in {l}', remove_version: 'Remove this version',
+      media_h: 'Pictures and videos', media_hint: 'Up to {n}. Pictures {a} up to {b} MB, videos {c} up to {d} MB.',
+      add_media: 'Add pictures or videos', uploading: 'Uploading…', remove: 'Remove', image: 'Picture', video: 'Video', too_many: 'A post carries at most {n} pictures and videos.',
+      test: 'Post a test', testing: 'Posting test…', test_queued: 'Test queued for your test group. Your agent posts it within a few minutes.',
+      tests_h: 'Tests', t_scheduled: 'Waiting for your agent', t_claimed: 'Being posted', t_posted: 'Posted', t_pending_admin: 'Waiting for the group\'s admin',
+      t_failed: 'Could not post', t_unknown: 'Not confirmed', t_skipped: 'Skipped', t_cancelled: 'Cancelled', open_post: 'Open',
+      delete_draft: 'Delete draft', deleted: 'Draft deleted.',
+      who: 'Which groups get it', who_hint: 'Tick the groups. A group that already has this post, or got its posts of the last days, is left out at the check.',
+      tick_members: 'Tick every member group', untick: 'Untick all', search_groups: 'Search groups',
+      days: 'Spread over', days2: 'day(s)', check: 'Check numbers', checking: 'Checking…',
+      will_post: 'groups will get this post', not_posting: 'Not posting to',
+      r_already_posted: 'Already has this post (or it is on its way)', r_cooldown: 'Got a post recently (group limit)', r_not_member: 'Not a member',
+      r_removed: 'Removed from the list', plan_line: '{p} a day, {d} day(s), last one around {f}.', slowed: 'Your daily limit stretches this over {d} days instead of {a}.',
+      unchecked: '{n} of them were not checked yet: your agent checks each before it posts.',
+      versions_used: 'Text used: {v}', v_main: 'main text', test_first: 'Post a test into your test group first. The first send needs one that went through.',
+      no_test_group: 'Set your test group under "How fast posts go out" on the list page first.',
+      send_n: 'Send to {n} groups', send_n_1: 'Send to 1 group', confirm_q: 'Send this post to {n} groups?', confirm_q_1: 'Send this post to 1 group?',
+      yes_send: 'Yes, send', cancel: 'Cancel', nobody: 'None of the ticked groups can get it now.', changed: 'The numbers changed. Check them again.',
+      sending: 'Sending…', sent_ok: 'Sent. Your agent posts the copies as they come due.',
+      where_h: 'Where it stands', retry: 'Try again', retried: 'It goes out again next.', due: 'Due {d}',
+      sends_h: 'Sends', run_line: '{d}: {n} groups, {p} a day', st_run_running: 'Running', st_run_paused: 'Paused', st_run_stopped: 'Stopped', st_run_done: 'Done',
+      why_account_blocked: 'Facebook stopped the account from posting. Every send paused. Go on when Facebook lets the account post again.',
+      why_needs_chat: 'Your agent needs your OK in its chat before it can post. Answer it there, then go on.',
+      why_paused_by_owner: 'You paused it.', why_stopped_by_owner: 'You stopped it.',
+      pause: 'Pause', resume: 'Go on', stop: 'Stop', stop_q: 'Stop this send? The groups not posted to yet can get it from a later send.',
+      unsaved: 'Save your changes first.', err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
+      unavailable: 'Group posts are not available right now. Try again in a few minutes.',
+      login_h: 'Sign in to post to groups', login_p: 'Use your WideCast account email. We will email you a 6-digit code.',
+      login_owner_only: 'This page is for the account owner. Sign in with the owner\'s WideCast email.',
+      email: 'Email', send_code: 'Send code', sending_code: 'Sending code…', code_sent: 'We sent a 6-digit code to', code_lbl: '6-digit code',
+      verify: 'Verify', verifying: 'Verifying…', change_email: 'Use another email', bad_email: 'Enter a valid email address.',
+      bad_code: 'Enter the 6-digit code.', send_failed: 'Could not send the code. Try again.', code_failed: 'That code is not right. Try again.',
+      private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry_load: 'Try again'
+    },
+    vi: {
+      title: 'Đăng bài vào group', sub: 'Viết một bài, chọn các group Facebook, gửi. Agent trên cloud đăng bài vào từng group trong số ngày bạn chọn, không bao giờ đăng hai lần vào một group.',
+      client: 'Khách hàng', new_post: 'Bài mới', posts: 'Bài viết', none_h: 'Chưa có bài nào', none_p: 'Viết bài đầu tiên.',
+      untitled: '(chưa có chữ)', st_draft: 'Nháp', st_sent: 'Đã gửi', updated: 'Sửa lúc {d}', sent_times: 'Đã gửi {n} lần, lần cuối {d}',
+      back: 'Tất cả bài', email_page: 'Email broadcast',
+      no_poster_h: 'Chưa có agent trên cloud kết nối', no_poster_p: 'Bài vào group do agent trên cloud (Muse) đăng. Kết nối nó với WideCast rồi quay lại.',
+      poster: 'Đăng bởi {n}', plan_day: 'Gói của bạn đăng {n} bài vào group mỗi ngày.',
+      groups_h: 'Các group', groups_hint: 'Các group agent đang theo dõi và các group bạn thêm. Agent kiểm tra từng group: tài khoản Facebook đã là thành viên chưa, và group có bao nhiêu thành viên.',
+      groups_none: 'Chưa có group nào. Thêm ở dưới, hoặc nhờ Sam tìm group cho khách hàng này.',
+      g_members: '{n} thành viên', g_members_unknown: 'chưa biết số thành viên',
+      m_yes: 'Đã là thành viên', m_no: 'Chưa là thành viên', m_pending: 'Đang chờ duyệt vào', m_: 'Chưa kiểm tra',
+      p_open: 'Bài lên ngay', p_admin: 'Admin duyệt bài', last_post: 'Bài gần nhất {d}',
+      g_lang: 'Ngôn ngữ', g_lang_none: 'Bất kỳ', g_remove: 'Bỏ', g_removed: 'Đã bỏ group.', g_add: 'Thêm group',
+      g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Thêm', g_added: 'Đã thêm group. Agent sẽ kiểm tra sớm.',
+      settings_h: 'Tốc độ đăng bài', settings_hint: 'Giống giới hạn tần suất của email: giữ an toàn cho tài khoản Facebook. Vòng quét group mỗi ngày cũng chạy trên tài khoản này.',
+      s_daily: 'Tối đa', s_daily2: 'bài vào group mỗi ngày cho tài khoản', s_gap: 'Chờ', s_gap2: 'đến', s_gap3: 'phút giữa hai bài',
+      s_cap: 'Mỗi group nhận tối đa', s_cap2: 'bài trong', s_cap3: 'ngày', s_test: 'Group test', s_test_hint: 'Một group của riêng bạn (chỉ có bạn, hoặc vài người bạn). Bản test của mỗi bài đăng vào đó trước.',
+      save: 'Lưu', saved: 'Đã lưu', saving: 'Đang lưu…',
+      post_h: 'Bài viết', text: 'Nội dung', main_lang: 'Ngôn ngữ của nội dung này', tag_h: 'Tag', tag_hint: '{{group_name}} thành tên của từng group. Thêm chữ sau dấu | cho group chưa biết tên: {{group_name|cả nhà}}.',
+      version_h: 'Phiên bản {l}', version_hint: 'Group có ngôn ngữ {l} nhận nội dung này. Để trống thì họ nhận nội dung chính.',
+      add_version: 'Thêm phiên bản {l}', remove_version: 'Bỏ phiên bản này',
+      media_h: 'Ảnh và video', media_hint: 'Tối đa {n}. Ảnh {a} đến {b} MB, video {c} đến {d} MB.',
+      add_media: 'Thêm ảnh hoặc video', uploading: 'Đang tải lên…', remove: 'Bỏ', image: 'Ảnh', video: 'Video', too_many: 'Mỗi bài tối đa {n} ảnh và video.',
+      test: 'Đăng thử', testing: 'Đang đăng thử…', test_queued: 'Đã xếp bài thử vào group test. Agent sẽ đăng trong vài phút.',
+      tests_h: 'Bài thử', t_scheduled: 'Chờ agent', t_claimed: 'Đang đăng', t_posted: 'Đã lên', t_pending_admin: 'Chờ admin group duyệt',
+      t_failed: 'Không đăng được', t_unknown: 'Chưa xác nhận', t_skipped: 'Bỏ qua', t_cancelled: 'Đã huỷ', open_post: 'Mở',
+      delete_draft: 'Xoá nháp', deleted: 'Đã xoá nháp.',
+      who: 'Group nào nhận bài', who_hint: 'Chọn các group. Group đã có bài này, hoặc vừa nhận bài trong mấy ngày gần đây, sẽ bị loại khi xem số.',
+      tick_members: 'Chọn mọi group đã là thành viên', untick: 'Bỏ chọn hết', search_groups: 'Tìm group',
+      days: 'Rải trong', days2: 'ngày', check: 'Check numbers', checking: 'Đang tính…',
+      will_post: 'group sẽ nhận bài này', not_posting: 'Không đăng vào',
+      r_already_posted: 'Đã có bài này (hoặc đang chờ đăng)', r_cooldown: 'Vừa nhận bài (giới hạn của group)', r_not_member: 'Chưa là thành viên',
+      r_removed: 'Đã bỏ khỏi danh sách', plan_line: 'Mỗi ngày {p} bài, trong {d} ngày, bài cuối khoảng {f}.', slowed: 'Giới hạn mỗi ngày kéo dài đợt này ra {d} ngày thay vì {a}.',
+      unchecked: '{n} group chưa được kiểm tra: agent kiểm tra từng group trước khi đăng.',
+      versions_used: 'Nội dung dùng: {v}', v_main: 'nội dung chính', test_first: 'Đăng thử vào group test trước. Lần gửi đầu cần một bài thử đã lên.',
+      no_test_group: 'Đặt group test ở phần "Tốc độ đăng bài" trên trang danh sách trước.',
+      send_n: 'Gửi tới {n} group', confirm_q: 'Gửi bài này tới {n} group?',
+      yes_send: 'Gửi', cancel: 'Huỷ', nobody: 'Không group nào nhận được bài lúc này.', changed: 'Số đã thay đổi. Xem lại số.',
+      sending: 'Đang gửi…', sent_ok: 'Đã gửi. Agent đăng từng bài khi đến giờ.',
+      where_h: 'Tình trạng từng group', retry: 'Thử lại', retried: 'Sẽ đăng lại ngay sau.', due: 'Đến giờ {d}',
+      sends_h: 'Các đợt gửi', run_line: '{d}: {n} group, {p} bài mỗi ngày', st_run_running: 'Đang chạy', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng', st_run_done: 'Xong',
+      why_account_blocked: 'Facebook đang chặn tài khoản đăng bài. Mọi đợt gửi đã tạm dừng. Cho chạy tiếp khi Facebook cho đăng lại.',
+      why_needs_chat: 'Agent cần bạn đồng ý trong khung chat của nó trước khi đăng. Trả lời ở đó rồi cho chạy tiếp.',
+      why_paused_by_owner: 'Bạn đã tạm dừng.', why_stopped_by_owner: 'Bạn đã dừng.',
+      pause: 'Tạm dừng', resume: 'Chạy tiếp', stop: 'Dừng', stop_q: 'Dừng đợt gửi này? Các group chưa nhận có thể nhận ở đợt gửi sau.',
+      unsaved: 'Lưu thay đổi trước.', err: 'Có lỗi. Thử lại.', net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
+      unavailable: 'Đăng bài vào group đang tạm không dùng được. Thử lại sau vài phút.',
+      login_h: 'Đăng nhập để đăng bài vào group', login_p: 'Dùng email tài khoản WideCast. Chúng tôi sẽ gửi mã 6 số.',
+      login_owner_only: 'Trang này dành cho chủ tài khoản. Đăng nhập bằng email WideCast của chủ tài khoản.',
+      email: 'Email', send_code: 'Gửi mã', sending_code: 'Đang gửi mã…', code_sent: 'Đã gửi mã 6 số đến', code_lbl: 'Mã 6 số',
+      verify: 'Xác nhận', verifying: 'Đang xác nhận…', change_email: 'Đổi email', bad_email: 'Nhập địa chỉ email hợp lệ.',
+      bad_code: 'Nhập mã 6 số.', send_failed: 'Không gửi được mã. Thử lại.', code_failed: 'Mã chưa đúng. Thử lại.',
+      private_note: 'Chỉ tài khoản WideCast của bạn xem được trang này.', loading: 'Đang tải…', retry_load: 'Thử lại'
+    }
+  };
+  const LANG_NAMES = { en: 'English', vi: 'Tiếng Việt' };
+  const REASONS = ['already_posted', 'cooldown', 'not_member', 'removed'];
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
+  let memSession = null;
+  function session() {
+    const tok = lsGet('google_auth_token') || '', mail = lsGet('google_auth_email') || '', cid = lsGet('company_id') || '';
+    if (tok && mail && cid) return { user_token: tok, user_email: mail, company_id: cid };
+    return memSession;
+  }
+  function storeSession(tok, mail, cid) {
+    const ok = [lsSet('google_auth_token', tok), lsSet('google_auth_email', mail), lsSet('google_auth_timestamp', Date.now().toString()), lsSet('company_id', cid)].every(Boolean);
+    lsDel('wc_client_simplified');
+    memSession = ok ? null : { user_token: tok, user_email: mail, company_id: cid };
+  }
+  const LANG = (() => { if (!LANG_SWITCH) return 'en'; const s = lsGet(LANG_KEY); return s === 'vi' ? 'vi' : 'en'; })();
+  document.documentElement.lang = LANG;
+  const locale = () => (LANG === 'vi' ? 'vi-VN' : 'en-US');
+  function t(key, vars) {
+    let s = I18N[LANG][key];
+    if (s == null) s = I18N.en[key];
+    if (s == null) return key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function tn(key, n) { return n === 1 && I18N[LANG][key + '_1'] ? t(key + '_1') : t(key, { n: fmtNum(n) }); }
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const k of Object.keys(attrs)) {
+        const v = attrs[k];
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'value') el.value = v;
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach((x) => add(el, x)); return; }
+    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const fmtNum = (n) => { try { return new Intl.NumberFormat(locale()).format(n); } catch (e) { return String(n); } };
+  function fmtDay(sec) {
+    const n = Number(sec);
+    if (!(n > 0)) return '';
+    try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(n * 1000)); } catch (e) { return new Date(n * 1000).toISOString().slice(0, 16); }
+  }
+  function fmtDate(iso) {
+    const d = new Date(str(iso) + 'T12:00:00Z');
+    if (!str(iso) || isNaN(d)) return str(iso);
+    try { return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d); } catch (e) { return str(iso); }
+  }
+  const mb = (b) => Math.round(num(b) / 1048576);
+  function fmtSize(b) { const n = num(b); return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  const spinner = () => h('span', { class: 'spin', 'aria-hidden': 'true' });
+  const live = document.getElementById('live');
+  function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
+  let toastTimer = null;
+  function toast(msg) {
+    let el = document.querySelector('.toast');
+    if (!el) { el = h('div', { class: 'toast', role: 'status' }); document.body.appendChild(el); }
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  }
+
+  // ── API
+  function setHeader(headers, k, v) { if (v && /^[\x20-\x7e]*$/.test(v)) headers[k] = v; }
+  function authHeaders() {
+    const s = session(), headers = {};
+    if (s) {
+      setHeader(headers, 'X-WideCast-Company', s.company_id);
+      setHeader(headers, 'X-WideCast-User-Email', s.user_email);
+      setHeader(headers, 'X-WideCast-User-Token', s.user_token);
+    }
+    return headers;
+  }
+  function parse(r) {
+    return r.text().then((txt) => { let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; } return { status: r.status, ok: r.ok, data: data }; });
+  }
+  function api(path, body) {
+    const s = session();
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
+    const payload = Object.assign({}, body || {});
+    if (s) { payload.company_id = s.company_id; payload.user_email = s.user_email; payload.user_token = s.user_token; }
+    return fetch(BASE + path, { method: 'POST', headers: headers, body: JSON.stringify(payload), cache: 'no-store', credentials: 'same-origin' }).then(parse);
+  }
+  function upload(file) {
+    const fd = new FormData();
+    fd.append('client', S.client); fd.append('file', file, file.name);
+    return fetch(BASE + '/solo/groupposts/file', { method: 'POST', headers: authHeaders(), body: fd, cache: 'no-store', credentials: 'same-origin' }).then(parse);
+  }
+  function errOf(res) {
+    const d = (res && res.data) || {}, e = d.error;
+    if (e && typeof e === 'object') return { code: String(e.code || ''), message: String(e.message || ''), extra: e };
+    if (d.error_code) return { code: String(d.error_code), message: String(d.error_message || '') };
+    return { code: 'http_' + (res ? res.status : 0), message: '' };
+  }
+  function authFailed(res) {
+    if (res.status === 401) { if (errOf(res).code === 'owner_sign_in_required') S.ownerOnly = true; return true; }
+    const c = errOf(res).code.toUpperCase();
+    return c === 'AUTH_REQUIRED' || c === 'AUTH_INVALID';
+  }
+  function msgOf(res) {
+    if (!res) return t('net_err');
+    if (res.status === 503 && !errOf(res).message) return t('unavailable');
+    return errOf(res).message || t('err');
+  }
+  function checkUser(body) {
+    return fetch(BASE + '/check_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' }).then(parse);
+  }
+
+  // ── State
+  const S = {
+    mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [],
+    groups: [], posts: [], settings: {}, runs: [], posters: [], planDay: 0, tested: false, limits: {}, pageErr: '',
+    view: 'list', edit: null, dirty: false, busy: '', err: '', ticks: [], days: 1, q: '', preview: null, prevErr: '',
+    confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addBusy: false, addErr: '', ownerOnly: false,
+    wantPost: UID_RE.test(str(Q0.get('post'))) ? Q0.get('post') : '', versions: {},
+    login: { step: 1, email: '', code: '', busy: false, err: '' }
+  };
+  const app = document.getElementById('app');
+  const foot = document.getElementById('foot');
+  let pollTimer = null;
+
+  function syncUrl() {
+    const p = new URLSearchParams(location.search);
+    if (S.client) p.set('client', S.client); else p.delete('client');
+    if (S.view === 'edit' && S.edit && S.edit.uid) p.set('post', S.edit.uid); else p.delete('post');
+    const qs = p.toString();
+    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+    ['nav-approve', 'nav-crm'].forEach((id) => {
+      const a = document.getElementById(id);
+      const keep = new URLSearchParams();
+      if (S.client) keep.set('client', S.client);
+      if (DEV) keep.set('dev', '1');
+      if (API_ORIGIN) keep.set('api', API_ORIGIN);
+      a.href = a.getAttribute('href').split('?')[0] + (keep.toString() ? '?' + keep.toString() : '');
+    });
+  }
+  function applyState(d) {
+    S.clients = arr(d.clients); S.client = str(d.client);
+    S.groups = arr(d.groups); S.posts = arr(d.posts); S.settings = d.settings || {}; S.runs = arr(d.runs);
+    S.posters = arr(d.posters); S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {};
+    syncUrl();
+  }
+  function load() {
+    if (!session()) { showLogin(); return; }
+    api('/solo/groupposts/state', S.client ? { client: S.client } : {}).then((res) => {
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.mode = 'error'; S.pageErr = msgOf(res); render(); return; }
+      applyState(res.data);
+      S.mode = 'view';
+      if (S.wantPost) { const u = S.wantPost; S.wantPost = ''; openPost(u); return; }
+      render();
+    }).catch(() => { S.mode = 'error'; S.pageErr = t('net_err'); render(); });
+  }
+  function refreshState() {
+    return api('/solo/groupposts/state', { client: S.client }).then((res) => { if (res.ok && res.data) applyState(res.data); });
+  }
+
+  // ── Sign-in (the same flow as broadcast.html)
+  function showLogin() {
+    const s = session();
+    S.mode = 'login';
+    S.login = { step: 1, email: S.ownerOnly ? '' : (S.login.email || (s && s.user_email) || ''), code: '', busy: false, err: '' };
+    render();
+  }
+  function sendCode() {
+    const L = S.login;
+    const email = String(L.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { L.err = t('bad_email'); render(); return; }
+    L.email = email; L.busy = true; L.err = ''; render();
+    checkUser({ email: email, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) { L.step = 2; L.code = ''; }
+      else L.err = (res.data && res.data.error_message) || t('send_failed');
+      render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function verifyCode() {
+    const L = S.login;
+    if (!/^\d{6}$/.test(L.code)) { L.err = t('bad_code'); render(); return; }
+    L.busy = true; L.err = ''; render();
+    checkUser({ email: L.email, passcode: L.code, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) {
+        const d = res.data;
+        storeSession(String(d.user_token || ''), String(d.user_email || d.email || L.email), String(d.company_id || ''));
+        S.ownerOnly = false; S.mode = 'loading'; render(); load(); return;
+      }
+      L.err = (res.data && res.data.error_message) || t('code_failed'); L.code = ''; render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function loginView() {
+    const L = S.login;
+    const box = h('section', { class: 'card login stack', 'aria-labelledby': 'lh' },
+      h('div', null, h('h1', { class: 'pg', id: 'lh', text: t('login_h') }), h('p', { class: 'sub', text: S.ownerOnly ? t('login_owner_only') : t('login_p') })));
+    const form = h('form', { novalidate: true, onsubmit: (e) => { e.preventDefault(); if (L.step === 1) sendCode(); else verifyCode(); } });
+    if (L.step === 1) {
+      form.appendChild(h('label', { class: 'lbl', for: 'l-email', text: t('email') }));
+      form.appendChild(h('input', { id: 'l-email', class: 'field', type: 'email', autocomplete: 'email', inputmode: 'email', value: L.email, oninput: (e) => { L.email = e.target.value; } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('sending_code')] : t('send_code')));
+    } else {
+      form.appendChild(h('p', { class: 'small' }, t('code_sent') + ' ', h('b', { text: L.email })));
+      form.appendChild(h('label', { class: 'lbl', for: 'l-code', text: t('code_lbl') }));
+      form.appendChild(h('input', { id: 'l-code', class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', value: L.code, oninput: (e) => { L.code = e.target.value.replace(/\D/g, '').slice(0, 6); } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('verifying')] : t('verify')));
+      form.appendChild(h('button', { class: 'btn ghost wide', type: 'button', onclick: () => { L.step = 1; L.err = ''; render(); } }, t('change_email')));
+    }
+    if (L.err) form.appendChild(h('p', { class: 'err', role: 'alert', text: L.err }));
+    box.appendChild(form);
+    box.appendChild(h('p', { class: 'small', text: t('private_note') }));
+    return box;
+  }
+
+  // ── Small views
+  const groupName = (g) => str(g.name) || str(g.key);
+  function memberPill(g) {
+    const m = str(g.member);
+    return h('span', { class: m === 'yes' ? 'pill sent' : m === 'no' ? 'pill no' : 'pill wait', text: t('m_' + m) });
+  }
+  function copyPill(st) {
+    const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : 'pill wait';
+    return h('span', { class: cls, text: t('t_' + st) });
+  }
+  function groupMeta(g) {
+    const bits = [g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')];
+    if (g.posting) bits.push(t('p_' + g.posting));
+    if (g.last_post_at) bits.push(t('last_post', { d: fmtDay(g.last_post_at) }));
+    return bits.join(' · ');
+  }
+  function clientPicker() {
+    if (S.clients.length < 2) return null;
+    return h('div', null, h('label', { class: 'lbl', for: 'cl', text: t('client') }),
+      h('select', { id: 'cl', class: 'field', onchange: (e) => { S.client = e.target.value; S.view = 'list'; S.edit = null; stopPoll(); S.mode = 'loading'; render(); load(); } },
+        S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
+  }
+  function posterNote() {
+    if (!S.posters.length) return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
+    return h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') });
+  }
+  function runCard(r, compact) {
+    const why = str(r.pause_reason);
+    const act = (a) => {
+      if (a === 'stop' && !window.confirm(t('stop_q'))) return;
+      S.busy = 'run'; render();
+      api('/solo/groupposts/run/' + a, { client: S.client, run_id: r.run_id }).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok) { toast(msgOf(res)); render(); return; }
+        (S.edit ? reloadPost() : Promise.resolve()).then(() => refreshState()).then(render);
+      }).catch(() => { S.busy = ''; toast(t('net_err')); render(); });
+    };
+    const st = str(r.state);
+    return h('li', { class: 'grp', style: 'flex-direction:column;align-items:stretch' },
+      h('div', { class: 'row sp' }, h('span', { text: t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.groups)), p: fmtNum(num(r.per_day)) }) }),
+        h('span', { class: st === 'running' ? 'pill live' : st === 'paused' ? 'pill wait' : st === 'done' ? 'pill sent' : 'pill', text: t('st_run_' + st) })),
+      why && (st === 'paused' || st === 'stopped') && !compact ? h('p', { class: 'small', text: t('why_' + why) }) : null,
+      st === 'running' || st === 'paused' ? h('div', { class: 'row' },
+        st === 'running' ? h('button', { class: 'btn sm', type: 'button', disabled: !!S.busy, onclick: () => act('pause') }, t('pause')) : h('button', { class: 'btn sm pri', type: 'button', disabled: !!S.busy, onclick: () => act('resume') }, t('resume')),
+        h('button', { class: 'btn sm ghost danger', type: 'button', disabled: !!S.busy, onclick: () => act('stop') }, t('stop'))) : null);
+  }
+
+  // ── List view: posts, sends, groups, settings
+  function postItem(p) {
+    const first = str(p.body).split('\n')[0].slice(0, 120);
+    const meta = p.status === 'sent' && p.runs ? t('sent_times', { n: fmtNum(num(p.runs)), d: fmtDay(p.last_sent_at) }) : t('updated', { d: fmtDay(p.updated_at) });
+    const nf = arr(p.files).length;
+    return h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openPost(p.uid) },
+      h('div', { class: 'row sp' }, h('span', { class: 't', text: first || t('untitled') }), h('span', { class: p.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(p.status)) })),
+      h('span', { class: 'm', text: meta + (nf ? ' · ' + nf + ' ' + t('media_h').toLowerCase() : '') })));
+  }
+  function groupsCard() {
+    const call = (path, body, done) => api(path, Object.assign({ client: S.client }, body)).then((res) => {
+      if (authFailed(res)) { showLogin(); return false; }
+      if (!res.ok) { toast(msgOf(res)); return false; }
+      return refreshState().then(() => { render(); if (done) toast(done); return true; });
+    }).catch(() => { toast(t('net_err')); return false; });
+    const addGroup = (ev) => {
+      ev.preventDefault();
+      if (!str(S.addUrl).trim()) return;
+      S.addBusy = true; S.addErr = ''; render();
+      api('/solo/groupposts/groups/add', { client: S.client, url: S.addUrl.trim() }).then((res) => {
+        S.addBusy = false;
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok) { S.addErr = msgOf(res); render(); return; }
+        S.addUrl = ''; refreshState().then(() => { render(); toast(t('g_added')); });
+      }).catch(() => { S.addBusy = false; S.addErr = t('net_err'); render(); });
+    };
+    return h('section', { class: 'card', id: 'groups' }, h('h2', { text: t('groups_h') }), h('p', { class: 'hint', text: t('groups_hint') }),
+      S.groups.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.groups.map((g) => h('li', { class: 'grp' },
+        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) })),
+        memberPill(g),
+        h('select', { class: 'field', 'aria-label': t('g_lang') + ' · ' + groupName(g), onchange: (e) => call('/solo/groupposts/groups/update', { key: g.key, language: e.target.value }, t('saved')) },
+          h('option', { value: '', selected: !g.language, text: t('g_lang_none') }), LANGS.map((l) => h('option', { value: l, selected: g.language === l, text: l.toUpperCase() }))),
+        h('button', { class: 'btn sm ghost', type: 'button', 'aria-label': t('g_remove') + ' ' + groupName(g), onclick: () => call('/solo/groupposts/groups/update', { key: g.key, removed: true }, t('g_removed')) }, '×'))))
+        : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
+      h('form', { class: 'row', style: 'margin-top:12px', onsubmit: addGroup },
+        h('label', { class: 'sr-only', for: 'g-add', text: t('g_add') }),
+        h('input', { id: 'g-add', class: 'field', type: 'url', placeholder: t('g_add_ph'), value: S.addUrl, style: 'flex:1 1 260px', oninput: (e) => { S.addUrl = e.target.value; } }),
+        h('button', { class: 'btn sm', type: 'submit', disabled: S.addBusy }, S.addBusy ? spinner() : t('g_add_btn'))),
+      S.addErr ? h('p', { class: 'err', role: 'alert', text: S.addErr }) : null);
+  }
+  function settingsCard() {
+    const s = S.settings || {}, v = S.set;
+    const val = (k) => (v[k] !== undefined ? v[k] : String(s[k] == null ? '' : s[k]));
+    const box = (k, label) => h('input', { class: 'field', type: 'number', inputmode: 'numeric', 'aria-label': label, value: val(k), oninput: (e) => { v[k] = e.target.value; } });
+    const save = () => {
+      S.setBusy = true; S.setErr = ''; render();
+      const body = { client: S.client };
+      Object.keys(v).forEach((k) => { body[k] = v[k]; });
+      api('/solo/groupposts/settings', body).then((res) => {
+        S.setBusy = false;
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok || !res.data) { S.setErr = msgOf(res); render(); return; }
+        S.settings = res.data; S.set = {}; render(); toast(t('saved'));
+      }).catch(() => { S.setBusy = false; S.setErr = t('net_err'); render(); });
+    };
+    return h('section', { class: 'card', id: 'settings' }, h('h2', { text: t('settings_h') }), h('p', { class: 'hint', text: t('settings_hint') }),
+      h('div', { class: 'caps', style: 'margin-top:12px' }, t('s_daily'), box('daily_max', t('s_daily2')), t('s_daily2')),
+      h('div', { class: 'caps', style: 'margin-top:8px' }, t('s_gap'), box('gap_min', t('s_gap')), t('s_gap2'), box('gap_max', t('s_gap2')), t('s_gap3')),
+      h('div', { class: 'caps', style: 'margin-top:8px' }, t('s_cap'), box('group_cap_max', t('s_cap')), t('s_cap2'), box('group_cap_days', t('s_cap3')), t('s_cap3')),
+      h('label', { class: 'lbl', for: 's-test', text: t('s_test') }),
+      h('input', { id: 's-test', class: 'field', type: 'url', placeholder: t('g_add_ph'), value: val('test_group_url'), 'aria-describedby': 's-test-h', oninput: (e) => { v.test_group_url = e.target.value; } }),
+      h('p', { class: 'small', id: 's-test-h', style: 'margin-top:4px', text: t('s_test_hint') }),
+      h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', type: 'button', disabled: S.setBusy, onclick: save }, S.setBusy ? [spinner(), t('saving')] : t('save'))),
+      S.setErr ? h('p', { class: 'err', role: 'alert', text: S.setErr }) : null);
+  }
+  function listView() {
+    const active = S.runs.filter((r) => r.state === 'running' || r.state === 'paused');
+    return h('div', { class: 'stack' },
+      h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
+        h('button', { class: 'btn pri', type: 'button', onclick: newPost }, t('new_post'))),
+      posterNote(), clientPicker(),
+      active.length ? h('section', { class: 'card' }, h('h2', { text: t('sends_h') }), h('ul', { class: 'list', style: 'margin-top:12px' }, active.map((r) => runCard(r)))) : null,
+      h('section', { class: 'card' }, h('h2', { text: t('posts') }),
+        S.posts.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.posts.map(postItem)) : h('div', { style: 'margin-top:10px' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') }))),
+      groupsCard(), settingsCard(),
+      h('p', { class: 'small' }, h('a', { href: 'broadcast.html' + (S.client ? '?client=' + encodeURIComponent(S.client) : ''), text: t('email_page') })));
+  }
+
+  // ── Editor
+  function blank() { return { uid: '', body: '', language: 'en', versions: {}, files: [], status: 'draft', stats: null }; }
+  function newPost() { stopPoll(); S.edit = blank(); S.versions = {}; S.view = 'edit'; resetAudience(); S.dirty = true; S.err = ''; render(); syncUrl(); setTimeout(() => { const el = document.getElementById('p-body'); if (el) el.focus(); }, 0); }
+  function resetAudience() {
+    const last = (S.settings || {}).last_send || {};
+    S.ticks = []; S.days = num(last.days) || 1; S.q = ''; S.preview = null; S.prevErr = ''; S.confirm = false;
+  }
+  function restoreAudience(a) {
+    if (!a) return;
+    const known = {}; S.groups.forEach((g) => { known[g.key] = g; });
+    S.ticks = arr(a.groups).filter((k) => known[k]);
+    if (num(a.days)) S.days = num(a.days);
+  }
+  function openPost(uid) {
+    stopPoll();
+    S.busy = 'open'; render();
+    api('/solo/groupposts/post/get', { client: S.client, uid: uid }).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.view = 'list'; render(); toast(msgOf(res)); return; }
+      S.edit = res.data; S.versions = Object.assign({}, res.data.versions || {}); S.view = 'edit'; S.dirty = false; S.err = '';
+      resetAudience(); restoreAudience(res.data.audience);
+      render(); syncUrl(); maybePoll();
+    }).catch(() => { S.busy = ''; render(); toast(t('net_err')); });
+  }
+  function reloadPost() {
+    if (!S.edit || !S.edit.uid) return Promise.resolve();
+    return api('/solo/groupposts/post/get', { client: S.client, uid: S.edit.uid }).then((res) => {
+      if (res.ok && res.data && S.edit && S.edit.uid === res.data.uid) {
+        const keep = { body: S.edit.body, language: S.edit.language, files: S.edit.files };
+        S.edit = Object.assign(res.data, S.dirty ? keep : {});
+        if (!S.dirty) S.versions = Object.assign({}, res.data.versions || {});
+      }
+    });
+  }
+  function maybePoll() {
+    const st = (S.edit && S.edit.stats) || {};
+    const busy = arr(st.tests).some((x) => x.state === 'scheduled' || x.state === 'claimed') || arr(st.groups).some((x) => x.state === 'scheduled' || x.state === 'claimed');
+    if (!busy) { stopPoll(); return; }
+    if (pollTimer) return;
+    pollTimer = setInterval(() => { if (document.hidden) return; reloadPost().then(() => { render(); const s2 = (S.edit && S.edit.stats) || {}; if (!arr(s2.tests).concat(arr(s2.groups)).some((x) => x.state === 'scheduled' || x.state === 'claimed')) stopPoll(); }); }, POLL_MS);
+  }
+  function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+  function save(quiet) {
+    const e = S.edit;
+    S.busy = 'save'; S.err = ''; render();
+    const vs = {}; Object.keys(S.versions).forEach((l) => { if (l !== e.language && str(S.versions[l]).trim()) vs[l] = S.versions[l]; });
+    const body = { client: S.client, body: e.body, language: e.language, versions: vs, files: arr(e.files).map((f) => ({ file_key: f.file_key, file_name: f.file_name })) };
+    if (e.uid) body.uid = e.uid;
+    return api('/solo/groupposts/post', body).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return false; }
+      if (!res.ok || !res.data) { S.err = msgOf(res); render(); return false; }
+      const stats = e.stats;
+      S.edit = Object.assign(res.data, { stats: stats }); S.versions = Object.assign({}, res.data.versions || {});
+      S.dirty = false; render(); syncUrl();
+      if (!quiet) toast(t('saved'));
+      return true;
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); return false; });
+  }
+  function ensureSaved() { return S.dirty || !S.edit.uid ? save(true) : Promise.resolve(true); }
+  function pickFiles(list) {
+    const e = S.edit, max = num(S.limits.files_max) || 10;
+    const files = Array.prototype.slice.call(list || []);
+    if (!files.length) return;
+    const errs = [];
+    S.busy = 'upload'; S.err = ''; render();
+    let added = 0;
+    const next = (i) => {
+      if (i >= files.length) {
+        S.busy = '';
+        if (!added) { S.err = errs.join(' '); render(); return; }
+        save(true).then((ok) => { if (ok && errs.length) { S.err = errs.join(' '); render(); } });
+        return;
+      }
+      if (arr(e.files).length >= max) { errs.push(t('too_many', { n: max })); return next(files.length); }
+      upload(files[i]).then((res) => {
+        if (authFailed(res)) { S.busy = ''; showLogin(); return; }
+        if (!res.ok || !res.data) { errs.push(files[i].name + ': ' + msgOf(res)); return next(i + 1); }
+        e.files = arr(e.files).concat([res.data]); added += 1; render(); next(i + 1);
+      }).catch(() => { errs.push(files[i].name + ': ' + t('net_err')); next(i + 1); });
+    };
+    next(0);
+  }
+  function removeFile(i) { const e = S.edit; e.files = arr(e.files).filter((_, j) => j !== i); save(true); }
+  function sendTest() {
+    if (!str((S.settings || {}).test_group_url)) { S.err = t('no_test_group'); render(); return; }
+    ensureSaved().then((ok) => {
+      if (!ok) return;
+      S.busy = 'test'; render();
+      api('/solo/groupposts/test', { client: S.client, uid: S.edit.uid }).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok) { S.err = msgOf(res); render(); return; }
+        toast(t('test_queued'));
+        reloadPost().then(() => { render(); maybePoll(); });
+      }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+    });
+  }
+  function deleteDraft() {
+    S.busy = 'delete'; render();
+    api('/solo/groupposts/post/delete', { client: S.client, uid: S.edit.uid }).then((res) => {
+      S.busy = '';
+      if (!res.ok) { S.err = msgOf(res); render(); return; }
+      S.view = 'list'; S.edit = null; toast(t('deleted')); refreshState().then(render); syncUrl();
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+  }
+  function audBody() { return { client: S.client, uid: S.edit.uid, groups: S.ticks.slice(), days: num(S.days) || 1 }; }
+  function checkNumbers(keepMsg) {
+    ensureSaved().then((ok) => {
+      if (!ok) return;
+      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; render();
+      api('/solo/groupposts/preview', audBody()).then((res) => {
+        S.busy = '';
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok || !res.data) { S.prevErr = msgOf(res); render(); return; }
+        S.preview = res.data; S.tested = !!res.data.tested; render();
+        announce(fmtNum(num(res.data.will_post)) + ' ' + t('will_post'));
+      }).catch(() => { S.busy = ''; S.prevErr = t('net_err'); render(); });
+    });
+  }
+  function doSend() {
+    const b = audBody();
+    b.expect = num(S.preview && S.preview.will_post);
+    S.busy = 'send'; S.prevErr = ''; render();
+    api('/solo/groupposts/send', b).then((res) => {
+      S.busy = ''; S.confirm = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) {
+        const er = errOf(res);
+        if (er.code === 'audience_changed') { S.preview = null; S.prevErr = t('changed'); checkNumbers(true); return; }
+        S.prevErr = msgOf(res); render(); return;
+      }
+      S.preview = null; toast(t('sent_ok'));
+      refreshState().then(reloadPost).then(() => { render(); maybePoll(); });
+    }).catch(() => { S.busy = ''; S.confirm = false; S.prevErr = t('net_err'); render(); });
+  }
+  function retryCopy(id) {
+    api('/solo/groupposts/retry', { client: S.client, id: id }).then((res) => {
+      if (!res.ok) { toast(msgOf(res)); return; }
+      toast(t('retried')); reloadPost().then(() => { render(); maybePoll(); });
+    }).catch(() => toast(t('net_err')));
+  }
+  function previewBox(p) {
+    const n = num(p.will_post), ex = p.excluded || {}, pl = p.plan || {};
+    const rows = REASONS.filter((r) => num(ex[r]) > 0);
+    const vs = Object.keys(p.versions_used || {}).map((l) => (l && S.edit.versions && S.edit.versions[l] ? (LANG_NAMES[l] || l) : t('v_main')) + ' ' + fmtNum(num(p.versions_used[l])));
+    const canSend = n > 0 && p.tested && !S.busy && !S.dirty && arr(p.posters).length > 0;
+    return h('div', { class: 'stack', id: 'pv', style: 'margin-top:16px' },
+      h('div', null, h('div', { class: 'big', text: fmtNum(n) }), h('div', { class: 'small', text: t('will_post') })),
+      n ? h('p', { class: 'small', text: t('plan_line', { p: fmtNum(num(pl.per_day)), d: fmtNum(num(pl.days)), f: fmtDate(pl.finish_date) }) }) : null,
+      pl.slowed ? h('div', { class: 'note warn', text: t('slowed', { d: fmtNum(num(pl.days)), a: fmtNum(num(pl.asked_days)) }) }) : null,
+      num(p.unchecked) ? h('p', { class: 'small', text: t('unchecked', { n: fmtNum(num(p.unchecked)) }) }) : null,
+      vs.length ? h('p', { class: 'small', text: t('versions_used', { v: vs.join(' · ') }) }) : null,
+      arr(p.posters).length ? h('p', { class: 'small', text: t('poster', { n: arr(p.posters).map((x) => str(x.name)).join(', ') }) }) : h('div', { class: 'note warn' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') })),
+      rows.length ? h('div', null, h('b', { text: t('not_posting') }), h('div', { class: 'kv' }, rows.map((r) => [h('span', { text: t('r_' + r) }), h('span', { class: 'v', text: fmtNum(num(ex[r])) })]))) : null,
+      !p.tested ? h('div', { class: 'note warn', text: t('test_first') }) : null,
+      n === 0 ? h('p', { class: 'small', text: t('nobody') }) : null,
+      S.confirm ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
+        h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'send', onclick: doSend }, S.busy === 'send' ? [spinner(), t('sending')] : t('yes_send')),
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.confirm = false; render(); } }, t('cancel'))))
+        : h('button', { class: 'btn pri wide', type: 'button', disabled: !canSend, onclick: () => { S.confirm = true; render(); } }, tn('send_n', n)));
+  }
+  function editorView() {
+    const e = S.edit, L = S.limits || {};
+    const mark = () => { S.dirty = true; S.preview = null; S.confirm = false; const b = document.getElementById('btn-save'); if (b) { b.className = 'btn pri'; b.textContent = t('save'); } };
+    const other = LANGS.filter((l) => l !== e.language);
+    const insertTag = () => {
+      const el = document.getElementById('p-body');
+      const tag = '{{group_name}}';
+      if (!el) return;
+      const a = el.selectionStart || el.value.length, b = el.selectionEnd || el.value.length;
+      el.value = el.value.slice(0, a) + tag + el.value.slice(b); e.body = el.value; mark();
+      el.focus(); el.setSelectionRange(a + tag.length, a + tag.length);
+    };
+    const mediaGrid = arr(e.files).length ? h('div', { class: 'media' }, arr(e.files).map((f, i) => h('div', { class: 'm1' },
+      f.kind === 'video' ? (f.url ? h('video', { src: f.url, muted: true, preload: 'metadata', 'aria-label': str(f.file_name) }) : h('div', { style: 'height:110px' }))
+        : (f.url ? h('img', { src: f.url, alt: str(f.file_name), loading: 'lazy' }) : h('div', { style: 'height:110px' })),
+      h('div', { class: 'cap' }, h('span', { text: (f.kind === 'video' ? t('video') : t('image')) + ' · ' + fmtSize(f.file_size) }),
+        h('button', { class: 'btn sm ghost', type: 'button', disabled: !!S.busy, 'aria-label': t('remove') + ' ' + str(f.file_name), onclick: () => removeFile(i) }, '×'))))) : null;
+    const postCard = h('section', { class: 'card' },
+      h('div', { class: 'row sp' }, h('h2', { text: t('post_h') }), h('span', { class: e.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(e.status || 'draft')) })),
+      h('label', { class: 'lbl', for: 'p-lang', text: t('main_lang') }),
+      h('select', { id: 'p-lang', class: 'field', style: 'max-width:220px', onchange: (ev) => { e.language = ev.target.value; mark(); render(); } },
+        LANGS.map((l) => h('option', { value: l, selected: e.language === l, text: LANG_NAMES[l] }))),
+      h('label', { class: 'lbl', for: 'p-body', text: t('text') }),
+      h('textarea', { id: 'p-body', class: 'field', maxlength: String(num(L.body_max) || 8000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); } }),
+      h('div', { class: 'chips' }, h('button', { class: 'chip', type: 'button', onclick: insertTag }, t('tag_h'), h('code', { text: '{{group_name}}' }))),
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('tag_hint') }),
+      other.map((l) => (S.versions[l] !== undefined) ? h('div', null,
+        h('label', { class: 'lbl', for: 'v-' + l, text: t('version_h', { l: LANG_NAMES[l] }) }),
+        h('textarea', { id: 'v-' + l, class: 'field', style: 'min-height:140px', value: str(S.versions[l]), 'aria-describedby': 'vh-' + l, oninput: (ev) => { S.versions[l] = ev.target.value; mark(); } }),
+        h('div', { class: 'row', style: 'margin-top:6px' }, h('span', { class: 'small', id: 'vh-' + l, text: t('version_hint', { l: LANG_NAMES[l] }) }),
+          h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { delete S.versions[l]; mark(); render(); } }, t('remove_version'))))
+        : h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn sm', type: 'button', onclick: () => { S.versions[l] = ''; render(); const el = document.getElementById('v-' + l); if (el) el.focus(); } }, '+ ' + t('add_version', { l: LANG_NAMES[l] })))),
+      h('label', { class: 'lbl', text: t('media_h') }),
+      h('p', { class: 'small', text: t('media_hint', { n: num(L.files_max) || 10, a: arr(L.image_exts).join(' '), b: mb(L.image_max_bytes), c: arr(L.video_exts).join(' '), d: mb(L.video_max_bytes) }) }),
+      mediaGrid,
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        h('label', { class: 'btn sm' + (S.busy ? ' disabled' : ''), for: 'p-file' }, S.busy === 'upload' ? [spinner(), t('uploading')] : t('add_media')),
+        h('input', { id: 'p-file', type: 'file', multiple: true, class: 'sr-only', disabled: !!S.busy, accept: arr(L.image_exts).concat(arr(L.video_exts)).join(',') + ',image/*,video/*', onchange: (ev) => { const fs = ev.target.files; if (fs && fs.length) pickFiles(fs); ev.target.value = ''; } })),
+      S.err ? h('p', { class: 'err', role: 'alert', text: S.err }) : null,
+      h('div', { class: 'row', style: 'margin-top:16px' },
+        h('button', { id: 'btn-save', class: S.dirty ? 'btn pri' : 'btn', type: 'button', disabled: !!S.busy, onclick: () => save(false) }, S.busy === 'save' ? [spinner(), t('saving')] : (S.dirty ? t('save') : t('saved'))),
+        h('button', { class: 'btn', type: 'button', disabled: !!S.busy, onclick: sendTest }, S.busy === 'test' ? [spinner(), t('testing')] : t('test')),
+        e.uid && !num(e.runs) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: deleteDraft }, t('delete_draft')) : null));
+    const st = e.stats || {};
+    const testsCard = arr(st.tests).length ? h('section', { class: 'card' }, h('h2', { text: t('tests_h') }),
+      h('ul', { class: 'list', style: 'margin-top:10px' }, arr(st.tests).map((x) => h('li', { class: 'grp' },
+        h('div', { class: 'n' }, h('b', { text: fmtDay(x.at) }), x.error ? h('span', { class: 'small', text: x.error }) : null),
+        copyPill(x.state), x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) : null)))) : null;
+    const q = str(S.q).trim().toLowerCase();
+    const shown = S.groups.filter((g) => !q || groupName(g).toLowerCase().indexOf(q) >= 0 || str(g.key).indexOf(q) >= 0);
+    const toggle = (k) => (ev) => { const i = S.ticks.indexOf(k); if (ev.target.checked && i < 0) S.ticks.push(k); if (!ev.target.checked && i >= 0) S.ticks.splice(i, 1); S.preview = null; S.confirm = false; render(); };
+    const audCard = e.uid || S.groups.length ? h('section', { class: 'card' },
+      h('h2', { text: t('who') }), h('p', { class: 'hint', text: t('who_hint') }),
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn sm', type: 'button', onclick: () => { S.ticks = S.groups.filter((g) => g.member === 'yes').map((g) => g.key); S.preview = null; render(); } }, t('tick_members')),
+        h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { S.ticks = []; S.preview = null; render(); } }, t('untick'))),
+      S.groups.length > 8 ? h('input', { class: 'field', type: 'search', style: 'margin-top:10px', placeholder: t('search_groups'), 'aria-label': t('search_groups'), value: S.q, oninput: (ev) => { S.q = ev.target.value; render(); const el = document.querySelector('input[type=search]'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } } }) : null,
+      S.groups.length ? h('div', { class: 'chks' }, shown.map((g) => h('label', { class: 'chk' },
+        h('input', { type: 'checkbox', checked: S.ticks.indexOf(g.key) >= 0, onchange: toggle(g.key) }),
+        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') })),
+        memberPill(g)))) : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
+      h('div', { class: 'caps', style: 'margin-top:14px' }, t('days'),
+        h('input', { class: 'field', type: 'number', inputmode: 'numeric', min: '1', max: String(num(L.days_max) || 60), value: String(S.days), 'aria-label': t('days') + ' ' + t('days2'), oninput: (ev) => { S.days = parseInt(ev.target.value, 10) || 1; S.preview = null; } }), t('days2')),
+      h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || !S.ticks.length || (!str(e.body).trim() && !arr(e.files).length), onclick: () => checkNumbers(false) },
+        S.busy === 'preview' ? [spinner(), t('checking')] : t('check'))),
+      S.prevErr ? h('p', { class: 'err', role: 'alert', text: S.prevErr }) : null,
+      S.preview ? previewBox(S.preview) : null) : null;
+    const rows = arr(st.groups);
+    const whereCard = rows.length ? h('section', { class: 'card' }, h('h2', { text: t('where_h') }),
+      h('div', { class: 'scroll' }, h('table', { class: 'tbl' }, h('tbody', null, rows.map((x) => h('tr', null,
+        h('td', null, h('a', { href: str(x.group_url), target: '_blank', rel: 'noopener', text: str(x.group_name) || str(x.group) }),
+          x.state === 'scheduled' ? h('div', { class: 'small', text: t('due', { d: fmtDay(x.due_at) }) }) : x.error ? h('div', { class: 'small', text: x.error }) : null),
+        h('td', null, copyPill(x.state)),
+        h('td', null, x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) :
+          (x.state === 'failed' || x.state === 'unknown' || x.state === 'skipped') ? h('button', { class: 'btn sm', type: 'button', onclick: () => retryCopy(x.id) }, t('retry')) : null))))))) : null;
+    const myRuns = S.runs.filter((r) => r.post_uid === e.uid);
+    const runsCard = myRuns.length ? h('section', { class: 'card' }, h('h2', { text: t('sends_h') }), h('ul', { class: 'list', style: 'margin-top:12px' }, myRuns.map((r) => runCard(r)))) : null;
+    return h('div', { class: 'stack' },
+      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { stopPoll(); S.view = 'list'; S.edit = null; refreshState().then(render); syncUrl(); } }, '← ' + t('back'))),
+      postCard, testsCard, audCard, runsCard, whereCard);
+  }
+
+  function render() {
+    app.textContent = '';
+    if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
+    else if (S.mode === 'login') app.appendChild(loginView());
+    else if (S.mode === 'error') app.appendChild(h('div', { class: 'note bad stack', role: 'alert' }, h('p', { text: S.pageErr || t('err') }), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => { S.mode = 'loading'; render(); load(); } }, t('retry_load')))));
+    else app.appendChild(S.view === 'edit' && S.edit ? editorView() : listView());
+    foot.textContent = '';
+    const s = session();
+    if (s && S.mode === 'view') foot.appendChild(h('span', { text: s.user_email }));
+  }
+  window.addEventListener('beforeunload', (ev) => { if (S.dirty && S.edit && (S.edit.body || arr(S.edit.files).length)) { ev.preventDefault(); ev.returnValue = ''; } });
+  render();
+  load();
+})();
+</script>
+</body>
+</html>
