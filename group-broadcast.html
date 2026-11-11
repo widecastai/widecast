@@ -210,7 +210,7 @@ select.field{padding-right:28px}
       media_h: 'Pictures and videos', media_hint: 'Up to {n}. Pictures {a} up to {b} MB, videos {c} up to {d} MB.',
       add_media: 'Add pictures or videos', uploading: 'Uploading…', remove: 'Remove', image: 'Picture', video: 'Video', too_many: 'A post carries at most {n} pictures and videos.',
       test: 'Post a test', testing: 'Posting test…', test_queued: 'Test queued for your test group. Your agent posts it within a few minutes.',
-      tests_h: 'Tests', t_scheduled: 'Waiting for your agent', t_claimed: 'Being posted', t_posted: 'Posted', t_pending_admin: 'Waiting for the group\'s admin',
+      tests_h: 'Tests', open_group: 'Open the group on Facebook', t_scheduled: 'Waiting for your agent', t_claimed: 'Being posted', t_posted: 'Posted', t_pending_admin: 'Waiting for the group\'s admin',
       t_failed: 'Could not post', t_unknown: 'Not confirmed', t_skipped: 'Skipped', t_cancelled: 'Cancelled', t_expired: 'Expired: your agent did not take it within an hour. Post a new test.', open_post: 'Open',
       delete_draft: 'Delete draft', deleted: 'Draft deleted.',
       who: 'Which groups get it', who_hint: 'Tick the groups. A group that already has this post, or got its posts of the last days, is left out at the check.',
@@ -273,7 +273,7 @@ select.field{padding-right:28px}
       media_h: 'Ảnh và video', media_hint: 'Tối đa {n}. Ảnh {a} đến {b} MB, video {c} đến {d} MB.',
       add_media: 'Thêm ảnh hoặc video', uploading: 'Đang tải lên…', remove: 'Bỏ', image: 'Ảnh', video: 'Video', too_many: 'Mỗi bài tối đa {n} ảnh và video.',
       test: 'Đăng thử', testing: 'Đang đăng thử…', test_queued: 'Đã xếp bài thử vào group test. Agent sẽ đăng trong vài phút.',
-      tests_h: 'Bài thử', t_scheduled: 'Chờ agent', t_claimed: 'Đang đăng', t_posted: 'Đã lên', t_pending_admin: 'Chờ admin group duyệt',
+      tests_h: 'Bài thử', open_group: 'Mở group trên Facebook', t_scheduled: 'Chờ agent', t_claimed: 'Đang đăng', t_posted: 'Đã lên', t_pending_admin: 'Chờ admin group duyệt',
       t_failed: 'Không đăng được', t_unknown: 'Chưa xác nhận', t_skipped: 'Bỏ qua', t_cancelled: 'Đã huỷ', t_expired: 'Hết hạn: agent không nhận trong 1 giờ. Đăng thử lại.', open_post: 'Mở',
       delete_draft: 'Xoá nháp', deleted: 'Đã xoá nháp.',
       who: 'Group nào nhận bài', who_hint: 'Chọn các group. Group đã có bài này, hoặc vừa nhận bài trong mấy ngày gần đây, sẽ bị loại khi xem số.',
@@ -532,6 +532,14 @@ select.field{padding-right:28px}
 
   // ── Small views
   const groupName = (g) => str(g.name) || str(g.key);
+  // Every group name on the page opens the group on Facebook in a new tab (2026-11-11, the owner): its own link,
+  // or one made from its key; only a facebook.com link is ever used.
+  const FB_GROUP_RE = /^https:\/\/([a-z0-9-]+\.)?facebook\.com\//i;
+  const groupHref = (g) => (FB_GROUP_RE.test(str(g && g.url)) ? str(g.url) : (str(g && g.key) ? 'https://www.facebook.com/groups/' + encodeURIComponent(str(g.key)) : ''));
+  function groupLink(g, label) {
+    const href = groupHref(g), txt = label || groupName(g);
+    return href ? h('a', { href: href, target: '_blank', rel: 'noopener', text: txt, title: t('open_group'), onclick: (e) => e.stopPropagation() }) : h('span', { text: txt });
+  }
   function memberPill(g) {
     const m = str(g.member);
     return h('span', { class: m === 'yes' ? 'pill sent' : m === 'no' ? 'pill no' : 'pill wait', text: t('m_' + m) });
@@ -712,7 +720,7 @@ select.field{padding-right:28px}
     }).catch(() => { toast(t('net_err')); return false; });
     return h('section', { class: 'card', id: 'groups' }, h('h2', { text: t('groups_h') }), h('p', { class: 'hint', text: t('groups_hint') }),
       S.groups.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.groups.map((g) => h('li', { class: 'grp' },
-        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) }),
+        h('div', { class: 'n' }, h('b', null, groupLink(g)), h('span', { class: 'small', text: groupMeta(g) }),
           g.note ? h('span', { class: 'small', style: 'display:block;font-style:italic', text: str(g.note) }) : null, nameEdit(g)),
         memberPill(g),
         h('select', { class: 'field', 'aria-label': t('g_lang') + ' · ' + groupName(g), onchange: (e) => call('/solo/groupposts/groups/update', { key: g.key, language: e.target.value }, t('saved')) },
@@ -743,6 +751,7 @@ select.field{padding-right:28px}
       h('label', { class: 'lbl', for: 's-test', text: t('s_test') }),
       h('input', { id: 's-test', class: 'field', type: 'url', placeholder: t('g_add_ph'), value: val('test_group_url'), 'aria-describedby': 's-test-h', oninput: (e) => { v.test_group_url = e.target.value; } }),
       h('p', { class: 'small', id: 's-test-h', style: 'margin-top:4px', text: t('s_test_hint') }),
+      FB_GROUP_RE.test(str(s.test_group_url)) ? h('p', { class: 'small', style: 'margin-top:4px' }, groupLink({ url: s.test_group_url, key: '' }, t('open_group') + ' ↗')) : null,
       h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', type: 'button', disabled: S.setBusy, onclick: save }, S.setBusy ? [spinner(), t('saving')] : t('save'))),
       S.setErr ? h('p', { class: 'err', role: 'alert', text: S.setErr }) : null);
   }
@@ -974,7 +983,8 @@ select.field{padding-right:28px}
     const st = e.stats || {};
     const testsCard = arr(st.tests).length ? h('section', { class: 'card' }, h('h2', { text: t('tests_h') }),
       h('ul', { class: 'list', style: 'margin-top:10px' }, arr(st.tests).map((x) => h('li', { class: 'grp' },
-        h('div', { class: 'n' }, h('b', { text: fmtDay(x.at) }), x.error ? h('span', { class: 'small', text: x.error }) : null),
+        h('div', { class: 'n' }, h('b', { text: fmtDay(x.at) }), x.group_url ? h('span', { class: 'small', style: 'display:block' }, groupLink({ url: x.group_url, key: '' }, t('s_test') + ' ↗')) : null,
+          x.error ? h('span', { class: 'small', text: x.error }) : null),
         copyPill(x.state), x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) : null)))) : null;
     const q = str(S.q).trim().toLowerCase();
     const shown = S.groups.filter((g) => !q || groupName(g).toLowerCase().indexOf(q) >= 0 || str(g.key).indexOf(q) >= 0);
@@ -987,7 +997,7 @@ select.field{padding-right:28px}
       S.groups.length > 8 ? h('input', { class: 'field', type: 'search', style: 'margin-top:10px', placeholder: t('search_groups'), 'aria-label': t('search_groups'), value: S.q, oninput: (ev) => { S.q = ev.target.value; render(); const el = document.querySelector('input[type=search]'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } } }) : null,
       S.groups.length ? h('div', { class: 'chks' }, shown.map((g) => h('label', { class: 'chk' },
         h('input', { type: 'checkbox', checked: S.ticks.indexOf(g.key) >= 0, onchange: toggle(g.key) }),
-        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') }), nameEdit(g)),
+        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't' }, groupLink(g)), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') }), nameEdit(g)),
         memberPill(g)))) : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
       addGroupForm((g) => { if (g && g.key && S.ticks.indexOf(g.key) < 0) { S.ticks.push(g.key); S.preview = null; S.confirm = false; } },
         (keys) => { keys.forEach((k) => { if (S.ticks.indexOf(k) < 0) S.ticks.push(k); }); S.preview = null; S.confirm = false; }),

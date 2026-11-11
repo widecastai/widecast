@@ -139,6 +139,8 @@ select.field{padding-right:28px}
 .drt textarea.field{min-height:220px}
 .srcs{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .thumb{width:44px;height:55px;object-fit:cover;border-radius:8px;flex:none;background:var(--s3)}
+.cmi{display:flex;flex-direction:column;gap:0}
+.cmd{display:flex;flex-direction:column;gap:2px;padding:8px 16px 4px}
 .warnm{color:var(--warm-tx)!important}
 h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
 </style>
@@ -193,7 +195,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
       back: 'All communities', dests_h: 'Your groups', low_note: 'A group has fewer than 2 days of approved posts. Review the drafts below so it keeps getting one every day.',
       review_h: 'Posts to review ({n})', review_p: 'Every post has its own picture and goes out only after you approve it. Change the text if you like, then Approve: it takes the group\'s next free slot. Your agent posts it the same way as your Post broadcast: in its chat when you ask, until you tell it there that your posts may go out by themselves.',
       review_none: 'Nothing to review. Your agent writes new drafts on its daily run.',
-      to_group: 'For {g}', matched: 'Fits your line:', text: 'Post text', sources_h: 'Written from {n} source post(s)', open_src: 'Open',
+      to_group: 'For {g}', to_pre: 'For', open_group: 'Open the group on Facebook', matched: 'Fits your line:', text: 'Post text', sources_h: 'Written from {n} source post(s)', open_src: 'Open',
       pic_alt: 'Picture for: {t}', img_making: 'Making the picture…', img_no_credit: 'No credit left for the picture. Add credits, then press New picture.',
       img_failed: 'The picture could not be made. Press New picture.',
       approve: 'Approve', save_text: 'Save text', new_pic: 'New picture', skip: 'Skip', cancel: 'Take out', open_post: 'Open post',
@@ -235,7 +237,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
       back: 'Tất cả cộng đồng', dests_h: 'Group của anh', low_note: 'Có group chưa đủ 2 ngày bài đã duyệt. Duyệt các bài bên dưới để group có bài mỗi ngày.',
       review_h: 'Bài chờ duyệt ({n})', review_p: 'Mỗi bài có ảnh riêng và chỉ đăng khi anh duyệt. Sửa chữ nếu muốn, rồi bấm Duyệt: bài lấy chỗ trống kế tiếp của group. Agent đăng giống Post broadcast: trong chat khi anh bảo, cho đến khi anh nói ở đó rằng bài được tự đăng.',
       review_none: 'Không có bài chờ duyệt. Agent viết bài mới trong lần chạy hằng ngày.',
-      to_group: 'Cho {g}', matched: 'Hợp tiêu chí:', text: 'Nội dung bài', sources_h: 'Viết từ {n} bài nguồn', open_src: 'Mở',
+      to_group: 'Cho {g}', to_pre: 'Cho', open_group: 'Mở group trên Facebook', matched: 'Hợp tiêu chí:', text: 'Nội dung bài', sources_h: 'Viết từ {n} bài nguồn', open_src: 'Mở',
       pic_alt: 'Ảnh cho: {t}', img_making: 'Đang làm ảnh…', img_no_credit: 'Hết credit để làm ảnh. Nạp thêm rồi bấm Ảnh mới.',
       img_failed: 'Không làm được ảnh. Bấm Ảnh mới.',
       approve: 'Duyệt', save_text: 'Lưu chữ', new_pic: 'Ảnh mới', skip: 'Bỏ qua', cancel: 'Rút khỏi lịch', open_post: 'Mở bài',
@@ -495,7 +497,15 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
         h('a', { class: 'chip' + (x[0] === 'communities.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'communities.html' ? 'page' : null, text: t(x[1]) })));
   }
   const groupName = (g) => str(g.name) || str(g.key);
-  const gByKey = (k) => S.groups.filter((g) => g.key === k)[0] || { key: k, name: '', member: '' };
+  // Every group name on the page opens the group on Facebook in a new tab (2026-11-11, the owner): its own link,
+  // or one made from its key; only a facebook.com link is ever used.
+  const FB_GROUP_RE = /^https:\/\/([a-z0-9-]+\.)?facebook\.com\//i;
+  const groupHref = (g) => (FB_GROUP_RE.test(str(g && g.url)) ? str(g.url) : (str(g && g.key) ? 'https://www.facebook.com/groups/' + encodeURIComponent(str(g.key)) : ''));
+  function groupLink(g, label) {
+    const href = groupHref(g), txt = label || groupName(g);
+    return href ? h('a', { href: href, target: '_blank', rel: 'noopener', text: txt, title: t('open_group'), onclick: (e) => e.stopPropagation() }) : h('span', { text: txt });
+  }
+  const gByKey = (k) => S.groups.filter((g) => g.key === k)[0] || { key: k, name: '', member: '', url: '' };
   function clientPicker() {
     if (S.clients.length < 2) return null;
     return h('div', null, h('label', { class: 'lbl', for: 'cl', text: t('client') }),
@@ -503,7 +513,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
         S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
   }
   function destLine(d) {
-    return h('div', { class: 'grp' }, h('div', { class: 'n' }, h('b', null, h('a', { href: str(d.url), target: '_blank', rel: 'noopener', text: str(d.name) || str(d.key) })),
+    return h('div', { class: 'grp' }, h('div', { class: 'n' }, h('b', null, groupLink(d)),
       h('span', { class: 'small', text: t('dest_line', { w: fmtNum(num(d.waiting)), q: fmtNum(num(d.queued)), p: fmtNum(num(d.posted)), d: String(num(d.buffer_days)) }) })),
       d.low ? h('span', { class: 'pill no', text: t('low') }) : h('span', { class: 'pill sent', text: t('ok_buffer') }));
   }
@@ -512,11 +522,12 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
       h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
         h('button', { class: 'btn pri', type: 'button', onclick: newCm }, t('new_cm'))),
       clientPicker(),
-      S.list.length ? h('ul', { class: 'list' }, S.list.map((c) => h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openCm(c.id) },
+      S.list.length ? h('ul', { class: 'list' }, S.list.map((c) => h('li', { class: 'cmi' }, h('button', { class: 'item', type: 'button', onclick: () => openCm(c.id) },
         h('div', { class: 'row sp' }, h('span', { class: 't', text: str(c.name) }),
           num(c.waiting) ? h('span', { class: 'pill wait', text: t('n_waiting', { n: fmtNum(num(c.waiting)) }) }) : h('span', { class: c.status === 'active' ? 'pill sent' : 'pill', text: t('st_' + str(c.status)) })),
-        h('span', { class: 'm', text: str(c.focus).slice(0, 140) }),
-        arr(c.destinations).map((d) => h('span', { class: 'm' + (d.low ? ' warnm' : ''), text: (str(d.name) || str(d.key)) + ' · ' + t('dest_line', { w: fmtNum(num(d.waiting)), q: fmtNum(num(d.queued)), p: fmtNum(num(d.posted)), d: String(num(d.buffer_days)) }) }))))))
+        h('span', { class: 'm', text: str(c.focus).slice(0, 140) })),
+        arr(c.destinations).length ? h('div', { class: 'cmd' }, arr(c.destinations).map((d) => h('div', { class: 'small' + (d.low ? ' warnm' : '') },
+          groupLink(d), ' · ' + t('dest_line', { w: fmtNum(num(d.waiting)), q: fmtNum(num(d.queued)), p: fmtNum(num(d.posted)), d: String(num(d.buffer_days)) })))) : null)))
         : h('section', { class: 'card' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') })));
   }
 
@@ -606,7 +617,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
     const dest = gByKey(d.destination), busy = S.busy === 'd:' + d.id;
     const text = S.edits[d.id] != null ? S.edits[d.id] : str(d.text);
     return h('li', { class: 'card dr' },
-      h('div', { class: 'row sp' }, h('b', { text: str(d.topic) }), h('span', { class: 'small', text: t('to_group', { g: groupName(dest) }) })),
+      h('div', { class: 'row sp' }, h('b', { text: str(d.topic) }), h('span', { class: 'small' }, t('to_pre') + ' ', groupLink(dest))),
       d.criterion ? h('p', { class: 'small' }, t('matched') + ' ', h('span', { class: 'chip', text: str(d.criterion) })) : null,
       h('div', { class: 'drw' }, imageBox(d),
         h('div', { class: 'drt' }, h('label', { class: 'sr-only', for: 't-' + d.id, text: t('text') }),
@@ -640,7 +651,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
     return h('div', null, h('label', { class: 'lbl', text: label }), h('p', { class: 'small', text: hint }),
       h('div', { class: 'chks' }, S.groups.filter((g) => other.indexOf(g.key) < 0).map((g) => h('label', { class: 'chk' },
         h('input', { type: 'checkbox', checked: f[field].indexOf(g.key) >= 0, onchange: toggle(g.key) }),
-        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'),
+        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't' }, groupLink(g)), h('br'),
           h('span', { class: 'm', text: (g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')) + ' · ' + t('m_' + str(g.member)) }))))),
       h('form', { class: 'row', style: 'margin-top:8px', onsubmit: addLink },
         h('input', { class: 'field', type: 'url', placeholder: t('g_add_ph'), 'aria-label': t('g_add') + ' · ' + label, value: S.addFor === field ? S.addUrl : '',
@@ -692,7 +703,7 @@ h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
       sched.length ? h('section', { class: 'card' }, h('h2', { text: t('sched_h') }),
         h('ul', { class: 'list', style: 'margin-top:10px' }, sched.map((d) => h('li', { class: 'grp' },
           d.image_url ? h('img', { class: 'thumb', src: d.image_url, alt: '' }) : null,
-          h('div', { class: 'n' }, h('b', { text: str(d.topic) }), h('span', { class: 'small', text: groupName(gByKey(d.destination)) + ' · ' + fmtDay(d.due_at) })),
+          h('div', { class: 'n' }, h('b', { text: str(d.topic) }), h('span', { class: 'small' }, groupLink(gByKey(d.destination)), ' · ' + fmtDay(d.due_at))),
           copyPill(d.copy_state),
           d.post_url ? h('a', { href: d.post_url, target: '_blank', rel: 'noopener', text: t('open_post') }) :
             d.copy_state === 'scheduled' ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => decide(d, 'cancel') }, t('cancel')) : null)))) : null,
