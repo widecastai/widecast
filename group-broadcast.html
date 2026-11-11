@@ -127,6 +127,9 @@ select.field{padding-right:28px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 .login{max-width:420px}
+.csvhead{font-family:var(--mono);font-size:.8125rem;background:var(--s2);border:1px solid var(--line);padding:6px 8px;border-radius:8px;overflow-x:auto;white-space:pre;margin:6px 0}
+.imp{margin-top:10px}
+.imp ul{margin:6px 0 0;padding-left:18px}
 .toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .reach{display:flex;flex-wrap:wrap;gap:6px}
 .reach .chip{text-decoration:none;color:var(--tx-2)}
@@ -181,7 +184,7 @@ select.field{padding-right:28px}
       untitled: '(no text yet)', st_draft: 'Draft', st_sent: 'Sent', updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}',
       back: 'All posts', email_page: 'Email broadcast',
       no_poster_h: 'No cloud agent is connected', no_poster_p: 'Group posts go out from your cloud agent (Muse). Connect it to WideCast, then come back.',
-      poster: 'Posted by {n}', plan_day: 'Your plan posts {n} group post a day.',
+      poster: 'Posted by {n}', poster_chat: 'The first time, your agent posts these in its chat when you ask there ("post my group posts"), then asks you once whether they may go out by themselves after your Send.', plan_day: 'Your plan posts {n} group post a day.',
       groups_h: 'Groups', groups_hint: 'The groups your agent watches and the ones you add. Your agent checks each one: whether its Facebook account is a member, and how many members it has.',
       groups_none: 'No groups yet. Add one below, or ask Sam to find groups for this client.',
       g_members: '{n} members', g_members_unknown: 'members not known yet',
@@ -189,6 +192,12 @@ select.field{padding-right:28px}
       p_open: 'Posts go live', p_admin: 'Admin approves posts', last_post: 'Last post {d}',
       g_lang: 'Language', g_lang_none: 'Any', g_remove: 'Remove', g_removed: 'Group removed.', g_add: 'Add a group',
       g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Add', g_added: 'Group added. Your agent checks it soon.',
+      imp_btn: 'Import a groups file (.csv)', imp_sample: 'Download a sample', imp_h: 'Groups file format',
+      imp_rules: 'A .csv file in UTF-8, fields separated by commas. Its first line must be exactly the line below, in this order. A file with another column, a missing one or another order is refused, and the page says what differs.',
+      imp_cols: 'name: the group\'s name (may be empty: your agent reads it) · id: the group\'s number, the digits of facebook.com/groups/<id> · members: a whole number (may be empty) · url: the group\'s facebook.com/groups/ link · category: a word of your own (may be empty) · note (may be empty). Each line needs its id or its url. A name with a comma goes between double quotes. At most 500 groups in a file.',
+      imp_names: 'Names from the file show until your agent reads each group\'s current name on Facebook; a name you type with Rename stays.',
+      imp_checking: 'Checking the file…', imp_sum: '{f}: {r} groups, {n} new, {e} already on your list.', imp_refused: '{n} line(s) refused:', imp_line: 'Line {l}: {w}',
+      imp_more: '…and {n} more', imp_go: 'Import {n} groups', imp_go_1: 'Import 1 group', imp_cancel: 'Cancel', imp_done: 'Imported {n} groups.', imp_none: 'No line can be imported.', imp_big: 'The file is larger than 1 MB.',
       g_name_ph: 'Group name (optional)', g_name_lbl: 'Group name', g_name_pending: 'Name: your agent reads it within minutes', g_rename: 'Rename', g_name_it: 'Name it',
       g_name_save: 'Save', g_name_cancel: 'Cancel', g_named: 'Name saved.', g_name_auto: 'Your agent reads its name from Facebook within minutes.', g_add_hint: 'Paste the group\'s link. Leave the name empty and your agent reads it from Facebook; a name you type stays.',
       settings_h: 'How fast posts go out', settings_hint: 'Like the email frequency limit: these keep your Facebook account safe. Your daily group scan runs on the same account.',
@@ -238,7 +247,7 @@ select.field{padding-right:28px}
       untitled: '(chưa có chữ)', st_draft: 'Nháp', st_sent: 'Đã gửi', updated: 'Sửa lúc {d}', sent_times: 'Đã gửi {n} lần, lần cuối {d}',
       back: 'Tất cả bài', email_page: 'Email broadcast',
       no_poster_h: 'Chưa có agent trên cloud kết nối', no_poster_p: 'Bài vào group do agent trên cloud (Muse) đăng. Kết nối nó với WideCast rồi quay lại.',
-      poster: 'Đăng bởi {n}', plan_day: 'Gói của bạn đăng {n} bài vào group mỗi ngày.',
+      poster: 'Đăng bởi {n}', poster_chat: 'Lần đầu, agent đăng các bài này trong chat khi bạn bảo ở đó ("đăng các bài group của tôi"), rồi hỏi bạn một lần xem từ giờ có được tự đăng sau khi bạn bấm Send không.', plan_day: 'Gói của bạn đăng {n} bài vào group mỗi ngày.',
       groups_h: 'Các group', groups_hint: 'Các group agent đang theo dõi và các group bạn thêm. Agent kiểm tra từng group: tài khoản Facebook đã là thành viên chưa, và group có bao nhiêu thành viên.',
       groups_none: 'Chưa có group nào. Thêm ở dưới, hoặc nhờ Sam tìm group cho khách hàng này.',
       g_members: '{n} thành viên', g_members_unknown: 'chưa biết số thành viên',
@@ -246,6 +255,12 @@ select.field{padding-right:28px}
       p_open: 'Bài lên ngay', p_admin: 'Admin duyệt bài', last_post: 'Bài gần nhất {d}',
       g_lang: 'Ngôn ngữ', g_lang_none: 'Bất kỳ', g_remove: 'Bỏ', g_removed: 'Đã bỏ group.', g_add: 'Thêm group',
       g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Thêm', g_added: 'Đã thêm group. Agent sẽ kiểm tra sớm.',
+      imp_btn: 'Nhập file danh sách group (.csv)', imp_sample: 'Tải file mẫu', imp_h: 'Định dạng file danh sách group',
+      imp_rules: 'File .csv mã UTF-8, các trường cách nhau bằng dấu phẩy. Dòng đầu phải đúng y dòng bên dưới, đúng thứ tự. File có cột khác, thiếu cột hoặc sai thứ tự sẽ bị từ chối, và trang báo khác ở chỗ nào.',
+      imp_cols: 'name: tên group (có thể để trống: agent sẽ đọc) · id: số của group, phần số trong facebook.com/groups/<id> · members: số nguyên (có thể để trống) · url: link facebook.com/groups/ của group · category: một từ của bạn (có thể để trống) · note (có thể để trống). Mỗi dòng cần id hoặc url. Tên có dấu phẩy thì đặt trong ngoặc kép. Tối đa 500 group một file.',
+      imp_names: 'Tên trong file được hiện cho đến khi agent đọc tên hiện tại của group trên Facebook; tên bạn gõ bằng Đổi tên thì được giữ.',
+      imp_checking: 'Đang kiểm tra file…', imp_sum: '{f}: {r} group, {n} mới, {e} đã có trong danh sách.', imp_refused: '{n} dòng bị từ chối:', imp_line: 'Dòng {l}: {w}',
+      imp_more: '…và {n} dòng nữa', imp_go: 'Nhập {n} group', imp_go_1: 'Nhập 1 group', imp_cancel: 'Huỷ', imp_done: 'Đã nhập {n} group.', imp_none: 'Không có dòng nào nhập được.', imp_big: 'File lớn hơn 1 MB.',
       g_name_ph: 'Tên group (không bắt buộc)', g_name_lbl: 'Tên group', g_name_pending: 'Tên: agent sẽ đọc trong vài phút', g_rename: 'Đổi tên', g_name_it: 'Đặt tên',
       g_name_save: 'Lưu', g_name_cancel: 'Huỷ', g_named: 'Đã lưu tên.', g_name_auto: 'Agent sẽ đọc tên trên Facebook trong vài phút.', g_add_hint: 'Dán link của group. Để trống tên thì agent tự đọc tên trên Facebook; tên bạn gõ sẽ được giữ.',
       settings_h: 'Tốc độ đăng bài', settings_hint: 'Giống giới hạn tần suất của email: giữ an toàn cho tài khoản Facebook. Vòng quét group mỗi ngày cũng chạy trên tài khoản này.',
@@ -416,7 +431,7 @@ select.field{padding-right:28px}
     mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [],
     groups: [], posts: [], settings: {}, runs: [], posters: [], planDay: 0, tested: false, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', ticks: [], days: 1, q: '', preview: null, prevErr: '',
-    confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addName: '', addBusy: false, addErr: '', ren: null, ownerOnly: false,
+    confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addName: '', addBusy: false, addErr: '', ren: null, imp: null, ownerOnly: false,
     wantPost: UID_RE.test(str(Q0.get('post'))) ? Q0.get('post') : '', versions: {},
     login: { step: 1, email: '', code: '', busy: false, err: '' }
   };
@@ -528,6 +543,7 @@ select.field{padding-right:28px}
   function groupMeta(g) {
     const bits = [g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')];
     if (!str(g.name)) bits.unshift(t('g_name_pending'));
+    if (g.category) bits.push(str(g.category));
     if (g.posting) bits.push(t('p_' + g.posting));
     if (g.last_post_at) bits.push(t('last_post', { d: fmtDay(g.last_post_at) }));
     return bits.join(' · ');
@@ -540,7 +556,8 @@ select.field{padding-right:28px}
   }
   function posterNote() {
     if (!S.posters.length) return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
-    return h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') });
+    return h('div', null, h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') }),
+      h('p', { class: 'small', style: 'margin-top:4px', text: t('poster_chat') }));
   }
   function runCard(r, compact) {
     const why = str(r.pause_reason);
@@ -575,7 +592,7 @@ select.field{padding-right:28px}
   }
   // ── Adding and naming a group (2026-11-11): the Boss may type the name; empty, his agent reads it from Facebook at
   // its next check (a pull starts that check within minutes of the add). A name he types stays over the agent's.
-  function addGroupForm(onAdded) {
+  function addGroupForm(onAdded, onImported) {
     const addGroup = (ev) => {
       ev.preventDefault();
       if (!str(S.addUrl).trim()) return;
@@ -597,7 +614,70 @@ select.field{padding-right:28px}
         h('input', { id: 'g-add-name', class: 'field', type: 'text', maxlength: '200', placeholder: t('g_name_ph'), value: S.addName, style: 'flex:1 1 180px', oninput: (e) => { S.addName = e.target.value; } }),
         h('button', { class: 'btn sm', type: 'submit', disabled: S.addBusy }, S.addBusy ? spinner() : t('g_add_btn'))),
       h('p', { class: 'small', style: 'margin-top:6px', text: t('g_add_hint') }),
-      S.addErr ? h('p', { class: 'err', role: 'alert', text: S.addErr }) : null);
+      S.addErr ? h('p', { class: 'err', role: 'alert', text: S.addErr }) : null,
+      importControls(onImported), importBox(onImported));
+  }
+  // ── A groups file (2026-11-11): one exact format; the page checks the file first, then imports what passes.
+  const IMPORT_HEADER = 'name,id,members,url,category,note';
+  function importControls(onImported) {
+    const pick = h('input', { id: 'g-imp', type: 'file', accept: '.csv,text/csv', class: 'sr-only', tabindex: '-1',
+      onchange: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; importPick(f); } });
+    return h('div', null,
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn sm', type: 'button', disabled: !!(S.imp && S.imp.busy), onclick: () => pick.click() }, t('imp_btn')), pick,
+        h('button', { class: 'btn sm ghost', type: 'button', onclick: sampleDownload }, t('imp_sample'))),
+      h('details', { class: 'small', style: 'margin-top:6px' }, h('summary', { text: t('imp_h') }),
+        h('p', { style: 'margin-top:6px', text: t('imp_rules') }), h('div', { class: 'csvhead', text: IMPORT_HEADER }),
+        h('p', { text: t('imp_cols') }), h('p', { style: 'margin-top:6px', text: t('imp_names') })));
+  }
+  function sampleDownload() {
+    const txt = '\ufeff' + IMPORT_HEADER + '\r\nExample group,123456789012345,1200,https://www.facebook.com/groups/123456789012345/,my_category,a note\r\n';
+    const a = h('a', { href: URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })), download: 'groups-sample.csv' });
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+  function importPick(file) {
+    if (!file) return;
+    if (file.size > 1000000) { S.imp = { file: file.name, err: t('imp_big') }; render(); return; }
+    const I = S.imp = { file: file.name, csv: '', busy: true, res: null, err: '' };
+    render();
+    file.text().then((txt) => { I.csv = txt; return api('/solo/groupposts/groups/import', { client: S.client, csv: txt, dry_run: true }); }).then((res) => {
+      if (S.imp !== I) return;
+      I.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { I.err = msgOf(res); render(); return; }
+      I.res = res.data; render();
+    }).catch(() => { if (S.imp === I) { I.busy = false; I.err = t('net_err'); render(); } });
+  }
+  function importGo(onImported) {
+    const I = S.imp;
+    if (!I || !I.res) return;
+    I.busy = true; render();
+    api('/solo/groupposts/groups/import', { client: S.client, csv: I.csv }).then((res) => {
+      if (S.imp !== I) return;
+      I.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { I.err = msgOf(res); I.res = null; render(); return; }
+      const d = res.data;
+      S.imp = null;
+      if (onImported) onImported(arr(d.keys));
+      refreshState().then(() => { render(); toast(t('imp_done', { n: fmtNum(num(d.imported)) })); });
+    }).catch(() => { if (S.imp === I) { I.busy = false; I.err = t('net_err'); render(); } });
+  }
+  function importBox(onImported) {
+    const I = S.imp;
+    if (!I) return null;
+    const close = h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { S.imp = null; render(); } }, t('imp_cancel'));
+    if (I.busy && !I.res) return h('p', { class: 'small imp' }, spinner(), ' ', t('imp_checking'));
+    if (I.err) return h('div', { class: 'note bad imp', role: 'alert' }, h('p', { style: 'white-space:pre-wrap', text: I.err }), h('div', { class: 'row', style: 'margin-top:8px' }, close));
+    const d = I.res || {}, ref = arr(d.refused), n = num(d.rows);
+    return h('div', { class: 'note imp', role: 'status' },
+      h('b', { text: t('imp_sum', { f: str(I.file), r: fmtNum(n), n: fmtNum(num(d.new)), e: fmtNum(num(d.existing)) }) }),
+      ref.length ? h('div', { style: 'margin-top:6px' }, h('span', { text: t('imp_refused', { n: fmtNum(ref.length) }) }),
+        h('ul', null, ref.slice(0, 20).map((r) => h('li', { text: t('imp_line', { l: num(r.line), w: str(r.reason) }) }))),
+        ref.length > 20 ? h('p', { text: t('imp_more', { n: fmtNum(ref.length - 20) }) }) : null) : null,
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        n ? h('button', { class: 'btn sm pri', type: 'button', disabled: I.busy, onclick: () => importGo(onImported) }, I.busy ? spinner() : (n === 1 ? t('imp_go_1') : t('imp_go', { n: fmtNum(n) }))) : h('span', { class: 'small', text: t('imp_none') }),
+        close));
   }
   function saveName(g, name) {
     const R = S.ren;
@@ -632,7 +712,8 @@ select.field{padding-right:28px}
     }).catch(() => { toast(t('net_err')); return false; });
     return h('section', { class: 'card', id: 'groups' }, h('h2', { text: t('groups_h') }), h('p', { class: 'hint', text: t('groups_hint') }),
       S.groups.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.groups.map((g) => h('li', { class: 'grp' },
-        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) }), nameEdit(g)),
+        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) }),
+          g.note ? h('span', { class: 'small', style: 'display:block;font-style:italic', text: str(g.note) }) : null, nameEdit(g)),
         memberPill(g),
         h('select', { class: 'field', 'aria-label': t('g_lang') + ' · ' + groupName(g), onchange: (e) => call('/solo/groupposts/groups/update', { key: g.key, language: e.target.value }, t('saved')) },
           h('option', { value: '', selected: !g.language, text: t('g_lang_none') }), LANGS.map((l) => h('option', { value: l, selected: g.language === l, text: l.toUpperCase() }))),
@@ -908,7 +989,8 @@ select.field{padding-right:28px}
         h('input', { type: 'checkbox', checked: S.ticks.indexOf(g.key) >= 0, onchange: toggle(g.key) }),
         h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') }), nameEdit(g)),
         memberPill(g)))) : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
-      addGroupForm((g) => { if (g && g.key && S.ticks.indexOf(g.key) < 0) { S.ticks.push(g.key); S.preview = null; S.confirm = false; } }),
+      addGroupForm((g) => { if (g && g.key && S.ticks.indexOf(g.key) < 0) { S.ticks.push(g.key); S.preview = null; S.confirm = false; } },
+        (keys) => { keys.forEach((k) => { if (S.ticks.indexOf(k) < 0) S.ticks.push(k); }); S.preview = null; S.confirm = false; }),
       h('div', { class: 'caps', style: 'margin-top:14px' }, t('days'),
         h('input', { class: 'field', type: 'number', inputmode: 'numeric', min: '1', max: String(num(L.days_max) || 60), value: String(S.days), 'aria-label': t('days') + ' ' + t('days2'), oninput: (ev) => { S.days = parseInt(ev.target.value, 10) || 1; S.preview = null; } }), t('days2')),
       h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || !S.ticks.length || (!str(e.body).trim() && !arr(e.files).length), onclick: () => checkNumbers(false) },
