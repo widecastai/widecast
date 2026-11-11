@@ -189,6 +189,8 @@ select.field{padding-right:28px}
       p_open: 'Posts go live', p_admin: 'Admin approves posts', last_post: 'Last post {d}',
       g_lang: 'Language', g_lang_none: 'Any', g_remove: 'Remove', g_removed: 'Group removed.', g_add: 'Add a group',
       g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Add', g_added: 'Group added. Your agent checks it soon.',
+      g_name_ph: 'Group name (optional)', g_name_lbl: 'Group name', g_name_pending: 'Name: your agent reads it within minutes', g_rename: 'Rename', g_name_it: 'Name it',
+      g_name_save: 'Save', g_name_cancel: 'Cancel', g_named: 'Name saved.', g_name_auto: 'Your agent reads its name from Facebook within minutes.', g_add_hint: 'Paste the group\'s link. Leave the name empty and your agent reads it from Facebook; a name you type stays.',
       settings_h: 'How fast posts go out', settings_hint: 'Like the email frequency limit: these keep your Facebook account safe. Your daily group scan runs on the same account.',
       s_daily: 'At most', s_daily2: 'group posts a day for the account', s_gap: 'Wait', s_gap2: 'to', s_gap3: 'minutes between two posts',
       s_cap: 'One group gets at most', s_cap2: 'post(s) in', s_cap3: 'days', s_test: 'Test group', s_test_hint: 'A group of your own (only you in it, or a few friends). A test copy of each post goes there first.',
@@ -200,7 +202,7 @@ select.field{padding-right:28px}
       add_media: 'Add pictures or videos', uploading: 'Uploading…', remove: 'Remove', image: 'Picture', video: 'Video', too_many: 'A post carries at most {n} pictures and videos.',
       test: 'Post a test', testing: 'Posting test…', test_queued: 'Test queued for your test group. Your agent posts it within a few minutes.',
       tests_h: 'Tests', t_scheduled: 'Waiting for your agent', t_claimed: 'Being posted', t_posted: 'Posted', t_pending_admin: 'Waiting for the group\'s admin',
-      t_failed: 'Could not post', t_unknown: 'Not confirmed', t_skipped: 'Skipped', t_cancelled: 'Cancelled', open_post: 'Open',
+      t_failed: 'Could not post', t_unknown: 'Not confirmed', t_skipped: 'Skipped', t_cancelled: 'Cancelled', t_expired: 'Expired: your agent did not take it within an hour. Post a new test.', open_post: 'Open',
       delete_draft: 'Delete draft', deleted: 'Draft deleted.',
       who: 'Which groups get it', who_hint: 'Tick the groups. A group that already has this post, or got its posts of the last days, is left out at the check.',
       tick_members: 'Tick every member group', untick: 'Untick all', search_groups: 'Search groups',
@@ -244,6 +246,8 @@ select.field{padding-right:28px}
       p_open: 'Bài lên ngay', p_admin: 'Admin duyệt bài', last_post: 'Bài gần nhất {d}',
       g_lang: 'Ngôn ngữ', g_lang_none: 'Bất kỳ', g_remove: 'Bỏ', g_removed: 'Đã bỏ group.', g_add: 'Thêm group',
       g_add_ph: 'https://www.facebook.com/groups/…', g_add_btn: 'Thêm', g_added: 'Đã thêm group. Agent sẽ kiểm tra sớm.',
+      g_name_ph: 'Tên group (không bắt buộc)', g_name_lbl: 'Tên group', g_name_pending: 'Tên: agent sẽ đọc trong vài phút', g_rename: 'Đổi tên', g_name_it: 'Đặt tên',
+      g_name_save: 'Lưu', g_name_cancel: 'Huỷ', g_named: 'Đã lưu tên.', g_name_auto: 'Agent sẽ đọc tên trên Facebook trong vài phút.', g_add_hint: 'Dán link của group. Để trống tên thì agent tự đọc tên trên Facebook; tên bạn gõ sẽ được giữ.',
       settings_h: 'Tốc độ đăng bài', settings_hint: 'Giống giới hạn tần suất của email: giữ an toàn cho tài khoản Facebook. Vòng quét group mỗi ngày cũng chạy trên tài khoản này.',
       s_daily: 'Tối đa', s_daily2: 'bài vào group mỗi ngày cho tài khoản', s_gap: 'Chờ', s_gap2: 'đến', s_gap3: 'phút giữa hai bài',
       s_cap: 'Mỗi group nhận tối đa', s_cap2: 'bài trong', s_cap3: 'ngày', s_test: 'Group test', s_test_hint: 'Một group của riêng bạn (chỉ có bạn, hoặc vài người bạn). Bản test của mỗi bài đăng vào đó trước.',
@@ -255,7 +259,7 @@ select.field{padding-right:28px}
       add_media: 'Thêm ảnh hoặc video', uploading: 'Đang tải lên…', remove: 'Bỏ', image: 'Ảnh', video: 'Video', too_many: 'Mỗi bài tối đa {n} ảnh và video.',
       test: 'Đăng thử', testing: 'Đang đăng thử…', test_queued: 'Đã xếp bài thử vào group test. Agent sẽ đăng trong vài phút.',
       tests_h: 'Bài thử', t_scheduled: 'Chờ agent', t_claimed: 'Đang đăng', t_posted: 'Đã lên', t_pending_admin: 'Chờ admin group duyệt',
-      t_failed: 'Không đăng được', t_unknown: 'Chưa xác nhận', t_skipped: 'Bỏ qua', t_cancelled: 'Đã huỷ', open_post: 'Mở',
+      t_failed: 'Không đăng được', t_unknown: 'Chưa xác nhận', t_skipped: 'Bỏ qua', t_cancelled: 'Đã huỷ', t_expired: 'Hết hạn: agent không nhận trong 1 giờ. Đăng thử lại.', open_post: 'Mở',
       delete_draft: 'Xoá nháp', deleted: 'Đã xoá nháp.',
       who: 'Group nào nhận bài', who_hint: 'Chọn các group. Group đã có bài này, hoặc vừa nhận bài trong mấy ngày gần đây, sẽ bị loại khi xem số.',
       tick_members: 'Chọn mọi group đã là thành viên', untick: 'Bỏ chọn hết', search_groups: 'Tìm group',
@@ -412,7 +416,7 @@ select.field{padding-right:28px}
     mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [],
     groups: [], posts: [], settings: {}, runs: [], posters: [], planDay: 0, tested: false, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', ticks: [], days: 1, q: '', preview: null, prevErr: '',
-    confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addBusy: false, addErr: '', ownerOnly: false,
+    confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addName: '', addBusy: false, addErr: '', ren: null, ownerOnly: false,
     wantPost: UID_RE.test(str(Q0.get('post'))) ? Q0.get('post') : '', versions: {},
     login: { step: 1, email: '', code: '', busy: false, err: '' }
   };
@@ -518,11 +522,12 @@ select.field{padding-right:28px}
     return h('span', { class: m === 'yes' ? 'pill sent' : m === 'no' ? 'pill no' : 'pill wait', text: t('m_' + m) });
   }
   function copyPill(st) {
-    const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : 'pill wait';
+    const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : (st === 'expired' || st === 'cancelled') ? 'pill' : 'pill wait';
     return h('span', { class: cls, text: t('t_' + st) });
   }
   function groupMeta(g) {
     const bits = [g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')];
+    if (!str(g.name)) bits.unshift(t('g_name_pending'));
     if (g.posting) bits.push(t('p_' + g.posting));
     if (g.last_post_at) bits.push(t('last_post', { d: fmtDay(g.last_post_at) }));
     return bits.join(' · ');
@@ -568,36 +573,72 @@ select.field{padding-right:28px}
       h('div', { class: 'row sp' }, h('span', { class: 't', text: first || t('untitled') }), h('span', { class: p.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(p.status)) })),
       h('span', { class: 'm', text: meta + (nf ? ' · ' + nf + ' ' + t('media_h').toLowerCase() : '') })));
   }
+  // ── Adding and naming a group (2026-11-11): the Boss may type the name; empty, his agent reads it from Facebook at
+  // its next check (a pull starts that check within minutes of the add). A name he types stays over the agent's.
+  function addGroupForm(onAdded) {
+    const addGroup = (ev) => {
+      ev.preventDefault();
+      if (!str(S.addUrl).trim()) return;
+      S.addBusy = true; S.addErr = ''; render();
+      api('/solo/groupposts/groups/add', { client: S.client, url: S.addUrl.trim(), name: str(S.addName).trim() }).then((res) => {
+        S.addBusy = false;
+        if (authFailed(res)) { showLogin(); return; }
+        if (!res.ok || !res.data) { S.addErr = msgOf(res); render(); return; }
+        S.addUrl = ''; S.addName = '';
+        if (onAdded) onAdded(res.data);
+        refreshState().then(() => { render(); toast(t('g_added')); });
+      }).catch(() => { S.addBusy = false; S.addErr = t('net_err'); render(); });
+    };
+    return h('div', null,
+      h('form', { class: 'row', style: 'margin-top:12px', onsubmit: addGroup },
+        h('label', { class: 'sr-only', for: 'g-add', text: t('g_add') }),
+        h('input', { id: 'g-add', class: 'field', type: 'url', placeholder: t('g_add_ph'), value: S.addUrl, style: 'flex:2 1 240px', oninput: (e) => { S.addUrl = e.target.value; } }),
+        h('label', { class: 'sr-only', for: 'g-add-name', text: t('g_name_lbl') }),
+        h('input', { id: 'g-add-name', class: 'field', type: 'text', maxlength: '200', placeholder: t('g_name_ph'), value: S.addName, style: 'flex:1 1 180px', oninput: (e) => { S.addName = e.target.value; } }),
+        h('button', { class: 'btn sm', type: 'submit', disabled: S.addBusy }, S.addBusy ? spinner() : t('g_add_btn'))),
+      h('p', { class: 'small', style: 'margin-top:6px', text: t('g_add_hint') }),
+      S.addErr ? h('p', { class: 'err', role: 'alert', text: S.addErr }) : null);
+  }
+  function saveName(g, name) {
+    const R = S.ren;
+    if (R) { R.busy = true; render(); }
+    api('/solo/groupposts/groups/update', { client: S.client, key: g.key, name: name }).then((res) => {
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok) { if (S.ren) S.ren.busy = false; toast(msgOf(res)); render(); return; }
+      S.ren = null;
+      refreshState().then(() => { render(); toast(name ? t('g_named') : t('g_name_auto')); });
+    }).catch(() => { if (S.ren) S.ren.busy = false; toast(t('net_err')); render(); });
+  }
+  // The name of one group, with Rename (or Name it): an inline box while the Boss edits it.
+  function nameEdit(g) {
+    const R = S.ren;
+    if (R && R.key === g.key) {
+      return h('form', { class: 'row', style: 'gap:6px;margin-top:6px', onsubmit: (ev) => { ev.preventDefault(); saveName(g, str(R.val).trim()); } },
+        h('input', { class: 'field', type: 'text', maxlength: '200', value: R.val, 'aria-label': t('g_name_lbl') + ' · ' + str(g.url), style: 'flex:1 1 180px;min-height:36px;padding:6px 10px',
+          oninput: (e) => { R.val = e.target.value; } }),
+        h('button', { class: 'btn sm pri', type: 'submit', disabled: R.busy }, R.busy ? spinner() : t('g_name_save')),
+        h('button', { class: 'btn sm ghost', type: 'button', onclick: (ev) => { ev.preventDefault(); S.ren = null; render(); } }, t('g_name_cancel')));
+    }
+    return h('button', { class: 'btn sm ghost', type: 'button', style: 'min-height:28px;padding:0 8px',
+      onclick: (ev) => { ev.preventDefault(); ev.stopPropagation(); S.ren = { key: g.key, val: str(g.name), busy: false }; render();
+        const el = document.querySelector('form input[aria-label^="' + t('g_name_lbl') + '"]'); if (el) el.focus(); } },
+      str(g.name) ? t('g_rename') : t('g_name_it'));
+  }
   function groupsCard() {
     const call = (path, body, done) => api(path, Object.assign({ client: S.client }, body)).then((res) => {
       if (authFailed(res)) { showLogin(); return false; }
       if (!res.ok) { toast(msgOf(res)); return false; }
       return refreshState().then(() => { render(); if (done) toast(done); return true; });
     }).catch(() => { toast(t('net_err')); return false; });
-    const addGroup = (ev) => {
-      ev.preventDefault();
-      if (!str(S.addUrl).trim()) return;
-      S.addBusy = true; S.addErr = ''; render();
-      api('/solo/groupposts/groups/add', { client: S.client, url: S.addUrl.trim() }).then((res) => {
-        S.addBusy = false;
-        if (authFailed(res)) { showLogin(); return; }
-        if (!res.ok) { S.addErr = msgOf(res); render(); return; }
-        S.addUrl = ''; refreshState().then(() => { render(); toast(t('g_added')); });
-      }).catch(() => { S.addBusy = false; S.addErr = t('net_err'); render(); });
-    };
     return h('section', { class: 'card', id: 'groups' }, h('h2', { text: t('groups_h') }), h('p', { class: 'hint', text: t('groups_hint') }),
       S.groups.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.groups.map((g) => h('li', { class: 'grp' },
-        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) })),
+        h('div', { class: 'n' }, h('b', null, h('a', { href: str(g.url), target: '_blank', rel: 'noopener', text: groupName(g) })), h('span', { class: 'small', text: groupMeta(g) }), nameEdit(g)),
         memberPill(g),
         h('select', { class: 'field', 'aria-label': t('g_lang') + ' · ' + groupName(g), onchange: (e) => call('/solo/groupposts/groups/update', { key: g.key, language: e.target.value }, t('saved')) },
           h('option', { value: '', selected: !g.language, text: t('g_lang_none') }), LANGS.map((l) => h('option', { value: l, selected: g.language === l, text: l.toUpperCase() }))),
         h('button', { class: 'btn sm ghost', type: 'button', 'aria-label': t('g_remove') + ' ' + groupName(g), onclick: () => call('/solo/groupposts/groups/update', { key: g.key, removed: true }, t('g_removed')) }, '×'))))
         : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
-      h('form', { class: 'row', style: 'margin-top:12px', onsubmit: addGroup },
-        h('label', { class: 'sr-only', for: 'g-add', text: t('g_add') }),
-        h('input', { id: 'g-add', class: 'field', type: 'url', placeholder: t('g_add_ph'), value: S.addUrl, style: 'flex:1 1 260px', oninput: (e) => { S.addUrl = e.target.value; } }),
-        h('button', { class: 'btn sm', type: 'submit', disabled: S.addBusy }, S.addBusy ? spinner() : t('g_add_btn'))),
-      S.addErr ? h('p', { class: 'err', role: 'alert', text: S.addErr }) : null);
+      addGroupForm(null));
   }
   function settingsCard() {
     const s = S.settings || {}, v = S.set;
@@ -865,8 +906,9 @@ select.field{padding-right:28px}
       S.groups.length > 8 ? h('input', { class: 'field', type: 'search', style: 'margin-top:10px', placeholder: t('search_groups'), 'aria-label': t('search_groups'), value: S.q, oninput: (ev) => { S.q = ev.target.value; render(); const el = document.querySelector('input[type=search]'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } } }) : null,
       S.groups.length ? h('div', { class: 'chks' }, shown.map((g) => h('label', { class: 'chk' },
         h('input', { type: 'checkbox', checked: S.ticks.indexOf(g.key) >= 0, onchange: toggle(g.key) }),
-        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') })),
+        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'), h('span', { class: 'm', text: groupMeta(g) + (g.language ? ' · ' + g.language.toUpperCase() : '') }), nameEdit(g)),
         memberPill(g)))) : h('p', { class: 'small', style: 'margin-top:10px', text: t('groups_none') }),
+      addGroupForm((g) => { if (g && g.key && S.ticks.indexOf(g.key) < 0) { S.ticks.push(g.key); S.preview = null; S.confirm = false; } }),
       h('div', { class: 'caps', style: 'margin-top:14px' }, t('days'),
         h('input', { class: 'field', type: 'number', inputmode: 'numeric', min: '1', max: String(num(L.days_max) || 60), value: String(S.days), 'aria-label': t('days') + ' ' + t('days2'), oninput: (ev) => { S.days = parseInt(ev.target.value, 10) || 1; S.preview = null; } }), t('days2')),
       h('div', { class: 'row', style: 'margin-top:14px' }, h('button', { class: 'btn dark', type: 'button', disabled: !!S.busy || !S.ticks.length || (!str(e.body).trim() && !arr(e.files).length), onclick: () => checkNumbers(false) },
