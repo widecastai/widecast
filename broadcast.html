@@ -156,6 +156,12 @@ select.field{padding-right:28px}
 .caps input{width:58px;min-height:40px;text-align:center;padding:6px}
 .hist{display:flex;flex-direction:column;gap:8px;list-style:none;padding:0;margin-top:10px}
 .hist li{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:.875rem}
+button.chip{cursor:pointer;font:inherit;font-size:.8125rem}
+button.chip:hover{border-color:var(--line-2);color:var(--tx-hi)}
+button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx)}
+.who{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-direction:column;gap:4px;max-height:260px;overflow:auto}
+.who li{display:flex;justify-content:space-between;gap:10px;padding:6px 8px;border:0;border-radius:8px;background:var(--s2);font-size:.8125rem;min-width:0}
+.who li span:first-child{overflow-wrap:anywhere;min-width:0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -261,7 +267,8 @@ select.field{padding-right:28px}
       pause_other: 'Paused: {r}.', failed: 'Not taken by the email service', unconfirmed: 'Unknown (never sent again)', skipped: 'Already had it',
       held_note: '{n} more get it when you press Send again tomorrow (the daily limit).', skipped_optout: 'Unsubscribed or removed meanwhile',
       daily_note: 'Today\'s limit lets {a} go out now; the other {b} get it when you press Send again tomorrow.',
-      history: 'History', no_history: 'Not sent yet.', run_line: '{d} · {n} sent', bounced: 'bounced', complained: 'spam', unsubscribed: 'unsubscribed', file_opened: 'opened the file',
+      history: 'History', no_history: 'Not sent yet.', run_line: '{d} · {n} sent', bounced: 'bounced', complained: 'spam', unsubscribed: 'unsubscribed', file_opened: 'opened the file', clicked: 'clicked', opened: 'opened (estimate)', who_more: '…and {n} more', who_none: 'Nobody yet.',
+      opens_note: 'Opens are an estimate: Apple Mail loads every email\'s pictures by itself, so its readers count as opened, and apps that block pictures never count. Clicks are real visits to your links (scanners and bots are left out).',
       settings: 'Settings for this client', postal: 'Postal address (shown in every email\'s footer)', postal_ph: 'Street, city, state, ZIP',
       from_name: 'Sender name (what people see next to the address)', from_name_hint: 'Empty: your link\'s business name ({n}).',
       no_from_name: 'This email has no sender name, so inboxes show "{a}". Add a sender name in the settings below.',
@@ -356,7 +363,8 @@ select.field{padding-right:28px}
       pause_other: 'Tạm dừng: {r}.', failed: 'Dịch vụ email không nhận', unconfirmed: 'Chưa rõ (không gửi lại)', skipped: 'Đã có rồi',
       held_note: 'Thêm {n} người sẽ nhận khi bạn bấm Gửi lại vào ngày mai (giới hạn mỗi ngày).', skipped_optout: 'Vừa hủy nhận hoặc bị loại',
       daily_note: 'Giới hạn hôm nay cho gửi {a} người; {b} người còn lại nhận khi bạn bấm Gửi lại vào ngày mai.',
-      history: 'Lịch sử', no_history: 'Chưa gửi lần nào.', run_line: '{d} · đã gửi {n}', bounced: 'bị trả về', complained: 'báo spam', unsubscribed: 'hủy nhận', file_opened: 'mở tệp',
+      history: 'Lịch sử', no_history: 'Chưa gửi lần nào.', run_line: '{d} · đã gửi {n}', bounced: 'bị trả về', complained: 'báo spam', unsubscribed: 'hủy nhận', file_opened: 'mở tệp', clicked: 'đã click', opened: 'đã mở (ước tính)', who_more: '…và {n} người nữa', who_none: 'Chưa có ai.',
+      opens_note: 'Số mở là ước tính: Apple Mail tự tải ảnh của mọi email nên người dùng Apple Mail đều bị tính là đã mở, còn ứng dụng chặn ảnh thì không bao giờ được tính. Click là lượt bấm thật vào link của bạn (đã loại máy quét và bot).',
       settings: 'Cài đặt cho khách hàng này', postal: 'Địa chỉ bưu chính (hiện ở chân mọi email)', postal_ph: 'Số nhà, đường, thành phố, bang, ZIP',
       from_name: 'Tên người gửi (hiện cạnh địa chỉ email)', from_name_hint: 'Để trống: dùng tên doanh nghiệp của link ({n}).',
       no_from_name: 'Email này chưa có tên người gửi nên hộp thư sẽ hiện "{a}". Thêm tên người gửi ở phần cài đặt bên dưới.',
@@ -525,6 +533,7 @@ select.field{padding-right:28px}
     emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }, preview: null, prevErr: '',
     confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
+    who: null,   // the open "who clicked / opened" list of one send: { run, ev, busy, err, rows, total }
     exp: null,   // the open Export of one magnet: { mid, cols: [tag keys], busy, err }
     ml: null,    // the open email's mail list as saved: { mode, columns, rows [{email, v}], count, file_name }
     mle: null,   // the mail-list window while open: { mode, rows, file_name, q, note, busy, err, dirty, badRow }
@@ -1283,6 +1292,7 @@ select.field{padding-right:28px}
         num(r.unconfirmed) ? [h('span', { text: t('unconfirmed') }), h('span', { class: 'v', text: fmtNum(num(r.unconfirmed)) })] : null,
         num(r.skipped) ? [h('span', { text: t('skipped') }), h('span', { class: 'v', text: fmtNum(num(r.skipped)) })] : null,
         ['bounced', 'complained', 'unsubscribed'].map((k) => num(ev[k]) ? [h('span', { text: t(k) }), h('span', { class: 'v', text: fmtNum(num(ev[k])) })] : null)) : null,
+      engageChips(r).length ? h('div', { class: 'chips' }, engageChips(r)) : null, whoList(r),
       h('div', { class: 'row', style: 'margin-top:12px' },
         (st === 'queued' || st === 'sending' || st === 'paused' || st === 'waiting') ? h('button', { class: 'btn sm danger', type: 'button', onclick: () => runAction('stop', r) }, t('stop')) : null,
         st === 'paused' ? h('button', { class: 'btn sm pri', type: 'button', onclick: () => runAction('resume', r) }, t('resume')) : null,
@@ -1510,8 +1520,43 @@ select.field{padding-right:28px}
         h('ul', { class: 'hist' }, runs.map((r) => {
           const ev = r.events || {};
           return h('li', null, h('div', { class: 'row sp' }, h('span', { text: t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.sent)) }) }), h('span', { class: 'pill', text: t('st_run_' + str(r.state)) })),
-            h('div', { class: 'chips' }, ['bounced', 'complained', 'unsubscribed', 'file_opened'].filter((k) => num(ev[k])).map((k) => h('span', { class: 'chip', text: fmtNum(num(ev[k])) + ' ' + t(k) }))));
-        })));
+            h('div', { class: 'chips' }, engageChips(r), ['bounced', 'complained', 'unsubscribed'].filter((k) => num(ev[k])).map((k) => h('span', { class: 'chip', text: fmtNum(num(ev[k])) + ' ' + t(k) }))),
+            whoList(r));
+        })),
+      runs.some((r) => num((r.events || {}).opened)) ? h('p', { class: 'small', style: 'margin-top:10px', text: t('opens_note') }) : null);
+  }
+
+  // Clicks, opens (estimate) and file opens of one send (2026-11-11): each a button that lists who, latest first.
+  function engageChips(r) {
+    const ev = r.events || {}, sent = num(r.sent);
+    return ['clicked', 'opened', 'file_opened'].filter((k) => num(ev[k])).map((k) => {
+      const open = !!(S.who && S.who.run === r.run_id && S.who.ev === k);
+      const pct = sent ? ' · ' + Math.round(100 * num(ev[k]) / sent) + '%' : '';
+      return h('button', { class: 'chip', type: 'button', 'aria-expanded': open ? 'true' : 'false', onclick: () => toggleWho(r.run_id, k) },
+        fmtNum(num(ev[k])) + ' ' + t(k) + pct);
+    });
+  }
+  function toggleWho(runId, ev) {
+    if (S.who && S.who.run === runId && S.who.ev === ev) { S.who = null; render(); return; }
+    const W = S.who = { run: runId, ev: ev, busy: true, err: '', rows: [], total: 0 };
+    render();
+    api('/solo/broadcast/engaged', { client: S.client, run_id: runId, event: ev }).then((res) => {
+      if (S.who !== W) return;
+      W.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { W.err = msgOf(res); render(); return; }
+      W.rows = arr(res.data.data); W.total = num(res.data.total); render();
+    }).catch(() => { if (S.who === W) { W.busy = false; W.err = t('net_err'); render(); } });
+  }
+  function whoList(r) {
+    const W = S.who;
+    if (!W || W.run !== r.run_id) return null;
+    if (W.busy) return h('p', { class: 'small', style: 'margin-top:8px' }, spinner(), ' ', t('loading'));
+    if (W.err) return h('p', { class: 'err', role: 'alert', text: W.err });
+    if (!W.rows.length) return h('p', { class: 'small', style: 'margin-top:8px', text: t('who_none') });
+    return h('div', null, h('ul', { class: 'who', 'aria-label': t(W.ev) }, W.rows.map((x) => h('li', null, h('span', { text: str(x.email) }),
+      h('span', { class: 'small', text: fmtDay(x.at) + (num(x.count) > 1 ? ' · ' + fmtNum(num(x.count)) + '×' : '') })))),
+      W.total > W.rows.length ? h('p', { class: 'small', style: 'margin-top:6px', text: t('who_more', { n: fmtNum(W.total - W.rows.length) }) }) : null);
   }
 
   function render() {
