@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
+<title>Communities | WideCast</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Communities (2026-11-11): the group posts page's look (tokens, header, sign-in), for the Boss's own groups. */
+:root{color-scheme:light;
+--bg:#f5f5f2;--s1:#fdfdfb;--s2:#efefea;--s3:#e5e5df;--line:#e1e1da;--line-2:#d0d0c8;--field-ln:#8f908a;
+--tx:#26272a;--tx-hi:#0e0f11;--tx-2:#4a4b47;--tx-3:#64655f;
+--acc:#c6f135;--acc-hi:#b8e425;--acc-ink:#141a05;--acc-soft:#eef7cf;--acc-line:#c3dc72;--acc-tx:#46560a;--ring:#46560a;
+--hot-bg:#fde7df;--hot-tx:#982b12;--hot-ln:#f3c2b2;--warm-bg:#fbefd3;--warm-tx:#774b00;--warm-ln:#ebd197;--watch-bg:#e5ebf9;--watch-tx:#2d4795;--watch-ln:#c3cff0;
+--ok-bg:#e3f3e1;--ok-tx:#1f6a24;--ok-ln:#b8dcb4;
+--err-tx:#a0261a;--shadow:0 1px 2px rgba(14,15,17,.05);
+--font:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;
+--bg:#0e0f11;--s1:#16181b;--s2:#1c1f23;--s3:#262a30;--line:#25282d;--line-2:#34373e;--field-ln:#696c74;
+--tx:#eceae4;--tx-hi:#f5f3ec;--tx-2:#b9b7af;--tx-3:#8f8d87;
+--acc:#c6f135;--acc-hi:#d3f65c;--acc-ink:#141a05;--acc-soft:#1c230a;--acc-line:#46540f;--acc-tx:#c6f135;--ring:#c6f135;
+--hot-bg:#2b1711;--hot-tx:#ffa189;--hot-ln:#5c2c1e;--warm-bg:#2a2111;--warm-tx:#f2c76a;--warm-ln:#5b4419;--watch-bg:#151d2f;--watch-tx:#a3b8ff;--watch-ln:#2d3c64;
+--ok-bg:#132514;--ok-tx:#8fd894;--ok-ln:#2b4d2d;
+--err-tx:#ffa189;--shadow:none}}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+h1,h2,h3,p,ul,ol{margin:0}
+img,svg,video{display:block;max-width:100%}
+a{color:var(--acc-tx);text-underline-offset:3px}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:8px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.wrap{width:min(100% - 32px,760px);margin-inline:auto}
+.hdr{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
+.brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--tx-hi);text-decoration:none;font-weight:600;letter-spacing:-.01em}
+.brand .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#0e0f11;border:1px solid var(--line)}
+.brand img{width:24px;height:24px}
+.hdr-r{display:flex;align-items:center;gap:8px;min-width:0}
+.hdr-links{display:flex;gap:4px}
+.hdr-links a{display:inline-flex;align-items:center;min-height:40px;padding:0 10px;border-radius:10px;color:var(--tx-2);text-decoration:none;font-size:.875rem;font-weight:500}
+.hdr-links a:hover{background:var(--s2);color:var(--tx-hi)}
+@media (max-width:560px){.brand>span:not(.mark){display:none}.hdr-links a{padding:0 8px}}
+main{flex:1;padding:24px 0 64px;outline:none}
+.foot{padding:20px 0 32px;color:var(--tx-3);font-size:.8125rem}
+h1.pg{font-size:1.5rem;line-height:1.25;font-weight:600;color:var(--tx-hi);letter-spacing:-.015em}
+.sub{color:var(--tx-2);margin-top:4px;max-width:60ch}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sp{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
+.card .hint{color:var(--tx-3);font-size:.875rem;margin-top:2px}
+.note{border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--s2)}
+.note.warn{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.note.bad{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.note.good{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.note b{color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx-hi);font:500 .9375rem/1.2 var(--font);text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--s2)}
+.btn[disabled],.btn.disabled{opacity:.5;cursor:not-allowed}
+.btn.disabled{pointer-events:none}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.btn.pri:hover{background:var(--acc-hi);border-color:var(--acc-hi)}
+.btn.dark{background:var(--tx-hi);border-color:var(--tx-hi);color:var(--bg);font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--tx-2)}
+.btn.ghost:hover{background:var(--s2)}
+.btn.danger{color:var(--err-tx)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:.875rem;border-radius:10px}
+.btn.wide{width:100%}
+label.lbl{display:block;font-size:.875rem;font-weight:600;color:var(--tx-hi);margin:14px 0 6px}
+.field{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--field-ln);border-radius:12px;background:var(--bg);color:var(--tx-hi)}
+textarea.field{min-height:200px;resize:vertical;line-height:1.55}
+select.field{padding-right:28px}
+.field:focus{outline:2px solid var(--ring);outline-offset:1px}
+.small{font-size:.8125rem;color:var(--tx-3)}
+.err{color:var(--err-tx);font-size:.875rem;margin-top:8px}
+.pill{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;border:1px solid var(--line-2);background:var(--s2);color:var(--tx-2)}
+.pill.wait{background:var(--warm-bg);border-color:var(--warm-ln);color:var(--warm-tx)}
+.pill.sent{background:var(--ok-bg);border-color:var(--ok-ln);color:var(--ok-tx)}
+.pill.live{background:var(--watch-bg);border-color:var(--watch-ln);color:var(--watch-tx)}
+.pill.no{background:var(--hot-bg);border-color:var(--hot-ln);color:var(--hot-tx)}
+.list{display:flex;flex-direction:column;gap:10px;list-style:none;padding:0}
+.item{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--s1);cursor:pointer;color:var(--tx);min-width:0}
+.item:hover{background:var(--s2);border-color:var(--line-2)}
+.item .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.item .m{font-size:.8125rem;color:var(--tx-3)}
+.chk{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;min-width:0}
+.chk:hover{border-color:var(--line-2)}
+.chk input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--acc-tx)}
+.chk .t{font-weight:600;color:var(--tx-hi);overflow-wrap:anywhere}
+.chk .m{font-size:.8125rem;color:var(--tx-3)}
+.chks{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.big{font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--tx-hi);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 16px;margin-top:12px;font-size:.9375rem}
+.kv .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx-hi);text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--s1);color:var(--tx);font-size:.875rem;cursor:pointer}
+.chip code{font-family:var(--mono);font-size:.75rem;color:var(--tx-3)}
+.media{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
+.media .m1{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);min-width:0}
+.media img,.media video{width:100%;height:110px;object-fit:cover;background:var(--s3)}
+.media .cap{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;font-size:.75rem;color:var(--tx-3)}
+.media .cap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);min-width:0}
+.grp .n{flex:1 1 auto;min-width:0}
+.grp .n b{display:block;color:var(--tx-hi);overflow-wrap:anywhere}
+.grp select{width:auto;min-height:36px;padding:4px 8px;border-radius:10px}
+.caps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.9375rem}
+.caps input{width:64px;min-height:40px;text-align:center;padding:6px}
+.tbl{width:100%;border-collapse:collapse;font-size:.875rem;margin-top:10px}
+.tbl td,.tbl th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.tbl th{color:var(--tx-2);font-weight:600}
+.scroll{overflow-x:auto}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .8s linear infinite;display:inline-block;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.login{max-width:420px}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.reach{display:flex;flex-wrap:wrap;gap:6px}
+.reach .chip{text-decoration:none;color:var(--tx-2)}
+.reach .chip.on{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx);font-weight:600}
+.dr{display:flex;flex-direction:column;gap:10px}
+.drw{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:620px){.drw{grid-template-columns:1fr}}
+.pic{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:var(--s3)}
+.pic.empty{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center;font-size:.875rem;color:var(--tx-2)}
+.drt textarea.field{min-height:220px}
+.srcs{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.thumb{width:44px;height:55px;object-fit:cover;border-radius:8px;flex:none;background:var(--s3)}
+.warnm{color:var(--warm-tx)!important}
+h2.h2{font-size:1.0625rem;font-weight:600;color:var(--tx-hi);line-height:1.3}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="/" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <div class="hdr-r">
+      <nav class="hdr-links" aria-label="Pages">
+        <a href="approve.html" id="nav-approve">Approvals</a>
+        <a href="crmstore.html" id="nav-crm">CRM</a>
+      </nav>
+    </div>
+  </div>
+</header>
+<main id="app" class="wrap" tabindex="-1">
+  <noscript><p>This page needs JavaScript. Trang này cần bật JavaScript.</p></noscript>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+<script>
+(() => {
+  'use strict';
+  // Communities (2026-11-11). Server: the dashboard2.py block "SOLO AGENCY — communities" on solo_community.py. The
+  // owner declares a community: what it is about and the lines a source post must (and must not) match, the groups his
+  // agent reads (sources) and the groups he runs (destinations). Each day his cloud agent reads the sources, keeps what
+  // fits, writes a new post for each destination with a picture WideCast makes (iPhone-photo light, one credit), and
+  // the draft waits here. Nothing goes out without his Approve; an approved post takes the destination's next free
+  // slot and goes out through the group post schedule. Same sign-in, API base and look as broadcast.html.
+  const LANG_SWITCH = false;              // as the other pages: English for now, both dictionaries kept
+  const Q0 = new URLSearchParams(location.search);
+  const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const API_ORIGIN = (() => {
+    const raw = IS_LOCAL ? Q0.get('api') : '';
+    if (!raw) return '';
+    try { const u = new URL(raw); return (u.protocol === 'http:' || u.protocol === 'https:') ? u.origin : ''; } catch (e) { return ''; }
+  })();
+  const DEV = Q0.get('dev') === '1';
+  const BASE = API_ORIGIN + '/app/dashboard' + (DEV ? '2' : '');
+  const LANG_KEY = 'wc_report_lang';
+  const CLIENT_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+  const CM_RE = /^cm_[a-z2-7]{26}$/;
+  const POLL_MS = 8000;
+  const I18N = {
+    en: {
+      title: 'Communities', sub: 'Feed your own groups every day. Your agent reads the groups you follow, keeps the posts that fit, writes a new post with its own picture, and waits for your OK.',
+      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities',
+      client: 'Client', new_cm: 'New community', none_h: 'No community yet', none_p: 'Make one: what it is about, the groups your agent reads, and the groups you run.',
+      n_waiting: '{n} to review', st_active: 'Running', st_paused: 'Paused', st_archived: 'Archived',
+      dest_line: '{w} to review · {q} scheduled · {p} posted in 30 days · days ready: {d}', low: 'Fewer than 2 days ready', ok_buffer: 'Ready',
+      back: 'All communities', dests_h: 'Your groups', low_note: 'A group has fewer than 2 days of approved posts. Review the drafts below so it keeps getting one every day.',
+      review_h: 'Posts to review ({n})', review_p: 'Every post has its own picture and goes out only after you approve it. Change the text if you like, then Approve: it takes the group\'s next free slot.',
+      review_none: 'Nothing to review. Your agent writes new drafts on its daily run.',
+      to_group: 'For {g}', matched: 'Fits your line:', text: 'Post text', sources_h: 'Written from {n} source post(s)', open_src: 'Open',
+      pic_alt: 'Picture for: {t}', img_making: 'Making the picture…', img_no_credit: 'No credit left for the picture. Add credits, then press New picture.',
+      img_failed: 'The picture could not be made. Press New picture.',
+      approve: 'Approve', save_text: 'Save text', new_pic: 'New picture', skip: 'Skip', cancel: 'Take out', open_post: 'Open post',
+      done_approve: 'Approved. It goes out in its slot.', done_save: 'Saved.', done_image: 'Making a new picture (1 credit).', done_skip: 'Skipped.', done_cancel: 'Taken out of the schedule.',
+      sched_h: 'Scheduled and posted',
+      why_account_blocked: 'Paused: Facebook stopped the account from posting. Every community and every send paused to protect the account. Set Status to Running below when the account can post again.',
+      why_needs_chat: 'Paused: your agent asked for your OK in its own chat before posting. Answer it there, then set Status to Running below.',
+      c_scheduled: 'Scheduled', c_claimed: 'Being posted', c_posted: 'Posted', c_pending_admin: 'Waiting for the group\'s admin',
+      c_failed: 'Could not post', c_unknown: 'Not confirmed', c_cancelled: 'Taken out', c_skipped: 'Not posted',
+      settings_h: 'Settings', f_name: 'Name', f_focus: 'What this community is about',
+      f_focus_h: 'One or two sentences. Your agent keeps only posts that serve these readers.',
+      f_include: 'Keep a post when it… (one line each)', f_include_h: 'For example: a question a first-time buyer asks; a local market number with its source; a story of a problem solved.',
+      f_exclude: 'Never use a post that… (one line each)', f_exclude_h: 'For example: an ad or a listing; politics; anything about a named private person.',
+      f_keywords: 'Keywords (optional, comma between)', f_keywords_h: 'Words that make a post worth a closer look. A keyword alone never makes a post fit.',
+      f_language: 'Language of the posts', f_tone: 'How the posts sound (optional)', f_tone_h: 'For example: warm, short, one question at the end.',
+      f_sources: 'Groups your agent reads', f_sources_h: 'The groups whose posts feed this community. Your agent reads only what is new since its last read.',
+      f_dests: 'Groups you run', f_dests_h: 'The groups that get the new posts. A group cannot be both read and fed.',
+      g_members: '{n} members', g_members_unknown: 'members not known yet', g_add: 'Add a group', g_add_btn: 'Add', g_add_ph: 'https://www.facebook.com/groups/…',
+      m_: 'Not checked yet', m_yes: 'Member', m_no: 'Not a member', m_pending: 'Waiting to join',
+      f_ppd: 'post(s) a day in each group,', f_from: 'between', f_to: 'and', f_hours: 'o\'clock', f_tz: 'Time zone', f_tz_h: 'The hours above are in this time zone, for example America/Los_Angeles.',
+      f_buffer: 'Keep', f_buffer2: 'days of posts ready in each group', f_status: 'Status',
+      f_posts_per_day: 'Posts a day', f_window_start: 'From', f_window_end: 'To', f_buffer_days: 'Days ready',
+      save: 'Save', saving: 'Saving…', saved: 'Saved.',
+      err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
+      unavailable: 'Communities are not available right now. Try again in a few minutes.',
+      login_h: 'Sign in to run your communities', login_p: 'Use your WideCast account email. We send you a 6-digit code.',
+      login_owner_only: 'This page is for the account owner. Sign in with the owner\'s WideCast email.',
+      email: 'Email', send_code: 'Send code', sending_code: 'Sending code…', code_sent: 'We sent a 6-digit code to', code_lbl: '6-digit code',
+      verify: 'Verify', verifying: 'Verifying…', change_email: 'Change email', bad_email: 'Enter a valid email address.',
+      bad_code: 'Enter the 6-digit code.', send_failed: 'Could not send the code. Try again.', code_failed: 'That code did not work. Try again.',
+      private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry_load: 'Try again'
+    },
+    vi: {
+      title: 'Cộng đồng', sub: 'Nuôi group của anh mỗi ngày. Agent đọc các group anh theo dõi, giữ bài hợp, viết bài mới kèm ảnh riêng, rồi chờ anh duyệt.',
+      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng',
+      client: 'Khách hàng', new_cm: 'Cộng đồng mới', none_h: 'Chưa có cộng đồng nào', none_p: 'Tạo một cái: nói về gì, các group agent đọc, và các group anh quản lý.',
+      n_waiting: '{n} bài chờ duyệt', st_active: 'Đang chạy', st_paused: 'Tạm dừng', st_archived: 'Đã cất',
+      dest_line: '{w} chờ duyệt · {q} đã lên lịch · {p} đã đăng trong 30 ngày · đủ {d} ngày', low: 'Chưa đủ 2 ngày bài', ok_buffer: 'Đủ bài',
+      back: 'Tất cả cộng đồng', dests_h: 'Group của anh', low_note: 'Có group chưa đủ 2 ngày bài đã duyệt. Duyệt các bài bên dưới để group có bài mỗi ngày.',
+      review_h: 'Bài chờ duyệt ({n})', review_p: 'Mỗi bài có ảnh riêng và chỉ đăng khi anh duyệt. Sửa chữ nếu muốn, rồi bấm Duyệt: bài lấy chỗ trống kế tiếp của group.',
+      review_none: 'Không có bài chờ duyệt. Agent viết bài mới trong lần chạy hằng ngày.',
+      to_group: 'Cho {g}', matched: 'Hợp tiêu chí:', text: 'Nội dung bài', sources_h: 'Viết từ {n} bài nguồn', open_src: 'Mở',
+      pic_alt: 'Ảnh cho: {t}', img_making: 'Đang làm ảnh…', img_no_credit: 'Hết credit để làm ảnh. Nạp thêm rồi bấm Ảnh mới.',
+      img_failed: 'Không làm được ảnh. Bấm Ảnh mới.',
+      approve: 'Duyệt', save_text: 'Lưu chữ', new_pic: 'Ảnh mới', skip: 'Bỏ qua', cancel: 'Rút khỏi lịch', open_post: 'Mở bài',
+      done_approve: 'Đã duyệt. Bài lên đúng giờ của nó.', done_save: 'Đã lưu.', done_image: 'Đang làm ảnh mới (1 credit).', done_skip: 'Đã bỏ qua.', done_cancel: 'Đã rút khỏi lịch.',
+      sched_h: 'Đã lên lịch và đã đăng',
+      why_account_blocked: 'Tạm dừng: Facebook đang chặn tài khoản đăng bài. Mọi cộng đồng và mọi đợt gửi đã dừng để bảo vệ tài khoản. Khi tài khoản đăng lại được, chọn Trạng thái: Đang chạy ở bên dưới.',
+      why_needs_chat: 'Tạm dừng: agent cần anh đồng ý trong khung chat của nó trước khi đăng. Trả lời ở đó, rồi chọn Trạng thái: Đang chạy ở bên dưới.',
+      c_scheduled: 'Đã lên lịch', c_claimed: 'Đang đăng', c_posted: 'Đã lên', c_pending_admin: 'Chờ admin group duyệt',
+      c_failed: 'Không đăng được', c_unknown: 'Chưa xác nhận', c_cancelled: 'Đã rút', c_skipped: 'Không đăng',
+      settings_h: 'Cài đặt', f_name: 'Tên', f_focus: 'Cộng đồng này nói về gì',
+      f_focus_h: 'Một hai câu. Agent chỉ giữ bài phục vụ đúng người đọc này.',
+      f_include: 'Giữ bài khi bài… (mỗi dòng một ý)', f_include_h: 'Ví dụ: một câu hỏi của người mua nhà lần đầu; một con số thị trường địa phương có nguồn; một câu chuyện giải quyết được vấn đề.',
+      f_exclude: 'Không bao giờ dùng bài… (mỗi dòng một ý)', f_exclude_h: 'Ví dụ: quảng cáo hay tin rao; chính trị; chuyện về một người cụ thể.',
+      f_keywords: 'Từ khoá (không bắt buộc, cách nhau dấu phẩy)', f_keywords_h: 'Từ khiến một bài đáng xem kỹ. Chỉ có từ khoá thì chưa đủ để bài hợp.',
+      f_language: 'Ngôn ngữ của bài', f_tone: 'Giọng văn (không bắt buộc)', f_tone_h: 'Ví dụ: ấm áp, ngắn, cuối bài có một câu hỏi.',
+      f_sources: 'Group agent đọc', f_sources_h: 'Các group có bài làm nguồn cho cộng đồng này. Agent chỉ đọc phần mới từ lần đọc trước.',
+      f_dests: 'Group anh quản lý', f_dests_h: 'Các group nhận bài mới. Một group không thể vừa là nguồn vừa là nơi đăng.',
+      g_members: '{n} thành viên', g_members_unknown: 'chưa biết số thành viên', g_add: 'Thêm group', g_add_btn: 'Thêm', g_add_ph: 'https://www.facebook.com/groups/…',
+      m_: 'Chưa kiểm tra', m_yes: 'Đã là thành viên', m_no: 'Chưa là thành viên', m_pending: 'Đang chờ duyệt vào',
+      f_ppd: 'bài mỗi ngày ở mỗi group, trong khoảng', f_from: 'từ', f_to: 'đến', f_hours: 'giờ', f_tz: 'Múi giờ', f_tz_h: 'Giờ ở trên tính theo múi giờ này, ví dụ Asia/Ho_Chi_Minh.',
+      f_buffer: 'Giữ sẵn', f_buffer2: 'ngày bài ở mỗi group', f_status: 'Trạng thái',
+      f_posts_per_day: 'Bài mỗi ngày', f_window_start: 'Từ', f_window_end: 'Đến', f_buffer_days: 'Số ngày giữ sẵn',
+      save: 'Lưu', saving: 'Đang lưu…', saved: 'Đã lưu.',
+      err: 'Có lỗi. Thử lại.', net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
+      unavailable: 'Cộng đồng đang tạm không dùng được. Thử lại sau vài phút.',
+      login_h: 'Đăng nhập để chạy cộng đồng', login_p: 'Dùng email tài khoản WideCast. Chúng tôi sẽ gửi mã 6 số.',
+      login_owner_only: 'Trang này dành cho chủ tài khoản. Đăng nhập bằng email WideCast của chủ tài khoản.',
+      email: 'Email', send_code: 'Gửi mã', sending_code: 'Đang gửi mã…', code_sent: 'Đã gửi mã 6 số đến', code_lbl: 'Mã 6 số',
+      verify: 'Xác nhận', verifying: 'Đang xác nhận…', change_email: 'Đổi email', bad_email: 'Nhập địa chỉ email hợp lệ.',
+      bad_code: 'Nhập mã 6 số.', send_failed: 'Không gửi được mã. Thử lại.', code_failed: 'Mã chưa đúng. Thử lại.',
+      private_note: 'Chỉ tài khoản WideCast của bạn xem được trang này.', loading: 'Đang tải…', retry_load: 'Thử lại'
+    }
+  };
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* storage blocked */ } }
+  let memSession = null;
+  function session() {
+    const tok = lsGet('google_auth_token') || '', mail = lsGet('google_auth_email') || '', cid = lsGet('company_id') || '';
+    if (tok && mail && cid) return { user_token: tok, user_email: mail, company_id: cid };
+    return memSession;
+  }
+  function storeSession(tok, mail, cid) {
+    const ok = [lsSet('google_auth_token', tok), lsSet('google_auth_email', mail), lsSet('google_auth_timestamp', Date.now().toString()), lsSet('company_id', cid)].every(Boolean);
+    lsDel('wc_client_simplified');
+    memSession = ok ? null : { user_token: tok, user_email: mail, company_id: cid };
+  }
+  const LANG = (() => { if (!LANG_SWITCH) return 'en'; const s = lsGet(LANG_KEY); return s === 'vi' ? 'vi' : 'en'; })();
+  document.documentElement.lang = LANG;
+  const locale = () => (LANG === 'vi' ? 'vi-VN' : 'en-US');
+  function t(key, vars) {
+    let s = I18N[LANG][key];
+    if (s == null) s = I18N.en[key];
+    if (s == null) return key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function tn(key, n) { return n === 1 && I18N[LANG][key + '_1'] ? t(key + '_1') : t(key, { n: fmtNum(n) }); }
+  function h(tag, attrs) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const k of Object.keys(attrs)) {
+        const v = attrs[k];
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'value') el.value = v;
+        else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+        else el.setAttribute(k, v === true ? '' : String(v));
+      }
+    }
+    for (let i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c == null || c === false) return;
+    if (Array.isArray(c)) { c.forEach((x) => add(el, x)); return; }
+    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  const str = (v) => (typeof v === 'string' ? v : '');
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const fmtNum = (n) => { try { return new Intl.NumberFormat(locale()).format(n); } catch (e) { return String(n); } };
+  function fmtDay(sec) {
+    const n = Number(sec);
+    if (!(n > 0)) return '';
+    try { return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(n * 1000)); } catch (e) { return new Date(n * 1000).toISOString().slice(0, 16); }
+  }
+  function fmtDate(iso) {
+    const d = new Date(str(iso) + 'T12:00:00Z');
+    if (!str(iso) || isNaN(d)) return str(iso);
+    try { return new Intl.DateTimeFormat(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d); } catch (e) { return str(iso); }
+  }
+  const mb = (b) => Math.round(num(b) / 1048576);
+  function fmtSize(b) { const n = num(b); return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  const spinner = () => h('span', { class: 'spin', 'aria-hidden': 'true' });
+  const live = document.getElementById('live');
+  function announce(msg) { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); }
+  let toastTimer = null;
+  function toast(msg) {
+    let el = document.querySelector('.toast');
+    if (!el) { el = h('div', { class: 'toast', role: 'status' }); document.body.appendChild(el); }
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  }
+
+  // ── API
+  function setHeader(headers, k, v) { if (v && /^[\x20-\x7e]*$/.test(v)) headers[k] = v; }
+  function authHeaders() {
+    const s = session(), headers = {};
+    if (s) {
+      setHeader(headers, 'X-WideCast-Company', s.company_id);
+      setHeader(headers, 'X-WideCast-User-Email', s.user_email);
+      setHeader(headers, 'X-WideCast-User-Token', s.user_token);
+    }
+    return headers;
+  }
+  function parse(r) {
+    return r.text().then((txt) => { let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = null; } return { status: r.status, ok: r.ok, data: data }; });
+  }
+  function api(path, body) {
+    const s = session();
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, authHeaders());
+    const payload = Object.assign({}, body || {});
+    if (s) { payload.company_id = s.company_id; payload.user_email = s.user_email; payload.user_token = s.user_token; }
+    return fetch(BASE + path, { method: 'POST', headers: headers, body: JSON.stringify(payload), cache: 'no-store', credentials: 'same-origin' }).then(parse);
+  }
+  function errOf(res) {
+    const d = (res && res.data) || {}, e = d.error;
+    if (e && typeof e === 'object') return { code: String(e.code || ''), message: String(e.message || ''), extra: e };
+    if (d.error_code) return { code: String(d.error_code), message: String(d.error_message || '') };
+    return { code: 'http_' + (res ? res.status : 0), message: '' };
+  }
+  function authFailed(res) {
+    if (res.status === 401) { if (errOf(res).code === 'owner_sign_in_required') S.ownerOnly = true; return true; }
+    const c = errOf(res).code.toUpperCase();
+    return c === 'AUTH_REQUIRED' || c === 'AUTH_INVALID';
+  }
+  function msgOf(res) {
+    if (!res) return t('net_err');
+    if (res.status === 503 && !errOf(res).message) return t('unavailable');
+    return errOf(res).message || t('err');
+  }
+  function checkUser(body) {
+    return fetch(BASE + '/check_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' }).then(parse);
+  }
+
+  // ── State
+  const S = {
+    mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [], groups: [],
+    list: [], limits: {}, defaults: {}, pageErr: '', view: 'list', cm: null, form: null, busy: '', err: '', ownerOnly: false,
+    want: CM_RE.test(str(Q0.get('community'))) ? Q0.get('community') : '', edits: {}, addUrl: '', addFor: '',
+    login: { step: 1, email: '', code: '', busy: false, err: '' }
+  };
+  const app = document.getElementById('app');
+  const foot = document.getElementById('foot');
+  let pollTimer = null;
+  const browserTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })();
+
+  function syncUrl() {
+    const p = new URLSearchParams(location.search);
+    if (S.client) p.set('client', S.client); else p.delete('client');
+    if (S.view === 'edit' && S.cm && S.cm.id) p.set('community', S.cm.id); else p.delete('community');
+    const qs = p.toString();
+    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+    ['nav-approve', 'nav-crm'].forEach((id) => {
+      const a = document.getElementById(id);
+      const keep = new URLSearchParams();
+      if (S.client) keep.set('client', S.client);
+      if (DEV) keep.set('dev', '1');
+      if (API_ORIGIN) keep.set('api', API_ORIGIN);
+      a.href = a.getAttribute('href').split('?')[0] + (keep.toString() ? '?' + keep.toString() : '');
+    });
+  }
+  function applyState(d) {
+    S.clients = arr(d.clients); S.client = str(d.client); S.groups = arr(d.groups); S.list = arr(d.communities);
+    S.limits = d.limits || {}; S.defaults = d.defaults || {};
+    syncUrl();
+  }
+  function load() {
+    if (!session()) { showLogin(); return; }
+    api('/solo/communities/state', S.client ? { client: S.client } : {}).then((res) => {
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.mode = 'error'; S.pageErr = msgOf(res); render(); return; }
+      applyState(res.data);
+      S.mode = 'view';
+      if (S.want) { const id = S.want; S.want = ''; openCm(id); return; }
+      render();
+    }).catch(() => { S.mode = 'error'; S.pageErr = t('net_err'); render(); });
+  }
+  function refreshState() {
+    return api('/solo/communities/state', { client: S.client }).then((res) => { if (res.ok && res.data) applyState(res.data); });
+  }
+
+  // ── Sign-in (the same flow as broadcast.html)
+  function showLogin() {
+    const s = session();
+    S.mode = 'login';
+    S.login = { step: 1, email: S.ownerOnly ? '' : (S.login.email || (s && s.user_email) || ''), code: '', busy: false, err: '' };
+    render();
+  }
+  function sendCode() {
+    const L = S.login;
+    const email = String(L.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { L.err = t('bad_email'); render(); return; }
+    L.email = email; L.busy = true; L.err = ''; render();
+    checkUser({ email: email, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) { L.step = 2; L.code = ''; }
+      else L.err = (res.data && res.data.error_message) || t('send_failed');
+      render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function verifyCode() {
+    const L = S.login;
+    if (!/^\d{6}$/.test(L.code)) { L.err = t('bad_code'); render(); return; }
+    L.busy = true; L.err = ''; render();
+    checkUser({ email: L.email, passcode: L.code, user_location: '' }).then((res) => {
+      L.busy = false;
+      if (res.status === 200 && res.data && res.data.success) {
+        const d = res.data;
+        storeSession(String(d.user_token || ''), String(d.user_email || d.email || L.email), String(d.company_id || ''));
+        S.ownerOnly = false; S.mode = 'loading'; render(); load(); return;
+      }
+      L.err = (res.data && res.data.error_message) || t('code_failed'); L.code = ''; render();
+    }).catch(() => { L.busy = false; L.err = t('net_err'); render(); });
+  }
+  function loginView() {
+    const L = S.login;
+    const box = h('section', { class: 'card login stack', 'aria-labelledby': 'lh' },
+      h('div', null, h('h1', { class: 'pg', id: 'lh', text: t('login_h') }), h('p', { class: 'sub', text: S.ownerOnly ? t('login_owner_only') : t('login_p') })));
+    const form = h('form', { novalidate: true, onsubmit: (e) => { e.preventDefault(); if (L.step === 1) sendCode(); else verifyCode(); } });
+    if (L.step === 1) {
+      form.appendChild(h('label', { class: 'lbl', for: 'l-email', text: t('email') }));
+      form.appendChild(h('input', { id: 'l-email', class: 'field', type: 'email', autocomplete: 'email', inputmode: 'email', value: L.email, oninput: (e) => { L.email = e.target.value; } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('sending_code')] : t('send_code')));
+    } else {
+      form.appendChild(h('p', { class: 'small' }, t('code_sent') + ' ', h('b', { text: L.email })));
+      form.appendChild(h('label', { class: 'lbl', for: 'l-code', text: t('code_lbl') }));
+      form.appendChild(h('input', { id: 'l-code', class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', value: L.code, oninput: (e) => { L.code = e.target.value.replace(/\D/g, '').slice(0, 6); } }));
+      form.appendChild(h('button', { class: 'btn pri wide', type: 'submit', disabled: L.busy, style: 'margin-top:14px' }, L.busy ? [spinner(), t('verifying')] : t('verify')));
+      form.appendChild(h('button', { class: 'btn ghost wide', type: 'button', onclick: () => { L.step = 1; L.err = ''; render(); } }, t('change_email')));
+    }
+    if (L.err) form.appendChild(h('p', { class: 'err', role: 'alert', text: L.err }));
+    box.appendChild(form);
+    box.appendChild(h('p', { class: 'small', text: t('private_note') }));
+    return box;
+  }
+
+
+  // ── The Reach row (Email broadcast, Post broadcast, Communities), as on the other two pages
+  function reachRow() {
+    const q = S.client ? '?client=' + encodeURIComponent(S.client) : '';
+    return h('nav', { class: 'reach', 'aria-label': t('reach') },
+      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm']].map((x) =>
+        h('a', { class: 'chip' + (x[0] === 'communities.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'communities.html' ? 'page' : null, text: t(x[1]) })));
+  }
+  const groupName = (g) => str(g.name) || str(g.key);
+  const gByKey = (k) => S.groups.filter((g) => g.key === k)[0] || { key: k, name: '', member: '' };
+  function clientPicker() {
+    if (S.clients.length < 2) return null;
+    return h('div', null, h('label', { class: 'lbl', for: 'cl', text: t('client') }),
+      h('select', { id: 'cl', class: 'field', onchange: (e) => { S.client = e.target.value; S.view = 'list'; S.cm = null; stopPoll(); S.mode = 'loading'; render(); load(); } },
+        S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
+  }
+  function destLine(d) {
+    return h('div', { class: 'grp' }, h('div', { class: 'n' }, h('b', null, h('a', { href: str(d.url), target: '_blank', rel: 'noopener', text: str(d.name) || str(d.key) })),
+      h('span', { class: 'small', text: t('dest_line', { w: fmtNum(num(d.waiting)), q: fmtNum(num(d.queued)), p: fmtNum(num(d.posted)), d: String(num(d.buffer_days)) }) })),
+      d.low ? h('span', { class: 'pill no', text: t('low') }) : h('span', { class: 'pill sent', text: t('ok_buffer') }));
+  }
+  function listView() {
+    return h('div', { class: 'stack' }, reachRow(),
+      h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
+        h('button', { class: 'btn pri', type: 'button', onclick: newCm }, t('new_cm'))),
+      clientPicker(),
+      S.list.length ? h('ul', { class: 'list' }, S.list.map((c) => h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openCm(c.id) },
+        h('div', { class: 'row sp' }, h('span', { class: 't', text: str(c.name) }),
+          num(c.waiting) ? h('span', { class: 'pill wait', text: t('n_waiting', { n: fmtNum(num(c.waiting)) }) }) : h('span', { class: c.status === 'active' ? 'pill sent' : 'pill', text: t('st_' + str(c.status)) })),
+        h('span', { class: 'm', text: str(c.focus).slice(0, 140) }),
+        arr(c.destinations).map((d) => h('span', { class: 'm' + (d.low ? ' warnm' : ''), text: (str(d.name) || str(d.key)) + ' · ' + t('dest_line', { w: fmtNum(num(d.waiting)), q: fmtNum(num(d.queued)), p: fmtNum(num(d.posted)), d: String(num(d.buffer_days)) }) }))))))
+        : h('section', { class: 'card' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') })));
+  }
+
+  // ── A community: its drafts to review, its schedule, its settings
+  function blankForm() {
+    const d = S.defaults || {};
+    return { id: '', name: '', focus: '', include: '', exclude: '', keywords: '', language: str(d.language) || 'en', tone: '',
+      sources: [], destinations: [], posts_per_day: num(d.posts_per_day) || 1, window_start: num(d.window_start) || 8,
+      window_end: num(d.window_end) || 21, tz: browserTz || str(d.tz), buffer_days: num(d.buffer_days) || 5, status: 'active' };
+  }
+  function formOf(c) {
+    return { id: c.id, name: str(c.name), focus: str(c.focus), include: arr(c.include).join('\n'), exclude: arr(c.exclude).join('\n'),
+      keywords: arr(c.keywords).join(', '), language: str(c.language) || 'en', tone: str(c.tone),
+      sources: arr(c.sources).map((g) => g.key), destinations: arr(c.destinations).map((g) => g.key),
+      posts_per_day: num(c.posts_per_day) || 1, window_start: num(c.window_start), window_end: num(c.window_end) || 21,
+      tz: str(c.tz), buffer_days: num(c.buffer_days) || 5, status: str(c.status) || 'active' };
+  }
+  function newCm() { stopPoll(); S.cm = null; S.form = blankForm(); S.view = 'edit'; S.err = ''; render(); syncUrl(); }
+  function openCm(id) {
+    stopPoll();
+    S.busy = 'open'; render();
+    api('/solo/communities/get', { client: S.client, id: id }).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.view = 'list'; render(); toast(msgOf(res)); return; }
+      S.cm = res.data; S.form = formOf(res.data); S.edits = {}; S.view = 'edit'; S.err = '';
+      render(); syncUrl(); maybePoll();
+    }).catch(() => { S.busy = ''; render(); toast(t('net_err')); });
+  }
+  function reloadCm() {
+    if (!S.cm || !S.cm.id) return Promise.resolve();
+    return api('/solo/communities/get', { client: S.client, id: S.cm.id }).then((res) => { if (res.ok && res.data && S.cm && S.cm.id === res.data.id) S.cm = res.data; });
+  }
+  function maybePoll() {
+    const busy = S.cm && arr(S.cm.drafts).some((d) => d.image_state === 'making');
+    if (!busy) { stopPoll(); return; }
+    if (pollTimer) return;
+    // Only the pictures and their buttons change in place: a text being typed is never redrawn.
+    pollTimer = setInterval(() => { if (document.hidden) return; reloadCm().then(() => { patchPictures(); if (!arr(S.cm && S.cm.drafts).some((d) => d.image_state === 'making')) stopPoll(); }); }, POLL_MS);
+  }
+  function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+  function patchPictures() {
+    arr(S.cm && S.cm.drafts).forEach((d) => {
+      const pic = document.getElementById('pic-' + d.id), busy = S.busy === 'd:' + d.id;
+      if (pic && pic.getAttribute('data-st') !== d.image_state) pic.replaceWith(imageBox(d));
+      const ap = document.getElementById('ap-' + d.id), np = document.getElementById('np-' + d.id);
+      if (ap) ap.disabled = busy || d.image_state !== 'ready';
+      if (np) np.disabled = busy || d.image_state === 'making';
+    });
+  }
+  const lines = (v) => str(v).split('\n').map((x) => x.trim()).filter(Boolean);
+  function saveForm() {
+    const f = S.form;
+    const body = { client: S.client, name: f.name, focus: f.focus, include: lines(f.include), exclude: lines(f.exclude),
+      keywords: str(f.keywords).split(/[,\n]/).map((x) => x.trim()).filter(Boolean), language: f.language, tone: f.tone,
+      sources: f.sources.slice(), destinations: f.destinations.slice(), posts_per_day: f.posts_per_day, window_start: f.window_start,
+      window_end: f.window_end, tz: f.tz, buffer_days: f.buffer_days, status: f.status };
+    if (f.id) body.id = f.id;
+    S.busy = 'save'; S.err = ''; render();
+    api('/solo/communities/save', body).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { S.err = msgOf(res); render(); return; }
+      toast(t('saved'));
+      return refreshState().then(() => openCm(res.data.id));
+    }).catch(() => { S.busy = ''; S.err = t('net_err'); render(); });
+  }
+  function decide(d, action, extra) {
+    const body = Object.assign({ client: S.client, id: d.id, action: action }, extra || {});
+    S.busy = 'd:' + d.id; render();
+    api('/solo/communities/draft', body).then((res) => {
+      S.busy = '';
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok) { toast(msgOf(res)); render(); return; }
+      delete S.edits[d.id];
+      toast(t('done_' + action));
+      reloadCm().then(() => { render(); maybePoll(); });
+    }).catch(() => { S.busy = ''; toast(t('net_err')); render(); });
+  }
+  function boxText(d) { const el = document.getElementById('t-' + d.id); return el ? el.value : (S.edits[d.id] != null ? S.edits[d.id] : str(d.text)); }
+  function imageBox(d) {
+    if (d.image_state === 'ready' && d.image_url) return h('img', { class: 'pic', id: 'pic-' + d.id, 'data-st': 'ready', src: d.image_url, alt: t('pic_alt', { t: str(d.topic) }), loading: 'lazy' });
+    const why = d.image_state === 'making' ? t('img_making') : d.image_state === 'no_credit' ? t('img_no_credit') : t('img_failed');
+    return h('div', { class: 'pic empty', id: 'pic-' + d.id, 'data-st': str(d.image_state), role: 'status' }, d.image_state === 'making' ? [spinner(), ' ', why] : why);
+  }
+  function draftCard(d) {
+    const dest = gByKey(d.destination), busy = S.busy === 'd:' + d.id;
+    const text = S.edits[d.id] != null ? S.edits[d.id] : str(d.text);
+    return h('li', { class: 'card dr' },
+      h('div', { class: 'row sp' }, h('b', { text: str(d.topic) }), h('span', { class: 'small', text: t('to_group', { g: groupName(dest) }) })),
+      d.criterion ? h('p', { class: 'small' }, t('matched') + ' ', h('span', { class: 'chip', text: str(d.criterion) })) : null,
+      h('div', { class: 'drw' }, imageBox(d),
+        h('div', { class: 'drt' }, h('label', { class: 'sr-only', for: 't-' + d.id, text: t('text') }),
+          h('textarea', { id: 't-' + d.id, class: 'field', value: text, oninput: (e) => { S.edits[d.id] = e.target.value; } }))),
+      arr(d.sources).length ? h('details', { class: 'small' }, h('summary', { text: t('sources_h', { n: arr(d.sources).length }) }),
+        h('ul', { class: 'srcs' }, arr(d.sources).map((s) => h('li', null, str(s.summary) + ' ', h('a', { href: str(s.url), target: '_blank', rel: 'noopener', text: t('open_src') }))))) : null,
+      h('div', { class: 'row', style: 'margin-top:10px' },
+        h('button', { class: 'btn pri sm', type: 'button', id: 'ap-' + d.id, disabled: busy || d.image_state !== 'ready', onclick: () => decide(d, 'approve', { text: boxText(d) }) }, busy ? spinner() : t('approve')),
+        h('button', { class: 'btn sm', type: 'button', disabled: busy, onclick: () => decide(d, 'save', { text: boxText(d) }) }, t('save_text')),
+        h('button', { class: 'btn sm', type: 'button', id: 'np-' + d.id, disabled: busy || d.image_state === 'making', onclick: () => decide(d, 'image') }, t('new_pic')),
+        h('button', { class: 'btn sm ghost danger', type: 'button', disabled: busy, onclick: () => decide(d, 'skip') }, t('skip'))));
+  }
+  function copyPill(st) {
+    const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : 'pill wait';
+    return h('span', { class: cls, text: t('c_' + (st || 'scheduled')) });
+  }
+  function groupPicker(field, label, hint) {
+    const f = S.form, other = field === 'sources' ? f.destinations : f.sources;
+    const toggle = (k) => (e) => { const a = f[field], i = a.indexOf(k); if (e.target.checked && i < 0) a.push(k); if (!e.target.checked && i >= 0) a.splice(i, 1); render(); };
+    const addLink = (ev) => {
+      ev.preventDefault();
+      const u = str(S.addFor === field ? S.addUrl : '').trim();
+      if (!u) return;
+      api('/solo/groupposts/groups/add', { client: S.client, url: u }).then((res) => {
+        if (!res.ok || !res.data) { toast(msgOf(res)); return; }
+        S.addUrl = ''; S.addFor = '';
+        if (f[field].indexOf(res.data.key) < 0) f[field].push(res.data.key);
+        refreshState().then(render);
+      }).catch(() => toast(t('net_err')));
+    };
+    return h('div', null, h('label', { class: 'lbl', text: label }), h('p', { class: 'small', text: hint }),
+      h('div', { class: 'chks' }, S.groups.filter((g) => other.indexOf(g.key) < 0).map((g) => h('label', { class: 'chk' },
+        h('input', { type: 'checkbox', checked: f[field].indexOf(g.key) >= 0, onchange: toggle(g.key) }),
+        h('span', { style: 'flex:1 1 auto;min-width:0' }, h('span', { class: 't', text: groupName(g) }), h('br'),
+          h('span', { class: 'm', text: (g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')) + ' · ' + t('m_' + str(g.member)) }))))),
+      h('form', { class: 'row', style: 'margin-top:8px', onsubmit: addLink },
+        h('input', { class: 'field', type: 'url', placeholder: t('g_add_ph'), 'aria-label': t('g_add') + ' · ' + label, value: S.addFor === field ? S.addUrl : '',
+          style: 'flex:1 1 240px', oninput: (e) => { S.addUrl = e.target.value; S.addFor = field; } }),
+        h('button', { class: 'btn sm', type: 'submit' }, t('g_add_btn'))));
+  }
+  function settingsCard() {
+    const f = S.form;
+    const fld = (k, label, attrs) => h('div', null, h('label', { class: 'lbl', for: 'f-' + k, text: label }),
+      h(attrs && attrs.area ? 'textarea' : 'input', Object.assign({ id: 'f-' + k, class: 'field', value: str(f[k] == null ? '' : String(f[k])), oninput: (e) => { f[k] = e.target.value; } }, attrs && attrs.area ? { rows: attrs.rows || 4, style: 'min-height:' + (attrs.min || 110) + 'px' } : { type: 'text' })),
+      attrs && attrs.hint ? h('p', { class: 'small', style: 'margin-top:4px', text: attrs.hint }) : null);
+    const numBox = (k, lo, hi) => h('input', { class: 'field', type: 'number', inputmode: 'numeric', min: String(lo), max: String(hi), value: String(f[k]), 'aria-label': t('f_' + k), oninput: (e) => { f[k] = parseInt(e.target.value, 10) || lo; } });
+    return h('section', { class: 'card', id: 'settings' }, h('h2', { text: f.id ? t('settings_h') : t('new_cm') }),
+      fld('name', t('f_name')),
+      fld('focus', t('f_focus'), { area: true, hint: t('f_focus_h') }),
+      fld('include', t('f_include'), { area: true, min: 140, hint: t('f_include_h') }),
+      fld('exclude', t('f_exclude'), { area: true, hint: t('f_exclude_h') }),
+      fld('keywords', t('f_keywords'), { hint: t('f_keywords_h') }),
+      h('div', null, h('label', { class: 'lbl', for: 'f-language', text: t('f_language') }),
+        h('select', { id: 'f-language', class: 'field', style: 'max-width:220px', onchange: (e) => { f.language = e.target.value; } },
+          [['en', 'English'], ['vi', 'Tiếng Việt']].map((x) => h('option', { value: x[0], selected: f.language === x[0], text: x[1] })))),
+      fld('tone', t('f_tone'), { area: true, min: 70, hint: t('f_tone_h') }),
+      groupPicker('sources', t('f_sources'), t('f_sources_h')),
+      groupPicker('destinations', t('f_dests'), t('f_dests_h')),
+      h('div', { class: 'caps', style: 'margin-top:14px' }, numBox('posts_per_day', 1, 5), t('f_ppd'), t('f_from'), numBox('window_start', 0, 23), t('f_to'), numBox('window_end', 1, 24), t('f_hours')),
+      fld('tz', t('f_tz'), { hint: t('f_tz_h') }),
+      h('div', { class: 'caps', style: 'margin-top:10px' }, t('f_buffer'), numBox('buffer_days', 2, 14), t('f_buffer2')),
+      f.id ? h('div', null, h('label', { class: 'lbl', for: 'f-status', text: t('f_status') }),
+        h('select', { id: 'f-status', class: 'field', style: 'max-width:220px', onchange: (e) => { f.status = e.target.value; } },
+          ['active', 'paused', 'archived'].map((x) => h('option', { value: x, selected: f.status === x, text: t('st_' + x) })))) : null,
+      S.err ? h('p', { class: 'err', role: 'alert', text: S.err }) : null,
+      h('div', { class: 'row', style: 'margin-top:16px' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'save', onclick: saveForm }, S.busy === 'save' ? [spinner(), t('saving')] : t('save'))));
+  }
+  function editView() {
+    const c = S.cm;
+    const back = h('div', null, h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { stopPoll(); S.view = 'list'; S.cm = null; refreshState().then(render); syncUrl(); } }, '← ' + t('back')));
+    if (!c) return h('div', { class: 'stack' }, reachRow(), back, settingsCard());
+    const drafts = arr(c.drafts);
+    const waiting = drafts.filter((d) => d.state === 'awaiting_review');
+    const sched = drafts.filter((d) => d.state === 'approved').sort((a, b) => num(a.due_at) - num(b.due_at));
+    return h('div', { class: 'stack' }, reachRow(), back,
+      h('div', null, h('h1', { class: 'pg', text: str(c.name) }), h('p', { class: 'sub', text: str(c.focus) })),
+      c.status === 'paused' && c.paused_reason ? h('div', { class: 'note bad', role: 'status', text: t('why_' + str(c.paused_reason)) }) : null,
+      h('section', { class: 'card' }, h('h2', { text: t('dests_h') }), h('div', { class: 'stack', style: 'margin-top:10px;gap:8px' }, arr(c.destinations).map(destLine)),
+        arr(c.destinations).some((d) => d.low) ? h('div', { class: 'note warn', style: 'margin-top:10px', text: t('low_note') }) : null),
+      h('section', null, h('h2', { class: 'h2', text: t('review_h', { n: fmtNum(waiting.length) }) }),
+        h('p', { class: 'small', text: t('review_p') }),
+        waiting.length ? h('ul', { class: 'list', style: 'margin-top:10px' }, waiting.map(draftCard)) : h('p', { class: 'small', style: 'margin-top:8px', text: t('review_none') })),
+      sched.length ? h('section', { class: 'card' }, h('h2', { text: t('sched_h') }),
+        h('ul', { class: 'list', style: 'margin-top:10px' }, sched.map((d) => h('li', { class: 'grp' },
+          d.image_url ? h('img', { class: 'thumb', src: d.image_url, alt: '' }) : null,
+          h('div', { class: 'n' }, h('b', { text: str(d.topic) }), h('span', { class: 'small', text: groupName(gByKey(d.destination)) + ' · ' + fmtDay(d.due_at) })),
+          copyPill(d.copy_state),
+          d.post_url ? h('a', { href: d.post_url, target: '_blank', rel: 'noopener', text: t('open_post') }) :
+            d.copy_state === 'scheduled' ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => decide(d, 'cancel') }, t('cancel')) : null)))) : null,
+      settingsCard());
+  }
+
+  function render() {
+    app.textContent = '';
+    if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
+    else if (S.mode === 'login') app.appendChild(loginView());
+    else if (S.mode === 'error') app.appendChild(h('div', { class: 'note bad stack', role: 'alert' }, h('p', { text: S.pageErr || t('err') }), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => { S.mode = 'loading'; render(); load(); } }, t('retry_load')))));
+    else app.appendChild(S.view === 'edit' ? editView() : listView());
+    foot.textContent = '';
+    const s = session();
+    if (s && S.mode === 'view') foot.appendChild(h('span', { text: s.user_email }));
+  }
+  render();
+  load();
+})();
+</script>
+</body>
+</html>

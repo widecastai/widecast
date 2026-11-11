@@ -94,6 +94,7 @@ button,input,select{font:inherit;color:inherit}
 .stp-back .ic{width:14px;height:14px}
 .stp-cl{display:inline-block;max-width:14ch;padding:0 8px;border:1px solid var(--line-2);border-radius:999px;background:var(--s1);color:var(--tx-hi);font-size:.75rem;font-weight:600;line-height:18px;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stp-asset{margin-top:22px}
+.stp-reach{margin-top:10px}
 .stp-asset .stp-b{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 14px}
 .stp-asset .stp-top{justify-content:flex-start;gap:8px}
 .stp-asset .stp-line{flex:1 1 220px;-webkit-line-clamp:2;line-clamp:2}
@@ -311,6 +312,13 @@ main{flex:1;padding:28px 0 56px;outline:none}
 .mg-ok{border-color:#3aa76d;color:#2f8f5c}
 .mg-lang{font-size:.7rem;text-transform:uppercase;padding:1px 7px;margin-left:4px;vertical-align:2px}
 .mg-title{font-weight:600;font-size:1.02rem;overflow-wrap:anywhere}
+.mg-thead{display:flex;align-items:flex-start;justify-content:space-between;gap:4px 10px}
+.mg-thead .mg-title{flex:1;min-width:0;padding-top:12px}
+.mg-ren{flex:none;font-size:.875rem;padding:0 4px}
+.mg-renf{margin-bottom:8px}
+.mg-renf label{display:block;font-weight:600;font-size:.875rem;color:var(--tx-hi);margin-bottom:6px}
+.mg-ren-row{display:flex;flex-wrap:wrap;gap:8px}
+.mg-ren-row .inp{flex:1 1 240px;width:auto;min-width:0}
 .mg-meta{font-size:.8rem;color:var(--tx-3,#888);margin-top:2px;overflow-wrap:anywhere}
 .mg-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 8px}
 .mg-num b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
@@ -384,7 +392,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
   const I18N = {
     en: {
       doc_title: 'Your lead magnets', skip: 'Skip to your lead magnets', brand_home: 'WideCast home', lang_group: 'Language',
-      stp_main: 'Main', stp_mini: 'Main, compact', stp_crm: 'CRM', stp_library: 'Library', stp_magnets: 'Lead magnets', stp_again: 'Repeats every day', stp_for: 'for', stp_att: '{l}, {n} waiting for you',
+      stp_main: 'Main', stp_mini: 'Main, compact', stp_crm: 'CRM', stp_library: 'Library', stp_magnets: 'Lead magnets', stp_reach: 'Reach', stp_email: 'Email broadcast', stp_posts: 'Post broadcast', stp_communities: 'Communities', stp_again: 'Repeats every day', stp_for: 'for', stp_att: '{l}, {n} waiting for you',
       stp_scan: 'Scan', stp_report: 'Report', stp_approve: 'Approve', stp_publish: 'Publish', stp_results: 'Results', stp_assets: 'CRM & Library',
       stp_n_scan: 'Agents ready: {n}', stp_n_report: 'Ideas and people in your newest report: {n}', stp_n_approve: 'Waiting for you: {n}',
       stp_n_publish: 'Being made now: {n}', stp_n_results: 'Results this week: {n}', stp_n_assets: 'New leads this week: {n}',
@@ -420,11 +428,14 @@ main{flex:1;padding:28px 0 56px;outline:none}
       emb_make: 'Make the line', emb_making: 'Making the line…', emb_line: 'Your line', emb_copy: 'Copy', emb_copied: 'Copied',
       emb_how: 'Paste it once into each page with a form, just before </body>.', emb_again: 'Make another line', emb_cancel: 'Cancel',
       emb_err: 'The line could not be made. Try again.', emb_ready: 'Your line is ready. Copy it into your page.',
-      emb_for: 'For: {d}', emb_mail_on: 'Each person gets a confirmation email in {l}.', emb_mail_off: 'No email is sent; the leads still reach the CRM.'
+      emb_for: 'For: {d}', emb_mail_on: 'Each person gets a confirmation email in {l}.', emb_mail_off: 'No email is sent; the leads still reach the CRM.',
+      ren: 'Rename', ren_aria: 'Rename {t}', ren_lbl: 'Title', ren_hint: 'Shown here, in the CRM and in email broadcast. Leave it empty to go back to the page\'s own title.',
+      ren_save: 'Save', ren_saving: 'Saving the title…', ren_cancel: 'Cancel', ren_saved: 'Title saved.',
+      ren_err: 'The title could not be saved. Try again.', ren_long: 'The title is at most 120 characters.', ren_gone: 'This lead magnet is no longer here. Reload the page.'
     },
     vi: {
       doc_title: 'Lead magnet của bạn', skip: 'Đến danh sách lead magnet', brand_home: 'Trang chủ WideCast', lang_group: 'Ngôn ngữ',
-      stp_main: 'Chính', stp_mini: 'Chính, thu gọn', stp_crm: 'CRM', stp_library: 'Thư viện', stp_magnets: 'Lead magnets', stp_again: 'Lặp lại mỗi ngày', stp_for: 'cho', stp_att: '{l}, {n} việc đang chờ bạn',
+      stp_main: 'Chính', stp_mini: 'Chính, thu gọn', stp_crm: 'CRM', stp_library: 'Thư viện', stp_magnets: 'Lead magnets', stp_reach: 'Lan toả', stp_email: 'Email broadcast', stp_posts: 'Post broadcast', stp_communities: 'Cộng đồng', stp_again: 'Lặp lại mỗi ngày', stp_for: 'cho', stp_att: '{l}, {n} việc đang chờ bạn',
       stp_scan: 'Quét', stp_report: 'Báo cáo', stp_approve: 'Duyệt', stp_publish: 'Đăng', stp_results: 'Kết quả', stp_assets: 'CRM & Thư viện',
       stp_n_scan: 'Agent sẵn sàng: {n}', stp_n_report: 'Ý tưởng và người trong báo cáo mới nhất: {n}', stp_n_approve: 'Đang chờ bạn: {n}',
       stp_n_publish: 'Đang được làm: {n}', stp_n_results: 'Kết quả tuần này: {n}', stp_n_assets: 'Khách tiềm năng mới tuần này: {n}',
@@ -460,7 +471,10 @@ main{flex:1;padding:28px 0 56px;outline:none}
       emb_make: 'Tạo dòng', emb_making: 'Đang tạo dòng…', emb_line: 'Dòng của bạn', emb_copy: 'Sao chép', emb_copied: 'Đã sao chép',
       emb_how: 'Dán một lần vào mỗi trang có form, ngay trước </body>.', emb_again: 'Tạo dòng khác', emb_cancel: 'Huỷ',
       emb_err: 'Chưa tạo được dòng. Vui lòng thử lại.', emb_ready: 'Dòng đã sẵn sàng. Hãy sao chép vào trang.',
-      emb_for: 'Dùng cho: {d}', emb_mail_on: 'Mỗi người nhận một email xác nhận bằng {l}.', emb_mail_off: 'Không gửi email nào; lead vẫn vào CRM.'
+      emb_for: 'Dùng cho: {d}', emb_mail_on: 'Mỗi người nhận một email xác nhận bằng {l}.', emb_mail_off: 'Không gửi email nào; lead vẫn vào CRM.',
+      ren: 'Đổi tên', ren_aria: 'Đổi tên {t}', ren_lbl: 'Tên', ren_hint: 'Hiện ở đây, trong CRM và Email broadcast. Để trống để dùng lại tên của trang.',
+      ren_save: 'Lưu', ren_saving: 'Đang lưu tên…', ren_cancel: 'Huỷ', ren_saved: 'Đã lưu tên.',
+      ren_err: 'Không lưu được tên. Hãy thử lại.', ren_long: 'Tên dài tối đa 120 ký tự.', ren_gone: 'Lead magnet này không còn ở đây. Hãy tải lại trang.'
     }
   };
 
@@ -624,7 +638,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
     data: null, clients: [], busy: false, pageErr: '',
     login: { step: 1, email: '', code: '', busy: false, err: '', note: '', expired: false, focus: false },
     ownerOnly: false, seq: 0,
-    emb: null                 // the embed line card (2026-11-02): {open, sites, name, confirm, busy, err, line, copied}
+    emb: null,                // the embed line card (2026-11-02): {open, sites, name, confirm, busy, err, line, copied}
+    ren: null, after: null    // the card being renamed (2026-11-11): {id, value, busy, err}; after: run once the list is back
   };
   const app = document.getElementById('app');
   const foot = document.getElementById('foot');
@@ -657,7 +672,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
       if (!S.client && CLIENT_RE.test(str(d.client))) { S.client = str(d.client); syncUrl(); }
       S.mode = 'view';
       render();
-      announce(t('h1') + ': ' + fmtNum(arr(d.magnets).length));
+      if (S.after) { const f = S.after; S.after = null; f(); }
+      else announce(t('h1') + ': ' + fmtNum(arr(d.magnets).length));
     }).catch(() => {
       if (seq !== S.seq) return;
       S.busy = false; S.mode = 'error'; S.pageErr = ''; render();
@@ -667,6 +683,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
     if (!CLIENT_RE.test(c || '') || c === S.client) return;
     S.client = c;
     S.emb = null;                                    // a line belongs to one client
+    S.ren = null; S.after = null;
     syncUrl();
     load();
   }
@@ -728,10 +745,11 @@ main{flex:1;padding:28px 0 56px;outline:none}
   // first. Once the band has gone up under the header, the header shows the six steps as a slim row of chips.
   // Drawn again only when its data, the client or the language changes.
   const STP_KEYS = ['scan', 'report', 'approve', 'publish', 'results', 'assets'];
-  const STP_PAGES = ['/report.html', '/approve.html', '/nodes.html', '/crmstore.html', '/content-library.html', '/magnets.html'];
+  const STP_PAGES = ['/report.html', '/approve.html', '/nodes.html', '/crmstore.html', '/content-library.html', '/magnets.html', '/broadcast.html', '/group-broadcast.html', '/communities.html'];
   // each step's own page (its link without an answer); CRM & Library opens two: the CRM and the library
   const STP_PATH = { scan: '/nodes.html', report: '/report.html', approve: '/approve.html', publish: '/approve.html',
-    results: '/content-library.html', crm: '/crmstore.html', library: '/content-library.html', magnets: '/magnets.html' };
+    results: '/content-library.html', crm: '/crmstore.html', library: '/content-library.html', magnets: '/magnets.html',
+    email: '/broadcast.html', posts: '/group-broadcast.html', communities: '/communities.html' };
   const STP_HERE = 'magnets';  // this page's own link (Lead magnets, in CRM & Library): lit, aria-current="page"
   const stpEl = document.getElementById('stp');          // the band (the main navigation landmark)
   const stpBox = stpEl && stpEl.querySelector('.stp');
@@ -779,7 +797,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
   // two links of CRM & Library; key: the block's own, or 'crm' / 'library' for those two.
   function stpItem(b, st, cl, kind, key) {
     const k = key || b.key;
-    const side = k === 'library' || k === 'magnets';     // the box's own pages: no number, no alert of their own
+    const side = k === 'library' || k === 'magnets' || STP_REACH.indexOf(k) >= 0;     // the box's own pages: no number, no alert of their own
     const att = !side && stpAtt(b);
     const cur = k === STP_HERE;
     const tgt = (att && stpTarget(st.highlight_link)) || stpLink(k, side ? '' : b.link, cl);
@@ -801,6 +819,15 @@ main{flex:1;padding:28px 0 56px;outline:none}
       att ? stpRed(n, digits) : null);
   }
   // CRM & Library on the wide layout: its count and line, and two real links, the CRM and the library.
+  // Reach (2026-11-11): one email or one post to many, and the Boss's own groups fed every day: three links.
+  const STP_REACH = ['email', 'posts', 'communities'];
+  const STP_REACH_B = { key: 'reach', badge: null, line: '', empty_line: '', link: '', attention: false };
+  function stpReach(st, cl) {
+    const cur = STP_REACH.indexOf(STP_HERE) >= 0;
+    return h('div', { class: 'stp-b stp-box' + (cur ? ' stp-cur' : ''), role: 'group', 'aria-label': t('stp_reach'), 'data-stp': 'w:reach' },
+      h('span', { class: 'stp-top', 'aria-hidden': 'true' }, h('span', { class: 'stp-lbl', text: t('stp_reach') })),
+      h('span', { class: 'stp-links' }, STP_REACH.map((k) => stpItem(STP_REACH_B, st, cl, 'l', k))));
+  }
   function stpAssets(b, st, cl) {
     const att = stpAtt(b);
     const n = stpNumOf(b);
@@ -864,6 +891,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
     blocks.filter((b) => stpAtt(b)).concat(blocks.filter((b) => !stpAtt(b))).forEach((b) => {
       (b.key === 'assets' ? ['crm', 'library', 'magnets'] : [b.key]).forEach((k) => chips.appendChild(h('li', null, stpItem(b, st, cl, 'c', k))));
     });
+    STP_REACH.forEach((k) => chips.appendChild(h('li', null, stpItem(STP_REACH_B, st, cl, 'c', k))));
     // the client this loop is about (pages can show different clients): "Repeats every day for leadup"; on phones
     // its name opens the chip row
     const who = stpS(st.client);
@@ -872,7 +900,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
     stpEl.setAttribute('aria-label', t('stp_main'));
     stpPut(stpBox, [h('div', { class: 'stp-wide' }, ol,
       h('p', { class: 'stp-back' }, h('span', null, icon('loop'), t('stp_again'), who ? [' ' + t('stp_for') + ' ', chip()] : null)),
-      h('div', { class: 'stp-asset' }, stpAssets(asset, st, cl))), chips]);
+      h('div', { class: 'stp-asset' }, stpAssets(asset, st, cl)), h('div', { class: 'stp-asset stp-reach' }, stpReach(st, cl))), chips]);
     stpEl.removeAttribute('hidden');
     stpReveal(stpBox.querySelector('.stp-chips'));
     if (stpMini) {
@@ -1013,9 +1041,16 @@ main{flex:1;padding:28px 0 56px;outline:none}
     const pages = arr(m.pages).filter(obj);
     const card = h('article', { class: 'mg-card', 'data-magnet': str(m.magnet_id) });
     const st = str(m.status);
-    card.appendChild(h('div', { class: 'mg-title' }, str(m.title) || str(m.magnet_id),
-      arr(m.languages).filter((x) => typeof x === 'string').map((lg) => h('span', { class: 'mg-pill mg-lang', text: lg })),
-      st && st !== 'live' ? h('span', { class: 'mg-pill mg-lang', text: t('st_' + st) || st }) : null));
+    const id = str(m.magnet_id);
+    const shown = str(m.title) || id;
+    const R = S.ren && S.ren.id === id ? S.ren : null;
+    if (R) card.appendChild(renderRename(R));
+    else card.appendChild(h('div', { class: 'mg-thead' },
+      h('div', { class: 'mg-title' }, shown,
+        arr(m.languages).filter((x) => typeof x === 'string').map((lg) => h('span', { class: 'mg-pill mg-lang', text: lg })),
+        st && st !== 'live' ? h('span', { class: 'mg-pill mg-lang', text: t('st_' + st) || st }) : null),
+      h('button', { type: 'button', class: 'btn-ln mg-ren', 'aria-label': t('ren_aria', { t: shown }),
+        disabled: !!(S.ren && S.ren.busy), onclick: () => startRename(id, str(m.title)) }, t('ren'))));
     card.appendChild(h('div', { class: 'mg-meta', text: [str(m.magnet_id), pages.length > 1 ? t('pages_n', { n: fmtNum(pages.length) }) : '',
       num(m.leads) === 1 ? t('leads_1') : t('leads_n', { n: fmtNum(num(m.leads)) })].filter(Boolean).join(' · ') }));
     const stat = (k, v) => h('div', { class: 'mg-num' }, h('b', { text: v }), h('span', { text: t(k) }));
@@ -1040,6 +1075,63 @@ main{flex:1;padding:28px 0 56px;outline:none}
       card.appendChild(det);
     }
     return card;
+  }
+
+  // A magnet's title, renamed on its card (2026-11-11): POST /solo/magnets/title {client, magnet_id, title}; "" goes back
+  // to the automatic title. One card at a time; the error stays under the field; a save reloads the list.
+  function startRename(id, title) {
+    S.ren = { id: id, value: title, busy: false, err: '' };
+    render();
+    focusEl('#ren-inp');
+  }
+  function stopRename(id) {
+    S.ren = null;
+    render();
+    focusEl('[data-magnet="' + id + '"] .mg-ren');
+  }
+  function renderRename(R) {
+    const errId = 'ren-err';
+    const form = h('form', { class: 'mg-renf', novalidate: true, onsubmit: (ev) => { ev.preventDefault(); saveRename(); } },
+      h('label', { for: 'ren-inp', text: t('ren_lbl') }),
+      h('div', { class: 'mg-ren-row' },
+        h('input', { id: 'ren-inp', class: 'inp', type: 'text', maxlength: '120', value: R.value, disabled: R.busy, autocomplete: 'off',
+          'aria-describedby': 'ren-hint' + (R.err ? ' ' + errId : ''), 'aria-invalid': R.err ? 'true' : null,
+          oninput: (ev) => { R.value = ev.target.value; },
+          onkeydown: (ev) => { if (ev.key === 'Escape' && !R.busy) { ev.preventDefault(); stopRename(R.id); } } }),
+        h('button', { type: 'submit', class: 'btn btn-pr', id: 'ren-save', disabled: R.busy }, R.busy ? [spinner(), t('ren_saving')] : t('ren_save')),
+        h('button', { type: 'button', class: 'btn', disabled: R.busy, onclick: () => stopRename(R.id) }, t('ren_cancel'))),
+      R.err ? h('p', { id: errId, class: 'err', role: 'alert', text: R.err }) : null,
+      h('p', { id: 'ren-hint', class: 'mg-hint', text: t('ren_hint') }));
+    return form;
+  }
+  function saveRename() {
+    const R = S.ren;
+    if (!R || R.busy) return;
+    const title = R.value.replace(/\s+/g, ' ').trim();
+    if (Array.from(title).length > 120) { R.err = t('ren_long'); render(); focusEl('#ren-inp'); return; }
+    R.busy = true; R.err = '';
+    render();
+    announce(t('ren_saving'));
+    const client = S.client;
+    api('/solo/magnets/title', { client: client, magnet_id: R.id, title: title }).then((res) => {
+      if (S.ren !== R || client !== S.client) return;
+      R.busy = false;
+      if (authFailed(res)) { showLogin(true); return; }
+      const d = res && res.ok && obj(res.data) && res.data.object === 'magnets_title' ? res.data : null;
+      if (d) {
+        S.ren = null;
+        S.after = () => { focusEl('[data-magnet="' + str(d.magnet_id || R.id) + '"] .mg-ren'); announce(t('ren_saved')); };
+        load();                                      // the list again, from the server: the title as it is now kept
+        return;
+      }
+      const code = errOf(res).code;
+      R.err = code === 'invalid_title' ? t('ren_long') : code === 'not_found' ? t('ren_gone') : t('ren_err');
+      render();
+      focusEl('#ren-inp');
+    }).catch(() => {
+      if (S.ren !== R) return;
+      R.busy = false; R.err = t('net_err'); render(); focusEl('#ren-inp');
+    });
   }
 
   // An embed line for another site's form (2026-11-02): the page's own form becomes the box; the line is signed by the

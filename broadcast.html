@@ -162,6 +162,9 @@ select.field{padding-right:28px}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.bar>i{transition:none}}
 .login{max-width:420px}
 .toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.reach{display:flex;flex-wrap:wrap;gap:6px}
+.reach .chip{text-decoration:none;color:var(--tx-2)}
+.reach .chip.on{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx);font-weight:600}
 </style>
 </head>
 <body>
@@ -205,6 +208,7 @@ select.field{padding-right:28px}
 
   const I18N = {
     en: {
+      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities',
       title: 'Email broadcast', sub: 'Write one email, choose who gets it, send. Each person gets each email once.',
       client: 'Client', new_email: 'New email', emails: 'Emails', waiting: 'Waiting for you', none_h: 'No emails yet',
       none_p: 'Write your first one, or ask your agent to draft it.', untitled: '(no subject)',
@@ -300,6 +304,7 @@ select.field{padding-right:28px}
       private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry: 'Try again'
     },
     vi: {
+      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng',
       title: 'Gửi email hàng loạt', sub: 'Viết một email, chọn người nhận, bấm gửi. Mỗi người nhận mỗi email một lần.',
       client: 'Khách hàng', new_email: 'Email mới', emails: 'Các email', waiting: 'Chờ bạn duyệt', none_h: 'Chưa có email nào',
       none_p: 'Viết email đầu tiên, hoặc nhờ agent soạn giúp.', untitled: '(chưa có tiêu đề)',
@@ -704,11 +709,18 @@ select.field{padding-right:28px}
       h('select', { id: 'cl', class: 'field', onchange: (e) => { S.client = e.target.value; S.view = 'list'; S.edit = null; stopPoll(); S.mode = 'loading'; render(); load(); } },
         S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
   }
+  // The Reach row (Email broadcast, Post broadcast, Communities): the same three links on each of the three pages.
+  function reachRow() {
+    const q = S.client ? '?client=' + encodeURIComponent(S.client) : '';
+    return h('nav', { class: 'reach', 'aria-label': t('reach') },
+      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm']].map((x) =>
+        h('a', { class: 'chip' + (x[0] === 'broadcast.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'broadcast.html' ? 'page' : null, text: t(x[1]) })));
+  }
   function listView() {
     const waiting = S.emails.filter((e) => e.status === 'awaiting_approval');
     const others = S.emails.filter((e) => e.status !== 'awaiting_approval');
     const can = !!(S.gate && S.gate.paid && arr(S.gate.senders).length);
-    return h('div', { class: 'stack' },
+    return h('div', { class: 'stack' }, reachRow(),
       h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
         h('button', { class: 'btn pri', type: 'button', disabled: !S.client, onclick: newEmail }, t('new_email'))),
       clientPicker(), gateNotes(),

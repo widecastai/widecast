@@ -8,13 +8,13 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)">
-<title>Group posts | WideCast</title>
+<title>Post broadcast | WideCast</title>
 <link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Group posts (2026-11-11): the email broadcast page's look (tokens, header, sign-in), for Facebook groups. */
+/* Post broadcast (named Group posts until 2026-11-11): the email broadcast page's look (tokens, header, sign-in), for Facebook groups. */
 :root{color-scheme:light;
 --bg:#f5f5f2;--s1:#fdfdfb;--s2:#efefea;--s3:#e5e5df;--line:#e1e1da;--line-2:#d0d0c8;--field-ln:#8f908a;
 --tx:#26272a;--tx-hi:#0e0f11;--tx-2:#4a4b47;--tx-3:#64655f;
@@ -128,6 +128,9 @@ select.field{padding-right:28px}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 .login{max-width:420px}
 .toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--tx-hi);color:var(--bg);font-size:.9375rem;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.reach{display:flex;flex-wrap:wrap;gap:6px}
+.reach .chip{text-decoration:none;color:var(--tx-2)}
+.reach .chip.on{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx);font-weight:600}
 </style>
 </head>
 <body>
@@ -150,7 +153,7 @@ select.field{padding-right:28px}
 <script>
 (() => {
   'use strict';
-  // Group posts (2026-11-11). Server: the dashboard2.py block "SOLO AGENCY, group posts" on solo_group_post.py. The owner
+  // Post broadcast (2026-11-11, first named Group posts). Server: the dashboard2.py block "SOLO AGENCY, group posts" on solo_group_post.py. The owner
   // writes one post (text, pictures, videos), ticks Facebook groups instead of lead magnets, checks the numbers, posts
   // a test into his test group and presses Send; his cloud agent posts each copy as it comes due, never twice to one
   // group. Same sign-in, API base, language choice and look as broadcast.html.
@@ -172,7 +175,8 @@ select.field{padding-right:28px}
 
   const I18N = {
     en: {
-      title: 'Group posts', sub: 'Write one post, tick the Facebook groups, send. Your cloud agent posts it into each group over the days you choose, never twice into one group.',
+      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities',
+      title: 'Post broadcast', sub: 'Write one post, tick the Facebook groups, send. Your cloud agent posts it into each group over the days you choose, never twice into one group.',
       client: 'Client', new_post: 'New post', posts: 'Posts', none_h: 'No posts yet', none_p: 'Write your first one.',
       untitled: '(no text yet)', st_draft: 'Draft', st_sent: 'Sent', updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}',
       back: 'All posts', email_page: 'Email broadcast',
@@ -217,7 +221,7 @@ select.field{padding-right:28px}
       why_paused_by_owner: 'You paused it.', why_stopped_by_owner: 'You stopped it.',
       pause: 'Pause', resume: 'Go on', stop: 'Stop', stop_q: 'Stop this send? The groups not posted to yet can get it from a later send.',
       unsaved: 'Save your changes first.', err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
-      unavailable: 'Group posts are not available right now. Try again in a few minutes.',
+      unavailable: 'Post broadcast is not available right now. Try again in a few minutes.',
       login_h: 'Sign in to post to groups', login_p: 'Use your WideCast account email. We will email you a 6-digit code.',
       login_owner_only: 'This page is for the account owner. Sign in with the owner\'s WideCast email.',
       email: 'Email', send_code: 'Send code', sending_code: 'Sending code…', code_sent: 'We sent a 6-digit code to', code_lbl: '6-digit code',
@@ -226,7 +230,8 @@ select.field{padding-right:28px}
       private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry_load: 'Try again'
     },
     vi: {
-      title: 'Đăng bài vào group', sub: 'Viết một bài, chọn các group Facebook, gửi. Agent trên cloud đăng bài vào từng group trong số ngày bạn chọn, không bao giờ đăng hai lần vào một group.',
+      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng',
+      title: 'Post broadcast', sub: 'Viết một bài, chọn các group Facebook, gửi. Agent trên cloud đăng bài vào từng group trong số ngày bạn chọn, không bao giờ đăng hai lần vào một group.',
       client: 'Khách hàng', new_post: 'Bài mới', posts: 'Bài viết', none_h: 'Chưa có bài nào', none_p: 'Viết bài đầu tiên.',
       untitled: '(chưa có chữ)', st_draft: 'Nháp', st_sent: 'Đã gửi', updated: 'Sửa lúc {d}', sent_times: 'Đã gửi {n} lần, lần cuối {d}',
       back: 'Tất cả bài', email_page: 'Email broadcast',
@@ -619,17 +624,23 @@ select.field{padding-right:28px}
       h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', type: 'button', disabled: S.setBusy, onclick: save }, S.setBusy ? [spinner(), t('saving')] : t('save'))),
       S.setErr ? h('p', { class: 'err', role: 'alert', text: S.setErr }) : null);
   }
+  // The Reach row (Email broadcast, Post broadcast, Communities): the same three links on each of the three pages.
+  function reachRow() {
+    const q = S.client ? '?client=' + encodeURIComponent(S.client) : '';
+    return h('nav', { class: 'reach', 'aria-label': t('reach') },
+      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm']].map((x) =>
+        h('a', { class: 'chip' + (x[0] === 'group-broadcast.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'group-broadcast.html' ? 'page' : null, text: t(x[1]) })));
+  }
   function listView() {
     const active = S.runs.filter((r) => r.state === 'running' || r.state === 'paused');
-    return h('div', { class: 'stack' },
+    return h('div', { class: 'stack' }, reachRow(),
       h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
         h('button', { class: 'btn pri', type: 'button', onclick: newPost }, t('new_post'))),
       posterNote(), clientPicker(),
       active.length ? h('section', { class: 'card' }, h('h2', { text: t('sends_h') }), h('ul', { class: 'list', style: 'margin-top:12px' }, active.map((r) => runCard(r)))) : null,
       h('section', { class: 'card' }, h('h2', { text: t('posts') }),
         S.posts.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.posts.map(postItem)) : h('div', { style: 'margin-top:10px' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') }))),
-      groupsCard(), settingsCard(),
-      h('p', { class: 'small' }, h('a', { href: 'broadcast.html' + (S.client ? '?client=' + encodeURIComponent(S.client) : ''), text: t('email_page') })));
+      groupsCard(), settingsCard());
   }
 
   // ── Editor
