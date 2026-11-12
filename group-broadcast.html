@@ -229,6 +229,10 @@ select.field{padding-right:28px}
       sends_h: 'Sends', run_line: '{d}: {n} groups, {p} a day', st_run_running: 'Running', st_run_paused: 'Paused', st_run_stopped: 'Stopped', st_run_done: 'Done',
       why_account_blocked: 'Facebook stopped the account from posting. Every send paused. Go on when Facebook lets the account post again.',
       why_needs_chat: 'Your agent needs your OK in its chat before it can post. Answer it there, then go on.',
+      why_no_answer: 'Your agent asked for your Allow 3 times in a row and nobody answered, so nothing was posted. Go on when you are back.',
+      t_asks_allow: 'Waiting for your Allow', t_expired_no_answer: 'Not posted: nobody pressed Allow. Post a new test.',
+      no_answer_at: 'Nobody pressed Allow at {d}: it is asked again.', no_answer_wait: 'Nobody pressed Allow in your agent\'s chat lately. The next post is asked at {d}.',
+      poster_allow: 'When your agent asks for your Allow before a post, WideCast tells you on Telegram (or by email) a minute later, with the post and the group.',
       why_paused_by_owner: 'You paused it.', why_stopped_by_owner: 'You stopped it.',
       pause: 'Pause', resume: 'Go on', stop: 'Stop', stop_q: 'Stop this send? The groups not posted to yet can get it from a later send.',
       unsaved: 'Save your changes first.', err: 'Something went wrong. Try again.', net_err: 'Network error. Check your connection and try again.',
@@ -292,6 +296,10 @@ select.field{padding-right:28px}
       sends_h: 'Các đợt gửi', run_line: '{d}: {n} group, {p} bài mỗi ngày', st_run_running: 'Đang chạy', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng', st_run_done: 'Xong',
       why_account_blocked: 'Facebook đang chặn tài khoản đăng bài. Mọi đợt gửi đã tạm dừng. Cho chạy tiếp khi Facebook cho đăng lại.',
       why_needs_chat: 'Agent cần bạn đồng ý trong khung chat của nó trước khi đăng. Trả lời ở đó rồi cho chạy tiếp.',
+      why_no_answer: 'Agent đã hỏi bạn bấm Allow 3 lần liền mà không ai trả lời, nên chưa bài nào được đăng. Khi bạn quay lại, bấm Chạy tiếp.',
+      t_asks_allow: 'Chờ bạn bấm Allow', t_expired_no_answer: 'Chưa đăng: không ai bấm Allow. Đăng thử lại.',
+      no_answer_at: 'Không ai bấm Allow lúc {d}: sẽ được hỏi lại.', no_answer_wait: 'Gần đây không ai bấm Allow trong khung chat của agent. Bài tiếp theo được hỏi lúc {d}.',
+      poster_allow: 'Khi agent hỏi bạn bấm Allow trước một bài, WideCast báo bạn qua Telegram (hoặc email) một phút sau, kèm bài và tên group.',
       why_paused_by_owner: 'Bạn đã tạm dừng.', why_stopped_by_owner: 'Bạn đã dừng.',
       pause: 'Tạm dừng', resume: 'Chạy tiếp', stop: 'Dừng', stop_q: 'Dừng đợt gửi này? Các group chưa nhận có thể nhận ở đợt gửi sau.',
       unsaved: 'Lưu thay đổi trước.', err: 'Có lỗi. Thử lại.', net_err: 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.',
@@ -457,7 +465,7 @@ select.field{padding-right:28px}
   function applyState(d) {
     S.clients = arr(d.clients); S.client = str(d.client);
     S.groups = arr(d.groups); S.posts = arr(d.posts); S.settings = d.settings || {}; S.runs = arr(d.runs);
-    S.posters = arr(d.posters); S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {};
+    S.posters = arr(d.posters); S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {}; S.noAnswerUntil = num(d.no_answer_until);
     syncUrl();
   }
   function load() {
@@ -544,9 +552,10 @@ select.field{padding-right:28px}
     const m = str(g.member);
     return h('span', { class: m === 'yes' ? 'pill sent' : m === 'no' ? 'pill no' : 'pill wait', text: t('m_' + m) });
   }
-  function copyPill(st) {
+  function copyPill(st, x) {
     const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : (st === 'expired' || st === 'cancelled') ? 'pill' : 'pill wait';
-    return h('span', { class: cls, text: t('t_' + st) });
+    const key = st === 'claimed' && x && x.asks_allow ? 't_asks_allow' : st === 'expired' && x && x.error === 'no_answer' ? 't_expired_no_answer' : 't_' + st;
+    return h('span', { class: cls, text: t(key) });
   }
   function groupMeta(g) {
     const bits = [g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')];
@@ -565,7 +574,8 @@ select.field{padding-right:28px}
   function posterNote() {
     if (!S.posters.length) return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
     return h('div', null, h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') }),
-      h('p', { class: 'small', style: 'margin-top:4px', text: t('poster_chat') }));
+      h('p', { class: 'small', style: 'margin-top:4px', text: t('poster_chat') + ' ' + t('poster_allow') }),
+      S.noAnswerUntil * 1000 > Date.now() ? h('div', { class: 'note warn', role: 'status', style: 'margin-top:8px', text: t('no_answer_wait', { d: fmtDay(S.noAnswerUntil) }) }) : null);
   }
   function runCard(r, compact) {
     const why = str(r.pause_reason);
@@ -984,8 +994,8 @@ select.field{padding-right:28px}
     const testsCard = arr(st.tests).length ? h('section', { class: 'card' }, h('h2', { text: t('tests_h') }),
       h('ul', { class: 'list', style: 'margin-top:10px' }, arr(st.tests).map((x) => h('li', { class: 'grp' },
         h('div', { class: 'n' }, h('b', { text: fmtDay(x.at) }), x.group_url ? h('span', { class: 'small', style: 'display:block' }, groupLink({ url: x.group_url, key: '' }, t('s_test') + ' ↗')) : null,
-          x.error ? h('span', { class: 'small', text: x.error }) : null),
-        copyPill(x.state), x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) : null)))) : null;
+          x.error && x.error !== 'no_answer' ? h('span', { class: 'small', text: x.error }) : null),
+        copyPill(x.state, x), x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) : null)))) : null;
     const q = str(S.q).trim().toLowerCase();
     const shown = S.groups.filter((g) => !q || groupName(g).toLowerCase().indexOf(q) >= 0 || str(g.key).indexOf(q) >= 0);
     const toggle = (k) => (ev) => { const i = S.ticks.indexOf(k); if (ev.target.checked && i < 0) S.ticks.push(k); if (!ev.target.checked && i >= 0) S.ticks.splice(i, 1); S.preview = null; S.confirm = false; render(); };
@@ -1011,8 +1021,8 @@ select.field{padding-right:28px}
     const whereCard = rows.length ? h('section', { class: 'card' }, h('h2', { text: t('where_h') }),
       h('div', { class: 'scroll' }, h('table', { class: 'tbl' }, h('tbody', null, rows.map((x) => h('tr', null,
         h('td', null, h('a', { href: str(x.group_url), target: '_blank', rel: 'noopener', text: str(x.group_name) || str(x.group) }),
-          x.state === 'scheduled' ? h('div', { class: 'small', text: t('due', { d: fmtDay(x.due_at) }) }) : x.error ? h('div', { class: 'small', text: x.error }) : null),
-        h('td', null, copyPill(x.state)),
+          x.state === 'scheduled' ? h('div', { class: 'small', text: (x.error === 'no_answer' && x.no_answer_at ? t('no_answer_at', { d: fmtDay(x.no_answer_at) }) + ' ' : '') + t('due', { d: fmtDay(x.due_at) }) }) : x.error ? h('div', { class: 'small', text: x.error }) : null),
+        h('td', null, copyPill(x.state, x)),
         h('td', null, x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) :
           (x.state === 'failed' || x.state === 'unknown' || x.state === 'skipped') ? h('button', { class: 'btn sm', type: 'button', onclick: () => retryCopy(x.id) }, t('retry')) : null))))))) : null;
     const myRuns = S.runs.filter((r) => r.post_uid === e.uid);
