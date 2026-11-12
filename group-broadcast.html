@@ -184,6 +184,7 @@ select.field{padding-right:28px}
       untitled: '(no text yet)', st_draft: 'Draft', st_sent: 'Sent', updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}',
       back: 'All posts', email_page: 'Email broadcast',
       no_poster_h: 'No cloud agent is connected', no_poster_p: 'Group posts go out from your cloud agent (Muse). Connect it to WideCast, then come back.',
+      chosen_local_h: 'Group posts wait', chosen_local_p: '{n} posts to Facebook for you (chosen on the Machines page), and a computer cannot post group posts yet. To send them, choose your cloud agent (Muse) there.',
       poster: 'Posted by {n}', poster_chat: 'The first time, your agent posts these in its chat when you ask there ("post my group posts"), then asks you once whether they may go out by themselves after your Send.', plan_day: 'Your plan posts {n} group post a day.',
       groups_h: 'Groups', groups_hint: 'The groups your agent watches and the ones you add. Your agent checks each one: whether its Facebook account is a member, and how many members it has.',
       groups_none: 'No groups yet. Add one below, or ask Sam to find groups for this client.',
@@ -251,6 +252,7 @@ select.field{padding-right:28px}
       untitled: '(chưa có chữ)', st_draft: 'Nháp', st_sent: 'Đã gửi', updated: 'Sửa lúc {d}', sent_times: 'Đã gửi {n} lần, lần cuối {d}',
       back: 'Tất cả bài', email_page: 'Email broadcast',
       no_poster_h: 'Chưa có agent trên cloud kết nối', no_poster_p: 'Bài vào group do agent trên cloud (Muse) đăng. Kết nối nó với WideCast rồi quay lại.',
+      chosen_local_h: 'Bài vào group đang chờ', chosen_local_p: '{n} đang đăng lên Facebook cho bạn (chọn ở trang Machines), mà máy tính thì chưa đăng được bài vào group. Muốn gửi, hãy chọn agent trên cloud (Muse) ở trang đó.',
       poster: 'Đăng bởi {n}', poster_chat: 'Lần đầu, agent đăng các bài này trong chat khi bạn bảo ở đó ("đăng các bài group của tôi"), rồi hỏi bạn một lần xem từ giờ có được tự đăng sau khi bạn bấm Send không.', plan_day: 'Gói của bạn đăng {n} bài vào group mỗi ngày.',
       groups_h: 'Các group', groups_hint: 'Các group agent đang theo dõi và các group bạn thêm. Agent kiểm tra từng group: tài khoản Facebook đã là thành viên chưa, và group có bao nhiêu thành viên.',
       groups_none: 'Chưa có group nào. Thêm ở dưới, hoặc nhờ Sam tìm group cho khách hàng này.',
@@ -465,7 +467,7 @@ select.field{padding-right:28px}
   function applyState(d) {
     S.clients = arr(d.clients); S.client = str(d.client);
     S.groups = arr(d.groups); S.posts = arr(d.posts); S.settings = d.settings || {}; S.runs = arr(d.runs);
-    S.posters = arr(d.posters); S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {}; S.noAnswerUntil = num(d.no_answer_until);
+    S.posters = arr(d.posters); S.chosenPoster = d.chosen_poster || null; S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {}; S.noAnswerUntil = num(d.no_answer_until);
     syncUrl();
   }
   function load() {
@@ -571,8 +573,12 @@ select.field{padding-right:28px}
       h('select', { id: 'cl', class: 'field', onchange: (e) => { S.client = e.target.value; S.view = 'list'; S.edit = null; stopPoll(); S.mode = 'loading'; render(); load(); } },
         S.clients.map((c) => h('option', { value: c, selected: c === S.client, text: c }))));
   }
+  function noPosterWarn(chosen) {
+    if (chosen && str(chosen.runtime) === 'local') return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('chosen_local_h') }), h('p', { text: t('chosen_local_p', { n: str(chosen.name) }) }));
+    return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
+  }
   function posterNote() {
-    if (!S.posters.length) return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
+    if (!S.posters.length) return noPosterWarn(S.chosenPoster);
     return h('div', null, h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') }),
       h('p', { class: 'small', style: 'margin-top:4px', text: t('poster_chat') + ' ' + t('poster_allow') }),
       S.noAnswerUntil * 1000 > Date.now() ? h('div', { class: 'note warn', role: 'status', style: 'margin-top:8px', text: t('no_answer_wait', { d: fmtDay(S.noAnswerUntil) }) }) : null);
@@ -938,7 +944,7 @@ select.field{padding-right:28px}
       pl.slowed ? h('div', { class: 'note warn', text: t('slowed', { d: fmtNum(num(pl.days)), a: fmtNum(num(pl.asked_days)) }) }) : null,
       num(p.unchecked) ? h('p', { class: 'small', text: t('unchecked', { n: fmtNum(num(p.unchecked)) }) }) : null,
       vs.length ? h('p', { class: 'small', text: t('versions_used', { v: vs.join(' · ') }) }) : null,
-      arr(p.posters).length ? h('p', { class: 'small', text: t('poster', { n: arr(p.posters).map((x) => str(x.name)).join(', ') }) }) : h('div', { class: 'note warn' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') })),
+      arr(p.posters).length ? h('p', { class: 'small', text: t('poster', { n: arr(p.posters).map((x) => str(x.name)).join(', ') }) }) : noPosterWarn(p.chosen_poster || S.chosenPoster),
       rows.length ? h('div', null, h('b', { text: t('not_posting') }), h('div', { class: 'kv' }, rows.map((r) => [h('span', { text: t('r_' + r) }), h('span', { class: 'v', text: fmtNum(num(ex[r])) })]))) : null,
       !p.tested ? h('div', { class: 'note warn', text: t('test_first') }) : null,
       n === 0 ? h('p', { class: 'small', text: t('nobody') }) : null,
