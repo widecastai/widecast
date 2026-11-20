@@ -337,6 +337,42 @@ main{flex:1;padding:28px 0 56px;outline:none}
 .mg-page a{overflow-wrap:anywhere}
 .mg-page .mg-pn{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--tx-2,#666)}
 @media (max-width:599px){.mg-nums{grid-template-columns:repeat(2,minmax(0,1fr))}.mg-page{grid-template-columns:auto 1fr}.mg-page .mg-pn{grid-column:2}}
+.wz-nav{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--tx-2);font-family:inherit;font-size:.9375rem;font-weight:600;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer}.wz-nav:hover{background:var(--s2);color:var(--tx-hi)}.wz-nav[hidden]{display:none!important}
+.wc-back{margin-right:auto;gap:.3em}.wc-back .wb-a{margin-right:2px}@media (max-width:640px){.wc-back .wb-l{display:none}}
+.wc-was{outline:2px solid var(--acc,#4a7dff);outline-offset:2px}
+/* 2026-11-18 (owner: the content takes 2/3 of the screen): the main navigation is one row of chips at every width
+   (what phones already had), and wide screens use their width. */
+.stp-wide{display:none}
+.stp .stp-chips{display:flex;gap:8px;overflow-x:auto;margin:-12px -4px -4px;padding:12px 12px 4px 4px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.stp-chips::-webkit-scrollbar{display:none}
+.stp .stp-chips li{flex:none;display:flex;align-items:center;scroll-snap-align:start}
+.stp .stp-chips .stp-top{flex-wrap:nowrap}
+.stp .stp-chips .stp-cl{line-height:30px;padding:0 10px;font-size:.8125rem}
+.stp .stp-chips .stp-b{flex-direction:row;align-items:center;gap:8px;min-height:40px;padding:0 10px 0 14px;border-radius:999px;white-space:nowrap}
+.stp .stp-chips .stp-att.stp-d1{padding-right:16px}.stp .stp-chips .stp-att.stp-d2{padding-right:22px}
+.stp .stp-chips .stp-att.stp-d3{padding-right:30px}.stp .stp-chips .stp-att.stp-d4{padding-right:44px}
+.stp .stp-chips .stp-att .stp-top{padding-right:0}
+.stp-band{padding:8px 0}
+@media (min-width:1024px){.wrap{width:min(100% - 48px,1200px)}}
+/* 2026-11-18 (owner: content first): the magnet cards get at least 2/3 of the screen at first sight. Above them only the
+   title row (with the client picker) and the totals in one line; what the numbers cover, the branded link and the form
+   for another site come after the cards. Phones: a slimmer header and band. */
+main{padding-top:12px}
+@media (min-width:768px){main{padding-top:16px}}
+@media (max-width:640px){.hdr-in{min-height:52px}.stp-band{padding:6px 0}}
+.mg-view{display:flex;flex-direction:column;gap:10px;padding:0 0 40px}
+.mg-view>.mg-card,.mg-view>.mg-sum,.mg-view>.mg-lead{margin:0}
+.mg-view>.mg-lead{margin-top:6px}
+.mg-head{flex-wrap:nowrap;gap:12px}
+.mg-head h1{min-width:0;font-size:1.6rem;line-height:1.2;letter-spacing:-.02em;font-weight:600;color:var(--tx-hi)}
+.mg-head select{flex:0 1 260px;width:auto;min-width:0;min-height:40px;padding:6px 10px;border-radius:10px}
+.mg-sum{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.mg-sum::-webkit-scrollbar{display:none}
+.mg-sum .mg-pill{flex:none;white-space:nowrap}
+@media (max-width:719px){.mg-head h1{font-size:1.25rem}}
+/* 2026-11-18 (owner: content first): the Office button (office/link.js) is a small round icon at every width, so it
+   covers as little of the list as it can; it still lifts itself above a sticky action bar. */
+body #wc-office{width:44px;height:44px;padding:0;justify-content:center}body #wc-office span{display:none}
 </style>
 </head>
 <body>
@@ -344,6 +380,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
 <header class="hdr">
   <div class="wrap hdr-in">
     <a class="brand" href="/" data-t-aria="brand_home" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <a class="wz-nav wc-back" id="wc-back" href="#" hidden></a>
     <nav class="stp-mini" id="stp-mini" aria-label="Main, compact" hidden></nav>
     <div class="hdr-r">
       <div class="lang" role="group" data-t-aria="lang_group" aria-label="Language" hidden>
@@ -351,6 +388,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
         <button type="button" data-lang="vi" lang="vi" aria-pressed="false">VI</button>
       </div>
     </div>
+    <a class="wz-nav" id="wz-nav" href="wizard.html" hidden>Wizard</a>
   </div>
 </header>
 <nav class="stp-band" id="stp" aria-label="Main" hidden><div class="wrap stp"></div></nav>
@@ -373,6 +411,30 @@ main{flex:1;padding:28px 0 56px;outline:none}
   // Server: dashboard2.py "SOLO AGENCY — magnets page" (POST /solo/magnets/view, owner session) on solo_magnets.py.
   // Same sign-in, API base, language choice, band and look as content-library.html.
   const Q0 = new URLSearchParams(location.search);
+
+  // ── History steps (owner rule 2026-11-17, BACK_NAV_AUDIT_2026-11-17.md: Back returns to the very place the Boss came
+  // from). Every history entry this page writes carries wcIdx (0 for the page's first entry, one more for each inner
+  // view: a phone detail, an editor, an inner screen), the address of the entry before it (wcPrev) and, once left, its
+  // scroll (wcY), whatever state the page's own code passes. An inner view that the back gesture leaves is closed by
+  // wcPop before the page's own popstate listeners run.
+  let wcPop = null;
+  (() => {
+    const H = window.history;
+    if (!H || typeof H.pushState !== 'function') return;
+    const push = H.pushState.bind(H), repl = H.replaceState.bind(H);
+    const idx = () => (H.state && typeof H.state.wcIdx === 'number' ? H.state.wcIdx : 0);
+    const mix = (st, i) => Object.assign({}, st && typeof st === 'object' ? st : {}, { wcIdx: i });
+    try {
+      H.pushState = function (st, ti, url) {
+        try { H.scrollRestoration = 'manual'; } catch (e) { /* old browser */ }   // the page puts the place back itself
+        repl(Object.assign(mix(H.state, idx()), { wcY: window.pageYOffset || 0 }), '');
+        return push(Object.assign(mix(st, idx() + 1), { wcPrev: location.href }), ti, url);
+      };
+      H.replaceState = function (st, ti, url) { return repl(mix(st == null ? H.state : st, idx()), ti, url); };
+      repl(mix(H.state, idx()), '');
+    } catch (e) { /* history not writable */ }
+    window.addEventListener('popstate', (ev) => { if (typeof wcPop === 'function' && wcPop(ev) === true) ev.stopImmediatePropagation(); });
+  })();
   const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   // ?api=<origin> is a local-test hook only; production always calls its own origin.
   const API_ORIGIN = (() => {
@@ -391,6 +453,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
 
   const I18N = {
     en: {
+      wz_nav: 'Wizard', wz_back: 'Back to Wizard', sign_out: 'Sign out',
+      wc_back_to: 'Back to',
       doc_title: 'Your lead magnets', skip: 'Skip to your lead magnets', brand_home: 'WideCast home', lang_group: 'Language',
       stp_main: 'Main', stp_mini: 'Main, compact', stp_crm: 'CRM', stp_library: 'Library', stp_magnets: 'Lead magnets', stp_reach: 'Reach', stp_email: 'Email broadcast', stp_posts: 'Post broadcast', stp_communities: 'Communities', stp_again: 'Repeats every day', stp_for: 'for', stp_att: '{l}, {n} waiting for you',
       stp_scan: 'Scan', stp_report: 'Report', stp_approve: 'Approve', stp_publish: 'Publish', stp_results: 'Results', stp_assets: 'CRM & Library',
@@ -434,6 +498,8 @@ main{flex:1;padding:28px 0 56px;outline:none}
       ren_err: 'The title could not be saved. Try again.', ren_long: 'The title is at most 120 characters.', ren_gone: 'This lead magnet is no longer here. Reload the page.'
     },
     vi: {
+      wz_nav: 'Wizard', wz_back: 'Về Wizard', sign_out: 'Đăng xuất',
+      wc_back_to: 'Về',
       doc_title: 'Lead magnet của bạn', skip: 'Đến danh sách lead magnet', brand_home: 'Trang chủ WideCast', lang_group: 'Ngôn ngữ',
       stp_main: 'Chính', stp_mini: 'Chính, thu gọn', stp_crm: 'CRM', stp_library: 'Thư viện', stp_magnets: 'Lead magnets', stp_reach: 'Lan toả', stp_email: 'Email broadcast', stp_posts: 'Post broadcast', stp_communities: 'Cộng đồng', stp_again: 'Lặp lại mỗi ngày', stp_for: 'cho', stp_att: '{l}, {n} việc đang chờ bạn',
       stp_scan: 'Quét', stp_report: 'Báo cáo', stp_approve: 'Duyệt', stp_publish: 'Đăng', stp_results: 'Kết quả', stp_assets: 'CRM & Thư viện',
@@ -1003,8 +1069,9 @@ main{flex:1;padding:28px 0 56px;outline:none}
   const pct = (a, b) => (b > 0 ? Math.round(100 * a / b) + '%' : '–');
   const langOf = (code) => (str(code) ? str(code).toUpperCase() : t('other_lang'));
 
-  // The view: the title with the client picker, what the numbers cover, the branded link, the totals, then one card per
-  // magnet (its title and languages, its numbers, its leads in the CRM, its page, and its pages and languages).
+  // The view: the title with the client picker, the totals, one card per magnet (its title and languages, its numbers,
+  // its leads in the CRM, its page, and its pages and languages), then what the numbers cover, the branded link and the
+  // form for another site (2026-11-18, owner: content first: the cards come right under the title).
   function renderView() {
     const d = S.data || {};
     const view = h('section', { class: 'mg-view', 'aria-labelledby': 'mg-h' });
@@ -1015,14 +1082,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
       head.appendChild(sel);
     }
     view.appendChild(head);
-    view.appendChild(h('p', { class: 'mg-lead', text: t('lead', { d: fmtNum(num(d.days) || 30) }) }));
     const links = arr(d.links).filter(obj);
-    view.appendChild(h('div', { class: 'mg-card mg-link', 'aria-label': t('link_h') },
-      h('b', { text: t('link_h') + ':' }),
-      links.length ? links.map((l) => h('span', null, h('span', { text: str(l.host) + ' ' }),
-        h('span', { class: 'mg-pill' + (str(l.status) === 'ready' ? ' mg-ok' : ''), text: str(l.status) === 'ready' ? t('link_ready') : t('link_wait') })))
-        : h('span', { text: t('link_none') })));
-    view.appendChild(renderEmbed(links.some((l) => str(l.status) === 'ready')));
     const mags = arr(d.magnets).filter(obj);
     const tot = obj(d.totals) || {};
     if (mags.length) {
@@ -1035,6 +1095,13 @@ main{flex:1;padding:28px 0 56px;outline:none}
     } else {
       view.appendChild(h('section', { class: 'state' }, h('h2', { text: t('empty_h') }), h('p', { class: 'lead', text: t('empty_p') })));
     }
+    view.appendChild(h('p', { class: 'mg-lead', text: t('lead', { d: fmtNum(num(d.days) || 30) }) }));
+    view.appendChild(h('div', { class: 'mg-card mg-link', 'aria-label': t('link_h') },
+      h('b', { text: t('link_h') + ':' }),
+      links.length ? links.map((l) => h('span', null, h('span', { text: str(l.host) + ' ' }),
+        h('span', { class: 'mg-pill' + (str(l.status) === 'ready' ? ' mg-ok' : ''), text: str(l.status) === 'ready' ? t('link_ready') : t('link_wait') })))
+        : h('span', { text: t('link_none') })));
+    view.appendChild(renderEmbed(links.some((l) => str(l.status) === 'ready')));
     return view;
   }
   function renderMagnet(m) {
@@ -1277,7 +1344,7 @@ main{flex:1;padding:28px 0 56px;outline:none}
     const s = session();
     const parts = [h('span', { text: t('private_note') })];
     if (s && S.mode !== 'login') {
-      parts.push(h('span', null, t('signed_in', { e: s.user_email }) + ' ', h('button', { type: 'button', class: 'btn-ln', onclick: () => showLogin(false) }, t('other_email'))));
+      parts.push(h('span', null, t('signed_in', { e: s.user_email }) + ' ', h('button', { type: 'button', class: 'btn-ln', 'data-k': 'sign-out', onclick: wzSignOut }, t('sign_out'))));
     }
     foot.replaceChildren.apply(foot, parts);
   }
@@ -1308,6 +1375,87 @@ main{flex:1;padding:28px 0 56px;outline:none}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+
+  // ── Ways back to the Wizard and a real Sign out (owner, 2026-11-17, WIZARD_UX_AUDIT_PLAN_2026-11-17.md 4.5). The
+  // header's Wizard link shows once this browser has used the Wizard (wc_wizard_client); opened from the
+  // Wizard (?from=wizard) it reads "Back to Wizard". Sign out drops the session from this browser (crmstore.html's
+  // signOut), then shows the sign-in; the sign-in form keeps its "Use another email". Nothing else on the page changes.
+  function wzHref() {
+    const c = (S && typeof S.client === 'string' && S.client) || Q0.get('client') || lsGet('wc_wizard_client') || '';
+    const p = new URLSearchParams();
+    if (/^[a-z0-9][a-z0-9_-]{0,63}$/.test(c)) p.set('client', c);
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    const qs = p.toString();
+    return 'wizard.html' + (qs ? '?' + qs : '');
+  }
+  // The page the Boss came from (owner rule 2026-11-17): a page of this site, in this tab, named in the header's
+  // "Back to <page>"; ?from=wizard names the Wizard when the browser sent no address. Back goes back in the tab's
+  // history past this page's own steps, so that page comes back as it was left (the same item, the same scroll).
+  function wcPrevPage() {
+    const names = { '/wizard.html': 'Wizard', '/approve.html': 'Approvals', '/report.html': 'Report', '/nodes.html': 'Agents',
+      '/content-library.html': 'Library', '/magnets.html': 'Lead magnets', '/crmstore.html': 'CRM', '/crm.html': 'CRM connections',
+      '/broadcast.html': 'Email broadcast', '/group-broadcast.html': 'Post broadcast', '/communities.html': 'Communities',
+      '/shorten.html': 'Links' };
+    let u = null;
+    try { u = document.referrer ? new URL(document.referrer) : null; } catch (e) { u = null; }
+    if (u && u.origin === location.origin && u.pathname !== location.pathname && Object.prototype.hasOwnProperty.call(names, u.pathname)) {
+      const pub = u.pathname === '/approve.html' && u.searchParams.get('tab') === 'publish';
+      return { url: u.href, name: pub ? 'Publish' : names[u.pathname], wizard: u.pathname === '/wizard.html' };
+    }
+    if (Q0.get('from') === 'wizard') return { url: wzHref(), name: 'Wizard', wizard: true };
+    return null;
+  }
+  function wcGoBack(ev) {
+    const prev = wcPrevPage();
+    if (!prev) return;
+    const i = history.state && typeof history.state.wcIdx === 'number' ? history.state.wcIdx : 0;
+    if (history.length < i + 2) return;               // opened in a new tab: the link opens that page
+    ev.preventDefault();
+    let gone = false;
+    window.addEventListener('pagehide', () => { gone = true; }, { once: true });
+    history.go(-(i + 1));
+    setTimeout(() => { if (!gone) location.href = prev.url; }, 900);
+  }
+  function wzNav() {
+    const prev = wcPrevPage();
+    const b = document.getElementById('wc-back');
+    if (b) {
+      b.hidden = !prev;
+      if (prev) {
+        const sp = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; return e; };
+        while (b.firstChild) b.removeChild(b.firstChild);
+        const arrow = sp('wb-a', '←');
+        arrow.setAttribute('aria-hidden', 'true');
+        b.appendChild(arrow);
+        b.appendChild(sp('wb-l', t('wc_back_to') + ' '));
+        b.appendChild(sp('wb-n', prev.name));
+        b.setAttribute('aria-label', t('wc_back_to') + ' ' + prev.name);
+        b.setAttribute('href', prev.url);
+        b.setAttribute('data-k', prev.wizard ? 'back-wizard' : 'back');
+      }
+    }
+    const a = document.getElementById('wz-nav');
+    if (a) {
+      a.hidden = !!(prev && prev.wizard) || !(!!lsGet('wc_wizard_client'));
+      a.textContent = t('wz_nav');
+      a.setAttribute('data-k', 'wizard');
+      a.setAttribute('href', wzHref());
+    }
+  }
+  function wzSignOut() {
+    ['google_auth_token', 'google_auth_timestamp', 'company_id', 'wc_wizard_client'].forEach(lsDel);
+    memSession = null;
+    wzNav();
+    showLogin(false);
+  }
+  (() => {
+    const a = document.getElementById('wz-nav');
+    if (a) a.addEventListener('click', () => a.setAttribute('href', wzHref()));   // the client open now
+    const wb = document.getElementById('wc-back');
+    if (wb) wb.addEventListener('click', wcGoBack);
+    wzNav();
+  })();
 })();
 </script>
 <script src="/office/link.js?v=1" defer></script>

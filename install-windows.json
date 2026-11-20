@@ -1,0 +1,33 @@
+{
+  "name": "WideCast",
+  "version": "0.3.0",
+  "for": "an agent whose shell runs on the user's own Windows computer (Claude Code or the Code tab of the Claude desktop app, Codex, Cursor, Windsurf, Gemini CLI, Antigravity and the like), in PowerShell",
+  "tagline": "A sales & marketing team of AI agents for a one-person business — CRM, lead finding, follow-ups and a video / blog / social engine, run from the AI chat you already use.",
+  "description": "Installing WideCast puts the full WideCast system on the user's own computer: the agent in this chat becomes Sam, the team leader of a sales & marketing team of agents; a CRM lives on the user's disk; a small local program (the collector bridge) and a browser extension the user adds find leads on the web and social platforms; outreach goes out only after the user approves it; and the WideCast video / blog / social engine is connected inside setup.",
+  "homepage": "https://widecast.ai",
+  "documentation": "https://widecast.ai/llms.txt",
+  "what_gets_installed": "https://widecast.ai/agent/what-gets-installed.html",
+  "setup_line": "A WideCast setup line reads `Setup https://widecast.ai/install.json?setup=wcs_…`. Its `wcs_…` value is a one-time setup code that the account owner made on widecast.ai. The setup uses it once, at its key step, in place of an email code. No sign-in is needed.",
+  "before_installing": "The installer only unpacks the release. Setup then tells the user what it puts on the computer, the platform rules and the licence, and asks before anything else is installed (the local program, the browser extension, the daily run): `solo-agency/AGENTS.md`, its First Words.",
+  "steps": [
+    "1. The install root is the folder the user opened for WideCast (if there is none, one such as ~/WideCast, named to the user).",
+    "2. In that folder, in PowerShell, download and run the release installer: `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`. It checks the release checksum against https://origin.widecast.ai/agent/latest.json and unpacks the release into `solo-agency\\`; it changes nothing else and starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+    "3. Continue with `solo-agency/AGENTS.md` and follow it exactly, starting with its First Words.",
+    "4. Later in setup, after the user's yes at its step 4, the local program is set up from the release with `powershell -ExecutionPolicy Bypass -File solo-agency\\solo-agency-collector\\setup_collector.ps1` (run from the install root). Every Windows line of the setup is in `solo-agency/playbooks/08_LOCAL_COLLECTOR_TECHNICAL_PROTOCOL.md`, section \"On Windows\". Microsoft SmartScreen may ask for one click on the unsigned script or program."
+  ],
+  "credential": {
+    "url": "https://widecast.ai/llms.txt",
+    "type": "wc_live_api_key",
+    "hint": "No key and no sign-in are needed to install. The setup gets the WideCast key itself at its key step: from the setup code of a setup line, with the WideCast access this agent already has, or from the user's email and the 6-digit code WideCast emails them (the user reads the code back)."
+  },
+  "test_after_install": {
+    "prompt": "Hãy cài cho tôi WideCast.ai",
+    "expected_behavior": "The agent downloads install.ps1, runs it in PowerShell in the user's WideCast folder, sees `WIDECAST_INSTALL status=installed`, opens solo-agency/AGENTS.md and replies with the First Words (who is speaking, what setup puts on the computer with the platform rules and licence, Sam's team introduction, 'Shall I begin?'). Nothing else is installed before the user says yes."
+  },
+  "release_manifest": "https://origin.widecast.ai/agent/latest.json",
+  "installer": "https://origin.widecast.ai/agent/install.ps1",
+  "support": {
+    "email": "hello@widecast.ai",
+    "docs": "https://widecast.ai/docs.html"
+  }
+}

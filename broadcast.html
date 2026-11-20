@@ -171,16 +171,57 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
 .reach{display:flex;flex-wrap:wrap;gap:6px}
 .reach .chip{text-decoration:none;color:var(--tx-2)}
 .reach .chip.on{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx);font-weight:600}
+.wz-nav{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--tx-2);font-family:inherit;font-size:.9375rem;font-weight:600;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer}.wz-nav:hover{background:var(--s2);color:var(--tx-hi)}.wz-nav[hidden]{display:none!important}
+.wc-back{margin-right:auto;gap:.3em}.wc-back .wb-a{margin-right:2px}@media (max-width:640px){.wc-back .wb-l{display:none}}
+.wc-was{outline:2px solid var(--acc,#4a7dff);outline-offset:2px}
+.hdr-links .wz-nav{font-size:.875rem;font-weight:500}
+/* 2026-11-18 (owner): wide screens use their width */
+@media (min-width:1024px){.wrap{width:min(100% - 48px,1200px)}}
+/* 2026-11-18 (owner): the list first, at least 2/3 of the screen. One row for the title, the client and New email; one
+   short line when something holds sending; the page's line, the Reach row and the settings below the list. On a phone
+   the header is lower and its links never run off the screen (a long Back name shortens with "…"). */
+.pgtop{display:flex;flex-direction:column;gap:8px}
+.pghead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.pghead h1.pg{flex:1 1 auto;min-width:0}
+.pghead .cl-pick>div{display:flex;align-items:center;gap:8px}
+.pghead .cl-pick .lbl{margin:0;font-weight:500;color:var(--tx-2)}
+.pghead .cl-pick select{width:auto;max-width:240px;min-height:40px;padding-top:6px;padding-bottom:6px}
+.note.slim{padding:0;border-radius:12px;font-size:.875rem;line-height:1.4}
+.note.slim>summary,.note.slim>.ln{min-height:40px;padding:10px 12px}
+.note.slim>summary{cursor:pointer;font-weight:600}
+.note.slim>p:not(.ln){padding:0 12px 12px}
+.pgabout{display:flex;flex-direction:column;gap:10px}
+.pgabout .sub{margin-top:0;font-size:.875rem}
+@media (max-width:560px){
+  main{padding-top:14px}
+  .lv{gap:12px}
+  .pghead h1.pg{font-size:1.25rem}
+  .pghead .btn{min-height:40px;padding:0 14px}
+  .pghead .cl-pick{order:2;flex:1 1 100%}
+  .card.lst{padding:14px}
+  .hdr-in{min-height:52px;gap:8px}
+  .brand,.hdr-r{flex:none}
+  .hdr-links{gap:0}
+  .hdr-links a,.hdr-links .wz-nav{min-height:40px;min-width:40px;justify-content:center;padding:0 5px;font-size:.8125rem}
+  .wc-back{min-height:40px;min-width:40px;padding:0 6px;font-size:.875rem;flex:0 1 auto;overflow:hidden}
+  .wc-back .wb-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Back already goes there: its link in the row would only take the room Back's name needs */
+  .hdr-in:has(#wc-back:not([hidden])[href*="/approve.html"]) #nav-approve,.hdr-in:has(#wc-back:not([hidden])[href*="/crmstore.html"]) #nav-crm{display:none}
+}
+@media (max-width:360px){.hdr-in{gap:4px}.hdr-links a,.hdr-links .wz-nav{padding:0 3px}.wc-back{padding:0 4px}}
 </style>
 </head>
 <body>
 <header class="hdr">
   <div class="wrap hdr-in">
     <a class="brand" href="/" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <a class="wz-nav wc-back" id="wc-back" href="#" hidden></a>
     <div class="hdr-r">
       <nav class="hdr-links" aria-label="Pages">
         <a href="approve.html" id="nav-approve">Approvals</a>
         <a href="crmstore.html" id="nav-crm">CRM</a>
+        <a class="wz-nav" id="wz-nav" href="wizard.html" hidden>Wizard</a>
+        <button type="button" class="wz-nav" id="wz-out" data-k="sign-out" hidden>Sign out</button>
       </nav>
     </div>
   </div>
@@ -198,6 +239,30 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
   // only the people who joined since. Same sign-in, API base, language choice and look as the library and node pages.
   const LANG_SWITCH = false;              // as the other pages (owner, 16/10): English for now, both dictionaries kept
   const Q0 = new URLSearchParams(location.search);
+
+  // ── History steps (owner rule 2026-11-17, BACK_NAV_AUDIT_2026-11-17.md: Back returns to the very place the Boss came
+  // from). Every history entry this page writes carries wcIdx (0 for the page's first entry, one more for each inner
+  // view: a phone detail, an editor, an inner screen), the address of the entry before it (wcPrev) and, once left, its
+  // scroll (wcY), whatever state the page's own code passes. An inner view that the back gesture leaves is closed by
+  // wcPop before the page's own popstate listeners run.
+  let wcPop = null;
+  (() => {
+    const H = window.history;
+    if (!H || typeof H.pushState !== 'function') return;
+    const push = H.pushState.bind(H), repl = H.replaceState.bind(H);
+    const idx = () => (H.state && typeof H.state.wcIdx === 'number' ? H.state.wcIdx : 0);
+    const mix = (st, i) => Object.assign({}, st && typeof st === 'object' ? st : {}, { wcIdx: i });
+    try {
+      H.pushState = function (st, ti, url) {
+        try { H.scrollRestoration = 'manual'; } catch (e) { /* old browser */ }   // the page puts the place back itself
+        repl(Object.assign(mix(H.state, idx()), { wcY: window.pageYOffset || 0 }), '');
+        return push(Object.assign(mix(st, idx() + 1), { wcPrev: location.href }), ti, url);
+      };
+      H.replaceState = function (st, ti, url) { return repl(mix(st == null ? H.state : st, idx()), ti, url); };
+      repl(mix(H.state, idx()), '');
+    } catch (e) { /* history not writable */ }
+    window.addEventListener('popstate', (ev) => { if (typeof wcPop === 'function' && wcPop(ev) === true) ev.stopImmediatePropagation(); });
+  })();
   const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const API_ORIGIN = (() => {
     const raw = IS_LOCAL ? Q0.get('api') : '';
@@ -214,13 +279,17 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
 
   const I18N = {
     en: {
-      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities',
+      wz_nav: 'Wizard', wz_back: 'Back to Wizard', sign_out: 'Sign out',
+      wc_back_to: 'Back to',
+      wc_discard: 'Leave without saving your changes?',
+      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities', r_sends: 'Schedule & history',
       title: 'Email broadcast', sub: 'Write one email, choose who gets it, send. Each person gets each email once.',
       client: 'Client', new_email: 'New email', emails: 'Emails', waiting: 'Waiting for you', none_h: 'No emails yet',
       none_p: 'Write your first one, or ask your agent to draft it.', untitled: '(no subject)',
       st_draft: 'Draft', st_awaiting_approval: 'Drafted by your agent', st_sent: 'Sent', st_rejected: 'Turned down',
       updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}', back: 'All emails',
       plan_h: 'Email broadcast is part of the paid plans', plan_p: 'Upgrade to send emails to your leads from your own address.', plans: 'See plans',
+      plan_line: 'Sending email needs a paid plan.', events_line: 'Only test emails for now.',
       sender_h: 'Connect your own sending address first', sender_p: 'Emails go out from hello@value.<your domain>, the address your lead magnet already uses. Connect value.<your domain> for this client on the lead magnet page, then come back.',
       events_h: 'Test emails work. Sending to your list switches on soon.', events_p: 'Bounce and spam reports are being connected, so we can stop emailing addresses that bounce or complain.',
       message: 'Message', subject: 'Subject', body: 'Message', insert_name: 'Insert field',
@@ -252,6 +321,13 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       greet: 'How names come out', send_n: 'Send to {n} people', confirm_q: 'Send now to {n} people? Each gets it once. This cannot be undone.',
       yes_send: 'Yes, send', cancel: 'Cancel', nobody: 'Nobody new to send to.', progress: 'Sending', sent_of: '{a} of {b} sent',
       stop: 'Stop', resume: 'Resume', st_run_queued: 'Starting', st_run_sending: 'Sending', st_run_done: 'Done', st_run_paused: 'Paused', st_run_stopped: 'Stopped',
+      sched: 'Schedule', sched_h: 'Schedule this send', sched_date: 'Date', sched_time: 'Time', sched_tz: 'Time zone: {tz}',
+      sched_aud: 'About {n} people now; anyone who joins before then gets it too.', sched_go: 'Schedule', sched_banner: 'Scheduled for {when}',
+      close: 'Close', sched_locked: 'Cancel the scheduled send to edit this email, then schedule it again.', sched_move: 'Change time', sched_now: 'Send now', sched_cancel: 'Cancel', sched_pick: 'Pick a date and a time.', sched_move_go: 'Save new time',
+      sched_by_agent: 'by your agent', sched_by_you: 'by you', st_run_scheduled: 'Scheduled', st_run_cancelled: 'Cancelled', st_run_failed: 'Did not start', st_run_waking: 'Starting…', st_fail_daily_limit: 'Not sent: today\'s limit was reached', st_fail_no_recipients: 'Not sent: nobody to send to',
+      err_send_at_past: 'Pick a time at least a minute from now.', err_send_at_invalid: 'That date or time is not valid.',
+      err_send_at_too_far: 'Pick a time within the next 180 days.', err_tz_unknown: 'We could not read your time zone. Reload the page and try again.',
+      err_not_scheduled: 'This send is not waiting for its time any more.',
       st_run_waiting: 'Sending day by day', waiting_note: 'It goes on by itself {d}.', by_box: 'Per sendbox',
       boxes_h: 'Sendboxes (your Gmail accounts)', boxes_hint: 'Gmail or Google Workspace mailboxes WideCast sends through and reads replies from. They belong to your account: every client can use them.',
       box_add: 'Add a sendbox', box_email: 'Mailbox address', box_pw: 'App Password (16 letters)',
@@ -311,13 +387,17 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry: 'Try again'
     },
     vi: {
-      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng',
+      wz_nav: 'Wizard', wz_back: 'Về Wizard', sign_out: 'Đăng xuất',
+      wc_back_to: 'Về',
+      wc_discard: 'Rời đi mà không lưu thay đổi của bạn?',
+      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng', r_sends: 'Lịch gửi',
       title: 'Gửi email hàng loạt', sub: 'Viết một email, chọn người nhận, bấm gửi. Mỗi người nhận mỗi email một lần.',
       client: 'Khách hàng', new_email: 'Email mới', emails: 'Các email', waiting: 'Chờ bạn duyệt', none_h: 'Chưa có email nào',
       none_p: 'Viết email đầu tiên, hoặc nhờ agent soạn giúp.', untitled: '(chưa có tiêu đề)',
       st_draft: 'Nháp', st_awaiting_approval: 'Agent soạn', st_sent: 'Đã gửi', st_rejected: 'Đã từ chối',
       updated: 'Sửa {d}', sent_times: 'Đã gửi {n} lần, gần nhất {d}', back: 'Tất cả email',
       plan_h: 'Gửi email hàng loạt có trong các gói trả phí', plan_p: 'Nâng cấp để gửi email cho lead từ chính địa chỉ của bạn.', plans: 'Xem các gói',
+      plan_line: 'Gửi email cần gói trả phí.', events_line: 'Hiện bạn chỉ gửi thử được.',
       sender_h: 'Hãy kết nối địa chỉ gửi riêng trước', sender_p: 'Email gửi từ hello@value.<domain của bạn>, đúng địa chỉ lead magnet đang dùng. Kết nối value.<domain> cho khách hàng này ở trang lead magnet rồi quay lại.',
       events_h: 'Gửi thử đã dùng được. Gửi cho danh sách sẽ bật sớm.', events_p: 'Đang nối báo cáo trả về và báo spam, để ngừng gửi cho địa chỉ bị trả về hoặc bị báo spam.',
       message: 'Nội dung', subject: 'Tiêu đề', body: 'Nội dung', insert_name: 'Chèn trường',
@@ -348,6 +428,13 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       greet: 'Tên sẽ hiện như sau', send_n: 'Gửi cho {n} người', confirm_q: 'Gửi ngay cho {n} người? Mỗi người nhận một lần. Không thể hoàn tác.',
       yes_send: 'Gửi', cancel: 'Huỷ', nobody: 'Không còn ai mới để gửi.', progress: 'Đang gửi', sent_of: 'Đã gửi {a}/{b}',
       stop: 'Dừng', resume: 'Tiếp tục', st_run_queued: 'Đang bắt đầu', st_run_sending: 'Đang gửi', st_run_done: 'Xong', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng',
+      sched: 'Lên lịch', sched_h: 'Lên lịch gửi', sched_date: 'Ngày', sched_time: 'Giờ', sched_tz: 'Múi giờ: {tz}',
+      sched_aud: 'Hiện khoảng {n} người; ai vào trước giờ gửi cũng nhận.', sched_go: 'Lên lịch', sched_banner: 'Đã lên lịch: {when}',
+      close: 'Đóng', sched_locked: 'Huỷ lịch gửi để sửa email này, rồi lên lịch lại.', sched_move: 'Đổi giờ', sched_now: 'Gửi ngay', sched_cancel: 'Huỷ lịch', sched_pick: 'Chọn ngày và giờ.', sched_move_go: 'Lưu giờ mới',
+      sched_by_agent: 'agent của bạn', sched_by_you: 'bạn', st_run_scheduled: 'Đã lên lịch', st_run_cancelled: 'Đã huỷ', st_run_failed: 'Không gửi được', st_run_waking: 'Đang bắt đầu…', st_fail_daily_limit: 'Chưa gửi: đã hết giới hạn hôm nay', st_fail_no_recipients: 'Chưa gửi: không có ai để gửi',
+      err_send_at_past: 'Chọn giờ sau hiện tại ít nhất một phút.', err_send_at_invalid: 'Ngày hoặc giờ không hợp lệ.',
+      err_send_at_too_far: 'Chọn giờ trong vòng 180 ngày tới.', err_tz_unknown: 'Không đọc được múi giờ của bạn. Tải lại trang rồi thử lại.',
+      err_not_scheduled: 'Lần gửi này không còn chờ đến giờ nữa.',
       st_run_waiting: 'Đang gửi dần theo ngày', waiting_note: 'Tự gửi tiếp vào {d}.', by_box: 'Theo từng sendbox',
       boxes_h: 'Sendbox (tài khoản Gmail của bạn)', boxes_hint: 'Hộp thư Gmail hoặc Google Workspace mà WideCast dùng để gửi và đọc thư trả lời. Chúng thuộc tài khoản của bạn: khách hàng nào cũng dùng được.',
       box_add: 'Thêm sendbox', box_email: 'Địa chỉ hộp thư', box_pw: 'App Password (16 chữ)',
@@ -532,7 +619,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     mode: 'loading', client: CLIENT_RE.test(str(Q0.get('client'))) ? Q0.get('client') : '', clients: [], gate: null,
     emails: [], settings: {}, magnets: [], crmTotal: 0, active: null, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', aud: { magnets: [], crm: false, langs: {}, transport: 'ses', boxes: [] }, preview: null, prevErr: '',
-    confirm: false, run: null, history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
+    confirm: false, run: null, scheduled: [], sched: null, schedAsk: '', history: null, look: { q: '', res: null, err: '', busy: false }, setErr: '', setBusy: false,
     who: null,   // the open "who clicked / opened" list of one send: { run, ev, busy, err, rows, total }
     exp: null,   // the open Export of one magnet: { mid, cols: [tag keys], busy, err }
     ml: null,    // the open email's mail list as saved: { mode, columns, rows [{email, v}], count, file_name }
@@ -554,7 +641,12 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     if (S.view === 'edit' && S.edit && S.edit.uid) p.set('email', S.edit.uid); else p.delete('email');
     p.delete('magnet');                               // a one-shot ask (wantMagnet), never kept
     const qs = p.toString();
-    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+    const url = location.pathname + (qs ? '?' + qs : '');
+    try {
+      const inEd = !!(history.state && history.state.wcIn === 'ed');
+      if (S.view === 'edit' && !inEd) history.pushState({ wcIn: 'ed' }, '', url);   // an editor is one step of history (2026-11-17)
+      else history.replaceState(S.view !== 'edit' && inEd ? { wcIn: '' } : null, '', url);
+    } catch (e) { /* not allowed */ }
     ['nav-approve', 'nav-crm'].forEach((id) => {
       const a = document.getElementById(id);
       const keep = new URLSearchParams();
@@ -629,6 +721,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     S.fields = arr(d.fields);
     S.crmTotal = num(d.crm_total);
     S.active = d.active_run || null;
+    S.scheduled = arr(d.scheduled);
     S.limits = d.limits || {};
     syncUrl();
   }
@@ -694,12 +787,13 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
   // ── List view
   function statusPill(e) {
     const st = str(e.status);
+    if (S.scheduled.some((r) => r.email_uid === e.uid)) return h('span', { class: 'pill wait', text: t('st_run_scheduled') });
     const cls = st === 'sent' ? 'pill sent' : st === 'awaiting_approval' ? 'pill wait' : st === 'rejected' ? 'pill no' : 'pill';
     return h('span', { class: cls, text: t('st_' + st) });
   }
   function emailItem(e) {
     const meta = e.status === 'sent' && e.runs ? t('sent_times', { n: fmtNum(num(e.runs)), d: fmtDay(e.last_sent_at) }) : t('updated', { d: fmtDay(e.updated_at) });
-    return h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openEmail(e.uid) },
+    return h('li', null, h('button', { class: 'item', type: 'button', 'data-uid': e.uid, onclick: () => { edMark(e.uid); openEmail(e.uid); } },
       h('div', { class: 'row sp' }, h('span', { class: 't', text: str(e.subject) || t('untitled') }), statusPill(e)),
       h('span', { class: 'm', text: meta + (e.has_file ? ' · ' + t('file') + ': ' + str(e.file_name) + (arr(e.files).length > 1 ? ' +' + (arr(e.files).length - 1) : '') : '') })));
   }
@@ -722,22 +816,37 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
   function reachRow() {
     const q = S.client ? '?client=' + encodeURIComponent(S.client) : '';
     return h('nav', { class: 'reach', 'aria-label': t('reach') },
-      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm']].map((x) =>
+      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm'], ['sends.html', 'r_sends']].map((x) =>
         h('a', { class: 'chip' + (x[0] === 'broadcast.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'broadcast.html' ? 'page' : null, text: t(x[1]) })));
+  }
+  // The list's gate, one short line (2026-11-18, owner: the list first): the plan link stays on the line, the longer
+  // reason one tap deeper. The editor keeps the full gateNotes().
+  function gateLine() {
+    const g = S.gate || {};
+    if (!g.paid) return h('div', { class: 'note warn slim', role: 'note' }, h('p', { class: 'ln' }, h('b', { text: t('plan_line') }), ' ',
+      h('a', { href: 'https://widecast.ai/#pricing', target: '_blank', rel: 'noopener', text: t('plans') })));
+    if (!arr(g.senders).length) return h('details', { class: 'note warn slim', open: S.wcGate, ontoggle: (e) => { S.wcGate = e.target.open; } }, h('summary', { text: t('sender_h') }), h('p', { text: t('sender_p') }));
+    if (!g.events_ready) return h('details', { class: 'note slim', open: S.wcGate, ontoggle: (e) => { S.wcGate = e.target.open; } }, h('summary', { text: t('events_line') }), h('p', { text: t('events_h') + ' ' + t('events_p') }));
+    return null;
   }
   function listView() {
     const waiting = S.emails.filter((e) => e.status === 'awaiting_approval');
     const others = S.emails.filter((e) => e.status !== 'awaiting_approval');
     const can = !!(S.gate && S.gate.paid && arr(S.gate.senders).length);
-    return h('div', { class: 'stack' }, reachRow(),
-      h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
-        h('button', { class: 'btn pri', type: 'button', disabled: !S.client, onclick: newEmail }, t('new_email'))),
-      clientPicker(), gateNotes(),
+    const cp = clientPicker();
+    return h('div', { class: 'stack lv' },
+      h('div', { class: 'pgtop' },
+        h('div', { class: 'pghead' }, h('h1', { class: 'pg', text: t('title') }), cp ? h('div', { class: 'cl-pick' }, cp) : null,
+          h('button', { class: 'btn pri', type: 'button', disabled: !S.client, onclick: () => { edMark(''); newEmail(); } }, t('new_email'))),
+        gateLine()),
       S.active ? runCard(S.active, true) : null,
-      waiting.length ? h('section', { class: 'card' }, h('h2', { text: t('waiting') }), h('ul', { class: 'list', style: 'margin-top:12px' }, waiting.map(emailItem))) : null,
-      h('section', { class: 'card' }, h('h2', { text: t('emails') }),
-        others.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, others.map(emailItem))
+      S.scheduled.map((r) => schedBanner(r, true)),
+      waiting.length ? h('section', { class: 'card lst' }, h('h2', { text: t('waiting') }), h('ul', { class: 'list', style: 'margin-top:10px' }, waiting.map(emailItem))) : null,
+      h('section', { class: 'card lst' }, h('h2', { text: t('emails') }),
+        others.length ? h('ul', { class: 'list', style: 'margin-top:10px' }, others.map(emailItem))
           : h('div', { style: 'margin-top:8px' }, h('p', { class: 'small', text: t('none_h') + '. ' + t('none_p') }))),
+      h('p', { class: 'small', style: 'margin:0' }, h('a', { class: 'sendslink', href: 'sends.html' + (S.client ? '?client=' + encodeURIComponent(S.client) : ''), text: t('r_sends') })),
+      h('div', { class: 'pgabout' }, h('p', { class: 'sub', text: t('sub') }), reachRow()),
       can ? settingsCard() : null,
       boxesCard(),
       S.client ? lookupCard() : null);
@@ -1212,7 +1321,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
   function checkNumbers(keepMsg) {
     ensureSaved().then((ok) => {
       if (!ok) return;
-      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; render();
+      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; S.sched = S.sched && S.sched.run_id ? S.sched : null; render();
       api('/solo/broadcast/preview', audBody()).then((res) => {
         S.busy = '';
         if (authFailed(res)) { showLogin(); return; }
@@ -1221,6 +1330,114 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
         announce(t('send_n', { n: fmtNum(num(res.data.will_send)) }));
       }).catch(() => { S.busy = ''; S.prevErr = t('net_err'); render(); });
     });
+  }
+  // ── Schedule (2026-11-19): a send at a chosen time. The audience is worked out when the time comes.
+  function wallParts(sec, tz) {
+    try {
+      const o = {}; new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(new Date(sec * 1000)).forEach((x) => { o[x.type] = x.value; });
+      return { date: o.year + '-' + o.month + '-' + o.day, time: o.hour + ':' + o.minute };
+    } catch (e) { const d = new Date(sec * 1000).toISOString(); return { date: d.slice(0, 10), time: d.slice(11, 16) }; }
+  }
+  function fmtWhen(sec, tz) {            // "Thu, 20 Nov, 09:00" in the owner's zone
+    try {
+      const o = {}; new Intl.DateTimeFormat(locale(), { timeZone: tz || undefined, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+        .formatToParts(new Date(sec * 1000)).forEach((x) => { o[x.type] = x.value; });
+      return o.weekday + ', ' + o.day + ' ' + o.month + ', ' + o.hour + ':' + o.minute;
+    } catch (e) { return fmtDay(sec); }
+  }
+  function nextHourFrom(localNow, tz) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})/.exec(str(localNow));
+    if (m) { const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4] + 1, 0)).toISOString(); return { date: d.slice(0, 10), time: d.slice(11, 16) }; }
+    return wallParts(Math.ceil(Date.now() / 3600000) * 3600, tz);
+  }
+  function browserTz() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } }
+  function openSched(run, n) {
+    const tz0 = browserTz();
+    const ztz = str(run && run.send_at_tz);          // a run keeps its own zone: shown, labelled and sent in it
+    const dflt = run && run.send_at ? wallParts(run.send_at, ztz || tz0 || 'UTC') : nextHourFrom('', tz0 || 'UTC');
+    S.sched = { run_id: run ? run.run_id : '', n: n, date: dflt.date, time: dflt.time, tz: ztz || tz0, busy: false, err: '', min: run && run.send_at ? wallParts(Math.floor(Date.now() / 1000), ztz || tz0 || 'UTC').date : dflt.date };
+    S.schedAsk = ''; render();
+    const me = S.sched;
+    if (run && ztz) return;                           // moving: no zone lookup, the run's zone stays
+    api('/solo/schedule/info', { client: S.client, tz: tz0 }).then((res) => {
+      if (S.sched !== me || !res.ok || !res.data) return;
+      me.tz = str(res.data.tz) || me.tz;
+      if (!run) { const d = nextHourFrom(res.data.local_now, me.tz); me.date = d.date; me.time = d.time; me.min = d.date; }
+      else me.min = nextHourFrom(res.data.local_now, me.tz).date;
+      render();
+    }).catch(() => { /* the browser zone stays */ });
+  }
+  function schedErr(res) { const c = errOf(res).code; return I18N.en['err_' + c] ? t('err_' + c) : msgOf(res); }
+  function doSchedule() {
+    const Z = S.sched;
+    if (!Z || Z.busy) return;
+    if (!Z.date || !Z.time) { Z.err = t('sched_pick'); render(); return; }
+    const sendAt = Z.date + 'T' + Z.time;
+    Z.busy = true; Z.err = ''; render();
+    const isMove = !!Z.run_id;
+    const b = isMove ? { client: S.client, run_id: Z.run_id, action: 'move' } : audBody();
+    b.send_at = sendAt; b.tz = Z.tz || browserTz();
+    if (!isMove) { b.expect = num(S.preview && S.preview.will_send); b.expect_updated_at = num(S.edit && S.edit.updated_at); }
+    api(isMove ? '/solo/broadcast/schedule' : '/solo/broadcast/send', b).then((res) => {
+      Z.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) {
+        const er = errOf(res);
+        if (er.code === 'audience_changed') { S.sched = null; S.preview = null; S.prevErr = t('changed'); checkNumbers(true); return; }
+        if (er.code === 'email_changed') { toast(msgOf(res)); openEmail(S.edit.uid); return; }
+        Z.err = schedErr(res); render(); return;
+      }
+      S.sched = null; S.preview = null; S.confirm = false;
+      toast(t('sched_banner', { when: fmtWhen(res.data.send_at, res.data.send_at_tz) }));
+      refreshState().then(() => { render(); loadHistory(); });
+    }).catch(() => { Z.busy = false; Z.err = t('net_err'); render(); });
+  }
+  function schedAct(kind, r) {
+    S.schedAsk = '';
+    api('/solo/broadcast/schedule', { client: S.client, run_id: r.run_id, action: kind }).then((res) => {
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { toast(schedErr(res)); refreshState().then(render); return; }
+      if (kind === 'now') {
+        S.run = res.data; if (S.edit && S.edit.uid === r.email_uid && res.data.state !== 'failed' && res.data.state !== 'scheduled') S.edit.status = 'sent';
+        refreshState().then(() => { render(); loadHistory(); if (res.data.state === 'queued' || res.data.state === 'sending') startPoll(res.data.run_id); });
+      } else refreshState().then(() => { render(); loadHistory(); });
+    }).catch(() => toast(t('net_err')));
+  }
+  function schedPicker() {
+    const Z = S.sched;
+    if (!Z) return null;
+    const isMove = !!Z.run_id;
+    return h('div', { class: 'note stack', id: 'sched-pk', role: 'group', 'aria-label': t('sched_h') },
+      h('b', { text: t('sched_h') }),
+      h('div', { class: 'row' },
+        h('label', { class: 'small' }, t('sched_date') + ' ', h('input', { class: 'field', type: 'date', min: Z.min || '', value: Z.date, style: 'width:auto', oninput: (ev) => { Z.date = ev.target.value; } })),
+        h('label', { class: 'small' }, t('sched_time') + ' ', h('input', { class: 'field', type: 'time', value: Z.time, style: 'width:auto', oninput: (ev) => { Z.time = ev.target.value; } }))),
+      h('p', { class: 'small', text: t('sched_tz', { tz: Z.tz || '…' }) }),
+      isMove ? null : h('p', { class: 'small', text: t('sched_aud', { n: fmtNum(num(Z.n)) }) }),
+      Z.err ? h('p', { class: 'err', role: 'alert', text: Z.err }) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn pri', type: 'button', disabled: Z.busy, onclick: doSchedule }, Z.busy ? [spinner(), t('sched_go')] : (isMove ? t('sched_move_go') : t('sched_go'))),
+        h('button', { class: 'btn ghost', type: 'button', disabled: Z.busy, onclick: () => { S.sched = null; render(); } }, t('close'))));
+  }
+  function schedBanner(r, withLink) {
+    const mine = !!S.sched && S.sched.run_id === r.run_id;
+    const ask = S.schedAsk === r.run_id;
+    const n = num(r.planned);
+    return h('section', { class: 'card', 'data-k': 'sched-' + r.run_id },
+      h('div', { class: 'row sp' }, h('h2', { text: withLink ? str(r.subject) : t('sched_banner', { when: fmtWhen(r.send_at, r.send_at_tz) }) }),
+        h('span', { class: 'pill wait', text: t('st_run_scheduled') })),
+      withLink ? h('p', { class: 'small', style: 'margin-top:6px' }, h('b', { text: t('sched_banner', { when: fmtWhen(r.send_at, r.send_at_tz) }) }), ' · ' + (r.via === 'api' ? t('sched_by_agent') : t('sched_by_you'))) : null,
+      h('p', { class: 'small', text: t('sched_aud', { n: fmtNum(n) }) }),
+      mine ? schedPicker() : null,
+      ask ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
+        h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', onclick: () => schedAct('now', r) }, t('yes_send')),
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.schedAsk = ''; render(); } }, t('cancel'))))
+        : h('div', { class: 'row', style: 'margin-top:12px' },
+          h('button', { class: 'btn sm', type: 'button', onclick: () => openSched(r, n) }, t('sched_move')),
+          h('button', { class: 'btn sm pri', type: 'button', onclick: () => { S.schedAsk = r.run_id; S.sched = null; render(); } }, t('sched_now')),
+          h('button', { class: 'btn sm danger', type: 'button', onclick: () => schedAct('cancel', r) }, t('sched_cancel')),
+          withLink && r.email_uid ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => openEmail(r.email_uid) }, t('history')) : null));
   }
   function doSend() {
     const b = audBody();
@@ -1247,7 +1464,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
         const r = res.data;
         if (S.run && S.run.run_id === runId) S.run = r;
         if (S.active && S.active.run_id === runId) S.active = r;
-        if (r.state === 'queued' || r.state === 'sending') { pollTimer = setTimeout(tick, POLL_MS); redrawRun(r); return; }   // waiting: the next day
+        if (r.state === 'queued' || r.state === 'sending' || r.state === 'waking') { pollTimer = setTimeout(tick, POLL_MS); redrawRun(r); return; }   // waiting: the next day
         pollTimer = null;
         refreshState().then(() => { loadHistory(); render(); });
       }).catch(() => { pollTimer = setTimeout(tick, POLL_MS * 2); });
@@ -1270,6 +1487,11 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       if (kind === 'resume') startPoll(r.run_id); else refreshState().then(render);
     }).catch(() => toast(t('net_err')));
   }
+  function runStateLabel(r) {            // a run that could not go out says why (today's limit, nobody to send to)
+    const st = str(r.state), why = str(r.pause_reason);
+    if (st === 'failed' && (why === 'daily_limit' || why === 'no_recipients')) return t('st_fail_' + why);
+    return t('st_run_' + st);
+  }
   function runCard(r, withLink) {
     const planned = num(r.planned), done = num(r.done), sent = num(r.sent);
     const st = str(r.state);
@@ -1278,7 +1500,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     const ev = r.events || {};
     return h('section', { class: 'card', id: withLink ? 'rc-list' : 'rc-edit', 'aria-live': 'polite' },
       h('div', { class: 'row sp' }, h('h2', { text: withLink ? str(r.subject) : t('this_send') }),
-        h('span', { class: st === 'done' ? 'pill sent' : st === 'paused' || st === 'stopped' || st === 'waiting' ? 'pill wait' : 'pill live', text: t('st_run_' + st) })),
+        h('span', { class: st === 'done' ? 'pill sent' : st === 'paused' || st === 'stopped' || st === 'waiting' ? 'pill wait' : 'pill live', text: runStateLabel(r) })),
       h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(planned), 'aria-valuenow': String(done) }, h('i', { style: 'width:' + pct + '%' })),
       h('p', { class: 'small', style: 'margin-top:8px', text: t('sent_of', { a: fmtNum(sent), b: fmtNum(planned) }) }),
       st === 'paused' ? h('div', { class: 'note warn', style: 'margin-top:10px', text: why === 'complaints' ? t('pause_complaints') : why === 'bounces' ? t('pause_bounces') : t('pause_other', { r: why }) }) : null,
@@ -1302,15 +1524,16 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     const e = S.edit;
     const g = S.gate || {};
     const can = !!(g.paid && arr(g.senders).length);
-    const locked = !!S.run && (S.run.state === 'queued' || S.run.state === 'sending');
+    const locked = (!!S.run && (S.run.state === 'queued' || S.run.state === 'sending' || S.run.state === 'waking')) || S.scheduled.some((r) => r.email_uid === e.uid);
+    const sch = S.scheduled.some((r) => r.email_uid === e.uid);   // scheduled: the copy is taken, so no edits until it is cancelled
     const mark = () => {
       S.dirty = true;
       const b = document.getElementById('btn-save');
       if (b) { b.className = 'btn pri'; b.textContent = t('save'); }
       if (S.preview) { S.preview = null; S.confirm = false; const pv = document.getElementById('pv'); if (pv) pv.remove(); }  // never send what was not checked
     };
-    const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), oninput: (ev) => { e.subject = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-subject'; } });
-    const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), oninput: (ev) => { e.body = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-body'; } });
+    const subject = h('input', { id: 'e-subject', class: 'field', maxlength: String(S.limits.subject_max || 200), value: str(e.subject), readOnly: sch, oninput: (ev) => { e.subject = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-subject'; } });
+    const body = h('textarea', { id: 'e-body', class: 'field', maxlength: String(S.limits.body_max || 20000), value: str(e.body), readOnly: sch, oninput: (ev) => { e.body = ev.target.value; mark(); }, onfocus: () => { S.lastField = 'e-body'; } });
     body.value = str(e.body);
     // Tags (2026-10-28, the Boss: "list như vậy thì làm sao user biết đường mà tag?"): always in view under the
     // message, for the people ticked under Who gets it: the whole CRM → name, email, phone only; one magnet → every
@@ -1318,6 +1541,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     // answered it; a question fewer people answered offers the same question under another key (the magnet's other
     // language page: a form keys a question by its words) to join, so the tag takes whichever one a person answered.
     const insertTag = (key) => {
+      if (sch) return;
       const id = S.lastField === 'e-subject' ? 'e-subject' : 'e-body';
       const el = document.getElementById(id), tag = '{{' + key + '}}';
       const s = el.selectionStart != null ? el.selectionStart : el.value.length, en = el.selectionEnd != null ? el.selectionEnd : s;
@@ -1388,7 +1612,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
           h('input', { id: 'e-file', type: 'file', multiple: true, class: 'sr-only', disabled: !!S.busy || locked, accept: arr(S.limits.file_exts).join(','), onchange: (ev) => { const fs = ev.target.files; if (fs && fs.length) pickFiles(fs); ev.target.value = ''; } })] : null,
         h('span', { class: 'small', text: fl.length ? t('files_count', { n: fl.length, max: fmax, size: fmtSize(filesSize(fl)) }) : t('file_none') })));
     const modeSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': t('file') },
-      ['link', 'attach'].map((m) => h('label', null, h('input', { type: 'radio', name: 'fmode', value: m, checked: (e.file_mode === 'attach' ? 'attach' : 'link') === m,
+      ['link', 'attach'].map((m) => h('label', null, h('input', { type: 'radio', name: 'fmode', value: m, disabled: sch, checked: (e.file_mode === 'attach' ? 'attach' : 'link') === m,
         onchange: () => {
           if (m === 'attach' && e.has_file) {
             const bad = arr(e.files).filter((f) => arr(S.limits.attach_exts).length && arr(S.limits.attach_exts).indexOf(extOf(f.file_name)) < 0)[0];
@@ -1400,6 +1624,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
         h('span', { text: t(m === 'link' ? 'file_link' : 'file_attach') }))));
     const msgCard = h('section', { class: 'card' },
       h('div', { class: 'row sp' }, h('h2', { text: t('message') }), statusPill(e)),
+      sch ? h('p', { class: 'note', id: 'sched-locked', role: 'status', text: t('sched_locked') }) : null,
       e.by_agent && e.note ? h('div', { class: 'note', style: 'margin-top:12px' }, h('b', { text: t('agent_note') }), h('p', { class: 'small', text: str(e.note) })) : null,
       h('label', { class: 'lbl', for: 'e-subject', text: t('subject') }), subject,
       h('label', { class: 'lbl', for: 'e-body', text: t('body') }),
@@ -1407,9 +1632,9 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       tagBox(),
       h('div', { class: 'row', style: 'gap:12px;align-items:flex-end' },
         h('div', { style: 'flex:1 1 160px;min-width:0' }, h('label', { class: 'lbl', for: 'e-fb', text: t('fallback') }),
-          h('input', { id: 'e-fb', class: 'field', maxlength: '40', placeholder: e.language === 'vi' ? 'bạn' : 'there', value: str(e.fallback), oninput: (ev) => { e.fallback = ev.target.value; mark(); } })),
+          h('input', { id: 'e-fb', class: 'field', maxlength: '40', readOnly: sch, placeholder: e.language === 'vi' ? 'bạn' : 'there', value: str(e.fallback), oninput: (ev) => { e.fallback = ev.target.value; mark(); } })),
         h('div', { style: 'flex:1 1 160px;min-width:0' }, h('label', { class: 'lbl', for: 'e-lang', text: t('lang') }),
-          h('select', { id: 'e-lang', class: 'field', onchange: (ev) => { e.language = ev.target.value; mark(); } },
+          h('select', { id: 'e-lang', class: 'field', disabled: sch, onchange: (ev) => { e.language = ev.target.value; mark(); } },
             h('option', { value: 'en', selected: e.language !== 'vi', text: 'English' }), h('option', { value: 'vi', selected: e.language === 'vi', text: 'Tiếng Việt' })))),
       h('label', { class: 'lbl', text: t('file') }), fileBox,
       h('div', { class: 'row', style: 'margin-top:10px' }, modeSeg),
@@ -1419,7 +1644,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
         h('button', { id: 'btn-save', class: S.dirty ? 'btn pri' : 'btn', type: 'button', disabled: !!S.busy || locked, onclick: () => save(false) }, S.busy === 'save' ? [spinner(), t('saving')] : (S.dirty ? t('save') : t('saved'))),
         can ? h('button', { class: 'btn', type: 'button', disabled: !!S.busy, onclick: sendTest }, S.busy === 'test' ? [spinner(), t('testing')] : t('test')) : null,
         e.uid && e.status === 'awaiting_approval' ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('reject')) : null,
-        e.uid && e.status === 'draft' && !num(e.runs) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('discard')) : null));
+        e.uid && !sch && e.status === 'draft' && !num(e.runs) ? h('button', { class: 'btn ghost danger', type: 'button', disabled: !!S.busy, onclick: rejectEmail }, t('discard')) : null));
     const toggle = (mid) => (ev) => { const a = S.aud.magnets; const i = a.indexOf(mid); if (ev.target.checked && i < 0) a.push(mid); if (!ev.target.checked && i >= 0) a.splice(i, 1); delete S.aud.langs[mid]; S.preview = null; S.confirm = false; render(); };
     const langsOf = (m) => arr(m.languages);
     const langOn = (m, lg) => { const l = S.aud.langs[m.magnet_id]; return !l || l.indexOf(lg) >= 0; };
@@ -1433,16 +1658,16 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
     };
     const langLabel = (lg) => lg ? lg.toUpperCase() : t('lang_other');
     const langBoxes = (m) => langsOf(m).length > 1 && S.aud.magnets.indexOf(m.magnet_id) >= 0 ? h('div', { class: 'langs' },
-      langsOf(m).map((lg) => h('label', { class: 'chk sub' }, h('input', { type: 'checkbox', checked: langOn(m, lg), onchange: toggleLang(m, lg) }),
+      langsOf(m).map((lg) => h('label', { class: 'chk sub' }, h('input', { type: 'checkbox', checked: langOn(m, lg), disabled: sch, onchange: toggleLang(m, lg) }),
         h('span', { class: 'm', text: langLabel(lg) + ' · ' + tn('leads', num((m.language_leads || {})[lg])) })))) : null;
     const audCard = can ? h('section', { class: 'card' },
       h('h2', { text: t('who') }), h('p', { class: 'hint', text: t('who_hint') }),
       h('div', { class: 'chks' },
-        S.magnets.map((m) => h('div', { class: 'mag' }, h('div', { class: 'magrow' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, onchange: toggle(m.magnet_id) }),
+        S.magnets.map((m) => h('div', { class: 'mag' }, h('div', { class: 'magrow' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: S.aud.magnets.indexOf(m.magnet_id) >= 0, disabled: sch, onchange: toggle(m.magnet_id) }),
           h('span', null, h('span', { class: 't', text: str(m.title) }), h('br'), h('span', { class: 'm', text: tn('leads', num(m.leads)) + (langsOf(m).length > 1 ? ' · ' + langsOf(m).map(langLabel).join(', ') : '') + (m.status && m.status !== 'live' ? ' · ' + m.status : '') }))),
           num(m.leads) ? h('button', { class: 'btn sm ghost', type: 'button', 'aria-expanded': S.exp && S.exp.mid === m.magnet_id ? 'true' : 'false', 'aria-controls': 'exp-' + m.magnet_id, onclick: () => openExport(m) }, t('exp')) : null),
           langBoxes(m), exportBox(m))),
-        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
+        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S.aud.crm, disabled: sch, onchange: (ev) => { S.aud.crm = ev.target.checked; S.preview = null; S.confirm = false; render(); } }),
           h('span', null, h('span', { class: 't', text: t('whole_crm') }), h('br'), h('span', { class: 'm', text: tn('contacts', S.crmTotal) })))),
       sendWith(),
       mailListRow(!!S.busy || locked),
@@ -1451,26 +1676,28 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       S.prevErr ? h('p', { class: 'err', role: 'alert', text: S.prevErr }) : null,
       S.preview ? previewBox(S.preview, locked) : null) : null;
     return h('div', { class: 'stack' },
-      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { stopPoll(); S.view = 'list'; S.edit = null; S.run = null; refreshState().then(render); syncUrl(); if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id); } }, '← ' + t('back'))),
+      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', 'data-k': 'ed-back', onclick: edBack }, '← ' + t('back'))),
       clientPicker(), gateNotes(), msgCard,
       S.run ? runCard(S.run, false) : null,
+      S.scheduled.filter((r) => r.email_uid === e.uid).map((r) => schedBanner(r, false)),
       audCard,
       historyCard());
   }
   // Send with (2026-10-28): the client's link (hello@value.<domain>, SES) or the account's own sendboxes.
   function sendWith() {
     const A = S.aud;
+    const sch = !!S.edit && S.scheduled.some((r) => r.email_uid === S.edit.uid);
     const link = arr((S.gate || {}).senders)[0] || {};
     const ok = S.boxes.filter((b) => b.status === 'healthy');
     const pick = (v) => () => { A.transport = v; if (v === 'sendbox' && !A.boxes.length) A.boxes = ok.map((b) => b.box_id); S.preview = null; S.confirm = false; render(); };
     const tick = (id) => (ev) => { const i = A.boxes.indexOf(id); if (ev.target.checked && i < 0) A.boxes.push(id); if (!ev.target.checked && i >= 0) A.boxes.splice(i, 1); S.preview = null; S.confirm = false; render(); };
     return h('div', { style: 'margin-top:14px' }, h('b', { class: 'lbl', text: t('send_with') }),
       h('div', { class: 'chks', role: 'radiogroup', 'aria-label': t('send_with') },
-        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', checked: A.transport !== 'sendbox', onchange: pick('ses') }), h('span', { class: 't', text: t('via_link', { a: str(link.from_addr) }) })),
-        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', checked: A.transport === 'sendbox', disabled: !ok.length, onchange: pick('sendbox') }),
+        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', disabled: sch, checked: A.transport !== 'sendbox', onchange: pick('ses') }), h('span', { class: 't', text: t('via_link', { a: str(link.from_addr) }) })),
+        h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'via', checked: A.transport === 'sendbox', disabled: sch || !ok.length, onchange: pick('sendbox') }),
           h('span', null, h('span', { class: 't', text: t('via_boxes') }), h('br'), h('span', { class: 'm', text: ok.length ? tn('n_boxes', ok.length) : t('via_boxes_none') })))),
       A.transport === 'sendbox' ? h('div', { class: 'chks', style: 'margin:6px 0 0 26px' }, ok.map((b) => h('label', { class: 'chk' },
-        h('input', { type: 'checkbox', checked: A.boxes.indexOf(b.box_id) >= 0, onchange: tick(b.box_id) }),
+        h('input', { type: 'checkbox', checked: A.boxes.indexOf(b.box_id) >= 0, disabled: sch, onchange: tick(b.box_id) }),
         h('span', null, h('span', { class: 't', text: str(b.email) }), h('br'), h('span', { class: 'm', text: t('box_room', { n: fmtNum(num(b.broadcast_room)) }) }))))) : null);
   }
   function previewBox(p, locked) {
@@ -1508,7 +1735,10 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       S.confirm ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
         h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'send', onclick: doSend }, S.busy === 'send' ? [spinner(), t('yes_send')] : t('yes_send')),
           h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.confirm = false; render(); } }, t('cancel'))))
-        : h('button', { class: 'btn pri wide', type: 'button', disabled: n === 0 || needPostal || !evOk || locked || !!S.busy || S.dirty, onclick: () => { S.confirm = true; render(); } }, tn('send_n', n)));
+        : h('div', { class: 'stack' },
+          h('button', { class: 'btn pri wide', type: 'button', disabled: n === 0 || needPostal || !evOk || locked || !!S.busy || S.dirty, onclick: () => { S.confirm = true; S.sched = null; render(); } }, tn('send_n', n)),
+          S.sched && !S.sched.run_id ? schedPicker()
+            : h('button', { class: 'btn wide', type: 'button', disabled: n === 0 || needPostal || !evOk || locked || !!S.busy || S.dirty, onclick: () => openSched(null, n) }, t('sched'))));
   }
   function historyCard() {
     const e = S.edit;
@@ -1519,7 +1749,7 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       !runs.length ? h('p', { class: 'small', style: 'margin-top:8px', text: t('no_history') }) :
         h('ul', { class: 'hist' }, runs.map((r) => {
           const ev = r.events || {};
-          return h('li', null, h('div', { class: 'row sp' }, h('span', { text: t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.sent)) }) }), h('span', { class: 'pill', text: t('st_run_' + str(r.state)) })),
+          return h('li', null, h('div', { class: 'row sp' }, h('span', { text: r.state === 'scheduled' ? t('sched_banner', { when: fmtWhen(r.send_at, r.send_at_tz) }) : t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.sent)) }) }), h('span', { class: 'pill', text: runStateLabel(r) })),
             h('div', { class: 'chips' }, engageChips(r), ['bounced', 'complained', 'unsubscribed'].filter((k) => num(ev[k])).map((k) => h('span', { class: 'chip', text: fmtNum(num(ev[k])) + ' ' + t(k) }))),
             whoList(r));
         })),
@@ -1559,7 +1789,16 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
       W.total > W.rows.length ? h('p', { class: 'small', style: 'margin-top:6px', text: t('who_more', { n: fmtNum(W.total - W.rows.length) }) }) : null);
   }
 
+  // A drawing keeps the page where it was while the view stays the same (owner rule 2026-11-17: Back returns to the same
+  // place, and a list drawn again does not jump to the top).
   function render() {
+    const y = window.pageYOffset || 0, v = S.view, m = S.mode;
+    wcRenderNow();
+    if (S.wcDrawn && S.view === v && S.mode === m) window.scrollTo(0, y);
+    S.wcDrawn = true;
+  }
+  function wcRenderNow() {
+    wzNav();
     const mlw = document.querySelector('.mlwrap'), mlTop = mlw ? mlw.scrollTop : 0;     // the open list keeps its place
     app.textContent = '';
     if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
@@ -1577,6 +1816,127 @@ button.chip[aria-expanded="true"]{background:var(--acc-soft);border-color:var(--
   window.addEventListener('beforeunload', (ev) => { if (S.dirty && S.edit && (S.edit.subject || S.edit.body)) { ev.preventDefault(); ev.returnValue = ''; } });
   render();
   load();
+
+
+  // ── The editor and the list (owner rule 2026-11-17): Back (the button or the phone's back gesture) returns to the list
+  // at the place it was left, the item that was open marked; changes not saved yet are not dropped without asking.
+  function edDirty() { return !!(S.edit && S.dirty && (str(S.edit.subject).trim() || str(S.edit.body).trim())); }
+  function edLeaveOk() { return !edDirty() || window.confirm(t('wc_discard')); }
+  function edMark(id) { S.wcList = { y: window.pageYOffset || 0, id: String(id || '') }; }
+  function edClose() { stopPoll(); S.view = 'list'; S.edit = null; S.run = null; refreshState().then(() => { render(); edRestore(); }); syncUrl(); if (S.active && S.active.state !== 'paused') startPoll(S.active.run_id); }
+  function edRestore() {
+    const m = S.wcList;
+    S.wcList = null;
+    if (!m || S.view === 'edit') return;
+    window.scrollTo(0, m.y);
+    const b = [].slice.call(app.querySelectorAll('[data-uid]')).filter((x) => x.getAttribute('data-uid') === m.id)[0];
+    if (b) { b.classList.add('wc-was'); b.focus({ preventScroll: true }); }
+  }
+  function edBack() {
+    if (!edLeaveOk()) return;
+    if (history.state && history.state.wcIn === 'ed') { S.wcLeaving = true; history.back(); return; }   // wcPop closes it
+    edClose();
+  }
+  wcPop = () => {
+    const ed = !!(history.state && history.state.wcIn === 'ed');
+    if (S.view === 'edit' && !ed) {
+      if (!S.wcLeaving && !edLeaveOk()) { syncUrl(); return true; }                // stays: the editor's step again
+      S.wcLeaving = false;
+      edClose();
+      return true;
+    }
+    if (S.view !== 'edit' && ed) {
+      const id = new URLSearchParams(location.search).get('email');
+      if (id) openEmail(id);
+      return true;
+    }
+    return false;
+  };
+  // ── Ways back to the Wizard and a real Sign out (owner, 2026-11-17, WIZARD_UX_AUDIT_PLAN_2026-11-17.md 4.5). The
+  // header's Wizard link shows once this browser has used the Wizard (wc_wizard_client); opened from the
+  // Wizard (?from=wizard) it reads "Back to Wizard". Sign out drops the session from this browser (crmstore.html's
+  // signOut), then shows the sign-in; the sign-in form keeps its "Use another email". Nothing else on the page changes.
+  function wzHref() {
+    const c = (S && typeof S.client === 'string' && S.client) || Q0.get('client') || lsGet('wc_wizard_client') || '';
+    const p = new URLSearchParams();
+    if (/^[a-z0-9][a-z0-9_-]{0,63}$/.test(c)) p.set('client', c);
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    const qs = p.toString();
+    return 'wizard.html' + (qs ? '?' + qs : '');
+  }
+  // The page the Boss came from (owner rule 2026-11-17): a page of this site, in this tab, named in the header's
+  // "Back to <page>"; ?from=wizard names the Wizard when the browser sent no address. Back goes back in the tab's
+  // history past this page's own steps, so that page comes back as it was left (the same item, the same scroll).
+  function wcPrevPage() {
+    const names = { '/wizard.html': 'Wizard', '/approve.html': 'Approvals', '/report.html': 'Report', '/nodes.html': 'Agents',
+      '/content-library.html': 'Library', '/magnets.html': 'Lead magnets', '/crmstore.html': 'CRM', '/crm.html': 'CRM connections',
+      '/broadcast.html': 'Email broadcast', '/group-broadcast.html': 'Post broadcast', '/communities.html': 'Communities', '/sends.html': 'Schedule & history',
+      '/shorten.html': 'Links' };
+    let u = null;
+    try { u = document.referrer ? new URL(document.referrer) : null; } catch (e) { u = null; }
+    if (u && u.origin === location.origin && u.pathname !== location.pathname && Object.prototype.hasOwnProperty.call(names, u.pathname)) {
+      const pub = u.pathname === '/approve.html' && u.searchParams.get('tab') === 'publish';
+      return { url: u.href, name: pub ? 'Publish' : names[u.pathname], wizard: u.pathname === '/wizard.html' };
+    }
+    if (Q0.get('from') === 'wizard') return { url: wzHref(), name: 'Wizard', wizard: true };
+    if (Q0.get('from') === 'sends') return { url: 'sends.html' + (S && S.client ? '?client=' + encodeURIComponent(S.client) : ''), name: 'Schedule & history', wizard: false };   // opened from Schedule & history (no address sent): the same page
+    return null;
+  }
+  function wcGoBack(ev) {
+    const prev = wcPrevPage();
+    if (!prev) return;
+    const i = history.state && typeof history.state.wcIdx === 'number' ? history.state.wcIdx : 0;
+    if (history.length < i + 2) return;               // opened in a new tab: the link opens that page
+    ev.preventDefault();
+    let gone = false;
+    window.addEventListener('pagehide', () => { gone = true; }, { once: true });
+    history.go(-(i + 1));
+    setTimeout(() => { if (!gone) location.href = prev.url; }, 900);
+  }
+  function wzNav() {
+    const prev = wcPrevPage();
+    const b = document.getElementById('wc-back');
+    if (b) {
+      b.hidden = !prev;
+      if (prev) {
+        const sp = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; return e; };
+        while (b.firstChild) b.removeChild(b.firstChild);
+        const arrow = sp('wb-a', '←');
+        arrow.setAttribute('aria-hidden', 'true');
+        b.appendChild(arrow);
+        b.appendChild(sp('wb-l', t('wc_back_to') + ' '));
+        b.appendChild(sp('wb-n', prev.name));
+        b.setAttribute('aria-label', t('wc_back_to') + ' ' + prev.name);
+        b.setAttribute('href', prev.url);
+        b.setAttribute('data-k', prev.wizard ? 'back-wizard' : 'back');
+      }
+    }
+    const a = document.getElementById('wz-nav');
+    if (a) {
+      a.hidden = !!(prev && prev.wizard) || !(!!lsGet('wc_wizard_client'));
+      a.textContent = t('wz_nav');
+      a.setAttribute('data-k', 'wizard');
+      a.setAttribute('href', wzHref());
+    }
+    const o = document.getElementById('wz-out');            // this page has no footer: Sign out is in the header
+    if (o) { o.hidden = !session() || S.mode === 'login'; o.textContent = t('sign_out'); }
+  }
+  function wzSignOut() {
+    ['google_auth_token', 'google_auth_timestamp', 'company_id', 'wc_wizard_client'].forEach(lsDel);
+    memSession = null;
+    wzNav();
+    showLogin(false);
+  }
+  (() => {
+    const a = document.getElementById('wz-nav');
+    if (a) a.addEventListener('click', () => a.setAttribute('href', wzHref()));   // the client open now
+    const wb = document.getElementById('wc-back');
+    if (wb) wb.addEventListener('click', wcGoBack);
+    const o = document.getElementById('wz-out');
+    if (o) o.addEventListener('click', wzSignOut);
+    wzNav();
+  })();
 })();
 </script>
 </body>

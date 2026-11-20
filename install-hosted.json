@@ -1,0 +1,27 @@
+{
+  "name": "WideCast",
+  "version": "0.2.0",
+  "for": "cloud agents that run commands on their own cloud machine, such as Muse",
+  "tagline": "A sales and marketing assistant for a one-person business.",
+  "description": "WideCast reads the Facebook groups the owner is in, finds people to contact and questions buyers ask, and drafts posts and replies that the owner approves on widecast.ai. Setting it up here means downloading the WideCast release into the agent's own workspace and unpacking its program. Nothing keeps running. The owner then works on his WideCast pages at widecast.ai.",
+  "homepage": "https://widecast.ai",
+  "documentation": "https://widecast.ai/llms.txt",
+  "what_gets_installed": "https://widecast.ai/agent/what-gets-installed.html",
+  "setup_line": "A WideCast setup line reads `Setup https://widecast.ai/install-hosted.json?setup=wcs_…`. Its `wcs_…` value is a one-time setup code that the account owner made on widecast.ai. The setup uses it once, at its key step, in place of an email code. No sign-in is needed.",
+  "before_installing": "Setup asks the owner one short question before anything is installed, for example: 'Shall I set up WideCast for you now? What it installs: https://widecast.ai/agent/what-gets-installed.html'.",
+  "steps": [
+    "1. In your own workspace folder, which is the install root, download and run the release installer: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. It checks the release checksum against https://origin.widecast.ai/agent/latest.json and unpacks the release into `solo-agency/`. It starts nothing. Its last line reads `WIDECAST_INSTALL status=installed …`.",
+    "2. Continue with `solo-agency/AGENTS.md` and the cloud-agent setup branch of `solo-agency/playbooks/SETUP_FLOW_ENTRYPOINT.md`. That branch unpacks the program with `solo-agency/solo-agency-collector/setup_hosted.sh` (it checks the checksum and starts nothing), then covers the WideCast key from the setup code, the owner's business, Facebook and the daily schedule."
+  ],
+  "credential": {
+    "url": "https://widecast.ai/llms.txt",
+    "type": "wc_live_api_key",
+    "hint": "No key and no sign-in are needed to install. The setup gets the WideCast key itself at its key step, from the setup code of the owner's setup line."
+  },
+  "release_manifest": "https://origin.widecast.ai/agent/latest.json",
+  "installer": "https://origin.widecast.ai/agent/install.sh",
+  "support": {
+    "email": "hello@widecast.ai",
+    "docs": "https://widecast.ai/docs.html"
+  }
+}

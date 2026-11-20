@@ -1,0 +1,27 @@
+{
+  "name": "WideCast",
+  "version": "0.3.0",
+  "for": "a web chat that cannot run commands on the user's computer (ChatGPT, claude.ai, Gemini on the web, Grok on the web, the chat tab of the Claude desktop app)",
+  "tagline": "A sales & marketing team of AI agents for a one-person business — CRM, lead finding, follow-ups and a video / blog / social engine, run from the AI chat you already use.",
+  "description": "WideCast installs on the user's own computer, where an agent with a shell (Claude Code or the Code tab of the Claude desktop app, or Codex) sets it up: a sales & marketing team of AI agents with a CRM, lead finding, follow-ups and the video / blog / social engine. A web chat cannot run commands there, so its part is the handoff below.",
+  "homepage": "https://widecast.ai",
+  "documentation": "https://widecast.ai/llms.txt",
+  "what_gets_installed": "https://widecast.ai/agent/what-gets-installed.html",
+  "setup_line": "A WideCast setup line reads `Setup https://widecast.ai/install.json?setup=wcs_…`. Its `wcs_…` value is a one-time setup code that the account owner made on widecast.ai. The setup uses it once, at its key step, in place of an email code. No sign-in is needed.",
+  "handoff": [
+    "1. This chat says in one sentence that it cannot run commands on the user's computer, and that WideCast installs there.",
+    "2. It gives the user the two commands for their computer, to run in a terminal inside an empty folder. macOS / Linux: `curl -fsSL https://origin.widecast.ai/agent/install.sh -o widecast-install.sh` then `bash widecast-install.sh`. Windows (PowerShell): `Invoke-WebRequest -UseBasicParsing -Uri https://origin.widecast.ai/agent/install.ps1 -OutFile widecast-install.ps1` then `powershell -ExecutionPolicy Bypass -File widecast-install.ps1`.",
+    "3. It asks the user to open that folder in Claude Code (or the Code tab of the Claude desktop app) or Codex and say `Set up WideCast`.",
+    "4. When the user pasted a WideCast setup line in this chat (`Setup https://widecast.ai/install.json?setup=wcs_…`), this chat gives the user that same line back, word for word, to paste to the agent on the computer in place of `Set up WideCast`. The agent there then uses its one-time setup code at the key step, and no email code is needed."
+  ],
+  "credential": {
+    "url": "https://widecast.ai/llms.txt",
+    "type": "wc_live_api_key",
+    "hint": "No key and no sign-in are needed: the agent on the computer gets the WideCast key itself at its key step, from the setup code of the setup line or from the user's email and the 6-digit code WideCast emails them."
+  },
+  "release_manifest": "https://origin.widecast.ai/agent/latest.json",
+  "support": {
+    "email": "hello@widecast.ai",
+    "docs": "https://widecast.ai/docs.html"
+  }
+}

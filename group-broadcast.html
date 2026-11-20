@@ -134,16 +134,57 @@ select.field{padding-right:28px}
 .reach{display:flex;flex-wrap:wrap;gap:6px}
 .reach .chip{text-decoration:none;color:var(--tx-2)}
 .reach .chip.on{background:var(--acc-soft);border-color:var(--acc-line);color:var(--acc-tx);font-weight:600}
+.wz-nav{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:none;color:var(--tx-2);font-family:inherit;font-size:.9375rem;font-weight:600;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer}.wz-nav:hover{background:var(--s2);color:var(--tx-hi)}.wz-nav[hidden]{display:none!important}
+.wc-back{margin-right:auto;gap:.3em}.wc-back .wb-a{margin-right:2px}@media (max-width:640px){.wc-back .wb-l{display:none}}
+.wc-was{outline:2px solid var(--acc,#4a7dff);outline-offset:2px}
+.hdr-links .wz-nav{font-size:.875rem;font-weight:500}
+/* 2026-11-18 (owner): wide screens use their width */
+@media (min-width:1024px){.wrap{width:min(100% - 48px,1200px)}}
+/* 2026-11-18 (owner): the list first, at least 2/3 of the screen. One row for the title, the client and New post; one
+   short line about who posts; the page's line, the Reach row, the groups and the settings below the list. On a phone
+   the header is lower and its links never run off the screen (a long Back name shortens with "…"). */
+.pgtop{display:flex;flex-direction:column;gap:8px}
+.pghead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.pghead h1.pg{flex:1 1 auto;min-width:0}
+.pghead .cl-pick>div{display:flex;align-items:center;gap:8px}
+.pghead .cl-pick .lbl{margin:0;font-weight:500;color:var(--tx-2)}
+.pghead .cl-pick select{width:auto;max-width:240px;min-height:40px;padding-top:6px;padding-bottom:6px}
+.note.slim{padding:0;border-radius:12px;font-size:.875rem;line-height:1.4}
+.note.slim>summary,.note.slim>.ln{min-height:40px;padding:10px 12px}
+.note.slim>summary{cursor:pointer;font-weight:600}
+.note.slim>p:not(.ln){padding:0 12px 12px}
+.pgabout{display:flex;flex-direction:column;gap:10px}
+.pgabout .sub{margin-top:0;font-size:.875rem}
+@media (max-width:560px){
+  main{padding-top:14px}
+  .lv{gap:12px}
+  .pghead h1.pg{font-size:1.25rem}
+  .pghead .btn{min-height:40px;padding:0 14px}
+  .pghead .cl-pick{order:2;flex:1 1 100%}
+  .card.lst{padding:14px}
+  .hdr-in{min-height:52px;gap:8px}
+  .brand,.hdr-r{flex:none}
+  .hdr-links{gap:0}
+  .hdr-links a,.hdr-links .wz-nav{min-height:40px;min-width:40px;justify-content:center;padding:0 5px;font-size:.8125rem}
+  .wc-back{min-height:40px;min-width:40px;padding:0 6px;font-size:.875rem;flex:0 1 auto;overflow:hidden}
+  .wc-back .wb-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Back already goes there: its link in the row would only take the room Back's name needs */
+  .hdr-in:has(#wc-back:not([hidden])[href*="/approve.html"]) #nav-approve,.hdr-in:has(#wc-back:not([hidden])[href*="/crmstore.html"]) #nav-crm{display:none}
+}
+@media (max-width:360px){.hdr-in{gap:4px}.hdr-links a,.hdr-links .wz-nav{padding:0 3px}.wc-back{padding:0 4px}}
 </style>
 </head>
 <body>
 <header class="hdr">
   <div class="wrap hdr-in">
     <a class="brand" href="/" aria-label="WideCast home"><span class="mark"><img src="statics/widecast_logo_gray.svg" alt="" width="24" height="24"></span><span>WideCast</span></a>
+    <a class="wz-nav wc-back" id="wc-back" href="#" hidden></a>
     <div class="hdr-r">
       <nav class="hdr-links" aria-label="Pages">
         <a href="approve.html" id="nav-approve">Approvals</a>
         <a href="crmstore.html" id="nav-crm">CRM</a>
+        <a class="wz-nav" id="wz-nav" href="wizard.html" hidden>Wizard</a>
+        <button type="button" class="wz-nav" id="wz-out" data-k="sign-out" hidden>Sign out</button>
       </nav>
     </div>
   </div>
@@ -162,6 +203,30 @@ select.field{padding-right:28px}
   // group. Same sign-in, API base, language choice and look as broadcast.html.
   const LANG_SWITCH = false;              // as the other pages: English for now, both dictionaries kept
   const Q0 = new URLSearchParams(location.search);
+
+  // ── History steps (owner rule 2026-11-17, BACK_NAV_AUDIT_2026-11-17.md: Back returns to the very place the Boss came
+  // from). Every history entry this page writes carries wcIdx (0 for the page's first entry, one more for each inner
+  // view: a phone detail, an editor, an inner screen), the address of the entry before it (wcPrev) and, once left, its
+  // scroll (wcY), whatever state the page's own code passes. An inner view that the back gesture leaves is closed by
+  // wcPop before the page's own popstate listeners run.
+  let wcPop = null;
+  (() => {
+    const H = window.history;
+    if (!H || typeof H.pushState !== 'function') return;
+    const push = H.pushState.bind(H), repl = H.replaceState.bind(H);
+    const idx = () => (H.state && typeof H.state.wcIdx === 'number' ? H.state.wcIdx : 0);
+    const mix = (st, i) => Object.assign({}, st && typeof st === 'object' ? st : {}, { wcIdx: i });
+    try {
+      H.pushState = function (st, ti, url) {
+        try { H.scrollRestoration = 'manual'; } catch (e) { /* old browser */ }   // the page puts the place back itself
+        repl(Object.assign(mix(H.state, idx()), { wcY: window.pageYOffset || 0 }), '');
+        return push(Object.assign(mix(st, idx() + 1), { wcPrev: location.href }), ti, url);
+      };
+      H.replaceState = function (st, ti, url) { return repl(mix(st == null ? H.state : st, idx()), ti, url); };
+      repl(mix(H.state, idx()), '');
+    } catch (e) { /* history not writable */ }
+    window.addEventListener('popstate', (ev) => { if (typeof wcPop === 'function' && wcPop(ev) === true) ev.stopImmediatePropagation(); });
+  })();
   const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   const API_ORIGIN = (() => {
     const raw = IS_LOCAL ? Q0.get('api') : '';
@@ -178,7 +243,10 @@ select.field{padding-right:28px}
 
   const I18N = {
     en: {
-      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities',
+      wz_nav: 'Wizard', wz_back: 'Back to Wizard', sign_out: 'Sign out',
+      wc_back_to: 'Back to',
+      wc_discard: 'Leave without saving your changes?',
+      reach: 'Reach', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Communities', r_sends: 'Schedule & history',
       title: 'Post broadcast', sub: 'Write one post, tick the Facebook groups, send. Your cloud agent posts it into each group over the days you choose, never twice into one group.',
       client: 'Client', new_post: 'New post', posts: 'Posts', none_h: 'No posts yet', none_p: 'Write your first one.',
       untitled: '(no text yet)', st_draft: 'Draft', st_sent: 'Sent', updated: 'Changed {d}', sent_times: 'Sent {n}×, last {d}',
@@ -227,6 +295,12 @@ select.field{padding-right:28px}
       yes_send: 'Yes, send', cancel: 'Cancel', nobody: 'None of the ticked groups can get it now.', changed: 'The numbers changed. Check them again.',
       sending: 'Sending…', sent_ok: 'Sent. Your agent posts the copies as they come due.',
       where_h: 'Where it stands', retry: 'Try again', retried: 'It goes out again next.', due: 'Due {d}',
+      sch: 'Schedule', sch_h: 'Schedule this send', sch_date: 'Date', sch_time: 'Time', sch_tz: 'Your time zone: {tz}',
+      sch_hours: 'Facebook posts go out between {start} and {end}, your posting hours. Change them on Machines.',
+      sch_confirm: 'Schedule', sch_banner: 'Scheduled for {when}', sch_move: 'Change time', sch_now: 'Post now', sch_cancel: 'Cancel',
+      sch_cancel_q: 'Cancel this scheduled send? You can send or schedule the post again later.', sch_bad: 'Pick a time inside your posting hours.',
+      sch_loading: 'Loading…', sch_done: 'Scheduled.', sch_moved: 'Time changed.', sch_started: 'Posting started, so the time cannot change any more.', sch_close: 'Close',
+      st_run_scheduled: 'Scheduled',
       sends_h: 'Sends', run_line: '{d}: {n} groups, {p} a day', st_run_running: 'Running', st_run_paused: 'Paused', st_run_stopped: 'Stopped', st_run_done: 'Done',
       why_account_blocked: 'Facebook stopped the account from posting. Every send paused. Go on when Facebook lets the account post again.',
       why_needs_chat: 'Your agent needs your OK in its chat before it can post. Answer it there, then go on.',
@@ -246,7 +320,10 @@ select.field{padding-right:28px}
       private_note: 'Only your WideCast account can see this page.', loading: 'Loading…', retry_load: 'Try again'
     },
     vi: {
-      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng',
+      wz_nav: 'Wizard', wz_back: 'Về Wizard', sign_out: 'Đăng xuất',
+      wc_back_to: 'Về',
+      wc_discard: 'Rời đi mà không lưu thay đổi của bạn?',
+      reach: 'Lan toả', r_email: 'Email broadcast', r_posts: 'Post broadcast', r_comm: 'Cộng đồng', r_sends: 'Lịch gửi',
       title: 'Post broadcast', sub: 'Viết một bài, chọn các group Facebook, gửi. Agent trên cloud đăng bài vào từng group trong số ngày bạn chọn, không bao giờ đăng hai lần vào một group.',
       client: 'Khách hàng', new_post: 'Bài mới', posts: 'Bài viết', none_h: 'Chưa có bài nào', none_p: 'Viết bài đầu tiên.',
       untitled: '(chưa có chữ)', st_draft: 'Nháp', st_sent: 'Đã gửi', updated: 'Sửa lúc {d}', sent_times: 'Đã gửi {n} lần, lần cuối {d}',
@@ -295,6 +372,12 @@ select.field{padding-right:28px}
       yes_send: 'Gửi', cancel: 'Huỷ', nobody: 'Không group nào nhận được bài lúc này.', changed: 'Số đã thay đổi. Xem lại số.',
       sending: 'Đang gửi…', sent_ok: 'Đã gửi. Agent đăng từng bài khi đến giờ.',
       where_h: 'Tình trạng từng group', retry: 'Thử lại', retried: 'Sẽ đăng lại ngay sau.', due: 'Đến giờ {d}',
+      sch: 'Lên lịch', sch_h: 'Lên lịch gửi', sch_date: 'Ngày', sch_time: 'Giờ', sch_tz: 'Múi giờ của bạn: {tz}',
+      sch_hours: 'Bài Facebook chỉ đăng từ {start} đến {end}, theo giờ đăng bài của bạn. Đổi trên trang Machines.',
+      sch_confirm: 'Lên lịch', sch_banner: 'Đã lên lịch: {when}', sch_move: 'Đổi giờ', sch_now: 'Đăng ngay', sch_cancel: 'Huỷ lịch',
+      sch_cancel_q: 'Huỷ lịch gửi này? Sau này bạn vẫn gửi hoặc lên lịch lại được.', sch_bad: 'Chọn giờ nằm trong giờ đăng bài của bạn.',
+      sch_loading: 'Đang tải…', sch_done: 'Đã lên lịch.', sch_moved: 'Đã đổi giờ.', sch_started: 'Đã bắt đầu đăng nên không đổi giờ được nữa.', sch_close: 'Đóng',
+      st_run_scheduled: 'Đã lên lịch',
       sends_h: 'Các đợt gửi', run_line: '{d}: {n} group, {p} bài mỗi ngày', st_run_running: 'Đang chạy', st_run_paused: 'Tạm dừng', st_run_stopped: 'Đã dừng', st_run_done: 'Xong',
       why_account_blocked: 'Facebook đang chặn tài khoản đăng bài. Mọi đợt gửi đã tạm dừng. Cho chạy tiếp khi Facebook cho đăng lại.',
       why_needs_chat: 'Agent cần bạn đồng ý trong khung chat của nó trước khi đăng. Trả lời ở đó rồi cho chạy tiếp.',
@@ -442,7 +525,7 @@ select.field{padding-right:28px}
     groups: [], posts: [], settings: {}, runs: [], posters: [], planDay: 0, tested: false, limits: {}, pageErr: '',
     view: 'list', edit: null, dirty: false, busy: '', err: '', ticks: [], days: 1, q: '', preview: null, prevErr: '',
     confirm: false, set: {}, setBusy: false, setErr: '', addUrl: '', addName: '', addBusy: false, addErr: '', ren: null, imp: null, ownerOnly: false,
-    wantPost: UID_RE.test(str(Q0.get('post'))) ? Q0.get('post') : '', versions: {},
+    wantPost: UID_RE.test(str(Q0.get('post'))) ? Q0.get('post') : '', wantRun: Q0.get('from') === 'sends' && UID_RE.test(str(Q0.get('post'))), versions: {}, sch: null,
     login: { step: 1, email: '', code: '', busy: false, err: '' }
   };
   const app = document.getElementById('app');
@@ -454,7 +537,12 @@ select.field{padding-right:28px}
     if (S.client) p.set('client', S.client); else p.delete('client');
     if (S.view === 'edit' && S.edit && S.edit.uid) p.set('post', S.edit.uid); else p.delete('post');
     const qs = p.toString();
-    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '')); } catch (e) { /* not allowed */ }
+    const url = location.pathname + (qs ? '?' + qs : '');
+    try {
+      const inEd = !!(history.state && history.state.wcIn === 'ed');
+      if (S.view === 'edit' && !inEd) history.pushState({ wcIn: 'ed' }, '', url);   // an editor is one step of history (2026-11-17)
+      else history.replaceState(S.view !== 'edit' && inEd ? { wcIn: '' } : null, '', url);
+    } catch (e) { /* not allowed */ }
     ['nav-approve', 'nav-crm'].forEach((id) => {
       const a = document.getElementById(id);
       const keep = new URLSearchParams();
@@ -577,11 +665,129 @@ select.field{padding-right:28px}
     if (chosen && str(chosen.runtime) === 'local') return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('chosen_local_h') }), h('p', { text: t('chosen_local_p', { n: str(chosen.name) }) }));
     return h('div', { class: 'note warn', role: 'note' }, h('b', { text: t('no_poster_h') }), h('p', { text: t('no_poster_p') }));
   }
+  // Who posts, one short line under the list's title (2026-11-18, owner: the list first): the most pressing fact on the
+  // line, the rest one tap deeper. The editor keeps noPosterWarn().
   function posterNote() {
-    if (!S.posters.length) return noPosterWarn(S.chosenPoster);
-    return h('div', null, h('p', { class: 'small', text: t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') }) + (S.planDay > 0 ? ' · ' + t('plan_day', { n: fmtNum(S.planDay) }) : '') }),
-      h('p', { class: 'small', style: 'margin-top:4px', text: t('poster_chat') + ' ' + t('poster_allow') }),
-      S.noAnswerUntil * 1000 > Date.now() ? h('div', { class: 'note warn', role: 'status', style: 'margin-top:8px', text: t('no_answer_wait', { d: fmtDay(S.noAnswerUntil) }) }) : null);
+    if (!S.posters.length) {
+      const local = !!(S.chosenPoster && str(S.chosenPoster.runtime) === 'local');
+      return h('details', { class: 'note warn slim', open: S.wcGate, ontoggle: (e) => { S.wcGate = e.target.open; } }, h('summary', { text: t(local ? 'chosen_local_h' : 'no_poster_h') }),
+        h('p', { text: local ? t('chosen_local_p', { n: str(S.chosenPoster.name) }) : t('no_poster_p') }));
+    }
+    const wait = S.noAnswerUntil * 1000 > Date.now();
+    const who = t('poster', { n: S.posters.map((p) => str(p.name)).join(', ') });
+    return h('details', { class: 'note slim' + (wait ? ' warn' : ''), open: S.wcGate, ontoggle: (e) => { S.wcGate = e.target.open; } },
+      h('summary', { text: wait ? t('no_answer_wait', { d: fmtDay(S.noAnswerUntil) }) : who }),
+      h('p', { text: (wait ? who + '. ' : '') + (S.planDay > 0 ? t('plan_day', { n: fmtNum(S.planDay) }) + ' ' : '') + t('poster_chat') + ' ' + t('poster_allow') }));
+  }
+  // ── Schedule (2026-11-19): the picker, in the owner's zone and inside the posting hours
+  function fmtWhen(sec, tz) {
+    const n = Number(sec);
+    if (!(n > 0)) return '';
+    const o = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false };
+    const loc = LANG === 'vi' ? 'vi-VN' : 'en-GB';
+    try { return new Intl.DateTimeFormat(loc, Object.assign({ timeZone: tz || undefined }, o)).format(new Date(n * 1000)); } catch (e) { return fmtDay(n); }
+  }
+  const toMin = (hm) => { const m = /^(\d{1,2}):(\d{2})/.exec(str(hm)); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };
+  const pad2 = (n) => (n < 10 ? '0' : '') + n;
+  const fromMin = (m) => pad2(Math.floor(m / 60)) + ':' + pad2(m % 60);
+  function wallParts(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(str(iso)); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : NaN; }
+  function inHours(min, ph) {
+    if (!ph || ph.always) return true;
+    const a = toMin(ph.start), b = toMin(ph.end);
+    return a <= b ? (min >= a && min < b) : (min >= a || min < b);
+  }
+  function schWall(sc) { return sc.date && sc.time ? Date.parse(sc.date + 'T' + sc.time + ':00Z') : NaN; }
+  function schValid(sc) {
+    const w = schWall(sc), info = sc.info;
+    if (!info || isNaN(w)) return false;
+    const now = wallParts(info.local_now);
+    if (w < now + (num(info.min_ahead_s) || 60) * 1000 + 1000 || w > now + (num(info.max_ahead_days) || 180) * 86400000) return false;
+    return inHours(toMin(sc.time), info.posting_hours);
+  }
+  function openPicker(r) {
+    const sc = { run_id: r ? r.run_id : '', info: null, date: '', time: '', busy: false, err: '' };
+    S.sch = sc; S.confirm = false; render();
+    let btz = ''; try { btz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { btz = ''; }
+    api('/solo/schedule/info', { client: S.client, tz: btz }).then((res) => {
+      if (S.sch !== sc) return;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) { sc.err = msgOf(res); render(); return; }
+      const info = res.data, ph = info.posting_hours || {};
+      let w = wallParts(info.local_now);
+      const now = w;
+      w = Math.floor(w / 3600000) * 3600000 + 3600000;              // the next full hour
+      if (w - now < 300000) w += 3600000;
+      for (let i = 0; i < 60 && !inHours(toMin(new Date(w).toISOString().slice(11, 16)), ph); i++) w += 3600000;
+      const iso = new Date(w).toISOString();
+      sc.info = info; sc.date = iso.slice(0, 10); sc.time = iso.slice(11, 16);
+      render();
+    }).catch(() => { if (S.sch === sc) { sc.err = t('net_err'); render(); } });
+  }
+  function pickerBox(onConfirm) {
+    const sc = S.sch, info = sc.info;
+    if (!info) return h('div', { class: 'note stack', role: 'group', 'aria-label': t('sch_h') }, h('b', { text: t('sch_h') }),
+      sc.err ? h('p', { class: 'err', role: 'alert', text: sc.err }) : h('p', { class: 'small' }, spinner(), ' ' + t('sch_loading')),
+      h('div', { class: 'row' }, h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.sch = null; render(); } }, t('sch_close'))));
+    const ph = info.posting_hours || {}, ok = schValid(sc);
+    const nowD = str(info.local_now).slice(0, 10), maxD = new Date(wallParts(info.local_now) + (num(info.max_ahead_days) || 180) * 86400000).toISOString().slice(0, 10);
+    const lim = !ph.always && toMin(ph.start) < toMin(ph.end);
+    return h('div', { class: 'note stack', role: 'group', 'aria-label': t('sch_h') },
+      h('b', { text: t('sch_h') }),
+      h('div', { class: 'row' },
+        h('div', null, h('label', { class: 'lbl', for: 'sch-d', text: t('sch_date') }),
+          h('input', { id: 'sch-d', class: 'field', type: 'date', value: sc.date, min: nowD, max: maxD, onchange: (e) => { sc.date = e.target.value; sc.err = ''; render(); } })),
+        h('div', null, h('label', { class: 'lbl', for: 'sch-t', text: t('sch_time') }),
+          h('input', { id: 'sch-t', class: 'field', type: 'time', value: sc.time, min: lim ? ph.start : null, max: lim ? fromMin(toMin(ph.end) - 1) : null, onchange: (e) => { sc.time = e.target.value; sc.err = ''; render(); } }))),
+      h('p', { class: 'small', text: t('sch_tz', { tz: str(info.tz) }) }),
+      ph.always ? null : h('p', { class: 'small', text: t('sch_hours', { start: str(ph.start), end: str(ph.end) }) }),
+      !ok && sc.date && sc.time ? h('p', { class: 'err', role: 'alert', text: t('sch_bad') }) : null,
+      sc.err ? h('p', { class: 'err', role: 'alert', text: sc.err }) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn pri', type: 'button', disabled: !ok || sc.busy, onclick: () => onConfirm(sc.date + 'T' + sc.time, str(info.tz)) }, sc.busy ? [spinner(), t('sch_confirm')] : t('sch_confirm')),
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.sch = null; render(); } }, t('sch_close'))));
+  }
+  function doSchedule(sendAt, tz) {
+    const sc = S.sch, b = audBody();
+    b.expect = num(S.preview && S.preview.will_post); b.send_at = sendAt; b.tz = tz;
+    sc.busy = true; sc.err = ''; render();
+    api('/solo/groupposts/send', b).then((res) => {
+      sc.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok || !res.data) {
+        const er = errOf(res);
+        if (er.code === 'audience_changed') { S.sch = null; S.preview = null; S.prevErr = t('changed'); checkNumbers(true); return; }
+        sc.err = msgOf(res); render(); return;
+      }
+      S.sch = null; S.preview = null; toast(t('sch_done'));
+      refreshState().then(reloadPost).then(() => { render(); maybePoll(); });
+    }).catch(() => { sc.busy = false; sc.err = t('net_err'); render(); });
+  }
+  function schAction(r, action, sendAt, tz) {
+    const body = { client: S.client, run_id: r.run_id, action: action };
+    if (sendAt) { body.send_at = sendAt; body.tz = tz; }
+    const sc = S.sch; if (sc) { sc.busy = true; sc.err = ''; }
+    S.busy = 'run'; render();
+    api('/solo/groupposts/schedule', body).then((res) => {
+      S.busy = ''; if (sc) sc.busy = false;
+      if (authFailed(res)) { showLogin(); return; }
+      if (!res.ok) {
+        const er = errOf(res), m = er.code === 'already_started' ? t('sch_started') : msgOf(res);
+        if (sc && action === 'move') { sc.err = m; } else toast(m);
+        if (er.code === 'already_started' || er.code === 'not_scheduled') { S.sch = null; refreshState().then(reloadPost).then(render); return; }
+        render(); return;
+      }
+      S.sch = null; if (action === 'move') toast(t('sch_moved'));
+      refreshState().then(reloadPost).then(() => { render(); maybePoll(); });
+    }).catch(() => { S.busy = ''; if (sc) sc.busy = false; toast(t('net_err')); render(); });
+  }
+  function scheduledBanner(r) {
+    const picking = S.sch && S.sch.run_id === r.run_id;
+    return h('div', { class: 'stack', style: 'margin-top:8px' },
+      h('p', { class: 'small' }, h('b', { text: t('sch_banner', { when: fmtWhen(r.send_at, r.send_at_tz) }) })),
+      picking ? pickerBox((at, tz) => schAction(r, 'move', at, tz)) : h('div', { class: 'row' },
+        h('button', { class: 'btn sm', type: 'button', disabled: !!S.busy, onclick: () => openPicker(r) }, t('sch_move')),
+        h('button', { class: 'btn sm', type: 'button', disabled: !!S.busy, onclick: () => schAction(r, 'now') }, t('sch_now')),
+        h('button', { class: 'btn sm ghost danger', type: 'button', disabled: !!S.busy, onclick: () => { if (window.confirm(t('sch_cancel_q'))) schAction(r, 'cancel'); } }, t('sch_cancel'))));
   }
   function runCard(r, compact) {
     const why = str(r.pause_reason);
@@ -596,9 +802,10 @@ select.field{padding-right:28px}
       }).catch(() => { S.busy = ''; toast(t('net_err')); render(); });
     };
     const st = str(r.state);
-    return h('li', { class: 'grp', style: 'flex-direction:column;align-items:stretch' },
+    return h('li', { class: 'grp', id: 'run-' + str(r.run_id), style: 'flex-direction:column;align-items:stretch' },
       h('div', { class: 'row sp' }, h('span', { text: t('run_line', { d: fmtDay(r.created_at), n: fmtNum(num(r.groups)), p: fmtNum(num(r.per_day)) }) }),
-        h('span', { class: st === 'running' ? 'pill live' : st === 'paused' ? 'pill wait' : st === 'done' ? 'pill sent' : 'pill', text: t('st_run_' + st) })),
+        h('span', { class: st === 'running' ? 'pill live' : st === 'paused' || st === 'scheduled' ? 'pill wait' : st === 'done' ? 'pill sent' : 'pill', text: t('st_run_' + st) })),
+      st === 'scheduled' ? scheduledBanner(r) : null,
       why && (st === 'paused' || st === 'stopped') && !compact ? h('p', { class: 'small', text: t('why_' + why) }) : null,
       st === 'running' || st === 'paused' ? h('div', { class: 'row' },
         st === 'running' ? h('button', { class: 'btn sm', type: 'button', disabled: !!S.busy, onclick: () => act('pause') }, t('pause')) : h('button', { class: 'btn sm pri', type: 'button', disabled: !!S.busy, onclick: () => act('resume') }, t('resume')),
@@ -610,8 +817,8 @@ select.field{padding-right:28px}
     const first = str(p.body).split('\n')[0].slice(0, 120);
     const meta = p.status === 'sent' && p.runs ? t('sent_times', { n: fmtNum(num(p.runs)), d: fmtDay(p.last_sent_at) }) : t('updated', { d: fmtDay(p.updated_at) });
     const nf = arr(p.files).length;
-    return h('li', null, h('button', { class: 'item', type: 'button', onclick: () => openPost(p.uid) },
-      h('div', { class: 'row sp' }, h('span', { class: 't', text: first || t('untitled') }), h('span', { class: p.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(p.status)) })),
+    return h('li', null, h('button', { class: 'item', type: 'button', 'data-uid': p.uid, onclick: () => { edMark(p.uid); openPost(p.uid); } },
+      h('div', { class: 'row sp' }, h('span', { class: 't', text: first || t('untitled') }), postPill(p)),
       h('span', { class: 'm', text: meta + (nf ? ' · ' + nf + ' ' + t('media_h').toLowerCase() : '') })));
   }
   // ── Adding and naming a group (2026-11-11): the Boss may type the name; empty, his agent reads it from Facebook at
@@ -775,18 +982,22 @@ select.field{padding-right:28px}
   function reachRow() {
     const q = S.client ? '?client=' + encodeURIComponent(S.client) : '';
     return h('nav', { class: 'reach', 'aria-label': t('reach') },
-      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm']].map((x) =>
+      [['broadcast.html', 'r_email'], ['group-broadcast.html', 'r_posts'], ['communities.html', 'r_comm'], ['sends.html', 'r_sends']].map((x) =>
         h('a', { class: 'chip' + (x[0] === 'group-broadcast.html' ? ' on' : ''), href: x[0] + q, 'aria-current': x[0] === 'group-broadcast.html' ? 'page' : null, text: t(x[1]) })));
   }
   function listView() {
-    const active = S.runs.filter((r) => r.state === 'running' || r.state === 'paused');
-    return h('div', { class: 'stack' }, reachRow(),
-      h('div', { class: 'row sp' }, h('div', null, h('h1', { class: 'pg', text: t('title') }), h('p', { class: 'sub', text: t('sub') })),
-        h('button', { class: 'btn pri', type: 'button', onclick: newPost }, t('new_post'))),
-      posterNote(), clientPicker(),
+    const active = S.runs.filter((r) => r.state === 'running' || r.state === 'paused' || r.state === 'scheduled');
+    const cp = clientPicker();
+    return h('div', { class: 'stack lv' },
+      h('div', { class: 'pgtop' },
+        h('div', { class: 'pghead' }, h('h1', { class: 'pg', text: t('title') }), cp ? h('div', { class: 'cl-pick' }, cp) : null,
+          h('button', { class: 'btn pri', type: 'button', onclick: () => { edMark(''); newPost(); } }, t('new_post'))),
+        posterNote()),
       active.length ? h('section', { class: 'card' }, h('h2', { text: t('sends_h') }), h('ul', { class: 'list', style: 'margin-top:12px' }, active.map((r) => runCard(r)))) : null,
-      h('section', { class: 'card' }, h('h2', { text: t('posts') }),
-        S.posts.length ? h('ul', { class: 'list', style: 'margin-top:12px' }, S.posts.map(postItem)) : h('div', { style: 'margin-top:10px' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') }))),
+      h('section', { class: 'card lst' }, h('h2', { text: t('posts') }),
+        S.posts.length ? h('ul', { class: 'list', style: 'margin-top:10px' }, S.posts.map(postItem)) : h('div', { style: 'margin-top:10px' }, h('b', { text: t('none_h') }), h('p', { class: 'small', text: t('none_p') }))),
+      h('p', { class: 'small', style: 'margin:0' }, h('a', { class: 'sendslink', href: 'sends.html' + (S.client ? '?client=' + encodeURIComponent(S.client) : ''), text: t('r_sends') })),
+      h('div', { class: 'pgabout' }, h('p', { class: 'sub', text: t('sub') }), reachRow()),
       groupsCard(), settingsCard());
   }
 
@@ -803,6 +1014,21 @@ select.field{padding-right:28px}
     S.ticks = arr(a.groups).filter((k) => known[k]);
     if (num(a.days)) S.days = num(a.days);
   }
+  // The post's status: while a send of it waits for its time the pill says Scheduled, not Sent.
+  function postWaits(uid) { return S.runs.some((r) => r.post_uid === uid && r.state === 'scheduled'); }
+  function postPill(p) {
+    return postWaits(p.uid) ? h('span', { class: 'pill wait', text: t('st_run_scheduled') })
+      : h('span', { class: p.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(p.status || 'draft')) });
+  }
+  // Opened from the history page: scroll to this post's scheduled send, else its latest send.
+  function showWantedRun() {
+    if (!S.wantRun || !S.edit) return;
+    S.wantRun = false;
+    const mine = S.runs.filter((r) => r.post_uid === S.edit.uid);
+    const r = mine.filter((x) => x.state === 'scheduled')[0] || mine[0];
+    const el = r ? document.getElementById('run-' + r.run_id) : null;
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('wc-was'); }
+  }
   function openPost(uid) {
     stopPoll();
     S.busy = 'open'; render();
@@ -812,7 +1038,7 @@ select.field{padding-right:28px}
       if (!res.ok || !res.data) { S.view = 'list'; render(); toast(msgOf(res)); return; }
       S.edit = res.data; S.versions = Object.assign({}, res.data.versions || {}); S.view = 'edit'; S.dirty = false; S.err = '';
       resetAudience(); restoreAudience(res.data.audience);
-      render(); syncUrl(); maybePoll();
+      render(); syncUrl(); maybePoll(); showWantedRun();
     }).catch(() => { S.busy = ''; render(); toast(t('net_err')); });
   }
   function reloadPost() {
@@ -901,7 +1127,7 @@ select.field{padding-right:28px}
   function checkNumbers(keepMsg) {
     ensureSaved().then((ok) => {
       if (!ok) return;
-      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; render();
+      S.busy = 'preview'; S.prevErr = keepMsg ? S.prevErr : ''; S.preview = null; S.confirm = false; S.sch = null; render();
       api('/solo/groupposts/preview', audBody()).then((res) => {
         S.busy = '';
         if (authFailed(res)) { showLogin(); return; }
@@ -951,7 +1177,11 @@ select.field{padding-right:28px}
       S.confirm ? h('div', { class: 'note good stack' }, h('b', { text: tn('confirm_q', n) }),
         h('div', { class: 'row' }, h('button', { class: 'btn pri', type: 'button', disabled: S.busy === 'send', onclick: doSend }, S.busy === 'send' ? [spinner(), t('sending')] : t('yes_send')),
           h('button', { class: 'btn ghost', type: 'button', onclick: () => { S.confirm = false; render(); } }, t('cancel'))))
-        : h('button', { class: 'btn pri wide', type: 'button', disabled: !canSend, onclick: () => { S.confirm = true; render(); } }, tn('send_n', n)));
+        : h('div', { class: 'stack' },
+          h('div', { class: 'row' },
+            h('button', { class: 'btn pri', type: 'button', disabled: !canSend, onclick: () => { S.confirm = true; S.sch = null; render(); } }, tn('send_n', n)),
+            h('button', { class: 'btn', type: 'button', disabled: !canSend || !!(S.sch && !S.sch.run_id), onclick: () => openPicker(null) }, t('sch'))),
+          S.sch && !S.sch.run_id ? pickerBox(doSchedule) : null));
   }
   function editorView() {
     const e = S.edit, L = S.limits || {};
@@ -971,7 +1201,7 @@ select.field{padding-right:28px}
       h('div', { class: 'cap' }, h('span', { text: (f.kind === 'video' ? t('video') : t('image')) + ' · ' + fmtSize(f.file_size) }),
         h('button', { class: 'btn sm ghost', type: 'button', disabled: !!S.busy, 'aria-label': t('remove') + ' ' + str(f.file_name), onclick: () => removeFile(i) }, '×'))))) : null;
     const postCard = h('section', { class: 'card' },
-      h('div', { class: 'row sp' }, h('h2', { text: t('post_h') }), h('span', { class: e.status === 'sent' ? 'pill sent' : 'pill', text: t('st_' + str(e.status || 'draft')) })),
+      h('div', { class: 'row sp' }, h('h2', { text: t('post_h') }), postPill(e)),
       h('label', { class: 'lbl', for: 'p-lang', text: t('main_lang') }),
       h('select', { id: 'p-lang', class: 'field', style: 'max-width:220px', onchange: (ev) => { e.language = ev.target.value; mark(); render(); } },
         LANGS.map((l) => h('option', { value: l, selected: e.language === l, text: LANG_NAMES[l] }))),
@@ -1034,11 +1264,20 @@ select.field{padding-right:28px}
     const myRuns = S.runs.filter((r) => r.post_uid === e.uid);
     const runsCard = myRuns.length ? h('section', { class: 'card' }, h('h2', { text: t('sends_h') }), h('ul', { class: 'list', style: 'margin-top:12px' }, myRuns.map((r) => runCard(r)))) : null;
     return h('div', { class: 'stack' },
-      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { stopPoll(); S.view = 'list'; S.edit = null; refreshState().then(render); syncUrl(); } }, '← ' + t('back'))),
+      h('div', null, h('button', { class: 'btn ghost sm', type: 'button', 'data-k': 'ed-back', onclick: edBack }, '← ' + t('back'))),
       postCard, testsCard, audCard, runsCard, whereCard);
   }
 
+  // A drawing keeps the page where it was while the view stays the same (owner rule 2026-11-17: Back returns to the same
+  // place, and a list drawn again does not jump to the top).
   function render() {
+    const y = window.pageYOffset || 0, v = S.view, m = S.mode;
+    wcRenderNow();
+    if (S.wcDrawn && S.view === v && S.mode === m) window.scrollTo(0, y);
+    S.wcDrawn = true;
+  }
+  function wcRenderNow() {
+    wzNav();
     app.textContent = '';
     if (S.mode === 'loading' || S.busy === 'open') { app.appendChild(h('p', { class: 'small', 'aria-busy': 'true' }, spinner(), ' ', t('loading'))); }
     else if (S.mode === 'login') app.appendChild(loginView());
@@ -1051,6 +1290,127 @@ select.field{padding-right:28px}
   window.addEventListener('beforeunload', (ev) => { if (S.dirty && S.edit && (S.edit.body || arr(S.edit.files).length)) { ev.preventDefault(); ev.returnValue = ''; } });
   render();
   load();
+
+
+  // ── The editor and the list (owner rule 2026-11-17): Back (the button or the phone's back gesture) returns to the list
+  // at the place it was left, the item that was open marked; changes not saved yet are not dropped without asking.
+  function edDirty() { return !!(S.edit && S.dirty && (str(S.edit.body).trim() || arr(S.edit.files).length)); }
+  function edLeaveOk() { return !edDirty() || window.confirm(t('wc_discard')); }
+  function edMark(id) { S.wcList = { y: window.pageYOffset || 0, id: String(id || '') }; }
+  function edClose() { stopPoll(); S.view = 'list'; S.edit = null; refreshState().then(() => { render(); edRestore(); }); syncUrl(); }
+  function edRestore() {
+    const m = S.wcList;
+    S.wcList = null;
+    if (!m || S.view === 'edit') return;
+    window.scrollTo(0, m.y);
+    const b = [].slice.call(app.querySelectorAll('[data-uid]')).filter((x) => x.getAttribute('data-uid') === m.id)[0];
+    if (b) { b.classList.add('wc-was'); b.focus({ preventScroll: true }); }
+  }
+  function edBack() {
+    if (!edLeaveOk()) return;
+    if (history.state && history.state.wcIn === 'ed') { S.wcLeaving = true; history.back(); return; }   // wcPop closes it
+    edClose();
+  }
+  wcPop = () => {
+    const ed = !!(history.state && history.state.wcIn === 'ed');
+    if (S.view === 'edit' && !ed) {
+      if (!S.wcLeaving && !edLeaveOk()) { syncUrl(); return true; }                // stays: the editor's step again
+      S.wcLeaving = false;
+      edClose();
+      return true;
+    }
+    if (S.view !== 'edit' && ed) {
+      const id = new URLSearchParams(location.search).get('post');
+      if (id) openPost(id);
+      return true;
+    }
+    return false;
+  };
+  // ── Ways back to the Wizard and a real Sign out (owner, 2026-11-17, WIZARD_UX_AUDIT_PLAN_2026-11-17.md 4.5). The
+  // header's Wizard link shows once this browser has used the Wizard (wc_wizard_client); opened from the
+  // Wizard (?from=wizard) it reads "Back to Wizard". Sign out drops the session from this browser (crmstore.html's
+  // signOut), then shows the sign-in; the sign-in form keeps its "Use another email". Nothing else on the page changes.
+  function wzHref() {
+    const c = (S && typeof S.client === 'string' && S.client) || Q0.get('client') || lsGet('wc_wizard_client') || '';
+    const p = new URLSearchParams();
+    if (/^[a-z0-9][a-z0-9_-]{0,63}$/.test(c)) p.set('client', c);
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    const qs = p.toString();
+    return 'wizard.html' + (qs ? '?' + qs : '');
+  }
+  // The page the Boss came from (owner rule 2026-11-17): a page of this site, in this tab, named in the header's
+  // "Back to <page>"; ?from=wizard names the Wizard when the browser sent no address. Back goes back in the tab's
+  // history past this page's own steps, so that page comes back as it was left (the same item, the same scroll).
+  function wcPrevPage() {
+    const names = { '/wizard.html': 'Wizard', '/approve.html': 'Approvals', '/report.html': 'Report', '/nodes.html': 'Agents',
+      '/content-library.html': 'Library', '/magnets.html': 'Lead magnets', '/crmstore.html': 'CRM', '/crm.html': 'CRM connections',
+      '/broadcast.html': 'Email broadcast', '/group-broadcast.html': 'Post broadcast', '/communities.html': 'Communities', '/sends.html': 'Schedule & history',
+      '/shorten.html': 'Links' };
+    let u = null;
+    try { u = document.referrer ? new URL(document.referrer) : null; } catch (e) { u = null; }
+    if (u && u.origin === location.origin && u.pathname !== location.pathname && Object.prototype.hasOwnProperty.call(names, u.pathname)) {
+      const pub = u.pathname === '/approve.html' && u.searchParams.get('tab') === 'publish';
+      return { url: u.href, name: pub ? 'Publish' : names[u.pathname], wizard: u.pathname === '/wizard.html' };
+    }
+    if (Q0.get('from') === 'wizard') return { url: wzHref(), name: 'Wizard', wizard: true };
+    if (Q0.get('from') === 'sends') return { url: 'sends.html' + (S && S.client ? '?client=' + encodeURIComponent(S.client) : ''), name: 'Schedule & history', wizard: false };   // opened from Schedule & history (no address sent): the same page
+    return null;
+  }
+  function wcGoBack(ev) {
+    const prev = wcPrevPage();
+    if (!prev) return;
+    const i = history.state && typeof history.state.wcIdx === 'number' ? history.state.wcIdx : 0;
+    if (history.length < i + 2) return;               // opened in a new tab: the link opens that page
+    ev.preventDefault();
+    let gone = false;
+    window.addEventListener('pagehide', () => { gone = true; }, { once: true });
+    history.go(-(i + 1));
+    setTimeout(() => { if (!gone) location.href = prev.url; }, 900);
+  }
+  function wzNav() {
+    const prev = wcPrevPage();
+    const b = document.getElementById('wc-back');
+    if (b) {
+      b.hidden = !prev;
+      if (prev) {
+        const sp = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; return e; };
+        while (b.firstChild) b.removeChild(b.firstChild);
+        const arrow = sp('wb-a', '←');
+        arrow.setAttribute('aria-hidden', 'true');
+        b.appendChild(arrow);
+        b.appendChild(sp('wb-l', t('wc_back_to') + ' '));
+        b.appendChild(sp('wb-n', prev.name));
+        b.setAttribute('aria-label', t('wc_back_to') + ' ' + prev.name);
+        b.setAttribute('href', prev.url);
+        b.setAttribute('data-k', prev.wizard ? 'back-wizard' : 'back');
+      }
+    }
+    const a = document.getElementById('wz-nav');
+    if (a) {
+      a.hidden = !!(prev && prev.wizard) || !(!!lsGet('wc_wizard_client'));
+      a.textContent = t('wz_nav');
+      a.setAttribute('data-k', 'wizard');
+      a.setAttribute('href', wzHref());
+    }
+    const o = document.getElementById('wz-out');            // this page has no footer: Sign out is in the header
+    if (o) { o.hidden = !session() || S.mode === 'login'; o.textContent = t('sign_out'); }
+  }
+  function wzSignOut() {
+    ['google_auth_token', 'google_auth_timestamp', 'company_id', 'wc_wizard_client'].forEach(lsDel);
+    memSession = null;
+    wzNav();
+    showLogin(false);
+  }
+  (() => {
+    const a = document.getElementById('wz-nav');
+    if (a) a.addEventListener('click', () => a.setAttribute('href', wzHref()));   // the client open now
+    const wb = document.getElementById('wc-back');
+    if (wb) wb.addEventListener('click', wcGoBack);
+    const o = document.getElementById('wz-out');
+    if (o) o.addEventListener('click', wzSignOut);
+    wzNav();
+  })();
 })();
 </script>
 </body>
