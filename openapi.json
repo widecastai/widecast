@@ -16181,7 +16181,12 @@
           },
           "description": {
             "type": "string",
-            "description": "Optional body/description text."
+            "description": "Post body, hashtags included. YouTube, Facebook, LinkedIn and\nPinterest show it as the description. TikTok, Instagram, Threads, X\nand Bluesky have no description field, so for video and photo posts\nWideCast sends `title` + blank line + `description` (or the\ndescription alone when it already starts with the title) as their\ncaption (`<platform>_title`), trimmed at a sentence or word boundary\nto each platform's limit, keeping the trailing hashtags: TikTok 2,200\n(UTF-16 units; photo title 90 + photo description 4,000), Instagram\n2,200, Threads 500 UTF-8 bytes, X 280, Bluesky 300. A trim is\nreported in `warnings` (`caption_trimmed`). Your own\n`platform_settings.<platform>.<platform>_title` always wins. Text\nposts (`text`) are unchanged: the text is the post.\n"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Video only: an http(s) image URL for the cover (e.g. the `get_url`\nfrom POST /v1/upload_asset). Used by YouTube, LinkedIn, X and\nFacebook (`facebook_media_type: VIDEO`). Instagram, TikTok and\nPinterest take their own cover keys in `platform_settings`:\n`instagram.cover_url` or `instagram.thumb_offset` (ms);\n`tiktok.cover_timestamp` (ms) or `tiktok.tiktok_cover_image_url`\n(only if the TikTok account allows custom covers);\n`pinterest.pinterest_cover_image_url`. Threads and Bluesky take\nno cover. Ignored (with a `thumbnail_ignored` warning) for text,\nphoto and article posts.\n"
           },
           "photo_urls": {
             "type": "array",
@@ -16235,7 +16240,7 @@
           },
           "platform_settings": {
             "type": "object",
-            "description": "Per-call overrides `{platform: {key: value}}`, merged over the saved\nsettings of the chosen channel group for THIS post only — the saved\nsettings are not changed. Use it to pick the post type / page / privacy\nfor one post. Facebook keys: `facebook_media_type` = `REELS` (default;\nFacebook trims long videos to ~90 s) | `VIDEO` (long-form video post) |\n`STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` |\n`Draft`. Instagram: `media_type` = `REELS` | `STORIES`. YouTube:\n`privacyStatus` = `public` | `unlisted` | `private`.\n",
+            "description": "Per-call overrides `{platform: {key: value}}`, merged over the saved\nsettings of the chosen channel group for THIS post only — the saved\nsettings are not changed. Use it to pick the post type / page / privacy\nfor one post. Facebook keys: `facebook_media_type` = `REELS` (default;\nFacebook trims long videos to ~90 s) | `VIDEO` (long-form video post) |\n`STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` |\n`Draft`. Instagram: `media_type` = `REELS` | `STORIES`. YouTube:\n`privacyStatus` = `public` | `unlisted` | `private`.\nEach block applies to its own platform only. Accepted keys are that\nplatform's Upload-Post options plus any `<platform>_` key (e.g.\n`tiktok_title`, `x_title`, `youtube_description`). A bare `title` /\n`description` inside a block becomes `<platform>_title` /\n`<platform>_description`. Whole-post fields (`user`, `platform[]`,\n`video`, `photos[]`, `async_upload`, `scheduled_date`, `timezone`,\n`thumbnail_url`, …) and unknown keys are ignored and listed in the\nresponse `warnings` (`setting_ignored`).\n",
             "additionalProperties": {
               "type": "object",
               "additionalProperties": true
@@ -16451,6 +16456,49 @@
           "channel_group": {
             "type": "integer",
             "description": "Channel group the post was dispatched through (0 = primary)."
+          },
+          "warnings": {
+            "type": "array",
+            "description": "Present only when something was changed or left out:\n`caption_trimmed` {platform, field, limit, unit} — the caption was cut\nto fit; `setting_ignored` {platform, key, reason} — a\n`platform_settings` key was not sent; `thumbnail_ignored` —\n`thumbnail_url` on a non-video post.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "caption_trimmed",
+                    "setting_ignored",
+                    "thumbnail_ignored"
+                  ]
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "utf16",
+                    "utf8",
+                    "chars"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "topic_id": {
             "type": "string",

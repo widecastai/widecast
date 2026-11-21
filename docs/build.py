@@ -1481,7 +1481,98 @@ def _write_sitemap_robots() -> None:
     print(f"  sitemap.xml ({len(urls)} urls) + robots.txt written")
 
 
+# ── Hand-edit guard (2026-11-20) ─────────────────────────────────────────
+# The files under widecast/ that this build writes are OUTPUTS: their source is under widecast/docs/ (llms.txt →
+# docs/llms.txt, guide pages → docs/guide/*.md, …). An edit made to an output only is undone by the next build, and
+# deploy_widecast.sh then ships the older text (2026-11-19: llms.txt lost its 16/11 and 17/11 edits that way).
+# The guard remembers each output as this build last wrote it (sha256, in ~/.cache/widecast-deploy/). Before a build
+# it keeps a copy of every output that changed since then; after the build, an output whose kept text the build
+# changed (or removed) is put back as it was and the build stops, naming it. An output the build writes identically
+# (its source already holds the edit) passes. WIDECAST_BUILD_ACCEPT_HAND_EDITS=1 lets the build overwrite them.
+HAND_EDIT_STATE = Path(os.environ.get("WIDECAST_BUILD_STATE")
+                       or (Path.home() / ".cache" / "widecast-deploy" / "build_outputs.json"))
+HAND_EDIT_GLOBS = ("*.txt", "*.html", "*.json", "*.yaml", "*.xml",
+                   "endpoints/**/*", "guide/**/*", "playgrounds/**/*", "assets/**/*", "examples/**/*",
+                   "skills/**/LOAD_MANIFEST.md")
+SOURCE_HINT = {"llms.txt": "widecast/docs/llms.txt", "openapi.yaml": "widecast/openapi/openapi.yaml",
+               "openapi.json": "widecast/openapi/openapi.yaml", "openapi-actions.json": "widecast/openapi/openapi.yaml",
+               "docs.html": "widecast/docs/index.md", "guide/": "widecast/docs/guide/*.md",
+               "endpoints/": "widecast/docs/endpoints/*.md", "playgrounds/": "widecast/docs/playgrounds/*.yaml",
+               "assets/": "widecast/docs/assets/"}
+
+
+def _output_files() -> dict[str, Path]:
+    out: dict[str, Path] = {}
+    for pattern in HAND_EDIT_GLOBS:
+        for p in SITE_ROOT.glob(pattern):
+            if p.is_file() and not p.name.startswith(".") and p.suffix != ".zip":
+                out[p.relative_to(SITE_ROOT).as_posix()] = p
+    return out
+
+
+def _sha(p: Path) -> str:
+    import hashlib
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def _hand_edit_before() -> dict[str, bytes]:
+    """Copies of the outputs that changed since the last build (empty on the first guarded build)."""
+    if not HAND_EDIT_STATE.exists():
+        return {}
+    try:
+        last = json.loads(HAND_EDIT_STATE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    kept: dict[str, bytes] = {}
+    for rel, p in _output_files().items():
+        if last.get(rel) != _sha(p):
+            kept[rel] = p.read_bytes()
+    return kept
+
+
+def _hand_edit_after(kept: dict[str, bytes]) -> list[str]:
+    """Puts back each kept output the build changed or removed; returns their paths."""
+    lost: list[str] = []
+    for rel, data in sorted(kept.items()):
+        p = SITE_ROOT / rel
+        if p.exists() and p.read_bytes() == data:
+            continue
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        lost.append(rel)
+    return lost
+
+
+def _hand_edit_record() -> None:
+    HAND_EDIT_STATE.parent.mkdir(parents=True, exist_ok=True)
+    HAND_EDIT_STATE.write_text(json.dumps({rel: _sha(p) for rel, p in sorted(_output_files().items())}, indent=0),
+                               encoding="utf-8")
+
+
 def main() -> int:
+    kept = _hand_edit_before()
+    try:
+        rc = _build()
+    except SystemExit as e:  # a FATAL check stopped the build part way: its hand edits still go back
+        rc = e.code if isinstance(e.code, int) else 1
+    if kept and os.environ.get("WIDECAST_BUILD_ACCEPT_HAND_EDITS") != "1":
+        lost = _hand_edit_after(kept)
+        if lost:
+            print("\n[build] FATAL: these outputs were edited after the last build, and this build would undo "
+                  "the edit. They are put back as they were; nothing else was changed by the guard:")
+            for rel in lost:
+                hint = SOURCE_HINT.get(rel) or next((v for k, v in SOURCE_HINT.items()
+                                                     if k.endswith("/") and rel.startswith(k)), "its source")
+                print(f"  • widecast/{rel}   (its source: {hint})")
+            print("  Put the same edit into the source, then build again. To let the build overwrite them anyway: "
+                  "WIDECAST_BUILD_ACCEPT_HAND_EDITS=1")
+            return rc or 1
+    if rc == 0:
+        _hand_edit_record()
+    return rc
+
+
+def _build() -> int:
     print(f"[build] SITE_ROOT  = {SITE_ROOT}")
     print(f"[build] API_BASE_URL = {API_BASE_URL}")
     SITE_ROOT.mkdir(parents=True, exist_ok=True)

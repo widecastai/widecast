@@ -11705,7 +11705,33 @@ components:
           description: Caption/title. Required when `video_url` is given; optional override for `topic_id`.
         description:
           type: string
-          description: Optional body/description text.
+          description: |
+            Post body, hashtags included. YouTube, Facebook, LinkedIn and
+            Pinterest show it as the description. TikTok, Instagram, Threads, X
+            and Bluesky have no description field, so for video and photo posts
+            WideCast sends `title` + blank line + `description` (or the
+            description alone when it already starts with the title) as their
+            caption (`<platform>_title`), trimmed at a sentence or word boundary
+            to each platform's limit, keeping the trailing hashtags: TikTok 2,200
+            (UTF-16 units; photo title 90 + photo description 4,000), Instagram
+            2,200, Threads 500 UTF-8 bytes, X 280, Bluesky 300. A trim is
+            reported in `warnings` (`caption_trimmed`). Your own
+            `platform_settings.<platform>.<platform>_title` always wins. Text
+            posts (`text`) are unchanged: the text is the post.
+        thumbnail_url:
+          type: string
+          format: uri
+          description: |
+            Video only: an http(s) image URL for the cover (e.g. the `get_url`
+            from POST /v1/upload_asset). Used by YouTube, LinkedIn, X and
+            Facebook (`facebook_media_type: VIDEO`). Instagram, TikTok and
+            Pinterest take their own cover keys in `platform_settings`:
+            `instagram.cover_url` or `instagram.thumb_offset` (ms);
+            `tiktok.cover_timestamp` (ms) or `tiktok.tiktok_cover_image_url`
+            (only if the TikTok account allows custom covers);
+            `pinterest.pinterest_cover_image_url`. Threads and Bluesky take
+            no cover. Ignored (with a `thumbnail_ignored` warning) for text,
+            photo and article posts.
         photo_urls:
           type: array
           items: { type: string, format: uri }
@@ -11748,6 +11774,14 @@ components:
             `STORIES`; `facebook_page_id`; `facebook_video_state` = `Published` |
             `Draft`. Instagram: `media_type` = `REELS` | `STORIES`. YouTube:
             `privacyStatus` = `public` | `unlisted` | `private`.
+            Each block applies to its own platform only. Accepted keys are that
+            platform's Upload-Post options plus any `<platform>_` key (e.g.
+            `tiktok_title`, `x_title`, `youtube_description`). A bare `title` /
+            `description` inside a block becomes `<platform>_title` /
+            `<platform>_description`. Whole-post fields (`user`, `platform[]`,
+            `video`, `photos[]`, `async_upload`, `scheduled_date`, `timezone`,
+            `thumbnail_url`, …) and unknown keys are ignored and listed in the
+            response `warnings` (`setting_ignored`).
           additionalProperties:
             type: object
             additionalProperties: true
@@ -11859,6 +11893,25 @@ components:
         channel_group:
           type: integer
           description: Channel group the post was dispatched through (0 = primary).
+        warnings:
+          type: array
+          description: |
+            Present only when something was changed or left out:
+            `caption_trimmed` {platform, field, limit, unit} — the caption was cut
+            to fit; `setting_ignored` {platform, key, reason} — a
+            `platform_settings` key was not sent; `thumbnail_ignored` —
+            `thumbnail_url` on a non-video post.
+          items:
+            type: object
+            required: [code]
+            properties:
+              code: { type: string, enum: [caption_trimmed, setting_ignored, thumbnail_ignored] }
+              platform: { type: string }
+              field: { type: string }
+              key: { type: string }
+              limit: { type: integer }
+              unit: { type: string, enum: [utf16, utf8, chars] }
+              reason: { type: string }
         topic_id:
           type: string
           description: The WideCast video / article that was published. Present only when the request used `topic_id`.
