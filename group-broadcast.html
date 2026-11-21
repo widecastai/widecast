@@ -280,6 +280,8 @@ select.field{padding-right:28px}
       add_media: 'Add pictures or videos', uploading: 'Uploading…', remove: 'Remove', image: 'Picture', video: 'Video', too_many: 'A post carries at most {n} pictures and videos.',
       test: 'Post a test', testing: 'Posting test…', test_queued: 'Test queued for your test group. Your agent posts it within a few minutes.',
       tests_h: 'Tests', open_group: 'Open the group on Facebook', t_scheduled: 'Waiting for your agent', t_claimed: 'Being posted', t_posted: 'Posted', t_pending_admin: 'Waiting for the group\'s admin',
+      wait_hours: 'Outside your posting hours ({start}-{end}, {tz}): posting starts again at {time}.',
+      wait_cloud_1: 'Your cloud agent takes it at its next check, about every 5 minutes. If it is still waiting after that, ask your agent in its chat: "post my group posts". If it says it cannot post into groups, choose your computer as the poster on ', wait_cloud_2: '.', machines: 'Machines',
       t_failed: 'Could not post', t_unknown: 'Not confirmed', t_skipped: 'Skipped', t_cancelled: 'Cancelled', t_expired: 'Expired: your agent did not take it within an hour. Post a new test.', open_post: 'Open',
       delete_draft: 'Delete draft', deleted: 'Draft deleted.',
       who: 'Which groups get it', who_hint: 'Tick the groups. A group that already has this post, or got its posts of the last days, is left out at the check.',
@@ -357,6 +359,8 @@ select.field{padding-right:28px}
       add_media: 'Thêm ảnh hoặc video', uploading: 'Đang tải lên…', remove: 'Bỏ', image: 'Ảnh', video: 'Video', too_many: 'Mỗi bài tối đa {n} ảnh và video.',
       test: 'Đăng thử', testing: 'Đang đăng thử…', test_queued: 'Đã xếp bài thử vào group test. Agent sẽ đăng trong vài phút.',
       tests_h: 'Bài thử', open_group: 'Mở group trên Facebook', t_scheduled: 'Chờ agent', t_claimed: 'Đang đăng', t_posted: 'Đã lên', t_pending_admin: 'Chờ admin group duyệt',
+      wait_hours: 'Ngoài giờ đăng bài ({start}-{end}, {tz}): đăng lại lúc {time}.',
+      wait_cloud_1: 'Agent trên cloud của bạn sẽ nhận ở lần kiểm tra kế tiếp, khoảng 5 phút một lần. Nếu sau đó vẫn chờ, hãy bảo agent trong chat của nó: "đăng các bài group của tôi". Nếu nó nói không đăng được vào group, hãy chọn máy tính của bạn làm máy đăng ở trang ', wait_cloud_2: '.', machines: 'Machines',
       t_failed: 'Không đăng được', t_unknown: 'Chưa xác nhận', t_skipped: 'Bỏ qua', t_cancelled: 'Đã huỷ', t_expired: 'Hết hạn: agent không nhận trong 1 giờ. Đăng thử lại.', open_post: 'Mở',
       delete_draft: 'Xoá nháp', deleted: 'Đã xoá nháp.',
       who: 'Group nào nhận bài', who_hint: 'Chọn các group. Group đã có bài này, hoặc vừa nhận bài trong mấy ngày gần đây, sẽ bị loại khi xem số.',
@@ -555,7 +559,7 @@ select.field{padding-right:28px}
   function applyState(d) {
     S.clients = arr(d.clients); S.client = str(d.client);
     S.groups = arr(d.groups); S.posts = arr(d.posts); S.settings = d.settings || {}; S.runs = arr(d.runs);
-    S.posters = arr(d.posters); S.chosenPoster = d.chosen_poster || null; S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {}; S.noAnswerUntil = num(d.no_answer_until);
+    S.posters = arr(d.posters); S.chosenPoster = d.chosen_poster || null; S.window = d.posting_window || null; S.planDay = num(d.plan_day); S.tested = !!d.tested; S.limits = d.limits || {}; S.noAnswerUntil = num(d.no_answer_until);
     syncUrl();
   }
   function load() {
@@ -646,6 +650,25 @@ select.field{padding-right:28px}
     const cls = st === 'posted' ? 'pill sent' : st === 'pending_admin' ? 'pill live' : (st === 'failed' || st === 'unknown') ? 'pill no' : (st === 'expired' || st === 'cancelled') ? 'pill' : 'pill wait';
     const key = st === 'claimed' && x && x.asks_allow ? 't_asks_allow' : st === 'expired' && x && x.error === 'no_answer' ? 't_expired_no_answer' : 't_' + st;
     return h('span', { class: cls, text: t(key) });
+  }
+  // Why a copy or test waits and what to do (2026-11-20). A send's copy outside the posting hours: when they open
+  // (a test never waits for the hours). Otherwise, with no computer chosen as the poster: the cloud agent's way, and
+  // the Machines page. A chosen computer: nothing extra.
+  function machinesHref() {
+    const p = new URLSearchParams();
+    if (S.client) p.set('client', S.client);
+    p.set('from', 'group-broadcast');
+    if (DEV) p.set('dev', '1');
+    if (API_ORIGIN) p.set('api', API_ORIGIN);
+    return 'nodes.html?' + p.toString();
+  }
+  function waitNote(x, isTest) {
+    if (!x || x.state !== 'scheduled') return null;
+    const w = (S.edit && S.edit.posting_window) || S.window;
+    if (!isTest && w && w.open === false && num(w.opens_at) > 0)
+      return h('div', { class: 'small wait-why', text: t('wait_hours', { start: str(w.start), end: str(w.end), tz: str(w.tz), time: fmtWhen(w.opens_at, str(w.tz)) }) });
+    if (S.chosenPoster) return null;
+    return h('div', { class: 'small wait-why' }, t('wait_cloud_1'), h('a', { href: machinesHref(), text: t('machines') }), t('wait_cloud_2'));
   }
   function groupMeta(g) {
     const bits = [g.members != null ? t('g_members', { n: fmtNum(num(g.members)) }) : t('g_members_unknown')];
@@ -1230,7 +1253,7 @@ select.field{padding-right:28px}
     const testsCard = arr(st.tests).length ? h('section', { class: 'card' }, h('h2', { text: t('tests_h') }),
       h('ul', { class: 'list', style: 'margin-top:10px' }, arr(st.tests).map((x) => h('li', { class: 'grp' },
         h('div', { class: 'n' }, h('b', { text: fmtDay(x.at) }), x.group_url ? h('span', { class: 'small', style: 'display:block' }, groupLink({ url: x.group_url, key: '' }, t('s_test') + ' ↗')) : null,
-          x.error && x.error !== 'no_answer' ? h('span', { class: 'small', text: x.error }) : null),
+          x.error && x.error !== 'no_answer' ? h('span', { class: 'small', text: x.error }) : null, waitNote(x, true)),
         copyPill(x.state, x), x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) : null)))) : null;
     const q = str(S.q).trim().toLowerCase();
     const shown = S.groups.filter((g) => !q || groupName(g).toLowerCase().indexOf(q) >= 0 || str(g.key).indexOf(q) >= 0);
@@ -1257,7 +1280,7 @@ select.field{padding-right:28px}
     const whereCard = rows.length ? h('section', { class: 'card' }, h('h2', { text: t('where_h') }),
       h('div', { class: 'scroll' }, h('table', { class: 'tbl' }, h('tbody', null, rows.map((x) => h('tr', null,
         h('td', null, h('a', { href: str(x.group_url), target: '_blank', rel: 'noopener', text: str(x.group_name) || str(x.group) }),
-          x.state === 'scheduled' ? h('div', { class: 'small', text: (x.error === 'no_answer' && x.no_answer_at ? t('no_answer_at', { d: fmtDay(x.no_answer_at) }) + ' ' : '') + t('due', { d: fmtDay(x.due_at) }) }) : x.error ? h('div', { class: 'small', text: x.error }) : null),
+          x.state === 'scheduled' ? h('div', { class: 'small', text: (x.error === 'no_answer' && x.no_answer_at ? t('no_answer_at', { d: fmtDay(x.no_answer_at) }) + ' ' : '') + t('due', { d: fmtDay(x.due_at) }) }) : x.error ? h('div', { class: 'small', text: x.error }) : null, waitNote(x, false)),
         h('td', null, copyPill(x.state, x)),
         h('td', null, x.url ? h('a', { href: x.url, target: '_blank', rel: 'noopener', text: t('open_post') }) :
           (x.state === 'failed' || x.state === 'unknown' || x.state === 'skipped') ? h('button', { class: 'btn sm', type: 'button', onclick: () => retryCopy(x.id) }, t('retry')) : null))))))) : null;

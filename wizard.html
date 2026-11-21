@@ -387,6 +387,7 @@ a{color:var(--primary-deep)}
 .item .ph{font:800 17px/1.25 var(--f-disp);color:var(--ink)}
 .item .why{font-size:15px;line-height:1.45;color:var(--ink)}
 .facts{display:grid;gap:8px;background:var(--chip);border-radius:14px;padding:12px}
+.bzl{margin:0;padding-left:20px;display:grid;gap:8px;font-size:15.5px;line-height:1.5;color:var(--ink)}
 .fmsg{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;color:var(--ink);user-select:all}
 .psub .cchip{display:none}
 .cchip{display:inline-flex;align-items:center;gap:4px;max-width:46vw;min-height:28px;padding:0 10px;border:0;border-radius:999px;background:var(--chip);color:var(--ink);font:700 13px/1 var(--f-body)}
@@ -693,6 +694,13 @@ a{color:var(--primary-deep)}
       mn_connect: 'Connect another app', mn_crm: 'CRM connections', mn_all: 'Everything in Advance',
       mn_help: 'What gets installed', mn_out: 'Sign out', back_site: 'Back to widecast.ai',
       wk_eyebrow: 'This week', wk_h: 'Your week', wk_back: 'Back to this week', streak_open: 'Open this week',
+      mn_bizc: 'Change my business', bz_h: 'Changed your line of work?',
+      bz_new: 'Set up again: who your buyers are, their worries, your keywords and the groups to watch.',
+      bz_keep: 'Kept: your account, your daily tasks, your contacts, content and reports.',
+      bz_old: 'Your old setup is saved, so it can come back.',
+      bz_how: '{a} asks about your new business first. Nothing changes before you answer.',
+      bz_msg: 'I changed my business. Please reset my client.', bz_msg_c: 'I changed my business. Please reset my client {c}.',
+      bz_copy: 'Copy the message for {a}', bz_copied: 'Copied. Paste it into your chat with {a}.',
       chg: 'Change problem', chg_q: 'The drafts for problem {n} keep being written and wait in Advance. Pick another problem?',
       chg_yes: 'Yes, pick another', chg_no: 'Keep this one',
       sh_post: 'Share the post', sh_video: 'Share the video', sh_sub: 'Pick where it goes. Nothing goes out until you send it there.',
@@ -955,6 +963,13 @@ a{color:var(--primary-deep)}
       mn_connect: 'Kết nối thêm ứng dụng', mn_crm: 'Kết nối CRM', mn_all: 'Mọi thứ ở Advance',
       mn_help: 'Những gì được cài đặt', mn_out: 'Đăng xuất', back_site: 'Về widecast.ai',
       wk_eyebrow: 'Tuần này', wk_h: 'Tuần của bạn', wk_back: 'Về tuần này', streak_open: 'Mở tuần này',
+      mn_bizc: 'Đổi công việc kinh doanh', bz_h: 'Bạn đổi sang công việc khác?',
+      bz_new: 'Setup lại: khách hàng của bạn là ai, nỗi lo của họ, từ khoá và các group cần theo dõi.',
+      bz_keep: 'Giữ nguyên: tài khoản, các việc chạy hằng ngày, người liên hệ, nội dung và báo cáo.',
+      bz_old: 'Thiết lập cũ được lưu lại, lấy lại được.',
+      bz_how: '{a} hỏi về công việc mới của bạn trước. Chưa có gì thay đổi cho tới khi bạn trả lời.',
+      bz_msg: 'Tôi đổi công việc rồi. Bạn đổi thông tin client giúp tôi nhé.', bz_msg_c: 'Tôi đổi công việc rồi. Bạn đổi thông tin client {c} giúp tôi nhé.',
+      bz_copy: 'Chép tin nhắn gửi {a}', bz_copied: 'Đã chép. Dán vào khung chat với {a}.',
       chg: 'Đổi vấn đề', chg_q: 'Bản nháp của vấn đề {n} vẫn được viết tiếp và chờ ở Advance. Bạn chọn vấn đề khác nhé?',
       chg_yes: 'Có, chọn vấn đề khác', chg_no: 'Giữ vấn đề này',
       sh_post: 'Chia sẻ bài này', sh_video: 'Chia sẻ video này', sh_sub: 'Chọn nơi bạn muốn gửi. Chưa có gì được gửi đi cho tới khi bạn gửi ở đó.',
@@ -1701,7 +1716,7 @@ a{color:var(--primary-deep)}
     const fn = {
       loading: scrLoading, login: scrLogin, off: scrOff, clients: scrClients, top: scrTop, none: scrNone, write: scrWrite,
       bundle: scrBundle, wait: scrWait, scenes: scrScenes, publish: scrPublish, problem: scrProblem, advance: scrAdvance,
-      results: scrResults, replies: scrReplies, week: scrWeek, item: scrItem
+      results: scrResults, replies: scrReplies, week: scrWeek, item: scrItem, biz: scrBiz
     }[name] || scrLoading;
     return fn();
   }
@@ -1709,7 +1724,7 @@ a{color:var(--primary-deep)}
     if (name === 'login') loginFocus(el);
     if (name === 'results') enterResults();
     if (name === 'none' && !S.res) loadResults(false);
-    if (name === 'write' || name === 'bundle' || name === 'item' || name === 'replies') loadAgent();
+    if (name === 'write' || name === 'bundle' || name === 'item' || name === 'replies' || name === 'biz') loadAgent();
   }
 
   function scrLoading() { return section('loading', h('div', { class: 'wait-hero' }, walker(), h('p', { class: 'calm', text: t('loading') }))); }
@@ -3175,6 +3190,31 @@ a{color:var(--primary-deep)}
     null);
   }
 
+  // Change my business (2026-11-20, playbooks/CLIENT_RESET.md in soloagency): what a client reset builds again and what
+  // it keeps, and the message that asks the connected agent for it. The reset itself happens in the chat with the agent,
+  // which asks about the new business first; this screen sends nothing.
+  function openBiz() {
+    closeMenu();
+    if (!S.client || !session()) return;
+    if (S.screen !== 'biz') drillFrom('biz');
+    S.past = null; S.rp = null;
+    go('biz', true);
+  }
+  function scrBiz() {
+    const who = agentWho();
+    const msg = t(arr(S.data && S.data.clients).length > 1 ? 'bz_msg_c' : 'bz_msg', { c: S.client });
+    const muse = !!(S.data && obj(S.data.connected) && str(S.data.connected.platform) === 'muse');
+    return section('biz', [h('div', { class: 'gate-h' }, h('span', { class: 'eyebrow', text: t('mn_biz') }), h('h1', { class: 'h', text: t('bz_h') })),
+      h('ul', { class: 'bzl', 'data-k': 'bz-list' }, h('li', { text: t('bz_new') }), h('li', { text: t('bz_keep') }), h('li', { text: t('bz_old') })),
+      h('div', { class: 'facts', 'data-k': 'bz-facts' }, h('p', { class: 'note', text: t('bz_how', { a: cap1(who) }) }),
+        h('p', { class: 'fmsg', 'data-k': 'bz-msg', text: msg }))],
+    h('div', { class: 'acts' }, btn(t('bz_copy', { a: who }), 'pr', () => copyBiz(msg, who), { 'data-k': 'bz-copy' }),
+      muse ? h('a', { class: 'btn gh', href: MUSE_URL, target: '_blank', rel: 'noopener noreferrer', text: t('st_open_muse'), 'data-k': 'bz-muse' }) : null));
+  }
+  function copyBiz(msg, who) {
+    try { navigator.clipboard.writeText(msg).then(() => toast(t('bz_copied', { a: who })), () => toast(t('pr_copy_fail'))); } catch (e) { toast(t('pr_copy_fail')); }
+  }
+
   // The side panel on a wide screen (1024px and up): today's line and the week, beside the screen; nothing new in it.
   const WIDE = typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1024px)') : null;
   function paintSide() {
@@ -3233,7 +3273,8 @@ a{color:var(--primary-deep)}
         menuLink(t('mn_comm'), 'communities.html', c), menuLink(t('mn_magnets'), 'magnets.html', c)]),
       grp(t('mn_biz'), [menuLink(t('mn_people'), 'crmstore.html', c), menuLink(t('mn_reports'), 'report.html', c),
         menuLink(t('mn_content'), 'content-library.html', c), menuLink(t('mn_agents'), 'nodes.html'),
-        menuBtn(t('mn_connect'), openConnect, { 'data-k': 'mn-connect' }), menuLink(t('mn_crm'), 'crm.html')]),
+        menuBtn(t('mn_connect'), openConnect, { 'data-k': 'mn-connect' }), menuLink(t('mn_crm'), 'crm.html'),
+        S.client ? menuBtn(t('mn_bizc'), openBiz, { 'data-k': 'mn-biz' }) : null]),
       grp('', [menuLink(t('mn_all'), 'approve.html', c),
         h('li', null, h('a', { class: 'mi', href: 'https://widecast.ai/agent/what-gets-installed.html', target: '_blank', rel: 'noopener' }, h('span', { text: t('mn_help') }))),
         menuBtn(t('mn_out'), signOut, { class: 'mi out', 'data-k': 'mn-out' })], 'foot')));
@@ -4464,7 +4505,7 @@ a{color:var(--primary-deep)}
   // (Show me on a ready part, the new-work banner from an inner screen, Replies, This week, a day of before) remembers
   // that screen and shows Back to it, at the place it was left; each such step is one step of the browser's history, so
   // the phone's back gesture does what Back does. A day's screen (top to results) comes back as the day is now (want).
-  const INNER = ['replies', 'week'];
+  const INNER = ['replies', 'week', 'biz'];
   function drillFrom(to) {
     const sc = screens.querySelector('.scr:not(.leave) .body');
     S.drill = { screen: S.screen, past: S.past, rp: S.rp, y: sc ? sc.scrollTop : 0, to: to, item: S.screen === 'item' ? S.itemKey : '' };
@@ -4578,6 +4619,7 @@ a{color:var(--primary-deep)}
   };
   function restoreView(r) {
     if (r.view === 'week') { go('week', true); loadResults(false); return true; }
+    if (r.view === 'biz' && S.client) { go('biz', true); return true; }
     if (r.view === 'replies') {
       S.rp = { client: S.client, items: null, failed: false, busy: '', act: '', err: Object.create(null), tab: '', keep: Object.create(null), copied: Object.create(null) };
       go('replies', true); loadReplies(); return true;
