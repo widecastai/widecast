@@ -51,6 +51,8 @@ a{color:var(--primary-deep)}
 .rptabs{display:flex;flex-wrap:wrap;gap:6px}
 .ps-tgn{display:block;font:600 12px/1.3 var(--f-body);color:var(--muted)}.ps-need{color:#8a5a00}
 .ps-done{cursor:default;position:relative;isolation:isolate}.ps-done .vlink{margin-left:8px;font-size:13px}
+.ps-fail{color:#b42318}.ps-going{display:inline-flex;align-items:center;gap:6px;font:600 13px/1.2 var(--f-body);color:var(--muted)}
+.ps-l .btn.sm{min-height:38px;padding:6px 14px;font-size:14px;margin:4px 0 2px auto;display:flex}
 .ps-nm1{display:flex;align-items:baseline;flex-wrap:wrap}.ps-nm .ps-nm1 span{font:inherit;color:inherit}
 .where{display:grid;gap:4px}.where .mini li[data-s="fail"] .note{color:var(--bad,#b42c45)}
 .vscript summary{cursor:pointer;font:700 14px/1.3 var(--f-body);color:var(--muted)}.vscript .txt{margin-top:6px}
@@ -793,6 +795,10 @@ a{color:var(--primary-deep)}
       ps_tg_failed: 'Did not go out last time',
       ps_tg_check: 'Not confirmed: it may be live',
       ps_chk_q: '{p} may already have it. Tap Post again to send it anyway.',
+      ps_posting: 'Posting…',
+      ps_pub_ok: 'Posted to {p}.',
+      ps_pub_fail: 'Did not go out: {e}',
+      s_posting: 'Posting',
       ps_retry: 'Try again',
       ps_stop_note: 'It stopped: {e} Post it another way, or try again.',
       ps_stop_note0: 'It stopped. Post it another way, or try again.',
@@ -1051,6 +1057,10 @@ a{color:var(--primary-deep)}
       ps_tg_failed: 'Lần trước chưa đăng được',
       ps_tg_check: 'Chưa xác nhận: có thể đã lên',
       ps_chk_q: '{p} có thể đã có bài. Bấm Đăng lần nữa để vẫn gửi.',
+      ps_posting: 'Đang đăng…',
+      ps_pub_ok: 'Đã đăng lên {p}.',
+      ps_pub_fail: 'Chưa đăng được: {e}',
+      s_posting: 'Đang đăng',
       ps_retry: 'Thử lại',
       ps_stop_note: 'Bài bị dừng: {e} Bạn đăng theo cách khác, hoặc thử lại.',
       ps_stop_note0: 'Bài bị dừng. Bạn đăng theo cách khác, hoặc thử lại.',
@@ -1467,6 +1477,7 @@ a{color:var(--primary-deep)}
       if (res.data.enabled !== false && res.data.client) loadCount(false);   // once per business (and after his own post)
       paintChrome();
       if (res.data.enabled !== false && res.data.client) psArrive();     // back from Stripe (2026-11-18)
+      pnFollow();
       if (S.restore && S.client && res.data.enabled !== false) { const r0 = S.restore; S.restore = null; if (restoreView(r0)) return; }
       const w = want(S.data);
       if ((S.screen === 'past' || S.screen === 'replies' || S.screen === 'week' || S.screen === 'item') && !userAct) {
@@ -1482,6 +1493,14 @@ a{color:var(--primary-deep)}
       else { S.next = w; repaint(); }
     }, () => { S.loading = false; if (S.busy === 'day') dayFailed(); toast(t('net_err')); if (!S.screen || S.screen === 'loading') go('off', true); })
       .then(() => { if (S.again) { S.again = false; return load(true); } return undefined; });
+  }
+  // 2026-11-20: a part WideCast is posting while the sheet is closed: the day is read again every 5 seconds until it is over.
+  let pnT = 0;
+  function pnFollow() {
+    clearTimeout(pnT);
+    const b = S.data && bundle(S.data);
+    const going = !!b && [b.post, b.video].some((it) => { const p = it && pnOf(it); return !!p && p.status === 'running'; });
+    if (going) pnT = setTimeout(() => { if (!psDlg && document.visibilityState !== 'hidden') load(false); else pnFollow(); }, 5000);
   }
   // A decision the server now shows (or an item that moved on) no longer needs the local memory of it.
   function settle() {
@@ -1515,10 +1534,23 @@ a{color:var(--primary-deep)}
     return d ? { decision: d, stage: str(obj(it.card) && it.card.stage) } : null;
   }
   // 2026-11-18 (hand posting phase 2): a post or a finished video the Boss posted himself ("posted"): done.
-  const postedBy = (it) => { const d = !!it && sentDecision(it); return !!d && d.decision === 'posted'; };
+  const postedBy = (it) => { const d = !!it && sentDecision(it); return (!!d && (d.decision === 'posted' || d.decision === 'published')) || pnPosted(it); };
   // A video is its script until the script is approved; then it is the video.
   const vidKey = (it) => (!it || WRITING.indexOf(it.state) >= 0 || str(obj(it.card) && it.card.stage) === 'script' ? 'k_video' : 'k_vid');
-  const sentOk = (it) => { const m = S.sent[ik(it)]; return !!m && m.hash === String(it.content_hash || ''); };
+  const sentOk = (it) => { const m = S.sent[ik(it)]; return (!!m && m.hash === String(it.content_hash || '')) || pnHolds(it); };
+  // 2026-11-20 (owner: "nó phải gọi api của widecast để publish tại chỗ, xoay xoay tại thẻ facebook cho đến khi publish
+  // xong"): a card whose bridge takes "published" (card.publish_now_ok) is posted by WideCast itself (solo_publish_now).
+  // Its job comes with the item (publish_now: status running | open | sent | closed, and each place): while it runs, or
+  // once a place is reached, the part is done for the day and says Posting / Posted everywhere.
+  const pnOf = (it) => { const p = !!it && obj(it.publish_now); return p && str(p.content_hash) === String(it.content_hash || '') ? p : null; };
+  const pnPlaces = (p) => arr(p && p.places).filter(obj);
+  const pnPosted = (it) => { const p = pnOf(it); return !!p && ['open', 'sent'].indexOf(str(p.status)) >= 0 && pnPlaces(p).some((x) => x.state === 'published'); };
+  const pnHolds = (it) => { const p = pnOf(it); return !!p && (str(p.status) === 'running' || pnPosted(it)); };
+  function pnPartial(it) {
+    const p = pnOf(it), d = effDecision(it);
+    const states = p ? pnPlaces(p).map((x) => str(x.state)) : arr(d && d.results).filter(obj).map((x) => str(x.status));
+    return states.some((x) => x === 'failed' || x === 'needs_check');
+  }
   const firstGate = (it) => { const c = cardOf(it); return !!c && (str(c.stage) === 'post' || str(c.stage) === 'script'); };
   const prodOpen = (it) => !!it && firstGate(it) && isPending(it) && !sentOk(it) && !skipped(it.item_id);
   const rewriting = (c) => !!c && LANGS.indexOf(str(c.rewrite_language)) >= 0;
@@ -2264,6 +2296,9 @@ a{color:var(--primary-deep)}
       if (d && d.decision === 'reject') return chip('mute', t('s_skip'));
       if (d && d.decision === 'language') return chip('busy', t('s_rewrite'));
       if (d && d.decision === 'posted') return chip('ok', t('s_posted'));          // 2026-11-18: he posted it himself
+      const pn = pnOf(x);                                                          // 2026-11-20: WideCast posts it
+      if (pn && str(pn.status) === 'running') return chip('busy', t('s_posting'));
+      if ((d && d.decision === 'published') || pnPosted(x)) return pnPartial(x) ? chip('wait', t('s_partial')) : chip('ok', t('s_published'));
       if (d) return chip('ok', t(d.stage === 'post' || d.stage === 'video' ? 's_sent_pub' : d.stage === 'scenes' ? 's_sent_make' : 's_sent'));
       return skipped(x.item_id) ? chip('mute', t('s_skip')) : chip('ok', t('s_wait'));
     }
@@ -2533,6 +2568,8 @@ a{color:var(--primary-deep)}
       const u = safeUrl(str(p.url));
       if (u && !rows.some((x) => x.url === u)) rows.push({ label: platLabel(p.platform), st: 'published', url: u, err: '' });
     });
+    const pn = pnOf(it);
+    if (pn && !rows.length) pnPlaces(pn).forEach((p) => rows.push({ label: str(p.label), st: p.state === 'sending' ? 'queued' : str(p.state), url: safeUrl(str(p.post_url)), err: str(p.error) }));
     const st = str(it.state);
     if (!rows.length && ['published', 'partial', 'publishing'].indexOf(st) < 0) return null;
     return h('div', { class: 'where', 'data-k': 'where' }, h('h3', { class: 'ps-k', text: t('wh_h') }),
@@ -3563,6 +3600,9 @@ a{color:var(--primary-deep)}
     if (psDlg || !session() || !it) return;
     PS.it = it; PS.view = 'main'; PS.conn = Object.create(null); PS.url = Object.create(null); PS.plan = false; PS.set = null;
     PS.st = psSt(); PS.done = false; PS.posted = false; PS.after = null; PS.soon = Object.create(null);
+    clearTimeout(PS.pubT); PS.pub = null;
+    const job = pnOf(it);                                // a try still running, or not settled: the sheet follows it
+    if (job && ['running', 'open'].indexOf(str(job.status)) >= 0) { PS.pub = Object.assign({ item: ik(it) }, job); if (job.status === 'running') psPubPoll(it, 2000); }
     clearTimeout(PS.payT); PS.pay = ''; PS.paying = false; PS.payErr = ''; PS.planFor = null; PS.chk = false;
     psPgVisOff(); PS.cfg = null; PS.pg = null; PS.shr = ''; PS.shrErr = ''; PS.ac = null;
     if (cardOf(it)) { const u0 = cardUi(it); psPlaces(it).filter((b) => b.browser).forEach((b) => { u0.f.tg[b.key] = false; }); }   // never posted for him
@@ -4048,7 +4088,10 @@ a{color:var(--primary-deep)}
     const stop = !agn && isStopped(it);                 // 2026-11-19: posted another way, or tried again
     const more0 = !agn && !stop && !(cardOf(it) && isPending(it));   // posted, partly posted, held: post it more places
     const where = agn ? psWhere(it) : Object.create(null);
+    const live = psLive(it), pub = psPubOf(it);          // 2026-11-20: WideCast posting it here, place by place
+    Object.keys(live).forEach((k) => { where[k] = live[k].state === 'sending' ? 'queued' : str(live[k].state); });
     const reachedB = (b) => where[b.key] === 'published' || where[b.key] === 'queued';
+    const running = !!pub && pub.status === 'running', tried = !!pub && !running;
     // 2026-11-19 (owner): a personal profile is never posted for him (no one can): not a place to tick; it sits under More
     // places and opens Post it yourself (copy the text, save the picture or the video)
     const boxes = stop || more0 ? [] : psPlaces(it).filter((b) => !b.browser), u = cardOf(it) ? cardUi(it) : { f: { tg: {} }, err: '' };   // a stopped item may have no card
@@ -4066,7 +4109,9 @@ a{color:var(--primary-deep)}
       PS.pay ? h('p', { class: 'ps-pay', role: 'status', 'data-s': PS.pay }, PS.pay === 'wait' ? h('span', { class: 'spin', 'aria-hidden': 'true' }) : null,
         t(PS.pay === 'wait' ? 'pl_wait' : PS.pay === 'on' ? 'pl_on' : 'pl_slow')) : null,
       boxes.length ? [h('h3', { class: 'ps-k', text: t('ps_to') }), h('ul', { class: 'ps-l' }, boxes.map((b) => h('li', null,
-        reachedB(b) ? psReachedRow(it, b, where[b.key]) : psTickRow(b, u, where),
+        reachedB(b) ? psReachedRow(it, b, where[b.key], live[b.key]) : psTickRow(b, u, where, live[b.key]),
+        !reachedB(b) && live[b.key] && live[b.key].state === 'failed' && !running
+          ? btn(t('ps_retry'), 'gh sm', () => psPublish(it, [b.key]), { 'data-k': 'ps-try:' + b.key, disabled: S.busy !== '' }) : null,
         psPlaceWarn(b))))] : null,
       [h('h3', { class: 'ps-k', text: t(more0 ? 'ps_conn_next' : boxes.length ? 'ps_more' : 'ps_acc') }),
         h('ul', { class: 'ps-l' }, psProfileRow()),
@@ -4079,24 +4124,27 @@ a{color:var(--primary-deep)}
     const again = (stop || str(it.state) === 'partial') && obj(it.row) && it.row.can_retry === true;
     const dock = h('div', { class: 'ps-dock' },
       again ? btn(t('ps_retry'), 'pr big', psRetry, { 'data-k': 'ps-retry', disabled: S.busy !== '' }) : null,
-      ticked ? btn(t(ticked === 1 ? 'ps_go1' : 'ps_go', { n: fmtNum(ticked) }), 'pr big',
-        () => { if (unsure.length && !PS.chk) { PS.chk = true; paintPost(); return; } psPostNow(); }, { 'data-k': 'ps-go', disabled: S.busy !== '' }) : null,
+      running ? h('button', { type: 'button', class: 'btn pr big', 'data-k': 'ps-going', disabled: true }, h('span', { class: 'spin', 'aria-hidden': 'true' }), t('ps_posting'))
+        : ticked ? btn(t(ticked === 1 ? 'ps_go1' : 'ps_go', { n: fmtNum(ticked) }), 'pr big',
+          () => { if (unsure.length && !PS.chk) { PS.chk = true; paintPost(); return; } psPostNow(); }, { 'data-k': 'ps-go', disabled: S.busy !== '' })
+          : tried ? btn(t('ps_done'), 'pr big', closePost, { 'data-k': 'ps-fin' }) : null,
       psShareRow(),
-      btn(t('ps_self'), ticked || again ? 'gh big' : 'pr big', psSelfView, { 'data-k': 'ps-self' }));
+      btn(t('ps_self'), ticked || again || running || tried ? 'gh big' : 'pr big', psSelfView, { 'data-k': 'ps-self' }));
     return { title: t(more0 ? 'more_btn' : 'ps_h'), body: body, dock: dock };
   }
   // A place on the card to tick. 2026-11-19 (owner: "Nút disconnect đâu không thấy?"): when its account is connected the
   // row names that account under the place; that line opens the account (its Page, Disconnect), the rest of the row ticks.
-  function psTickRow(b, u, where) {
-    const id = platId(b.key, b.label), on = !b.off && !!u.f.tg[b.key], off = b.off || S.busy !== '';
+  function psTickRow(b, u, where, lv) {
+    const id = platId(b.key, b.label), on = !b.off && !!u.f.tg[b.key], off = b.off || S.busy !== '' || psRunning();
     const p = psConnected(id) ? POST_PLATS.find((x) => x.id === id) : null;
     const tap = () => { u.f.tg[b.key] = !u.f.tg[b.key]; PS.chk = false; paintPost(); };
-    const note = where[b.key] === 'failed' ? h('small', { class: 'ps-tgn', text: t('ps_tg_failed') })
+    const note = lv && lv.state === 'failed' ? h('small', { class: 'ps-tgn ps-fail', role: 'alert', text: t('ps_pub_fail', { e: str(lv.error) || t('ps_tg_failed') }) })
+      : where[b.key] === 'failed' ? h('small', { class: 'ps-tgn', text: t('ps_tg_failed') })
       : where[b.key] === 'needs_check' ? h('small', { class: 'ps-tgn ps-need', text: t('ps_tg_check') }) : null;
     const tick = h('span', { class: 'ps-tick', 'aria-hidden': 'true' }, svg('M5 12l5 5 9-10', 2.6));
     if (!p) {
       return h('button', { type: 'button', class: 'mi ps-pl', 'aria-pressed': String(on), disabled: off, 'data-k': 'ps-pl:' + b.key, onclick: tap },
-        h('span', { class: 'ps-who' }, platIcon(id), h('span', { text: b.label }), note), tick);
+        h('span', { class: 'ps-who' }, platIcon(id), note ? h('span', { class: 'ps-nm' }, h('b', { text: b.label }), note) : h('span', { text: b.label })), tick);
     }
     return h('div', { class: 'mi ps-pl ps-pl2', 'data-on': String(on) },
       h('span', { class: 'ps-who' }, platIcon(id), h('span', { class: 'ps-nm' },
@@ -4122,15 +4170,88 @@ a{color:var(--primary-deep)}
     if (c) arr(c.api_targets).concat(arr(c.browser_targets)).forEach((x) => { if (obj(x) && str(x.key)) out[str(x.key)] = str(x.state); });
     return out;
   }
-  function psReachedRow(it, b, state) {
+  function psReachedRow(it, b, state, lv) {
     const c = cardOf(it) || {};
     const x = arr(c.api_targets).concat(arr(c.browser_targets)).find((y) => obj(y) && str(y.key) === b.key) || {};
-    const url = safeUrl(str(x.post_url));
+    const url = safeUrl(str((lv && lv.post_url) || x.post_url));
+    const going = !!lv && (lv.state === 'sending' || lv.state === 'queued');
     const id = platId(b.key, b.label), p = psConnected(id) ? POST_PLATS.find((x) => x.id === id) : null;
     const name = [h('span', { text: b.label }), url ? h('a', { class: 'vlink', href: url, target: '_blank', rel: 'noopener noreferrer', text: t('wh_view') }) : null];
     return h('div', { class: 'mi ps-pl ps-done' + (p ? ' ps-pl2' : ''), 'data-k': 'ps-done:' + b.key },
       h('span', { class: 'ps-who' }, platIcon(id), p ? h('span', { class: 'ps-nm' }, h('span', { class: 'ps-nm1' }, name), psAsLink(p)) : name),
-      chip('ok', t(state === 'queued' ? 'ps_tg_queued' : 'ps_reached')));
+      going ? h('span', { class: 'ps-going', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), t('ps_posting'))
+        : chip('ok', t(state === 'queued' ? 'ps_tg_queued' : 'ps_reached')));
+  }
+  // ── 2026-11-20: Post on a card WideCast posts at once (card.publish_now_ok). The sheet stays: the places turn while
+  // WideCast posts them (/solo/approvals/publish, followed every 2 seconds), then each says Posted with View or why it did
+  // not go out (Try again on its row); Done closes it. Closing it while one turns leaves it going on WideCast.
+  const psPubOf = (it) => (PS.pub && PS.pub.item === ik(it) ? PS.pub : null);
+  const psRunning = () => !!PS.pub && PS.pub.status === 'running';
+  function psLive(it) {
+    const p = psPubOf(it) || pnOf(it), out = Object.create(null);
+    pnPlaces(p).forEach((x) => { if (str(x.key)) out[str(x.key)] = x; });
+    return out;
+  }
+  function psPublish(it, only) {
+    if (!it || S.busy || psRunning()) return;
+    const u = cardUi(it), c = cardOf(it) || {};
+    if (only) only.forEach((k) => { u.f.tg[k] = true; });   // Try again on one row: that place is the one ticked
+    const v = validateProd(it, 'approve');
+    if (v) { u.err = v; paintPost(); return; }
+    const live = psLive(it), where = againCard(it) ? psWhere(it) : Object.create(null);
+    const gone = (k) => ['published', 'queued', 'sending'].indexOf(str((live[k] || {}).state || where[k])) >= 0;
+    const keys = only || psPlaces(it).filter((b) => !b.browser && !b.off && u.f.tg[b.key]).map((b) => b.key);
+    const targets = keys.filter((k) => /^api:/.test(k) && !gone(k));
+    if (!targets.length) return;
+    const f = prodFields(it), fields = { targets: targets };
+    ['title', 'body_text', 'media_keep'].forEach((x) => { if (f[x] !== undefined) fields[x] = f[x]; });
+    const labels = Object.create(null);
+    psPlaces(it).forEach((b) => { labels[b.key] = b.label; });
+    const prev = PS.pub, places = pnPlaces(prev).filter((x) => targets.indexOf(str(x.key)) < 0);
+    targets.forEach((k) => places.push({ key: k, label: labels[k] || k, state: 'sending', post_url: '', error: '' }));
+    PS.pub = { item: ik(it), status: 'running', content_hash: String(it.content_hash || ''), places: places };
+    targets.forEach((k) => { u.f.tg[k] = false; });
+    u.err = ''; PS.chk = false;
+    paintPost();
+    api('/solo/approvals/publish', { client: it.client, item_id: it.item_id, stage: str(c.stage), content_hash: String(it.content_hash || ''), fields: fields })
+      .then((res) => {
+        if (PS.it !== it) return;
+        if (authFailed(res)) { closePost(); go('login', true); return; }
+        if (res.ok && obj(res.data) && !res.data.error) { psPubSet(it, res.data, prev); return; }
+        const e = errOf(res);
+        PS.pub = prev;
+        targets.forEach((k) => { u.f.tg[k] = true; });
+        u.err = (LANG === 'en' && e.message) || t(res.status === 409 ? 'not_awaiting' : 'decide_failed');
+        paintPost();
+        if (res.status === 409 && ['stale_item', 'not_awaiting', 'already_decided'].indexOf(e.code) >= 0) load(false);
+      }, () => {
+        if (PS.it !== it) return;
+        PS.pub = prev;
+        targets.forEach((k) => { u.f.tg[k] = true; });
+        u.err = t('net_err');
+        paintPost();
+      });
+  }
+  function psPubSet(it, view, before) {
+    const was = Object.create(null);
+    pnPlaces(before || PS.pub).forEach((x) => { was[str(x.key)] = str(x.state); });
+    PS.pub = Object.assign({ item: ik(it) }, view);
+    if (PS.pub.status === 'running') { paintPost(); psPubPoll(it, 2000); return; }
+    const now = pnPlaces(PS.pub).filter((x) => x.state === 'published' && was[str(x.key)] !== 'published');
+    if (now.length) toast(t('ps_pub_ok', { p: now.map((x) => str(x.label) || str(x.key)).join(', ') }), 5000);
+    paintPost();
+  }
+  function psPubPoll(it, ms) {
+    clearTimeout(PS.pubT);
+    PS.pubT = setTimeout(() => {
+      if (PS.it !== it || !psRunning()) return;
+      const before = PS.pub;
+      api('/solo/approvals/publish/status', { client: it.client, item_id: it.item_id }).then((res) => {
+        if (PS.it !== it || PS.pub !== before) return;
+        if (res.ok && obj(res.data) && !res.data.error && str(res.data.status) !== 'none') psPubSet(it, res.data, before);
+        else psPubPoll(it, 4000);
+      }, () => { if (PS.it === it) psPubPoll(it, 4000); });
+    }, ms);
   }
   function psSelf(it) {
     const n = psMedia(it).length, vid = psVideo(it);
@@ -4259,6 +4380,7 @@ a{color:var(--primary-deep)}
   function psPostNow() {
     const it = PS.it;
     if (!it) return;
+    if ((cardOf(it) || {}).publish_now_ok === true) { psPublish(it); return; }   // 2026-11-20: WideCast posts it here
     closePost();
     decideProd(it, 'approve');
   }
@@ -4322,6 +4444,13 @@ a{color:var(--primary-deep)}
     if (psDlg !== d) return;
     psWatchStop(); psPgVisOff();
     clearTimeout(PS.payT); PS.pay = '';
+    clearTimeout(PS.pubT);
+    const pub = PS.pub, pit = PS.it;
+    PS.pub = null;
+    if (pub && pit && pub.item === ik(pit)) {
+      PS.after = pub.status === 'open' ? (PS.after || Promise.resolve()).then(() => api('/solo/approvals/publish/done', { client: pit.client, item_id: pit.item_id }, true))
+        : PS.after || Promise.resolve();
+    }
     psDlg = null; PS.it = null; PS.set = null; PS.pg = null; PS.ac = null; PS.win = null;
     const after = PS.after;
     PS.after = null;

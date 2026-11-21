@@ -40,7 +40,7 @@ Report dials:
 
 - The report must feel like a premium agency deliverable, not exported Markdown.
 - The first viewport must work like a landing-page hero: report title, client/date context, decisive recommendation, source status, and 3-5 scan-friendly highlights.
-- Client-facing reports remain client-blind. Do not mention Solo Agency, WideCast, PDNA/provider tooling, OpenAPI, MCP, Local Collector, Chrome extensions, automation/scheduled tasks, API keys, Telegram, agent/debug details, or `INTERNAL_REPORT`.
+- Client-facing reports stay client-blind: written in the client's business terms, with the operating details (Solo Agency, WideCast, PDNA/provider tooling, OpenAPI, MCP, Local Collector, Chrome extensions, automation/scheduled tasks, API keys, Telegram, agent and debug details, `INTERNAL_REPORT`) kept in the `INTERNAL_REPORT`.
 - No remote CSS, JavaScript, fonts, icons, images, tracking pixels, or CDNs.
 - No fake static action buttons. Use links only when they go somewhere real.
 - No raw Markdown dumps, plain default browser tables, or endless equal cards.
